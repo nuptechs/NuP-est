@@ -159,44 +159,61 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     
     if (userId) {
       try {
+        console.log(`🔍 [DEBUG] Buscando na base de conhecimento para userId: ${userId}`);
+        console.log(`🔍 [DEBUG] Pergunta: "${question}"`);
+        
         // Tentar busca com embeddings primeiro
         const queryEmbedding = await embeddingsService.generateEmbedding(question);
+        console.log(`🔍 [DEBUG] Embedding gerado: ${queryEmbedding.length} dimensões`);
+        
         const embeddingResults = await storage.searchKnowledgeBaseWithEmbeddings(userId, queryEmbedding, 3);
+        console.log(`🔍 [DEBUG] Resultados do embedding: ${embeddingResults.length} encontrados`);
         
         if (embeddingResults.length > 0) {
           hasPersonalKnowledge = true;
           knowledgeContext = '\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n';
           embeddingResults.forEach((result, index) => {
+            console.log(`🔍 [DEBUG] Resultado ${index + 1}: ${result.title} (${(result.similarity * 100).toFixed(1)}%)`);
             knowledgeContext += `• [${result.title}] (relevância: ${(result.similarity * 100).toFixed(1)}%)\n${result.content.substring(0, 500)}...\n\n`;
           });
+          console.log(`✅ [DEBUG] Conhecimento pessoal encontrado com embeddings`);
         } else {
+          console.log(`🔍 [DEBUG] Nenhum resultado com embeddings, tentando busca tradicional...`);
           // Fallback para busca tradicional se não houver embeddings
           const relevantContent = await storage.searchKnowledgeBase(userId, question);
           if (relevantContent) {
             hasPersonalKnowledge = true;
             knowledgeContext = `\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n${relevantContent}\n`;
+            console.log(`✅ [DEBUG] Conhecimento pessoal encontrado com busca tradicional`);
+          } else {
+            console.log(`❌ [DEBUG] Nenhum conteúdo encontrado na busca tradicional`);
           }
         }
       } catch (error) {
-        console.error("Erro ao buscar na base de conhecimento:", error);
+        console.error("❌ [DEBUG] Erro ao buscar na base de conhecimento:", error);
       }
     }
 
     // FASE 2: Determinar se precisa de informações externas
     const needsExternal = webSearch.needsExternalInfo(question, hasPersonalKnowledge);
+    console.log(`🌐 [DEBUG] Precisa de informações externas: ${needsExternal}`);
+    console.log(`📚 [DEBUG] Tem conhecimento pessoal: ${hasPersonalKnowledge}`);
+    
     let webContext = '';
     
     if (needsExternal) {
       try {
+        console.log(`🌐 [DEBUG] Buscando informações externas...`);
         const webResults = await webSearch.search(question, 2);
         if (webResults.length > 0) {
           webContext = '\n\n🌐 INFORMAÇÕES COMPLEMENTARES:\n';
           webResults.forEach((result, index) => {
             webContext += `• ${result.title}\n${result.content}\n\n`;
           });
+          console.log(`✅ [DEBUG] ${webResults.length} resultados web encontrados`);
         }
       } catch (error) {
-        console.error("Erro na busca web:", error);
+        console.error("❌ [DEBUG] Erro na busca web:", error);
       }
     }
 
