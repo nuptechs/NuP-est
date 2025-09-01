@@ -375,6 +375,8 @@ export const insertMaterialSchema = createInsertSchema(materials).omit({
 export const insertGoalSchema = createInsertSchema(goals).omit({
   id: true,
   createdAt: true,
+}).extend({
+  targetDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
 });
 
 export const insertTargetSchema = createInsertSchema(targets).omit({

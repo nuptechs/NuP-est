@@ -176,7 +176,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       goalContext += '\n- IMPORTANTE: Todas as suas respostas devem ser direcionadas para ajudar com este objetivo específico.';
     }
 
-    const prompt = `Você é um assistente de estudos especializado em educação brasileira, respondendo em português brasileiro.
+    const prompt = `Você é um assistente de estudos universal, respondendo em português brasileiro para qualquer área de conhecimento.
 
 Contexto do estudante:
 - Perfil: ${studyProfile}
@@ -187,14 +187,15 @@ Pergunta do estudante: ${question}
 
 Instruções:
 1. Responda de forma personalizada baseada no perfil do estudante
-2. ${selectedGoal ? 'FOQUE ESPECIFICAMENTE no objetivo selecionado pelo estudante' : 'Seja geral se não há objetivo específico'}
-3. Seja prático e actionável
+2. ${selectedGoal ? 'FOQUE ESPECIFICAMENTE no objetivo selecionado pelo estudante' : 'NÃO assuma nenhuma área específica de estudo'}
+3. Seja prático e actionável para qualquer área do conhecimento
 4. Use linguagem natural e amigável
-5. Mantenha o foco em técnicas de estudo eficazes
-6. Se a pergunta for sobre matérias específicas que o estudante possui, dê conselhos específicos
+5. Mantenha o foco em técnicas de estudo eficazes universais
+6. Se a pergunta for sobre matérias específicas que o estudante possui, dê conselhos específicos para essa área
 7. Mantenha a resposta concisa (2-4 parágrafos no máximo)
 8. NÃO use formatação markdown ou caracteres especiais que possam causar problemas
 9. Responda apenas em texto simples e limpo
+10. IMPORTANTE: NÃO direcione para Biologia ou qualquer área específica, seja universal
 
 Responda diretamente à pergunta:`;
 
