@@ -129,6 +129,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const updates = req.body;
       
+      console.log("=== DEBUG USER UPDATE ===");
+      console.log("Raw updates received:", JSON.stringify(updates, null, 2));
+      
       // Sanitizar e converter campos de data
       const sanitizedUpdates = { ...updates };
       
@@ -137,16 +140,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const field of timestampFields) {
         if (sanitizedUpdates[field]) {
+          console.log(`Processing timestamp field ${field}:`, sanitizedUpdates[field], typeof sanitizedUpdates[field]);
           if (typeof sanitizedUpdates[field] === 'string') {
             const date = new Date(sanitizedUpdates[field]);
             if (isNaN(date.getTime())) {
-              // Data inválida, remover o campo
+              console.log(`Invalid date for ${field}, removing`);
               delete sanitizedUpdates[field];
             } else {
               sanitizedUpdates[field] = date;
+              console.log(`Converted ${field} to Date:`, date);
             }
           } else if (!(sanitizedUpdates[field] instanceof Date)) {
-            // Não é string nem Date, remover
+            console.log(`Removing non-Date field ${field}`);
             delete sanitizedUpdates[field];
           }
         }
@@ -155,9 +160,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remover campos undefined ou null que podem causar problemas
       Object.keys(sanitizedUpdates).forEach(key => {
         if (sanitizedUpdates[key] === undefined || sanitizedUpdates[key] === null || sanitizedUpdates[key] === '') {
+          console.log(`Removing empty field: ${key}`);
           delete sanitizedUpdates[key];
         }
       });
+      
+      console.log("Sanitized updates:", JSON.stringify(sanitizedUpdates, null, 2));
       
       const user = await storage.upsertUser({
         id: userId,
