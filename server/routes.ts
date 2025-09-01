@@ -452,6 +452,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/ai/chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { question } = req.body;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ message: "Question is required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      const subjects = await storage.getSubjects(userId);
+      
+      const response = await aiService.chatWithAI(question, user?.studyProfile || "average", subjects);
+      
+      res.json({ response });
+    } catch (error) {
+      console.error("Error in AI chat:", error);
+      res.status(500).json({ message: "Failed to get AI response: " + (error as Error).message });
+    }
+  });
+
   // Question attempt routes
   app.post('/api/question-attempts', isAuthenticated, async (req: any, res) => {
     try {

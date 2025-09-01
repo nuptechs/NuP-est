@@ -62,12 +62,12 @@ export default function AiAssistant() {
     },
   });
 
-  // Chat with AI mutation (simulated for now)
+  // Chat with AI mutation - usando API real do Gemini
   const chatMutation = useMutation({
     mutationFn: async (question: string) => {
-      // For now, provide contextual responses based on the user's profile and subjects
-      const responses = getContextualResponse(question, user?.studyProfile, subjects);
-      return responses;
+      const response = await apiRequest("POST", "/api/ai/chat", { question });
+      const data = await response.json();
+      return data.response;
     },
     onSuccess: (response) => {
       setChatHistory(prev => [
@@ -86,56 +86,6 @@ export default function AiAssistant() {
     },
   });
 
-  const getContextualResponse = (question: string, studyProfile: string | undefined, subjects: Subject[]) => {
-    const lowerQuestion = question.toLowerCase();
-    
-    // Study schedule questions
-    if (lowerQuestion.includes("cronograma") || lowerQuestion.includes("horário") || lowerQuestion.includes("quando")) {
-      if (studyProfile === "disciplined") {
-        return "Como você tem um perfil disciplinado, recomendo um cronograma estruturado: 2-3 horas de estudo concentrado pela manhã, com revisões de 30min à tarde. Mantenha intervalos regulares de 15min a cada hora.";
-      } else if (studyProfile === "undisciplined") {
-        return "Para seu perfil, sugiro sessões curtas de 25-30 minutos com intervalos de 10min (técnica Pomodoro). Comece com 2-3 sessões por dia e vá aumentando gradualmente. Use recompensas após cada sessão!";
-      } else {
-        return "Recomendo o método 50/10: 50 minutos de estudo focado com 10 minutos de pausa. Faça 2-3 blocos por dia, preferencialmente no mesmo horário para criar rotina.";
-      }
-    }
-    
-    // Study techniques questions
-    if (lowerQuestion.includes("como estudar") || lowerQuestion.includes("técnica") || lowerQuestion.includes("método")) {
-      if (studyProfile === "disciplined") {
-        return "Para maximizar seu potencial, use técnicas avançadas: mapas mentais para conexões complexas, método Cornell para anotações, e ensine o conteúdo para alguém (técnica Feynman).";
-      } else if (studyProfile === "undisciplined") {
-        return "Varie as técnicas para manter o interesse: flashcards para memorização, vídeos educativos, resumos coloridos e gamificação. Alterne entre leitura, escrita e exercícios práticos.";
-      } else {
-        return "Combine diferentes técnicas: leitura ativa, resumos, exercícios práticos e revisões espaçadas. Use flashcards para conceitos importantes e pratique com questões regulares.";
-      }
-    }
-    
-    // Motivation questions
-    if (lowerQuestion.includes("motivação") || lowerQuestion.includes("desanimado") || lowerQuestion.includes("difícil")) {
-      return "É normal ter momentos difíceis! Defina metas pequenas e celebre cada conquista. Lembre-se do seu objetivo final e veja o progresso já feito. Considere estudar com amigos ou formar grupos de estudo para manter a motivação.";
-    }
-    
-    // Subject-specific advice
-    if (subjects.length > 0) {
-      const subjectNames = subjects.map(s => s.name.toLowerCase());
-      const mentionedSubject = subjectNames.find(name => lowerQuestion.includes(name));
-      
-      if (mentionedSubject) {
-        const subject = subjects.find(s => s.name.toLowerCase() === mentionedSubject);
-        if (subject?.category === "exatas") {
-          return `Para ${subject.name}, pratique muito! Resolva exercícios diariamente, começando pelos mais simples e aumentando a dificuldade. Mantenha um caderno de fórmulas e revise conceitos fundamentais regularmente.`;
-        } else if (subject?.category === "humanas") {
-          return `Para ${subject.name}, foque na compreensão e conexões. Faça resumos, mapas mentais e relacione o conteúdo com atualidades. Pratique dissertações e analise questões de vestibulares anteriores.`;
-        } else if (subject?.category === "biologicas") {
-          return `Para ${subject.name}, use muito material visual: diagramas, esquemas e vídeos. Pratique nomenclaturas, faça exercícios de fixação e relacione teoria com exemplos práticos do dia a dia.`;
-        }
-      }
-    }
-    
-    // General advice
-    return "Ótima pergunta! Minha dica geral é: seja consistente, use técnicas variadas de estudo, mantenha intervalos regulares e não tenha medo de revisar o mesmo conteúdo várias vezes. O aprendizado é um processo gradual. Como posso ajudar mais especificamente?";
-  };
 
   const getUserProfileLabel = () => {
     switch (user?.studyProfile) {

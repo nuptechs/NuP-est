@@ -149,6 +149,57 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     }
   }
 
+  async chatWithAI(question: string, studyProfile: string, subjects: Subject[]): Promise<string> {
+    // Customize prompt based on study profile
+    const profileContext = {
+      disciplined: "Você está falando com um estudante disciplinado que prefere desafios e análises profundas. Seja específico e ofereça técnicas avançadas.",
+      undisciplined: "Você está falando com um estudante que precisa de motivação e técnicas práticas. Seja encorajador e sugira métodos variados e interessantes.",
+      average: "Você está falando com um estudante mediano. Forneça conselhos equilibrados entre teoria e prática, simples de seguir."
+    };
+
+    const context = profileContext[studyProfile as keyof typeof profileContext] || profileContext.average;
+    const subjectsList = subjects.length > 0 ? 
+      `O estudante está estudando: ${subjects.map(s => `${s.name} (${s.category})`).join(', ')}.` : 
+      'O estudante ainda não cadastrou matérias específicas.';
+
+    const prompt = `Você é um assistente de estudos especializado em educação brasileira, respondendo em português brasileiro.
+
+Contexto do estudante:
+- Perfil: ${studyProfile}
+- ${context}
+- ${subjectsList}
+
+Pergunta do estudante: ${question}
+
+Instruções:
+1. Responda de forma personalizada baseada no perfil do estudante
+2. Seja prático e actionável
+3. Use linguagem natural e amigável
+4. Mantenha o foco em técnicas de estudo eficazes
+5. Se a pergunta for sobre matérias específicas que o estudante possui, dê conselhos específicos
+6. Mantenha a resposta concisa (2-4 parágrafos no máximo)
+
+Responda diretamente à pergunta:`;
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 400,
+        },
+      });
+
+      const response = await result.response;
+      return response.text() || "Desculpe, não consegui processar sua pergunta no momento. Tente novamente em alguns segundos.";
+    } catch (error) {
+      console.error("Error in AI chat:", error);
+      throw new Error("Failed to get AI response: " + (error as Error).message);
+    }
+  }
+
   async analyzeStudyMaterial(content: string, type: string): Promise<{
     summary: string;
     keyTopics: string[];
