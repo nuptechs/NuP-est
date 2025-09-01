@@ -230,6 +230,94 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     };
   }
 
+  // ⚡ OTIMIZAÇÃO AUTOMÁTICA DE CONTEXTO para evitar limites de tokens
+  private optimizePromptSize(prompt: string, selectedModel: any): string {
+    // Aproximação: 1 token ≈ 4 caracteres em português
+    const estimatedTokens = Math.ceil(prompt.length / 4);
+    
+    // Limites seguros por modelo (deixando margem para resposta)
+    const tokenLimits = {
+      'anthropic/claude-3.5-sonnet': 8000, // Limite seguro para contas free
+      'deepseek/deepseek-v3': 6000,
+      'deepseek/deepseek-r1': 15000, // Modelo mais generoso
+    };
+    
+    const maxTokens = tokenLimits[selectedModel.model as keyof typeof tokenLimits] || 6000;
+    
+    if (estimatedTokens <= maxTokens) {
+      console.log(`📏 Prompt OK: ${estimatedTokens} tokens (limite: ${maxTokens})`);
+      return prompt;
+    }
+
+    console.log(`⚠️ Prompt muito grande: ${estimatedTokens} tokens, truncando para ${maxTokens}`);
+    
+    // Estratégia de truncamento inteligente:
+    // 1. Manter pergunta original (mais importante)
+    // 2. Reduzir contexto de conhecimento
+    // 3. Reduzir contexto web
+    
+    const lines = prompt.split('\n');
+    let truncatedLines: string[] = [];
+    let currentTokens = 0;
+    let inKnowledgeSection = false;
+    let inWebSection = false;
+    let knowledgeLines = 0;
+    let webLines = 0;
+    
+    // Primeira passagem: identificar seções e manter estrutura essencial
+    for (const line of lines) {
+      const lineTokens = Math.ceil(line.length / 4);
+      
+      // Detectar seções
+      if (line.includes('📚 BASE DE CONHECIMENTO')) {
+        inKnowledgeSection = true;
+        inWebSection = false;
+      } else if (line.includes('🌐 INFORMAÇÕES DA INTERNET')) {
+        inKnowledgeSection = false;
+        inWebSection = true;
+      }
+      
+      // Sempre manter: pergunta, instruções, formato
+      const isEssential = !inKnowledgeSection && !inWebSection;
+      
+      if (isEssential) {
+        if (currentTokens + lineTokens <= maxTokens) {
+          truncatedLines.push(line);
+          currentTokens += lineTokens;
+        }
+      } else if (inKnowledgeSection && knowledgeLines < 20) {
+        // Limitar conhecimento a 20 linhas mais importantes
+        if (currentTokens + lineTokens <= maxTokens) {
+          truncatedLines.push(line);
+          currentTokens += lineTokens;
+          knowledgeLines++;
+        }
+      } else if (inWebSection && webLines < 10) {
+        // Limitar web a 10 linhas mais importantes
+        if (currentTokens + lineTokens <= maxTokens) {
+          truncatedLines.push(line);
+          currentTokens += lineTokens;
+          webLines++;
+        }
+      }
+    }
+    
+    const truncatedPrompt = truncatedLines.join('\n');
+    const finalTokens = Math.ceil(truncatedPrompt.length / 4);
+    
+    console.log(`✅ Prompt otimizado: ${finalTokens} tokens (reduzido de ${estimatedTokens})`);
+    
+    // Se ainda assim for muito grande, cortar mais drasticamente
+    if (finalTokens > maxTokens) {
+      const targetChars = maxTokens * 4;
+      const drasticPrompt = truncatedPrompt.substring(0, targetChars);
+      console.log(`🔥 Corte drástico aplicado para ${Math.ceil(drasticPrompt.length / 4)} tokens`);
+      return drasticPrompt + '\n\n⚠️ Contexto reduzido devido a limites de tokens. Responda com base no conteúdo disponível.';
+    }
+    
+    return truncatedPrompt;
+  }
+
   async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string, selectedKnowledgeCategory?: string): Promise<string> {
     // FASE 1: Busca INTELIGENTE na base de conhecimento
     let knowledgeContext = '';
@@ -321,12 +409,29 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       selectedGoal
     });
 
-    const prompt = robustPrompt;
+    let prompt = robustPrompt;
 
     try {
       // 🧠 SELEÇÃO INTELIGENTE DE MODELO baseado no tipo de pergunta
-      const selectedModel = this.selectOptimalModel(question, knowledgeContext, webContext);
+      let selectedModel = this.selectOptimalModel(question, knowledgeContext, webContext);
       console.log(`🎯 Modelo selecionado: ${selectedModel.name} para "${question.substring(0, 50)}..."`);
+
+      // ⚡ OTIMIZAÇÃO AUTOMÁTICA DE CONTEXTO para evitar limite de tokens
+      prompt = this.optimizePromptSize(prompt, selectedModel);
+
+      // 🔄 FALLBACK AUTOMÁTICO: se prompt ainda muito grande, usar modelo econômico
+      const estimatedTokens = Math.ceil(prompt.length / 4);
+      if (estimatedTokens > 8000 && selectedModel.model !== 'deepseek/deepseek-r1') {
+        console.log(`🔄 Fallback: Prompt muito grande (${estimatedTokens} tokens), mudando para DeepSeek R1`);
+        selectedModel = {
+          model: "deepseek/deepseek-r1",
+          name: "DeepSeek R1 (Fallback)",
+          temperature: 0.7,
+          maxTokens: 1200,
+          topP: 0.9,
+          reasoning: "Fallback devido a limite de tokens"
+        };
+      }
 
       // SISTEMA DE REVISÃO AUTOMÁTICA COM ATÉ 3 ITERAÇÕES
       const maxAttempts = 3;
