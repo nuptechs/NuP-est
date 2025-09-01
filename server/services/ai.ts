@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import type { Material, Subject, Topic, Goal, KnowledgeBase } from "@shared/schema";
 import { storage } from "../storage";
 import { embeddingsService } from "./embeddings";
@@ -6,8 +6,11 @@ import { webSearch, type WebSearchResult } from "./web-search";
 import fs from "fs";
 import path from "path";
 
-// Initialize Google Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+// Initialize OpenRouter client for DeepSeek R1
+const openai = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+});
 
 export interface QuestionGenerationRequest {
   subject: Subject;
@@ -90,18 +93,22 @@ Respond with a JSON object containing an array of questions in this exact format
 }`;
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 3000,
-        },
+      const response = await openai.chat.completions.create({
+        model: "deepseek/deepseek-r1:free",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 3000,
       });
 
-      const response = await result.response;
-      const text = response.text();
+      const text = response.choices[0]?.message?.content;
+      if (!text) {
+        throw new Error("No response from AI");
+      }
       
       // Clean JSON response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -134,18 +141,20 @@ Recent Performance: ${recentPerformance.length > 0 ?
 Provide a concise, actionable study recommendation (2-3 sentences) tailored to this student's profile and current progress.`;
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 200,
-        },
+      const response = await openai.chat.completions.create({
+        model: "deepseek/deepseek-r1:free",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 200,
       });
 
-      const response = await result.response;
-      return response.text() || "Continue with your current study plan and focus on consistent practice.";
+      const text = response.choices[0]?.message?.content;
+      return text || "Continue with your current study plan and focus on consistent practice.";
     } catch (error) {
       console.error("Error generating recommendation:", error);
       return "Keep up the good work! Focus on areas where you need more practice and maintain a consistent study schedule.";
@@ -254,20 +263,20 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       while (attempt < maxAttempts) {
         attempt++;
         
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        
-        const result = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7, // Mais consistente mas ainda criativo
-            maxOutputTokens: 800, // Aumentado para respostas mais completas
-            topP: 0.9, // Melhor qualidade das respostas
-            topK: 40, // Controle de diversidade
-          },
+        const response = await openai.chat.completions.create({
+          model: "deepseek/deepseek-r1:free",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+          top_p: 0.9,
         });
 
-        const response = await result.response;
-        responseText = response.text();
+        responseText = response.choices[0]?.message?.content || '';
         
         if (!responseText || responseText.trim().length === 0) {
           responseText = "Desculpe, não consegui processar sua pergunta no momento. Tente novamente em alguns segundos.";
@@ -301,18 +310,20 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
           ${reviewResult.suggestions ? `\n- ${reviewResult.suggestions}` : ''}`;
           
           // Usar o prompt melhorado na próxima tentativa
-          const improvedResult = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: improvedPrompt }] }],
-            generationConfig: {
-              temperature: 0.6, // Ligeiramente menos criativo para ser mais focado
-              maxOutputTokens: 1000, // Mais espaço para resposta completa
-              topP: 0.85,
-              topK: 35,
-            },
+          const improvedResponse = await openai.chat.completions.create({
+            model: "deepseek/deepseek-r1:free",
+            messages: [
+              {
+                role: "user",
+                content: improvedPrompt
+              }
+            ],
+            temperature: 0.6,
+            max_tokens: 1000,
+            top_p: 0.85,
           });
           
-          const improvedResponse = await improvedResult.response;
-          responseText = improvedResponse.text() || responseText;
+          responseText = improvedResponse.choices[0]?.message?.content || responseText;
         }
       }
       
@@ -358,18 +369,19 @@ Responda com JSON no seguinte formato:
 }`;
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: reviewPrompt }] }],
-        generationConfig: {
-          temperature: 0.3, // Baixa criatividade para análise objetiva
-          maxOutputTokens: 400,
-        },
+      const response = await openai.chat.completions.create({
+        model: "deepseek/deepseek-r1:free",
+        messages: [
+          {
+            role: "user",
+            content: reviewPrompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 400,
       });
 
-      const reviewResponse = await result.response;
-      const reviewText = reviewResponse.text();
+      const reviewText = response.choices[0]?.message?.content || '';
       
       // Extrair JSON da resposta
       const jsonMatch = reviewText.match(/\{[\s\S]*\}/);
@@ -477,18 +489,22 @@ Respond with JSON in this format:
 }`;
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 500,
-        },
+      const response = await openai.chat.completions.create({
+        model: "deepseek/deepseek-r1:free",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
       });
 
-      const response = await result.response;
-      const text = response.text();
+      const text = response.choices[0]?.message?.content;
+      if (!text) {
+        throw new Error("No response from AI");
+      }
       
       // Clean JSON response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -565,18 +581,22 @@ Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
 }`;
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2000,
-        },
+      const response = await openai.chat.completions.create({
+        model: "deepseek/deepseek-r1:free",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
       });
 
-      const response = await result.response;
-      const text = response.text();
+      const text = response.choices[0]?.message?.content;
+      if (!text) {
+        throw new Error("No response from AI");
+      }
       
       // Clean JSON response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
