@@ -290,19 +290,24 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
   }): string {
     const { question, studyProfile, context, subjectsList, goalContext, knowledgeContext, webContext, hasPersonalKnowledge } = params;
 
-    // Abordagem psicológica: fazer a IA querer usar o conteúdo
-    return `Você tem acesso ao material de estudo pessoal do estudante. Com base nas informações fornecidas, responda à pergunta do estudante de forma clara e educativa.
+    // Prompt explícito que força análise do conteúdo
+    return `Você deve analisar o material fornecido e responder com base nele. O material contém informações relevantes sobre a pergunta.
 
-Material de estudo disponível:
+MATERIAL DO ESTUDANTE:
 ${knowledgeContext}
 
-${webContext ? `Informações complementares:${webContext}` : ''}
+${webContext ? `INFORMAÇÕES COMPLEMENTARES:\n${webContext}` : ''}
 
-Contexto: ${studyProfile} estudando ${subjectsList}${goalContext}
+PERGUNTA: ${question}
 
-Pergunta: ${question}
+INSTRUÇÕES:
+1. Leia ATENTAMENTE todo o material fornecido
+2. Identifique as informações que respondem à pergunta
+3. Responda usando essas informações específicas
+4. Cite trechos do material para sustentar sua resposta
+5. Se o material menciona nomes, conceitos ou teorias, use-os na resposta
 
-Use as informações do material fornecido para dar uma resposta completa e útil:`;
+RESPOSTA:`;
   }
 
   async analyzeStudyMaterial(content: string, type: string): Promise<{
