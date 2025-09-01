@@ -129,43 +129,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const updates = req.body;
       
-      console.log("=== DEBUG USER UPDATE ===");
-      console.log("Raw updates received:", JSON.stringify(updates, null, 2));
-      
-      // Sanitizar e converter campos de data
+      // Remover TODOS os campos de timestamp que podem causar problemas
       const sanitizedUpdates = { ...updates };
       
-      // Converter campos de timestamp para Date ou remover se inválidos
-      const timestampFields = ['studyDeadline', 'createdAt', 'updatedAt'];
+      // Lista de campos que podem causar problemas
+      const problemFields = ['createdAt', 'updatedAt'];
       
-      for (const field of timestampFields) {
-        if (sanitizedUpdates[field]) {
-          console.log(`Processing timestamp field ${field}:`, sanitizedUpdates[field], typeof sanitizedUpdates[field]);
-          if (typeof sanitizedUpdates[field] === 'string') {
-            const date = new Date(sanitizedUpdates[field]);
-            if (isNaN(date.getTime())) {
-              console.log(`Invalid date for ${field}, removing`);
-              delete sanitizedUpdates[field];
-            } else {
-              sanitizedUpdates[field] = date;
-              console.log(`Converted ${field} to Date:`, date);
-            }
-          } else if (!(sanitizedUpdates[field] instanceof Date)) {
-            console.log(`Removing non-Date field ${field}`);
-            delete sanitizedUpdates[field];
+      problemFields.forEach(field => {
+        delete sanitizedUpdates[field];
+      });
+      
+      // Tratar studyDeadline especificamente 
+      if (sanitizedUpdates.studyDeadline) {
+        if (typeof sanitizedUpdates.studyDeadline === 'string') {
+          const date = new Date(sanitizedUpdates.studyDeadline);
+          if (isNaN(date.getTime())) {
+            delete sanitizedUpdates.studyDeadline;
+          } else {
+            sanitizedUpdates.studyDeadline = date;
           }
+        } else if (!(sanitizedUpdates.studyDeadline instanceof Date)) {
+          delete sanitizedUpdates.studyDeadline;
         }
       }
       
-      // Remover campos undefined ou null que podem causar problemas
+      // Remover campos vazios
       Object.keys(sanitizedUpdates).forEach(key => {
         if (sanitizedUpdates[key] === undefined || sanitizedUpdates[key] === null || sanitizedUpdates[key] === '') {
-          console.log(`Removing empty field: ${key}`);
           delete sanitizedUpdates[key];
         }
       });
-      
-      console.log("Sanitized updates:", JSON.stringify(sanitizedUpdates, null, 2));
       
       const user = await storage.upsertUser({
         id: userId,
