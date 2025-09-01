@@ -84,6 +84,31 @@ export default function KnowledgeBasePage() {
     },
   });
 
+  // Reprocess embeddings mutation
+  const reprocessMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/knowledge-base/reprocess-embeddings");
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Embeddings Reprocessados ✨",
+        description: `${data.processed} documentos processados com ${data.totalChunks} chunks. ${data.errors} erros.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao reprocessar embeddings.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUpload = () => {
     if (!uploadData.file || !uploadData.title.trim()) {
       toast({
@@ -119,14 +144,26 @@ export default function KnowledgeBasePage() {
             <p className="text-sm text-gray-600">Adicione PDFs para que a IA use como referência</p>
           </div>
         </div>
-        <Button 
-          onClick={() => setShowUploadForm(true)}
-          className="flex items-center gap-2"
-          data-testid="button-add-document"
-        >
-          <Plus className="w-4 h-4" />
-          Adicionar PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => reprocessMutation.mutate()}
+            disabled={reprocessMutation.isPending}
+            variant="outline"
+            className="flex items-center gap-2"
+            data-testid="button-reprocess-embeddings"
+          >
+            <BookOpen className="w-4 h-4" />
+            {reprocessMutation.isPending ? "Processando..." : "Gerar Embeddings"}
+          </Button>
+          <Button 
+            onClick={() => setShowUploadForm(true)}
+            className="flex items-center gap-2"
+            data-testid="button-add-document"
+          >
+            <Plus className="w-4 h-4" />
+            Adicionar PDF
+          </Button>
+        </div>
       </div>
 
       {/* Upload Form */}

@@ -767,7 +767,7 @@ export class DatabaseStorage implements IStorage {
         knowledgeBaseId: knowledgeChunks.knowledgeBaseId,
       })
       .from(knowledgeChunks)
-      .where(sql`${knowledgeChunks.knowledgeBaseId} = ANY(${documentIds})`);
+      .where(sql`${knowledgeChunks.knowledgeBaseId} = ANY(ARRAY[${documentIds.map(id => `'${id}'`).join(',')}])`);
 
     // Calcular similaridade com cada chunk
     const similarities = chunks
