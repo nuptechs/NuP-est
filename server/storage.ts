@@ -43,7 +43,7 @@ import {
   type InsertKnowledgeChunk,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte, or } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, or, isNotNull } from "drizzle-orm";
 import { embeddingsService } from "./services/embeddings";
 
 export interface IStorage {
@@ -767,7 +767,12 @@ export class DatabaseStorage implements IStorage {
         knowledgeBaseId: knowledgeChunks.knowledgeBaseId,
       })
       .from(knowledgeChunks)
-      .where(sql`${knowledgeChunks.knowledgeBaseId} = ANY(ARRAY[${documentIds.map(id => `'${id}'`).join(',')}])`);
+      .innerJoin(knowledgeBase, eq(knowledgeChunks.knowledgeBaseId, knowledgeBase.id))
+      .where(and(
+        eq(knowledgeBase.userId, userId),
+        eq(knowledgeBase.isActive, true),
+        isNotNull(knowledgeChunks.embedding)
+      ));
 
     // Calcular similaridade com cada chunk
     const similarities = chunks
