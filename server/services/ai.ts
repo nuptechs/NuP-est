@@ -255,8 +255,8 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     const prompt = robustPrompt;
 
     try {
-      // NOVA LÓGICA DE REVISÃO AUTOMÁTICA
-      const maxAttempts = 2;
+      // SISTEMA DE REVISÃO AUTOMÁTICA COM ATÉ 3 ITERAÇÕES
+      const maxAttempts = 3;
       let attempt = 0;
       let responseText = '';
 
@@ -289,27 +289,32 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
         // FASE 4: REVISÃO AUTOMÁTICA DA RESPOSTA
         const reviewResult = await this.reviewResponse(question, responseText);
         
-        if (reviewResult.isComplete && reviewResult.isCoherent) {
+        if (reviewResult.isComplete && reviewResult.isCoherent && reviewResult.isDidactic && reviewResult.hasGoodStructure && reviewResult.isDeepEnough) {
           // Resposta aprovada na revisão
-          console.log(`Resposta aprovada na tentativa ${attempt}`);
+          console.log(`✅ Resposta aprovada na tentativa ${attempt} - Qualidade verificada`);
           break;
         }
         
         if (attempt < maxAttempts) {
           // Resposta precisa ser melhorada - ajustar prompt para próxima tentativa
-          console.log(`Resposta precisa ser melhorada (tentativa ${attempt}). Problemas: ${reviewResult.issues.join(', ')}`);
+          console.log(`🔄 Iteração ${attempt}/${maxAttempts} - Problemas encontrados: ${reviewResult.issues.join(', ')}`);
           
-          // Melhorar o prompt baseado no feedback da revisão
-          const improvedPrompt = `${prompt}\n\nIMPORTANTE: A resposta anterior teve os seguintes problemas: ${reviewResult.issues.join(', ')}. 
-          Certifique-se de que sua resposta seja:
-          - Completa e detalhada
-          - Coerente e bem estruturada
-          - Diretamente relacionada à pergunta
-          - Use formatação Markdown adequada
-          - Organize informações em seções claras
-          ${reviewResult.suggestions ? `\n- ${reviewResult.suggestions}` : ''}`;
+          // Criar prompt melhorado baseado no feedback específico da revisão
+          const improvedPrompt = `${prompt}\n\n🚨 FEEDBACK DA REVISÃO (Tentativa ${attempt}):
+PROBLEMAS IDENTIFICADOS: ${reviewResult.issues.join(', ')}
+SUGESTÕES: ${reviewResult.suggestions || 'Melhore a qualidade geral da resposta'}
+
+📋 REQUISITOS OBRIGATÓRIOS para a próxima resposta:
+✅ COMPLETUDE: Responda TODOS os aspectos da pergunta sem deixar lacunas
+✅ DIDÁTICA: Use linguagem clara, exemplos práticos e explicações passo-a-passo
+✅ ESTRUTURA: Organize com cabeçalhos (##), listas, tabelas e formatação Markdown
+✅ PROFUNDIDADE: Forneça explicações detalhadas, não apenas respostas superficiais
+✅ COERÊNCIA: Mantenha fluxo lógico e conexão entre as ideias
+✅ RELEVÂNCIA: Foque apenas no que foi perguntado
+
+🎯 IMPORTANTE: Esta é a tentativa ${attempt} de ${maxAttempts}. A resposta deve ser significativamente melhor que a anterior.`;
           
-          // Usar o prompt melhorado na próxima tentativa
+          // Usar o prompt melhorado na próxima tentativa com parâmetros ajustados
           const improvedResponse = await openai.chat.completions.create({
             model: "deepseek/deepseek-r1",
             messages: [
@@ -318,12 +323,14 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
                 content: improvedPrompt
               }
             ],
-            temperature: 0.6,
-            max_tokens: 1000,
-            top_p: 0.85,
+            temperature: 0.5, // Menos criatividade, mais foco
+            max_tokens: 1200, // Mais espaço para resposta completa
+            top_p: 0.8, // Melhor qualidade
           });
           
           responseText = improvedResponse.choices[0]?.message?.content || responseText;
+        } else {
+          console.log(`⚠️ Máximo de ${maxAttempts} tentativas atingido. Enviando melhor resposta disponível.`);
         }
       }
       
@@ -343,6 +350,9 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
   private async reviewResponse(originalQuestion: string, response: string): Promise<{
     isComplete: boolean;
     isCoherent: boolean;
+    isDidactic: boolean;
+    hasGoodStructure: boolean;
+    isDeepEnough: boolean;
     issues: string[];
     suggestions?: string;
   }> {
@@ -356,17 +366,26 @@ ${response}
 CRITÉRIOS DE AVALIAÇÃO:
 1. COMPLETUDE: A resposta responde completamente à pergunta? Não deixa pontos importantes sem resposta?
 2. COERÊNCIA: A resposta é logicamente organizada? As informações fluem de forma natural?
-3. ESTRUTURA: A resposta está bem formatada com títulos, listas, etc.?
-4. RELEVÂNCIA: Todo conteúdo da resposta é diretamente relacionado à pergunta?
-5. FINALIZAÇÃO: A resposta parece completa ou foi cortada abruptamente?
+3. ESTRUTURA: A resposta está bem formatada com títulos, listas, exemplos e seções claras?
+4. DIDÁTICA: A explicação é clara, didática e fácil de entender? Usa exemplos quando necessário?
+5. RELEVÂNCIA: Todo conteúdo da resposta é diretamente relacionado à pergunta?
+6. FINALIZAÇÃO: A resposta parece completa ou foi cortada abruptamente?
+7. PROFUNDIDADE: A resposta tem profundidade adequada sem ser superficial?
+
+Uma resposta deve ser APROVADA apenas se atender a TODOS esses critérios.
 
 Responda com JSON no seguinte formato:
 {
   "isComplete": true/false,
   "isCoherent": true/false,
-  "issues": ["lista de problemas encontrados"],
-  "suggestions": "sugestões específicas para melhorar"
-}`;
+  "isDidactic": true/false,
+  "hasGoodStructure": true/false,
+  "isDeepEnough": true/false,
+  "issues": ["lista específica de problemas encontrados"],
+  "suggestions": "sugestões detalhadas e específicas para melhorar"
+}
+
+Seja RIGOROSO na avaliação. Uma resposta só deve ser aprovada se for realmente completa, didática e bem estruturada.`;
 
     try {
       const response = await openai.chat.completions.create({
@@ -390,6 +409,9 @@ Responda com JSON no seguinte formato:
         return {
           isComplete: true,
           isCoherent: true,
+          isDidactic: true,
+          hasGoodStructure: true,
+          isDeepEnough: true,
           issues: [],
           suggestions: undefined
         };
@@ -401,6 +423,9 @@ Responda com JSON no seguinte formato:
       return {
         isComplete: reviewResult.isComplete || false,
         isCoherent: reviewResult.isCoherent || false,
+        isDidactic: reviewResult.isDidactic || false,
+        hasGoodStructure: reviewResult.hasGoodStructure || false,
+        isDeepEnough: reviewResult.isDeepEnough || false,
         issues: Array.isArray(reviewResult.issues) ? reviewResult.issues : [],
         suggestions: reviewResult.suggestions || undefined
       };
@@ -411,6 +436,9 @@ Responda com JSON no seguinte formato:
       return {
         isComplete: true,
         isCoherent: true,
+        isDidactic: true,
+        hasGoodStructure: true,
+        isDeepEnough: true,
         issues: [],
         suggestions: undefined
       };
