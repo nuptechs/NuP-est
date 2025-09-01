@@ -174,9 +174,11 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
           knowledgeContext = '\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n';
           embeddingResults.forEach((result, index) => {
             console.log(`🔍 [DEBUG] Resultado ${index + 1}: ${result.title} (${(result.similarity * 100).toFixed(1)}%)`);
+            console.log(`📄 [DEBUG] Conteúdo resultado ${index + 1} (primeiros 200 chars): "${result.content.substring(0, 200)}..."`);
             knowledgeContext += `• [${result.title}] (relevância: ${(result.similarity * 100).toFixed(1)}%)\n${result.content.substring(0, 500)}...\n\n`;
           });
           console.log(`✅ [DEBUG] Conhecimento pessoal encontrado com embeddings`);
+          console.log(`📝 [DEBUG] Knowledge Context montado (${knowledgeContext.length} chars): "${knowledgeContext.substring(0, 300)}..."`);
         } else {
           console.log(`🔍 [DEBUG] Nenhum resultado com embeddings, tentando busca tradicional...`);
           // Fallback para busca tradicional se não houver embeddings
@@ -269,6 +271,9 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
 
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      console.log(`🤖 [DEBUG] Enviando para IA. Prompt completo (${prompt.length} chars):`);
+      console.log(`🤖 [DEBUG] Prompt: "${prompt}"`);
       
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
