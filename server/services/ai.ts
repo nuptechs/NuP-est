@@ -161,6 +161,75 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     }
   }
 
+  // 🧠 SISTEMA INTELIGENTE DE SELEÇÃO DE MODELO
+  private selectOptimalModel(question: string, knowledgeContext: string, webContext: string): {
+    model: string;
+    name: string;
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    reasoning: string;
+  } {
+    const questionLower = question.toLowerCase();
+    const hasComplexContext = knowledgeContext.length > 500 || webContext.length > 500;
+    
+    // 📊 DETECTAR PERGUNTAS SOBRE TABELAS/ANÁLISES (Claude 3.5 Sonnet - Alta qualidade)
+    const tableKeywords = ['tabela', 'table', 'comparar', 'compare', 'análise', 'analysis', 'classificar', 'classify', 'organizar', 'organize', 'estruturar', 'listar detalhadamente', 'diferenças entre', 'semelhanças', 'quadro', 'matriz', 'planilha', 'dados organizados'];
+    const isTableAnalysis = tableKeywords.some(keyword => questionLower.includes(keyword));
+    
+    // 💻 DETECTAR PERGUNTAS TÉCNICAS/CÓDIGO (DeepSeek V3 - Especializado)
+    const techKeywords = ['código', 'code', 'programar', 'programming', 'algoritmo', 'algorithm', 'função', 'function', 'javascript', 'python', 'sql', 'html', 'css', 'api', 'debug', 'erro técnico', 'implementar', 'desenvolvimento'];
+    const isTechnical = techKeywords.some(keyword => questionLower.includes(keyword));
+    
+    // 📝 DETECTAR PERGUNTAS COMPLEXAS QUE PRECISAM DE ALTA QUALIDADE
+    const complexKeywords = ['explique detalhadamente', 'análise profunda', 'compare detalhadamente', 'dissertação', 'ensaio', 'redação', 'argumentação', 'fundamentação teórica'];
+    const isComplex = complexKeywords.some(keyword => questionLower.includes(keyword)) || hasComplexContext;
+    
+    // 📊 LÓGICA DE SELEÇÃO INTELIGENTE
+    if (isTableAnalysis || question.length > 200) {
+      return {
+        model: "anthropic/claude-3.5-sonnet",
+        name: "Claude 3.5 Sonnet (Tabelas/Análises)",
+        temperature: 0.4,
+        maxTokens: 1500,
+        topP: 0.85,
+        reasoning: "Pergunta sobre tabelas/análises ou muito longa - usando Claude para máxima qualidade"
+      };
+    }
+    
+    if (isTechnical) {
+      return {
+        model: "deepseek/deepseek-v3",
+        name: "DeepSeek V3 (Técnico)",
+        temperature: 0.3,
+        maxTokens: 1200,
+        topP: 0.8,
+        reasoning: "Pergunta técnica - usando DeepSeek V3 especializado"
+      };
+    }
+    
+    if (isComplex || hasComplexContext) {
+      return {
+        model: "anthropic/claude-3.5-sonnet",
+        name: "Claude 3.5 Sonnet (Complexo)",
+        temperature: 0.5,
+        maxTokens: 1200,
+        topP: 0.9,
+        reasoning: "Pergunta complexa ou muito contexto - usando Claude para melhor qualidade"
+      };
+    }
+    
+    // 💰 PADRÃO: Perguntas gerais (DeepSeek R1 - Econômico)
+    return {
+      model: "deepseek/deepseek-r1",
+      name: "DeepSeek R1 (Geral)",
+      temperature: 0.7,
+      maxTokens: 1000,
+      topP: 0.9,
+      reasoning: "Pergunta geral - usando modelo econômico"
+    };
+  }
+
   async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string, selectedKnowledgeCategory?: string): Promise<string> {
     // FASE 1: Busca INTELIGENTE na base de conhecimento
     let knowledgeContext = '';
@@ -255,6 +324,10 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     const prompt = robustPrompt;
 
     try {
+      // 🧠 SELEÇÃO INTELIGENTE DE MODELO baseado no tipo de pergunta
+      const selectedModel = this.selectOptimalModel(question, knowledgeContext, webContext);
+      console.log(`🎯 Modelo selecionado: ${selectedModel.name} para "${question.substring(0, 50)}..."`);
+
       // SISTEMA DE REVISÃO AUTOMÁTICA COM ATÉ 3 ITERAÇÕES
       const maxAttempts = 3;
       let attempt = 0;
@@ -264,16 +337,16 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
         attempt++;
         
         const response = await openai.chat.completions.create({
-          model: "deepseek/deepseek-r1",
+          model: selectedModel.model,
           messages: [
             {
               role: "user",
               content: prompt
             }
           ],
-          temperature: 0.7,
-          max_tokens: 800,
-          top_p: 0.9,
+          temperature: selectedModel.temperature,
+          max_tokens: selectedModel.maxTokens,
+          top_p: selectedModel.topP,
         });
 
         responseText = response.choices[0]?.message?.content || '';
@@ -316,16 +389,16 @@ SUGESTÕES: ${reviewResult.suggestions || 'Melhore a qualidade geral da resposta
           
           // Usar o prompt melhorado na próxima tentativa com parâmetros ajustados
           const improvedResponse = await openai.chat.completions.create({
-            model: "deepseek/deepseek-r1",
+            model: selectedModel.model,
             messages: [
               {
                 role: "user",
                 content: improvedPrompt
               }
             ],
-            temperature: 0.5, // Menos criatividade, mais foco
-            max_tokens: 1200, // Mais espaço para resposta completa
-            top_p: 0.8, // Melhor qualidade
+            temperature: Math.max(selectedModel.temperature - 0.1, 0.4), // Reduzir criatividade para foco
+            max_tokens: selectedModel.maxTokens + 200, // Mais espaço para melhorias
+            top_p: Math.max(selectedModel.topP - 0.05, 0.7),
           });
           
           responseText = improvedResponse.choices[0]?.message?.content || responseText;
