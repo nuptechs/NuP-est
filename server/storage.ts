@@ -122,7 +122,8 @@ export interface IStorage {
   getFlashcardsForReview(userId: string, deckId?: string): Promise<Flashcard[]>;
 
   // Knowledge base operations
-  getKnowledgeBase(userId: string): Promise<KnowledgeBase[]>;
+  getKnowledgeBase(userId: string, category?: string): Promise<KnowledgeBase[]>;
+  getKnowledgeCategories(userId: string): Promise<string[]>;
   getKnowledgeDocument(id: string): Promise<KnowledgeBase | undefined>;
   createKnowledgeDocument(document: InsertKnowledgeBase): Promise<KnowledgeBase>;
   updateKnowledgeDocument(id: string, updates: Partial<InsertKnowledgeBase>): Promise<KnowledgeBase>;
@@ -132,8 +133,8 @@ export interface IStorage {
   createKnowledgeChunks(chunks: InsertKnowledgeChunk[]): Promise<KnowledgeChunk[]>;
   deleteKnowledgeChunks(knowledgeBaseId: string): Promise<void>;
   
-  searchKnowledgeBase(userId: string, query: string): Promise<string>;
-  searchKnowledgeBaseWithEmbeddings(userId: string, queryEmbedding: number[], limit?: number): Promise<{ content: string; similarity: number; title: string; }[]>;
+  searchKnowledgeBase(userId: string, query: string, category?: string): Promise<string>;
+  searchKnowledgeBaseWithEmbeddings(userId: string, queryEmbedding: number[], limit?: number, category?: string): Promise<{ content: string; similarity: number; title: string; }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -636,12 +637,28 @@ export class DatabaseStorage implements IStorage {
       .orderBy(flashcards.nextReview);
   }
   // Knowledge base operations
-  async getKnowledgeBase(userId: string): Promise<KnowledgeBase[]> {
+  async getKnowledgeBase(userId: string, category?: string): Promise<KnowledgeBase[]> {
+    const conditions = [eq(knowledgeBase.userId, userId), eq(knowledgeBase.isActive, true)];
+    
+    if (category) {
+      conditions.push(eq(knowledgeBase.category, category));
+    }
+    
     return await db
       .select()
       .from(knowledgeBase)
-      .where(and(eq(knowledgeBase.userId, userId), eq(knowledgeBase.isActive, true)))
+      .where(and(...conditions))
       .orderBy(desc(knowledgeBase.createdAt));
+  }
+
+  async getKnowledgeCategories(userId: string): Promise<string[]> {
+    const result = await db
+      .selectDistinct({ category: knowledgeBase.category })
+      .from(knowledgeBase)
+      .where(and(eq(knowledgeBase.userId, userId), eq(knowledgeBase.isActive, true)))
+      .orderBy(knowledgeBase.category);
+    
+    return result.map(r => r.category);
   }
 
   async getKnowledgeDocument(id: string): Promise<KnowledgeBase | undefined> {
@@ -669,7 +686,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(knowledgeBase.id, id));
   }
 
-  async searchKnowledgeBase(userId: string, query: string): Promise<string> {
+  async searchKnowledgeBase(userId: string, query: string, category?: string): Promise<string> {
     // Busca melhorada com palavras-chave
     
     // Extrair palavras-chave da pergunta (remover palavras comuns)
@@ -687,14 +704,20 @@ export class DatabaseStorage implements IStorage {
         sql`${knowledgeBase.content} ILIKE ${'%' + keyword + '%'}`
       );
       
+      const baseConditions = [
+        eq(knowledgeBase.userId, userId),
+        eq(knowledgeBase.isActive, true),
+        or(...keywordConditions)
+      ];
+      
+      if (category) {
+        baseConditions.push(eq(knowledgeBase.category, category));
+      }
+      
       documents = await db
         .select()
         .from(knowledgeBase)
-        .where(and(
-          eq(knowledgeBase.userId, userId),
-          eq(knowledgeBase.isActive, true),
-          or(...keywordConditions)
-        ))
+        .where(and(...baseConditions))
         .limit(3);
     }
     
@@ -738,19 +761,26 @@ export class DatabaseStorage implements IStorage {
   async searchKnowledgeBaseWithEmbeddings(
     userId: string, 
     queryEmbedding: number[], 
-    limit: number = 3
+    limit: number = 3,
+    category?: string
   ): Promise<{ content: string; similarity: number; title: string; }[]> {
     // Buscar documentos do usuário
+    const conditions = [
+      eq(knowledgeBase.userId, userId),
+      eq(knowledgeBase.isActive, true)
+    ];
+    
+    if (category) {
+      conditions.push(eq(knowledgeBase.category, category));
+    }
+    
     const userDocuments = await db
       .select({
         id: knowledgeBase.id,
         title: knowledgeBase.title,
       })
       .from(knowledgeBase)
-      .where(and(
-        eq(knowledgeBase.userId, userId),
-        eq(knowledgeBase.isActive, true)
-      ));
+      .where(and(...conditions));
 
     if (userDocuments.length === 0) {
       return [];

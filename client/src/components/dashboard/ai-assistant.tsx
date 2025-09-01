@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Brain, Target, Send, X, Copy, Check } from "lucide-react";
+import { Loader2, Brain, Target, Send, X, Copy, Check, Database } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Subject, Goal } from "@shared/schema";
@@ -22,6 +22,12 @@ interface ChatMessage {
   message: string;
   timestamp: Date;
   goalOptions?: Goal[];
+  knowledgeCategories?: string[];
+}
+
+interface KnowledgeCategory {
+  category: string;
+  count: number;
 }
 
 // Componente para mensagem da IA com Markdown
@@ -149,6 +155,7 @@ function AIMessage({ message }: { message: string }) {
 export default function AiAssistant() {
   const [userQuestion, setUserQuestion] = useState("");
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [selectedKnowledgeCategory, setSelectedKnowledgeCategory] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -164,6 +171,11 @@ export default function AiAssistant() {
     queryKey: ["/api/goals"],
   });
 
+  // Fetch knowledge base categories
+  const { data: knowledgeCategories = [] } = useQuery<KnowledgeCategory[]>({
+    queryKey: ["/api/knowledge-base/categories"],
+  });
+
   // Chat with AI mutation - com verificação de metas
   const chatMutation = useMutation({
     mutationFn: async (question: string) => {
@@ -173,6 +185,11 @@ export default function AiAssistant() {
         // Se há uma meta selecionada, incluir no contexto
         if (selectedGoal) {
           payload.selectedGoal = selectedGoal;
+        }
+        
+        // Se há uma categoria de base de conhecimento selecionada, incluir no contexto
+        if (selectedKnowledgeCategory) {
+          payload.selectedKnowledgeCategory = selectedKnowledgeCategory;
         }
         
         const response = await apiRequest("POST", "/api/ai/chat", payload);
@@ -232,6 +249,20 @@ export default function AiAssistant() {
       return;
     }
     
+    // Se há bases de conhecimento e nenhuma categoria foi selecionada, mostrar opções
+    if (knowledgeCategories.length > 0 && !selectedKnowledgeCategory) {
+      setChatHistory(prev => [
+        ...prev.filter(msg => !msg.goalOptions), // Remove mensagem de seleção de metas se existe
+        { 
+          type: 'system', 
+          message: "Escolha qual base de conhecimento usar para sua consulta:",
+          timestamp: new Date(),
+          knowledgeCategories: knowledgeCategories.map(kc => kc.category)
+        },
+      ]);
+      return;
+    }
+    
     // Caso contrário, proceder normalmente
     chatMutation.mutate(userQuestion);
   };
@@ -245,11 +276,42 @@ export default function AiAssistant() {
       : "✓ Sem objetivo específico";
     
     setChatHistory(prev => [
-      ...prev.filter(msg => msg.type !== 'system'), // Remove a mensagem de seleção
+      ...prev.filter(msg => !msg.goalOptions), // Remove a mensagem de seleção
       { type: 'system', message: goalMessage, timestamp: new Date() },
     ]);
     
-    // Agora fazer a pergunta com o contexto
+    // Se há bases de conhecimento, mostrar opções de categoria
+    if (knowledgeCategories.length > 0 && !selectedKnowledgeCategory) {
+      setChatHistory(prev => [
+        ...prev,
+        { 
+          type: 'system', 
+          message: "Escolha qual base de conhecimento usar para sua consulta:",
+          timestamp: new Date(),
+          knowledgeCategories: knowledgeCategories.map(kc => kc.category)
+        },
+      ]);
+      return;
+    }
+    
+    // Caso contrário, fazer a pergunta com o contexto
+    chatMutation.mutate(userQuestion);
+  };
+  
+  const handleKnowledgeCategorySelection = (category: string | null) => {
+    setSelectedKnowledgeCategory(category);
+    
+    // Adicionar mensagem de confirmação
+    const categoryMessage = category 
+      ? `✓ Usando base: ${category}`
+      : "✓ Sem base de conhecimento específica";
+    
+    setChatHistory(prev => [
+      ...prev.filter(msg => !msg.knowledgeCategories), // Remove a mensagem de seleção
+      { type: 'system', message: categoryMessage, timestamp: new Date() },
+    ]);
+    
+    // Agora fazer a pergunta com o contexto completo
     chatMutation.mutate(userQuestion);
   };
 
@@ -263,6 +325,7 @@ export default function AiAssistant() {
   const clearChat = () => {
     setChatHistory([]);
     setSelectedGoal(null);
+    setSelectedKnowledgeCategory(null);
     setUserQuestion("");
   };
 
@@ -278,7 +341,14 @@ export default function AiAssistant() {
           <div className="flex items-center gap-2">
             {selectedGoal && (
               <Badge variant="outline" className="text-xs">
+                <Target className="w-3 h-3 mr-1" />
                 {selectedGoal.title}
+              </Badge>
+            )}
+            {selectedKnowledgeCategory && (
+              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                <Database className="w-3 h-3 mr-1" />
+                {selectedKnowledgeCategory}
               </Badge>
             )}
             {chatHistory.length > 0 && (
@@ -329,6 +399,32 @@ export default function AiAssistant() {
                           className="w-full text-left justify-start h-auto p-3 text-gray-500 text-sm hover:bg-gray-50 rounded-lg"
                         >
                           Continuar sem objetivo específico
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Knowledge Base Category Selection Options */}
+                    {message.knowledgeCategories && (
+                      <div className="mt-3 space-y-2">
+                        {message.knowledgeCategories.map((category) => (
+                          <Button
+                            key={category}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleKnowledgeCategorySelection(category)}
+                            className="w-full text-left justify-start h-auto p-3 bg-white hover:bg-blue-50 border-blue-200 rounded-lg"
+                          >
+                            <Database className="w-4 h-4 mr-2 flex-shrink-0 text-blue-600" />
+                            <span className="truncate text-sm text-gray-700">{category}</span>
+                          </Button>
+                        ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleKnowledgeCategorySelection(null)}
+                          className="w-full text-left justify-start h-auto p-3 text-gray-500 text-sm hover:bg-gray-50 rounded-lg"
+                        >
+                          Continuar sem base de conhecimento específica
                         </Button>
                       </div>
                     )}

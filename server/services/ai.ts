@@ -152,7 +152,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     }
   }
 
-  async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string): Promise<string> {
+  async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string, selectedKnowledgeCategory?: string): Promise<string> {
     // FASE 1: Busca INTELIGENTE na base de conhecimento
     let knowledgeContext = '';
     let hasPersonalKnowledge = false;
@@ -161,10 +161,10 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       try {
         // Busca com embeddings (mais precisa)
         const queryEmbedding = await embeddingsService.generateEmbedding(question);
-        const embeddingResults = await storage.searchKnowledgeBaseWithEmbeddings(userId, queryEmbedding, 5);
+        const embeddingResults = await storage.searchKnowledgeBaseWithEmbeddings(userId, queryEmbedding, 5, selectedKnowledgeCategory);
         
         // Busca tradicional por keywords (mais abrangente)
-        const keywordResults = await storage.searchKnowledgeBase(userId, question);
+        const keywordResults = await storage.searchKnowledgeBase(userId, question, selectedKnowledgeCategory);
         
         // Combinar resultados para ter informação completa
         if (embeddingResults.length > 0 || keywordResults) {

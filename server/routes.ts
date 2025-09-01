@@ -475,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/chat', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { question, selectedGoal } = req.body;
+      const { question, selectedGoal, selectedKnowledgeCategory } = req.body;
       
       if (!question || typeof question !== 'string' || question.trim().length === 0) {
         return res.status(400).json({ message: "Pergunta é obrigatória" });
@@ -489,7 +489,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user?.studyProfile || "average", 
         subjects,
         selectedGoal,
-        userId
+        userId,
+        selectedKnowledgeCategory
       );
       
       // Ensure we always return a valid response
@@ -806,10 +807,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Knowledge Base routes
+  // Get knowledge base categories
+  app.get('/api/knowledge-base/categories', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const categories = await storage.getKnowledgeCategories(userId);
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching knowledge base categories:', error);
+      res.status(500).json({ message: 'Failed to fetch knowledge base categories' });
+    }
+  });
+
   app.get('/api/knowledge-base', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const documents = await storage.getKnowledgeBase(userId);
+      const { category } = req.query;
+      const documents = await storage.getKnowledgeBase(userId, category as string);
       res.json(documents);
     } catch (error) {
       console.error('Error fetching knowledge base:', error);
@@ -817,10 +831,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/knowledge-base/categories', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const categories = await storage.getKnowledgeCategories(userId);
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching knowledge categories:', error);
+      res.status(500).json({ message: 'Failed to fetch knowledge categories' });
+    }
+  });
+
   app.post('/api/knowledge-base', isAuthenticated, pdfUpload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { title, description, tags } = req.body;
+      const { title, description, tags, category } = req.body;
       
       if (!req.file) {
         return res.status(400).json({ message: 'Arquivo PDF é obrigatório' });
@@ -838,6 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         title,
         description: description || '',
+        category: category || 'Geral',
         filename: req.file.originalname,
         fileSize: req.file.size,
         content: pdfResult.text,

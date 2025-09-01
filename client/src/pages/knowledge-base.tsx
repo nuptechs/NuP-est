@@ -15,8 +15,10 @@ import {
   Plus, 
   BookOpen,
   Calendar,
-  FileIcon
+  FileIcon,
+  Database
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { KnowledgeBase } from "@shared/schema";
 
 export default function KnowledgeBasePage() {
@@ -24,6 +26,7 @@ export default function KnowledgeBasePage() {
   const [uploadData, setUploadData] = useState({
     title: "",
     description: "",
+    category: "",
     file: null as File | null
   });
   const { toast } = useToast();
@@ -32,6 +35,11 @@ export default function KnowledgeBasePage() {
   // Fetch knowledge base documents
   const { data: documents = [], isLoading } = useQuery<KnowledgeBase[]>({
     queryKey: ["/api/knowledge-base"],
+  });
+  
+  // Fetch knowledge base categories
+  const { data: categories = [] } = useQuery<{category: string; count: number}[]>({
+    queryKey: ["/api/knowledge-base/categories"],
   });
 
   // Upload mutation
@@ -47,7 +55,7 @@ export default function KnowledgeBasePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/knowledge-base"] });
       setShowUploadForm(false);
-      setUploadData({ title: "", description: "", file: null });
+      setUploadData({ title: "", description: "", category: "", file: null });
       toast({
         title: "Sucesso",
         description: "Documento processado e adicionado à base de conhecimento!",
@@ -123,6 +131,9 @@ export default function KnowledgeBasePage() {
     formData.append("file", uploadData.file);
     formData.append("title", uploadData.title);
     formData.append("description", uploadData.description);
+    if (uploadData.category) {
+      formData.append("category", uploadData.category);
+    }
 
     uploadMutation.mutate(formData);
   };
@@ -194,6 +205,40 @@ export default function KnowledgeBasePage() {
                 onChange={(e) => setUploadData({ ...uploadData, description: e.target.value })}
                 data-testid="input-document-description"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Categoria</label>
+              <Select 
+                value={uploadData.category} 
+                onValueChange={(value) => setUploadData({ ...uploadData, category: value })}
+              >
+                <SelectTrigger data-testid="select-document-category">
+                  <SelectValue placeholder="Selecione uma categoria..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Geral">Geral</SelectItem>
+                  <SelectItem value="Direito Constitucional">Direito Constitucional</SelectItem>
+                  <SelectItem value="Direito Administrativo">Direito Administrativo</SelectItem>
+                  <SelectItem value="Direito Civil">Direito Civil</SelectItem>
+                  <SelectItem value="Direito Penal">Direito Penal</SelectItem>
+                  <SelectItem value="Direito Processual">Direito Processual</SelectItem>
+                  <SelectItem value="Matemática">Matemática</SelectItem>
+                  <SelectItem value="Física">Física</SelectItem>
+                  <SelectItem value="Química">Química</SelectItem>
+                  <SelectItem value="Biologia">Biologia</SelectItem>
+                  <SelectItem value="História">História</SelectItem>
+                  <SelectItem value="Geografia">Geografia</SelectItem>
+                  <SelectItem value="Literatura">Literatura</SelectItem>
+                  <SelectItem value="Filosofia">Filosofia</SelectItem>
+                  <SelectItem value="Sociologia">Sociologia</SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat.category} value={cat.category}>
+                      {cat.category} ({cat.count})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -270,6 +315,14 @@ export default function KnowledgeBasePage() {
                         <span>{formatFileSize(doc.fileSize || 0)}</span>
                         <span>{doc.filename}</span>
                       </div>
+                      {doc.category && (
+                        <div className="mt-2">
+                          <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            <Database className="w-3 h-3 mr-1" />
+                            {doc.category}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                   </div>
                   

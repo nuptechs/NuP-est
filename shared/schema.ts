@@ -193,6 +193,7 @@ export const flashcardReviews = pgTable("flashcard_reviews", {
 export const knowledgeBase = pgTable("knowledge_base", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  category: varchar("category").notNull().default("Geral"), // base de conhecimento nomeada
   title: text("title").notNull(),
   description: text("description"),
   filename: text("filename").notNull(),
