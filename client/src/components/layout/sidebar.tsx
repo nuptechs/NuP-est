@@ -7,6 +7,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: "fa-home" },
   { name: "Matérias", href: "/subjects", icon: "fa-book" },
   { name: "Materiais", href: "/materials", icon: "fa-file-alt" },
+  { name: "Base de Conhecimento", href: "/knowledge-base", icon: "fa-database" },
   { name: "Estudar", href: "/study", icon: "fa-graduation-cap" },
   { name: "Flashcards", href: "/flashcards", icon: "fa-layer-group" },
   { name: "Objetivos", href: "/goals", icon: "fa-target" },

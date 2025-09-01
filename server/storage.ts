@@ -11,6 +11,7 @@ import {
   flashcardDecks,
   flashcards,
   flashcardReviews,
+  knowledgeBase,
   type User,
   type UpsertUser,
   type Subject,
@@ -35,6 +36,8 @@ import {
   type InsertFlashcard,
   type FlashcardReview,
   type InsertFlashcardReview,
+  type KnowledgeBase,
+  type InsertKnowledgeBase,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
@@ -113,6 +116,14 @@ export interface IStorage {
   createFlashcardReview(review: InsertFlashcardReview): Promise<FlashcardReview>;
   getFlashcardReviews(userId: string, flashcardId?: string): Promise<FlashcardReview[]>;
   getFlashcardsForReview(userId: string, deckId?: string): Promise<Flashcard[]>;
+
+  // Knowledge base operations
+  getKnowledgeBase(userId: string): Promise<KnowledgeBase[]>;
+  getKnowledgeDocument(id: string): Promise<KnowledgeBase | undefined>;
+  createKnowledgeDocument(document: InsertKnowledgeBase): Promise<KnowledgeBase>;
+  updateKnowledgeDocument(id: string, updates: Partial<InsertKnowledgeBase>): Promise<KnowledgeBase>;
+  deleteKnowledgeDocument(id: string): Promise<void>;
+  searchKnowledgeBase(userId: string, query: string): Promise<string>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -613,6 +624,61 @@ export class DatabaseStorage implements IStorage {
       .from(flashcards)
       .where(whereCondition)
       .orderBy(flashcards.nextReview);
+  }
+  // Knowledge base operations
+  async getKnowledgeBase(userId: string): Promise<KnowledgeBase[]> {
+    return await db
+      .select()
+      .from(knowledgeBase)
+      .where(and(eq(knowledgeBase.userId, userId), eq(knowledgeBase.isActive, true)))
+      .orderBy(desc(knowledgeBase.createdAt));
+  }
+
+  async getKnowledgeDocument(id: string): Promise<KnowledgeBase | undefined> {
+    const [document] = await db.select().from(knowledgeBase).where(eq(knowledgeBase.id, id));
+    return document;
+  }
+
+  async createKnowledgeDocument(document: InsertKnowledgeBase): Promise<KnowledgeBase> {
+    const [newDocument] = await db.insert(knowledgeBase).values(document).returning();
+    return newDocument;
+  }
+
+  async updateKnowledgeDocument(id: string, updates: Partial<InsertKnowledgeBase>): Promise<KnowledgeBase> {
+    const [updatedDocument] = await db
+      .update(knowledgeBase)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(knowledgeBase.id, id))
+      .returning();
+    return updatedDocument;
+  }
+
+  async deleteKnowledgeDocument(id: string): Promise<void> {
+    await db.update(knowledgeBase)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(knowledgeBase.id, id));
+  }
+
+  async searchKnowledgeBase(userId: string, query: string): Promise<string> {
+    // Busca simples no conteúdo dos documentos ativos
+    const documents = await db
+      .select()
+      .from(knowledgeBase)
+      .where(and(
+        eq(knowledgeBase.userId, userId),
+        eq(knowledgeBase.isActive, true),
+        sql`${knowledgeBase.content} ILIKE ${'%' + query + '%'}`
+      ))
+      .limit(3);
+
+    if (documents.length === 0) {
+      return "";
+    }
+
+    // Retorna o contexto relevante dos documentos encontrados
+    return documents
+      .map(doc => `[${doc.title}]\n${doc.content?.substring(0, 1000)}...`)
+      .join('\n\n');
   }
 }
 

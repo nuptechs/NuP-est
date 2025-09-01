@@ -13,6 +13,7 @@ import Study from "@/pages/study";
 import Goals from "@/pages/goals";
 import Analytics from "@/pages/analytics";
 import Flashcards from "@/pages/flashcards";
+import KnowledgeBase from "@/pages/knowledge-base";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -26,6 +27,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/subjects" component={Subjects} />
           <Route path="/materials" component={Materials} />
+          <Route path="/knowledge-base" component={KnowledgeBase} />
           <Route path="/study" component={Study} />
           <Route path="/goals" component={Goals} />
           <Route path="/analytics" component={Analytics} />

@@ -13,11 +13,13 @@ import {
   insertQuestionAttemptSchema,
   insertFlashcardDeckSchema,
   insertFlashcardSchema,
-  insertFlashcardReviewSchema
+  insertFlashcardReviewSchema,
+  insertKnowledgeBaseSchema
 } from "@shared/schema";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { pdfService } from "./services/pdf";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -35,6 +37,20 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Only PDF, DOC, DOCX, TXT, and MD files are allowed.'));
+    }
+  }
+});
+
+// Multer específico para PDFs da base de conhecimento
+const pdfUpload = multer({
+  dest: uploadDir,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit for PDFs
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos PDF são permitidos para a base de conhecimento.'));
     }
   }
 });
@@ -468,7 +484,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         question.trim(), 
         user?.studyProfile || "average", 
         subjects,
-        selectedGoal
+        selectedGoal,
+        userId
       );
       
       // Ensure we always return a valid response
@@ -781,6 +798,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating flashcards:", error);
       res.status(500).json({ message: "Failed to generate flashcards: " + (error as Error).message });
+    }
+  });
+
+  // Knowledge Base routes
+  app.get('/api/knowledge-base', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const documents = await storage.getKnowledgeBase(userId);
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching knowledge base:', error);
+      res.status(500).json({ message: 'Failed to fetch knowledge base' });
+    }
+  });
+
+  app.post('/api/knowledge-base', isAuthenticated, pdfUpload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { title, description, tags } = req.body;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: 'Arquivo PDF é obrigatório' });
+      }
+
+      if (!title) {
+        return res.status(400).json({ message: 'Título é obrigatório' });
+      }
+
+      // Processar o PDF
+      const pdfResult = await pdfService.processPDF(req.file.path);
+      
+      // Criar entrada na base de conhecimento
+      const documentData = {
+        userId,
+        title,
+        description: description || '',
+        filename: req.file.originalname,
+        fileSize: req.file.size,
+        content: pdfResult.text,
+        chunks: pdfResult.chunks,
+        tags: tags ? JSON.parse(tags) : []
+      };
+
+      const validatedData = insertKnowledgeBaseSchema.parse(documentData);
+      const document = await storage.createKnowledgeDocument(validatedData);
+
+      // Limpar arquivo temporário
+      pdfService.cleanupFile(req.file.path);
+
+      res.status(201).json(document);
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      
+      // Limpar arquivo em caso de erro
+      if (req.file) {
+        pdfService.cleanupFile(req.file.path);
+      }
+
+      if (error instanceof Error && error.message.includes('PDF')) {
+        return res.status(400).json({ message: error.message });
+      }
+
+      res.status(500).json({ message: 'Falha ao processar arquivo PDF' });
+    }
+  });
+
+  app.put('/api/knowledge-base/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { title, description, tags, isActive } = req.body;
+      
+      const updates: any = {};
+      if (title !== undefined) updates.title = title;
+      if (description !== undefined) updates.description = description;
+      if (tags !== undefined) updates.tags = tags;
+      if (isActive !== undefined) updates.isActive = isActive;
+
+      const document = await storage.updateKnowledgeDocument(id, updates);
+      res.json(document);
+    } catch (error) {
+      console.error('Error updating knowledge document:', error);
+      res.status(500).json({ message: 'Failed to update document' });
+    }
+  });
+
+  app.delete('/api/knowledge-base/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteKnowledgeDocument(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting knowledge document:', error);
+      res.status(500).json({ message: 'Failed to delete document' });
     }
   });
 

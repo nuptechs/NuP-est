@@ -189,6 +189,22 @@ export const flashcardReviews = pgTable("flashcard_reviews", {
   reviewedAt: timestamp("reviewed_at").defaultNow(),
 });
 
+// Knowledge base documents
+export const knowledgeBase = pgTable("knowledge_base", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  filename: text("filename").notNull(),
+  fileSize: integer("file_size"),
+  content: text("content"), // extracted text content
+  chunks: jsonb("chunks"), // text chunks for search
+  tags: jsonb("tags"), // array of tags for categorization
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   subjects: many(subjects),
@@ -201,6 +217,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   flashcardDecks: many(flashcardDecks),
   flashcards: many(flashcards),
   flashcardReviews: many(flashcardReviews),
+  knowledgeBase: many(knowledgeBase),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -350,6 +367,13 @@ export const flashcardReviewsRelations = relations(flashcardReviews, ({ one }) =
   }),
 }));
 
+export const knowledgeBaseRelations = relations(knowledgeBase, ({ one }) => ({
+  user: one(users, {
+    fields: [knowledgeBase.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -416,6 +440,12 @@ export const insertFlashcardReviewSchema = createInsertSchema(flashcardReviews).
   reviewedAt: true,
 });
 
+export const insertKnowledgeBaseSchema = createInsertSchema(knowledgeBase).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -441,3 +471,5 @@ export type Flashcard = typeof flashcards.$inferSelect;
 export type InsertFlashcard = z.infer<typeof insertFlashcardSchema>;
 export type FlashcardReview = typeof flashcardReviews.$inferSelect;
 export type InsertFlashcardReview = z.infer<typeof insertFlashcardReviewSchema>;
+export type KnowledgeBase = typeof knowledgeBase.$inferSelect;
+export type InsertKnowledgeBase = z.infer<typeof insertKnowledgeBaseSchema>;

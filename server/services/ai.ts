@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { Material, Subject, Topic } from "@shared/schema";
+import type { Material, Subject, Topic, Goal, KnowledgeBase } from "@shared/schema";
+import { storage } from "../storage";
 import fs from "fs";
 import path from "path";
 
@@ -149,7 +150,20 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     }
   }
 
-  async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any): Promise<string> {
+  async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string): Promise<string> {
+    // Buscar na base de conhecimento se houver userId
+    let knowledgeContext = '';
+    if (userId) {
+      try {
+        const relevantContent = await storage.searchKnowledgeBase(userId, question);
+        if (relevantContent) {
+          knowledgeContext = `\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n${relevantContent}\n`;
+        }
+      } catch (error) {
+        console.error("Erro ao buscar na base de conhecimento:", error);
+      }
+    }
+
     // Customize prompt based on study profile
     const profileContext = {
       disciplined: "Você está falando com um estudante disciplinado que prefere desafios e análises profundas. Seja específico e ofereça técnicas avançadas.",
@@ -181,14 +195,14 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
 Contexto do estudante:
 - Perfil: ${studyProfile}
 - ${context}
-- ${subjectsList}${goalContext}
+- ${subjectsList}${goalContext}${knowledgeContext}
 
 Pergunta do estudante: ${question}
 
 Instruções:
 1. Responda de forma personalizada baseada no perfil do estudante
 2. ${selectedGoal ? 'FOQUE ESPECIFICAMENTE no objetivo selecionado pelo estudante' : 'NÃO assuma nenhuma área específica de estudo'}
-3. Seja prático e actionável para qualquer área do conhecimento
+3. ${knowledgeContext ? 'Use o conteúdo da base de conhecimento fornecido acima para dar respostas mais precisas e específicas' : 'Seja prático e actionável para qualquer área do conhecimento'}
 4. Use linguagem natural e amigável
 5. Mantenha o foco em técnicas de estudo eficazes universais
 6. Se a pergunta for sobre matérias específicas que o estudante possui, dê conselhos específicos para essa área
