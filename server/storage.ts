@@ -8,6 +8,9 @@ import {
   studySessions,
   aiQuestions,
   questionAttempts,
+  flashcardDecks,
+  flashcards,
+  flashcardReviews,
   type User,
   type UpsertUser,
   type Subject,
@@ -26,6 +29,12 @@ import {
   type InsertAiQuestion,
   type QuestionAttempt,
   type InsertQuestionAttempt,
+  type FlashcardDeck,
+  type InsertFlashcardDeck,
+  type Flashcard,
+  type InsertFlashcard,
+  type FlashcardReview,
+  type InsertFlashcardReview,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
@@ -86,6 +95,24 @@ export interface IStorage {
   getUserStats(userId: string): Promise<any>;
   getSubjectProgress(userId: string): Promise<any>;
   getWeeklyProgress(userId: string): Promise<any>;
+
+  // Flashcard operations
+  getFlashcardDecks(userId: string, subjectId?: string): Promise<FlashcardDeck[]>;
+  getFlashcardDeck(id: string): Promise<FlashcardDeck | undefined>;
+  createFlashcardDeck(deck: InsertFlashcardDeck): Promise<FlashcardDeck>;
+  updateFlashcardDeck(id: string, updates: Partial<InsertFlashcardDeck>): Promise<FlashcardDeck>;
+  deleteFlashcardDeck(id: string): Promise<void>;
+
+  getFlashcards(deckId: string): Promise<Flashcard[]>;
+  getFlashcard(id: string): Promise<Flashcard | undefined>;
+  createFlashcard(flashcard: InsertFlashcard): Promise<Flashcard>;
+  updateFlashcard(id: string, updates: Partial<InsertFlashcard>): Promise<Flashcard>;
+  deleteFlashcard(id: string): Promise<void>;
+
+  // Flashcard review operations
+  createFlashcardReview(review: InsertFlashcardReview): Promise<FlashcardReview>;
+  getFlashcardReviews(userId: string, flashcardId?: string): Promise<FlashcardReview[]>;
+  getFlashcardsForReview(userId: string, deckId?: string): Promise<Flashcard[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -476,6 +503,116 @@ export class DatabaseStorage implements IStorage {
       percentage: target.targetValue ? 
         Math.round((parseFloat(target.currentValue || '0') / parseFloat(target.targetValue || '1')) * 100) : 0,
     }));
+  }
+
+  // Flashcard operations
+  async getFlashcardDecks(userId: string, subjectId?: string): Promise<FlashcardDeck[]> {
+    const whereCondition = subjectId
+      ? and(eq(flashcardDecks.userId, userId), eq(flashcardDecks.subjectId, subjectId))
+      : eq(flashcardDecks.userId, userId);
+
+    return await db
+      .select()
+      .from(flashcardDecks)
+      .where(whereCondition)
+      .orderBy(desc(flashcardDecks.updatedAt));
+  }
+
+  async getFlashcardDeck(id: string): Promise<FlashcardDeck | undefined> {
+    const [deck] = await db.select().from(flashcardDecks).where(eq(flashcardDecks.id, id));
+    return deck;
+  }
+
+  async createFlashcardDeck(deck: InsertFlashcardDeck): Promise<FlashcardDeck> {
+    const [created] = await db
+      .insert(flashcardDecks)
+      .values(deck)
+      .returning();
+    return created;
+  }
+
+  async updateFlashcardDeck(id: string, updates: Partial<InsertFlashcardDeck>): Promise<FlashcardDeck> {
+    const [updated] = await db
+      .update(flashcardDecks)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(flashcardDecks.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteFlashcardDeck(id: string): Promise<void> {
+    await db.delete(flashcardDecks).where(eq(flashcardDecks.id, id));
+  }
+
+  async getFlashcards(deckId: string): Promise<Flashcard[]> {
+    return await db
+      .select()
+      .from(flashcards)
+      .where(eq(flashcards.deckId, deckId))
+      .orderBy(flashcards.order);
+  }
+
+  async getFlashcard(id: string): Promise<Flashcard | undefined> {
+    const [flashcard] = await db.select().from(flashcards).where(eq(flashcards.id, id));
+    return flashcard;
+  }
+
+  async createFlashcard(flashcard: InsertFlashcard): Promise<Flashcard> {
+    const [created] = await db
+      .insert(flashcards)
+      .values(flashcard)
+      .returning();
+    return created;
+  }
+
+  async updateFlashcard(id: string, updates: Partial<InsertFlashcard>): Promise<Flashcard> {
+    const [updated] = await db
+      .update(flashcards)
+      .set(updates)
+      .where(eq(flashcards.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteFlashcard(id: string): Promise<void> {
+    await db.delete(flashcards).where(eq(flashcards.id, id));
+  }
+
+  async createFlashcardReview(review: InsertFlashcardReview): Promise<FlashcardReview> {
+    const [created] = await db
+      .insert(flashcardReviews)
+      .values(review)
+      .returning();
+    return created;
+  }
+
+  async getFlashcardReviews(userId: string, flashcardId?: string): Promise<FlashcardReview[]> {
+    const whereCondition = flashcardId
+      ? and(eq(flashcardReviews.userId, userId), eq(flashcardReviews.flashcardId, flashcardId))
+      : eq(flashcardReviews.userId, userId);
+
+    return await db
+      .select()
+      .from(flashcardReviews)
+      .where(whereCondition)
+      .orderBy(desc(flashcardReviews.reviewedAt));
+  }
+
+  async getFlashcardsForReview(userId: string, deckId?: string): Promise<Flashcard[]> {
+    const now = new Date();
+    const whereCondition = deckId
+      ? and(
+          eq(flashcards.userId, userId),
+          eq(flashcards.deckId, deckId),
+          lte(flashcards.nextReview, now)
+        )
+      : and(eq(flashcards.userId, userId), lte(flashcards.nextReview, now));
+
+    return await db
+      .select()
+      .from(flashcards)
+      .where(whereCondition)
+      .orderBy(flashcards.nextReview);
   }
 }
 

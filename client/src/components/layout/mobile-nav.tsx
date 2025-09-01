@@ -5,7 +5,7 @@ const navigation = [
   { name: "Home", href: "/", icon: "fa-home" },
   { name: "Matérias", href: "/subjects", icon: "fa-book" },
   { name: "Estudar", href: "/study", icon: "fa-graduation-cap" },
-  { name: "Progresso", href: "/analytics", icon: "fa-chart-line" },
+  { name: "Cards", href: "/flashcards", icon: "fa-layer-group" },
   { name: "Perfil", href: "/goals", icon: "fa-user" },
 ];
 

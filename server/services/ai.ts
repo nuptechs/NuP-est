@@ -1,5 +1,7 @@
 import OpenAI from "openai";
 import type { Material, Subject, Topic } from "@shared/schema";
+import fs from "fs";
+import path from "path";
 
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
@@ -21,6 +23,18 @@ export interface GeneratedQuestion {
   correctAnswer: string;
   explanation: string;
   difficulty: string;
+}
+
+export interface FlashcardGenerationRequest {
+  content: string;
+  studyProfile: string;
+  subject?: string;
+  count: number;
+}
+
+export interface GeneratedFlashcard {
+  front: string;
+  back: string;
 }
 
 export class AIService {
@@ -185,6 +199,89 @@ Respond with JSON in this format:
         keyTopics: [],
         difficulty: "medium"
       };
+    }
+  }
+
+  async extractTextFromFile(filePath: string): Promise<string> {
+    try {
+      const ext = path.extname(filePath).toLowerCase();
+      
+      // For now, only handle text files
+      // TODO: Add PDF, DOC, DOCX support with appropriate libraries
+      if (ext === '.txt' || ext === '.md') {
+        return fs.readFileSync(filePath, 'utf-8');
+      }
+      
+      // For other file types, return filename as placeholder
+      // In a production app, you'd use libraries like pdf-parse, mammoth, etc.
+      return `Content from file: ${path.basename(filePath)}. Please add text extraction library support for ${ext} files.`;
+    } catch (error) {
+      console.error("Error extracting text from file:", error);
+      throw new Error("Failed to extract text from file");
+    }
+  }
+
+  async generateFlashcards(request: FlashcardGenerationRequest): Promise<GeneratedFlashcard[]> {
+    const { content, studyProfile, subject, count } = request;
+
+    // Customize prompt based on study profile
+    const profileStrategies = {
+      disciplined: "Crie flashcards desafiadores que exigem compreensão profunda e aplicação de conceitos. Foque em análise e resolução de problemas.",
+      undisciplined: "Crie flashcards envolventes e práticos com aplicações do mundo real. Use formatos variados para manter o interesse e motivação.",
+      average: "Crie um mix equilibrado de flashcards teóricos e práticos com explicações claras para reforçar o aprendizado."
+    };
+
+    const strategy = profileStrategies[studyProfile as keyof typeof profileStrategies] || profileStrategies.average;
+
+    const prompt = `Você é um especialista em educação criando flashcards personalizados em português.
+
+${subject ? `Matéria: ${subject}` : ''}
+Perfil de Estudo: ${studyProfile}
+Estratégia: ${strategy}
+
+Conteúdo para basear os flashcards:
+${content.substring(0, 3000)}...
+
+Crie ${count} flashcards baseados no conteúdo fornecido. Cada flashcard deve:
+1. Estar diretamente relacionado ao conteúdo fornecido
+2. Ser adequado para um estudante com perfil ${studyProfile}
+3. Ter uma pergunta clara na frente (front)
+4. Ter uma resposta completa e educativa no verso (back)
+5. Estar em português
+
+Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
+{
+  "flashcards": [
+    {
+      "front": "Pergunta ou conceito aqui",
+      "back": "Resposta detalhada ou explicação aqui"
+    }
+  ]
+}`;
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: "Você é um especialista em criar material educativo. Sempre responda com JSON válido no formato exato solicitado. Use português brasileiro."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+
+      const result = JSON.parse(response.choices[0].message.content || '{"flashcards": []}');
+      return result.flashcards || [];
+    } catch (error) {
+      console.error("Error generating flashcards:", error);
+      throw new Error("Failed to generate flashcards: " + (error as Error).message);
     }
   }
 }

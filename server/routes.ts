@@ -10,7 +10,10 @@ import {
   insertGoalSchema,
   insertTargetSchema,
   insertStudySessionSchema,
-  insertQuestionAttemptSchema
+  insertQuestionAttemptSchema,
+  insertFlashcardDeckSchema,
+  insertFlashcardSchema,
+  insertFlashcardReviewSchema
 } from "@shared/schema";
 import multer from "multer";
 import path from "path";
@@ -35,6 +38,47 @@ const upload = multer({
     }
   }
 });
+
+// Spaced Repetition Algorithm (SuperMemo 2)
+function calculateSpacedRepetition(
+  quality: number, // 0-5 rating
+  easeFactor: string | number,
+  interval: number,
+  repetitions: number
+) {
+  const ef = typeof easeFactor === 'string' ? parseFloat(easeFactor) : easeFactor;
+  let newEaseFactor = ef;
+  let newInterval = interval;
+  
+  if (quality >= 3) {
+    // Correct response
+    if (repetitions === 0) {
+      newInterval = 1;
+    } else if (repetitions === 1) {
+      newInterval = 6;
+    } else {
+      newInterval = Math.round(interval * newEaseFactor);
+    }
+  } else {
+    // Incorrect response - reset
+    newInterval = 1;
+  }
+  
+  // Update ease factor
+  newEaseFactor = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+  if (newEaseFactor < 1.3) {
+    newEaseFactor = 1.3;
+  }
+  
+  const nextReview = new Date();
+  nextReview.setDate(nextReview.getDate() + newInterval);
+  
+  return {
+    newEaseFactor: newEaseFactor.toString(),
+    newInterval,
+    nextReview
+  };
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -341,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get topic if specified
-      let topic = null;
+      let topic = undefined;
       if (topicId) {
         const topics = await storage.getTopics(subjectId);
         topic = topics.find(t => t.id === topicId);
@@ -456,6 +500,248 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching weekly progress:", error);
       res.status(500).json({ message: "Failed to fetch weekly progress" });
+    }
+  });
+
+  // Flashcard Deck routes
+  app.get('/api/flashcard-decks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { subjectId } = req.query;
+      const decks = await storage.getFlashcardDecks(userId, subjectId as string);
+      res.json(decks);
+    } catch (error) {
+      console.error("Error fetching flashcard decks:", error);
+      res.status(500).json({ message: "Failed to fetch flashcard decks" });
+    }
+  });
+
+  app.post('/api/flashcard-decks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const deckData = insertFlashcardDeckSchema.parse({ ...req.body, userId });
+      const deck = await storage.createFlashcardDeck(deckData);
+      res.json(deck);
+    } catch (error) {
+      console.error("Error creating flashcard deck:", error);
+      res.status(400).json({ message: "Failed to create flashcard deck" });
+    }
+  });
+
+  app.get('/api/flashcard-decks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const deck = await storage.getFlashcardDeck(req.params.id);
+      if (!deck) {
+        return res.status(404).json({ message: "Flashcard deck not found" });
+      }
+      res.json(deck);
+    } catch (error) {
+      console.error("Error fetching flashcard deck:", error);
+      res.status(500).json({ message: "Failed to fetch flashcard deck" });
+    }
+  });
+
+  app.patch('/api/flashcard-decks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const updates = req.body;
+      const deck = await storage.updateFlashcardDeck(req.params.id, updates);
+      res.json(deck);
+    } catch (error) {
+      console.error("Error updating flashcard deck:", error);
+      res.status(400).json({ message: "Failed to update flashcard deck" });
+    }
+  });
+
+  app.delete('/api/flashcard-decks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteFlashcardDeck(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting flashcard deck:", error);
+      res.status(500).json({ message: "Failed to delete flashcard deck" });
+    }
+  });
+
+  // Flashcard routes
+  app.get('/api/flashcard-decks/:deckId/flashcards', isAuthenticated, async (req: any, res) => {
+    try {
+      const flashcards = await storage.getFlashcards(req.params.deckId);
+      res.json(flashcards);
+    } catch (error) {
+      console.error("Error fetching flashcards:", error);
+      res.status(500).json({ message: "Failed to fetch flashcards" });
+    }
+  });
+
+  app.post('/api/flashcard-decks/:deckId/flashcards', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const flashcardData = insertFlashcardSchema.parse({ 
+        ...req.body, 
+        userId, 
+        deckId: req.params.deckId 
+      });
+      const flashcard = await storage.createFlashcard(flashcardData);
+      res.json(flashcard);
+    } catch (error) {
+      console.error("Error creating flashcard:", error);
+      res.status(400).json({ message: "Failed to create flashcard" });
+    }
+  });
+
+  app.patch('/api/flashcards/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const updates = req.body;
+      const flashcard = await storage.updateFlashcard(req.params.id, updates);
+      res.json(flashcard);
+    } catch (error) {
+      console.error("Error updating flashcard:", error);
+      res.status(400).json({ message: "Failed to update flashcard" });
+    }
+  });
+
+  app.delete('/api/flashcards/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteFlashcard(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting flashcard:", error);
+      res.status(500).json({ message: "Failed to delete flashcard" });
+    }
+  });
+
+  // Flashcard Review routes
+  app.get('/api/flashcards/review', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { deckId } = req.query;
+      const flashcards = await storage.getFlashcardsForReview(userId, deckId as string);
+      res.json(flashcards);
+    } catch (error) {
+      console.error("Error fetching flashcards for review:", error);
+      res.status(500).json({ message: "Failed to fetch flashcards for review" });
+    }
+  });
+
+  app.post('/api/flashcards/:id/review', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const flashcardId = req.params.id;
+      const { quality, timeSpent } = req.body;
+
+      // Get current flashcard
+      const flashcard = await storage.getFlashcard(flashcardId);
+      if (!flashcard) {
+        return res.status(404).json({ message: "Flashcard not found" });
+      }
+
+      // Calculate new spaced repetition values
+      const { newEaseFactor, newInterval, nextReview } = calculateSpacedRepetition(
+        quality,
+        flashcard.easeFactor || "2.5",
+        flashcard.interval || 0,
+        flashcard.repetitions || 0
+      );
+
+      // Create review record
+      const reviewData = insertFlashcardReviewSchema.parse({
+        flashcardId,
+        userId,
+        quality,
+        previousEaseFactor: flashcard.easeFactor,
+        newEaseFactor,
+        previousInterval: flashcard.interval,
+        newInterval,
+        timeSpent
+      });
+      
+      await storage.createFlashcardReview(reviewData);
+
+      // Update flashcard with new values
+      const updatedFlashcard = await storage.updateFlashcard(flashcardId, {
+        easeFactor: newEaseFactor,
+        interval: newInterval,
+        repetitions: (flashcard.repetitions || 0) + 1,
+        nextReview
+      });
+
+      res.json(updatedFlashcard);
+    } catch (error) {
+      console.error("Error recording flashcard review:", error);
+      res.status(400).json({ message: "Failed to record flashcard review" });
+    }
+  });
+
+  // AI Flashcard Generation route
+  app.post('/api/ai/generate-flashcards', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { title, description, subjectId } = req.body;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ message: "File is required" });
+      }
+
+      // Extract text from uploaded file
+      const fileContent = await aiService.extractTextFromFile(file.path);
+
+      // Get user profile for personalized flashcards
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Generate flashcards using AI
+      const generatedFlashcards = await aiService.generateFlashcards({
+        content: fileContent,
+        studyProfile: user.studyProfile || "average",
+        subject: subjectId,
+        count: 10 // Default to 10 flashcards
+      });
+
+      // Create flashcard deck
+      const deckData = insertFlashcardDeckSchema.parse({
+        userId,
+        subjectId: subjectId || null,
+        title: title || `Flashcards - ${file.originalname}`,
+        description: description || `Flashcards gerados automaticamente do arquivo: ${file.originalname}`,
+        totalCards: generatedFlashcards.length,
+        studiedCards: 0
+      });
+
+      const deck = await storage.createFlashcardDeck(deckData);
+
+      // Create individual flashcards
+      const savedFlashcards = [];
+      for (let i = 0; i < generatedFlashcards.length; i++) {
+        const fc = generatedFlashcards[i];
+        const flashcardData = insertFlashcardSchema.parse({
+          deckId: deck.id,
+          userId,
+          front: fc.front,
+          back: fc.back,
+          order: i,
+          easeFactor: "2.5",
+          interval: 0,
+          repetitions: 0,
+          nextReview: new Date()
+        });
+        
+        const savedFlashcard = await storage.createFlashcard(flashcardData);
+        savedFlashcards.push(savedFlashcard);
+      }
+
+      // Clean up uploaded file
+      fs.unlinkSync(file.path);
+
+      res.json({
+        deck,
+        flashcards: savedFlashcards
+      });
+    } catch (error) {
+      console.error("Error generating flashcards:", error);
+      res.status(500).json({ message: "Failed to generate flashcards: " + (error as Error).message });
     }
   });
 

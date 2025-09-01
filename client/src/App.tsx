@@ -12,6 +12,7 @@ import Materials from "@/pages/materials";
 import Study from "@/pages/study";
 import Goals from "@/pages/goals";
 import Analytics from "@/pages/analytics";
+import Flashcards from "@/pages/flashcards";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -28,6 +29,7 @@ function Router() {
           <Route path="/study" component={Study} />
           <Route path="/goals" component={Goals} />
           <Route path="/analytics" component={Analytics} />
+          <Route path="/flashcards" component={Flashcards} />
         </>
       )}
       <Route component={NotFound} />

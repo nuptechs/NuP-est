@@ -146,6 +146,49 @@ export const questionAttempts = pgTable("question_attempts", {
   attemptedAt: timestamp("attempted_at").defaultNow(),
 });
 
+// Flashcard decks
+export const flashcardDecks = pgTable("flashcard_decks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
+  materialId: varchar("material_id").references(() => materials.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  totalCards: integer("total_cards").default(0),
+  studiedCards: integer("studied_cards").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Individual flashcards
+export const flashcards = pgTable("flashcards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  deckId: varchar("deck_id").notNull().references(() => flashcardDecks.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  front: text("front").notNull(), // pergunta
+  back: text("back").notNull(), // resposta
+  order: integer("order").default(0),
+  easeFactor: decimal("ease_factor", { precision: 3, scale: 2 }).default("2.5"), // spaced repetition
+  interval: integer("interval").default(0), // days until next review
+  repetitions: integer("repetitions").default(0),
+  nextReview: timestamp("next_review").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Flashcard review history
+export const flashcardReviews = pgTable("flashcard_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  flashcardId: varchar("flashcard_id").notNull().references(() => flashcards.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  quality: integer("quality").notNull(), // 0-5 difficulty rating
+  previousEaseFactor: decimal("previous_ease_factor", { precision: 3, scale: 2 }),
+  newEaseFactor: decimal("new_ease_factor", { precision: 3, scale: 2 }),
+  previousInterval: integer("previous_interval"),
+  newInterval: integer("new_interval"),
+  timeSpent: integer("time_spent"), // seconds spent reviewing
+  reviewedAt: timestamp("reviewed_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   subjects: many(subjects),
@@ -155,6 +198,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   studySessions: many(studySessions),
   aiQuestions: many(aiQuestions),
   questionAttempts: many(questionAttempts),
+  flashcardDecks: many(flashcardDecks),
+  flashcards: many(flashcards),
+  flashcardReviews: many(flashcardReviews),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -166,6 +212,7 @@ export const subjectsRelations = relations(subjects, ({ one, many }) => ({
   materials: many(materials),
   studySessions: many(studySessions),
   aiQuestions: many(aiQuestions),
+  flashcardDecks: many(flashcardDecks),
 }));
 
 export const topicsRelations = relations(topics, ({ one, many }) => ({
@@ -178,7 +225,7 @@ export const topicsRelations = relations(topics, ({ one, many }) => ({
   aiQuestions: many(aiQuestions),
 }));
 
-export const materialsRelations = relations(materials, ({ one }) => ({
+export const materialsRelations = relations(materials, ({ one, many }) => ({
   user: one(users, {
     fields: [materials.userId],
     references: [users.id],
@@ -191,6 +238,7 @@ export const materialsRelations = relations(materials, ({ one }) => ({
     fields: [materials.topicId],
     references: [topics.id],
   }),
+  flashcardDecks: many(flashcardDecks),
 }));
 
 export const goalsRelations = relations(goals, ({ one, many }) => ({
@@ -263,6 +311,45 @@ export const questionAttemptsRelations = relations(questionAttempts, ({ one }) =
   }),
 }));
 
+export const flashcardDecksRelations = relations(flashcardDecks, ({ one, many }) => ({
+  user: one(users, {
+    fields: [flashcardDecks.userId],
+    references: [users.id],
+  }),
+  subject: one(subjects, {
+    fields: [flashcardDecks.subjectId],
+    references: [subjects.id],
+  }),
+  material: one(materials, {
+    fields: [flashcardDecks.materialId],
+    references: [materials.id],
+  }),
+  flashcards: many(flashcards),
+}));
+
+export const flashcardsRelations = relations(flashcards, ({ one, many }) => ({
+  deck: one(flashcardDecks, {
+    fields: [flashcards.deckId],
+    references: [flashcardDecks.id],
+  }),
+  user: one(users, {
+    fields: [flashcards.userId],
+    references: [users.id],
+  }),
+  reviews: many(flashcardReviews),
+}));
+
+export const flashcardReviewsRelations = relations(flashcardReviews, ({ one }) => ({
+  flashcard: one(flashcards, {
+    fields: [flashcardReviews.flashcardId],
+    references: [flashcards.id],
+  }),
+  user: one(users, {
+    fields: [flashcardReviews.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -311,6 +398,22 @@ export const insertQuestionAttemptSchema = createInsertSchema(questionAttempts).
   attemptedAt: true,
 });
 
+export const insertFlashcardDeckSchema = createInsertSchema(flashcardDecks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFlashcardSchema = createInsertSchema(flashcards).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFlashcardReviewSchema = createInsertSchema(flashcardReviews).omit({
+  id: true,
+  reviewedAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -330,3 +433,9 @@ export type AiQuestion = typeof aiQuestions.$inferSelect;
 export type InsertAiQuestion = z.infer<typeof insertAiQuestionSchema>;
 export type QuestionAttempt = typeof questionAttempts.$inferSelect;
 export type InsertQuestionAttempt = z.infer<typeof insertQuestionAttemptSchema>;
+export type FlashcardDeck = typeof flashcardDecks.$inferSelect;
+export type InsertFlashcardDeck = z.infer<typeof insertFlashcardDeckSchema>;
+export type Flashcard = typeof flashcards.$inferSelect;
+export type InsertFlashcard = z.infer<typeof insertFlashcardSchema>;
+export type FlashcardReview = typeof flashcardReviews.$inferSelect;
+export type InsertFlashcardReview = z.infer<typeof insertFlashcardReviewSchema>;
