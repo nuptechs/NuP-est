@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { aiService } from "./services/ai";
+import OpenAI from "openai";
 import { eq } from "drizzle-orm";
 import { 
   insertSubjectSchema, 
@@ -24,6 +25,12 @@ import { pdfService } from "./services/pdf";
 import { embeddingsService } from "./services/embeddings";
 import { knowledgeChunks } from "@shared/schema";
 import { db } from "./db";
+
+// Configure OpenAI for quiz generation
+const openai = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+});
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -1021,6 +1028,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error reprocessing embeddings:', error);
       res.status(500).json({ message: 'Failed to reprocess embeddings' });
+    }
+  });
+
+  // === QUIZ ROUTES ===
+  // Gerar quiz
+  app.post('/api/quiz/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { subjectId, topicId, difficulty, questionCount } = req.body;
+
+      // Buscar a matéria para contexto
+      const subject = await storage.getSubject(subjectId);
+      if (!subject) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+
+      // Gerar questões usando IA
+      const prompt = `Crie ${questionCount} questões de múltipla escolha sobre ${subject.name}${topicId ? ` focando no tópico específico` : ''}.
+
+CONFIGURAÇÕES:
+- Dificuldade: ${difficulty === "mixed" ? "variada (fácil, médio, difícil)" : difficulty}
+- Número de questões: ${questionCount}
+- 4 alternativas por questão
+- Incluir explicação detalhada para cada resposta
+
+FORMATO JSON (retorne APENAS o JSON, sem texto adicional):
+[
+  {
+    "question": "texto da questão",
+    "options": ["opção A", "opção B", "opção C", "opção D"],
+    "correctAnswer": 0,
+    "explanation": "explicação detalhada da resposta correta",
+    "difficulty": "easy|medium|hard",
+    "topic": "nome do tópico",
+    "points": pontuação_baseada_na_dificuldade
+  }
+]
+
+PONTUAÇÃO:
+- Fácil: 10 pontos
+- Médio: 20 pontos  
+- Difícil: 30 pontos`;
+
+      // Fazer chamada direta à API de IA
+      const response = await openai.chat.completions.create({
+        model: "deepseek/deepseek-r1",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 4000,
+        temperature: 0.7,
+      });
+
+      const aiResponse = response.choices[0]?.message?.content || "";
+
+      let questions;
+      try {
+        // Tentar extrair JSON da resposta
+        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          questions = JSON.parse(jsonMatch[0]);
+        } else {
+          questions = JSON.parse(aiResponse);
+        }
+      } catch (parseError) {
+        console.error('Error parsing AI response:', parseError);
+        return res.status(500).json({ message: "Failed to generate valid quiz questions" });
+      }
+
+      // Validar e enriquecer questões
+      const validatedQuestions = questions.map((q: any, index: number) => ({
+        id: `${subjectId}-${Date.now()}-${index}`,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        difficulty: q.difficulty || (difficulty === "mixed" ? ["easy", "medium", "hard"][index % 3] : difficulty),
+        topic: q.topic || subject.name,
+        subject: subject.name,
+        points: q.points || (q.difficulty === "hard" ? 30 : q.difficulty === "medium" ? 20 : 10),
+      }));
+
+      res.json(validatedQuestions);
+    } catch (error) {
+      console.error('Error generating quiz:', error);
+      res.status(500).json({ message: 'Failed to generate quiz' });
+    }
+  });
+
+  // Salvar resultado do quiz
+  app.post('/api/quiz/result', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const {
+        subjectId,
+        topicId,
+        totalQuestions,
+        correctAnswers,
+        score,
+        duration,
+        difficulty,
+        answers,
+        questions
+      } = req.body;
+
+      // Calcular performance
+      const accuracy = (correctAnswers / totalQuestions) * 100;
+      const scorePercentage = score / (totalQuestions * 30) * 100; // máximo possível seria 30 pontos por questão
+
+      // Buscar nome da matéria
+      const subject = await storage.getSubject(subjectId);
+      const subjectName = subject?.name || "Matéria";
+      
+      // Determinar nível baseado na accuracy
+      const determinedLevel = accuracy >= 90 ? "expert" :
+                             accuracy >= 80 ? "advanced" : 
+                             accuracy >= 60 ? "intermediate" :
+                             accuracy >= 40 ? "basic" : "beginner";
+
+      // Criar registro de avaliação
+      const assessmentResult = await storage.createAssessmentResult({
+        userId,
+        assessmentType: "quiz",
+        subjectName,
+        totalQuestions,
+        correctAnswers,
+        timeSpent: duration,
+        finalScore: score.toString(),
+        determinedLevel,
+        strengths: accuracy >= 60 ? ["Bom desempenho geral"] : [],
+        weaknesses: accuracy < 60 ? ["Necessita revisão"] : [],
+        questionsData: JSON.stringify({
+          answers,
+          questions,
+          accuracy,
+          difficulty
+        }),
+        recommendations: JSON.stringify([
+          accuracy >= 80 ? "Excelente desempenho! Continue praticando." :
+          accuracy >= 60 ? "Bom desempenho. Revise os tópicos com erros." :
+          "Recomenda-se revisar o conteúdo antes de tentar novamente."
+        ]),
+      });
+
+      // Atualizar histórico de aprendizado
+      await storage.createLearningHistory({
+        userId,
+        subjectId,
+        eventType: "quiz_completion",
+        eventData: JSON.stringify({
+          score,
+          accuracy,
+          difficulty,
+          questionsAnswered: totalQuestions,
+          timePerQuestion: Math.round(duration / totalQuestions),
+        }),
+        previousScore: null,
+        newScore: score.toString(),
+        scoreDelta: null,
+        sessionDuration: Math.round(duration / 60), // converter para minutos
+        difficulty,
+        topics: [],
+      });
+
+      res.json({
+        success: true,
+        assessmentId: assessmentResult.id,
+        performance: {
+          accuracy,
+          scorePercentage,
+          timePerQuestion: Math.round(duration / totalQuestions),
+        },
+      });
+    } catch (error) {
+      console.error('Error saving quiz result:', error);
+      res.status(500).json({ message: 'Failed to save quiz result' });
     }
   });
 

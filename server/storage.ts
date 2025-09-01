@@ -13,6 +13,8 @@ import {
   flashcardReviews,
   knowledgeBase,
   knowledgeChunks,
+  assessmentResults,
+  learningHistory,
   type User,
   type UpsertUser,
   type Subject,
@@ -41,6 +43,10 @@ import {
   type InsertKnowledgeBase,
   type KnowledgeChunk,
   type InsertKnowledgeChunk,
+  type AssessmentResult,
+  type InsertAssessmentResult,
+  type LearningHistory,
+  type InsertLearningHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, or, isNotNull } from "drizzle-orm";
@@ -135,32 +141,17 @@ export interface IStorage {
   
   searchKnowledgeBase(userId: string, query: string, category?: string): Promise<string>;
   searchKnowledgeBaseWithEmbeddings(userId: string, queryEmbedding: number[], limit?: number, category?: string): Promise<{ content: string; similarity: number; title: string; }[]>;
+  
+  // === QUIZ & ASSESSMENT OPERATIONS ===
+  createAssessmentResult(result: InsertAssessmentResult): Promise<AssessmentResult>;
+  createLearningHistory(history: InsertLearningHistory): Promise<LearningHistory>;
 }
 
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     try {
-      const [user] = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          username: users.username,
-          studyProfile: users.studyProfile,
-          createdAt: users.createdAt,
-          updatedAt: users.updatedAt,
-          // === NOVOS CAMPOS DO PERFIL EXPANDIDO ===
-          age: users.age,
-          educationLevel: users.educationLevel,
-          learningDifficulties: users.learningDifficulties,
-          studyObjectives: users.studyObjectives,
-          availableStudyTime: users.availableStudyTime,
-          learningStyles: users.learningStyles,
-          motivationFactors: users.motivationFactors,
-          profileCompleteness: users.profileCompleteness,
-        })
-        .from(users)
-        .where(eq(users.id, id));
+      const [user] = await db.select().from(users).where(eq(users.id, id));
       return user;
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -846,6 +837,23 @@ export class DatabaseStorage implements IStorage {
       .slice(0, limit); // Limitar resultados
 
     return similarities;
+  }
+
+  // === QUIZ & ASSESSMENT OPERATIONS ===
+  async createAssessmentResult(result: InsertAssessmentResult): Promise<AssessmentResult> {
+    const [assessmentResult] = await db
+      .insert(assessmentResults)
+      .values(result)
+      .returning();
+    return assessmentResult;
+  }
+
+  async createLearningHistory(history: InsertLearningHistory): Promise<LearningHistory> {
+    const [learningHistoryEntry] = await db
+      .insert(learningHistory)
+      .values(history)
+      .returning();
+    return learningHistoryEntry;
   }
 }
 

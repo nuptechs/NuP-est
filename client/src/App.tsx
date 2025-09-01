@@ -14,17 +14,25 @@ import Goals from "@/pages/goals";
 import Analytics from "@/pages/analytics";
 import Flashcards from "@/pages/flashcards";
 import KnowledgeBase from "@/pages/knowledge-base";
+import Onboarding from "@/pages/onboarding";
+import Quiz from "@/pages/quiz";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
+      ) : user && !user.onboardingCompleted ? (
+        <>
+          <Route path="/onboarding" component={Onboarding} />
+          <Route path="/*" component={() => { window.location.replace('/onboarding'); return null; }} />
+        </>
       ) : (
         <>
           <Route path="/" component={Dashboard} />
+          <Route path="/onboarding" component={Onboarding} />
           <Route path="/subjects" component={Subjects} />
           <Route path="/materials" component={Materials} />
           <Route path="/knowledge-base" component={KnowledgeBase} />
@@ -32,6 +40,7 @@ function Router() {
           <Route path="/goals" component={Goals} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/flashcards" component={Flashcards} />
+          <Route path="/quiz" component={Quiz} />
         </>
       )}
       <Route component={NotFound} />
