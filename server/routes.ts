@@ -457,19 +457,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { question } = req.body;
       
-      if (!question || typeof question !== 'string') {
-        return res.status(400).json({ message: "Question is required" });
+      if (!question || typeof question !== 'string' || question.trim().length === 0) {
+        return res.status(400).json({ message: "Pergunta é obrigatória" });
       }
       
       const user = await storage.getUser(userId);
       const subjects = await storage.getSubjects(userId);
       
-      const response = await aiService.chatWithAI(question, user?.studyProfile || "average", subjects);
+      const response = await aiService.chatWithAI(question.trim(), user?.studyProfile || "average", subjects);
       
-      res.json({ response });
+      // Ensure we always return a valid response
+      if (!response || response.trim().length === 0) {
+        return res.json({ response: "Desculpe, não consegui processar sua pergunta no momento. Tente novamente." });
+      }
+      
+      res.json({ response: response.trim() });
     } catch (error) {
       console.error("Error in AI chat:", error);
-      res.status(500).json({ message: "Failed to get AI response: " + (error as Error).message });
+      
+      // Return user-friendly error messages
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      
+      if (errorMessage.includes('quota') || errorMessage.includes('limit')) {
+        return res.status(429).json({ message: "Limite de uso da IA atingido. Tente novamente em alguns minutos." });
+      }
+      
+      res.status(500).json({ message: "Erro temporário no assistente. Tente novamente." });
     }
   });
 

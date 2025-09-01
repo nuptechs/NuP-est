@@ -178,6 +178,8 @@ Instruções:
 4. Mantenha o foco em técnicas de estudo eficazes
 5. Se a pergunta for sobre matérias específicas que o estudante possui, dê conselhos específicos
 6. Mantenha a resposta concisa (2-4 parágrafos no máximo)
+7. NÃO use formatação markdown ou caracteres especiais que possam causar problemas
+8. Responda apenas em texto simples e limpo
 
 Responda diretamente à pergunta:`;
 
@@ -193,10 +195,25 @@ Responda diretamente à pergunta:`;
       });
 
       const response = await result.response;
-      return response.text() || "Desculpe, não consegui processar sua pergunta no momento. Tente novamente em alguns segundos.";
+      let responseText = response.text();
+      
+      if (!responseText || responseText.trim().length === 0) {
+        responseText = "Desculpe, não consegui processar sua pergunta no momento. Tente novamente em alguns segundos.";
+      }
+      
+      // Clean the response to prevent JSON parsing issues
+      responseText = responseText.trim();
+      
+      return responseText;
     } catch (error) {
       console.error("Error in AI chat:", error);
-      throw new Error("Failed to get AI response: " + (error as Error).message);
+      
+      // Return a safe fallback message instead of throwing
+      if (error instanceof Error && error.message.includes('quota')) {
+        return "Desculpe, o limite de uso da IA foi atingido temporariamente. Tente novamente em alguns minutos.";
+      }
+      
+      return "Houve um problema temporário com o assistente de IA. Tente fazer sua pergunta novamente.";
     }
   }
 

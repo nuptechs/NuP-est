@@ -65,9 +65,28 @@ export default function AiAssistant() {
   // Chat with AI mutation - usando API real do Gemini
   const chatMutation = useMutation({
     mutationFn: async (question: string) => {
-      const response = await apiRequest("POST", "/api/ai/chat", { question });
-      const data = await response.json();
-      return data.response;
+      try {
+        const response = await apiRequest("POST", "/api/ai/chat", { question });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data || !data.response) {
+          throw new Error("Resposta inválida da IA");
+        }
+        
+        return data.response;
+      } catch (error) {
+        console.error("Erro no chat com IA:", error);
+        if (error instanceof SyntaxError) {
+          throw new Error("Erro de formato na resposta da IA");
+        }
+        throw error;
+      }
     },
     onSuccess: (response) => {
       setChatHistory(prev => [
@@ -79,8 +98,8 @@ export default function AiAssistant() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
-        description: "Não foi possível processar sua pergunta: " + error.message,
+        title: "Erro no Assistente",
+        description: error.message || "Não foi possível processar sua pergunta. Tente novamente.",
         variant: "destructive",
       });
     },
