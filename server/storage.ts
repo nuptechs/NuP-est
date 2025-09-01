@@ -140,8 +140,32 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          studyProfile: users.studyProfile,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+          // === NOVOS CAMPOS DO PERFIL EXPANDIDO ===
+          age: users.age,
+          educationLevel: users.educationLevel,
+          learningDifficulties: users.learningDifficulties,
+          studyObjectives: users.studyObjectives,
+          availableStudyTime: users.availableStudyTime,
+          learningStyles: users.learningStyles,
+          motivationFactors: users.motivationFactors,
+          profileCompleteness: users.profileCompleteness,
+        })
+        .from(users)
+        .where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return undefined;
+    }
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {

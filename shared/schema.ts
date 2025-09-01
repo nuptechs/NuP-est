@@ -26,16 +26,134 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (mandatory for Replit Auth)
+// Enums para estruturar melhor os dados
+export const learningDifficultyEnum = pgEnum("learning_difficulty", [
+  "none", "adhd", "dyslexia", "autism", "dyscalculia", "attention_deficit", 
+  "reading_comprehension", "math_difficulty", "memory_issues", "processing_speed", "other"
+]);
+
+export const knowledgeLevelEnum = pgEnum("knowledge_level", [
+  "beginner", "basic", "intermediate", "advanced", "expert"
+]);
+
+export const learningStyleEnum = pgEnum("learning_style", [
+  "visual", "auditory", "kinesthetic", "reading_writing", "mixed"
+]);
+
+// User storage table (mandatory for Replit Auth) - EXPANDIDO
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  
+  // ===== PERFIL BÁSICO =====
+  age: integer("age"),
   studyProfile: varchar("study_profile").default("average"), // disciplined, undisciplined, average
+  
+  // ===== DIFICULDADES DE APRENDIZADO =====
+  learningDifficulties: learningDifficultyEnum("learning_difficulties").array().default(sql`'{}'::learning_difficulty[]`),
+  customDifficulties: text("custom_difficulties"), // dificuldades personalizadas
+  
+  // ===== OBJETIVOS E CONTEXTO =====
+  studyObjective: text("study_objective"), // concurso, vestibular, ENEM, etc.
+  studyDeadline: timestamp("study_deadline"), // prazo para o objetivo
+  dailyStudyHours: decimal("daily_study_hours", { precision: 3, scale: 1 }), // horas disponíveis por dia
+  preferredStudyTime: varchar("preferred_study_time"), // manhã, tarde, noite
+  
+  // ===== PREFERÊNCIAS DE APRENDIZADO =====
+  learningStyle: learningStyleEnum("learning_style").default("mixed"),
+  preferredExplanationStyle: varchar("explanation_style").default("balanced"), // simple, detailed, practical, theoretical
+  needsMotivation: boolean("needs_motivation").default(false),
+  prefersExamples: boolean("prefers_examples").default(true),
+  
+  // ===== ONBOARDING =====
+  onboardingCompleted: boolean("onboarding_completed").default(false),
+  initialAssessmentCompleted: boolean("initial_assessment_completed").default(false),
+  
+  // ===== TIMESTAMPS =====
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ===== CONHECIMENTO POR MATÉRIA =====
+export const subjectKnowledge = pgTable("subject_knowledge", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  subjectName: varchar("subject_name").notNull(), // Nome da matéria avaliada
+  subjectCategory: varchar("subject_category").notNull(), // exatas, humanas, biologicas
+  
+  // === AVALIAÇÃO INICIAL ===
+  initialLevel: knowledgeLevelEnum("initial_level"),
+  initialScore: decimal("initial_score", { precision: 5, scale: 2 }), // 0-100%
+  assessmentDate: timestamp("assessment_date").defaultNow(),
+  
+  // === EVOLUÇÃO ===
+  currentLevel: knowledgeLevelEnum("current_level"),
+  currentScore: decimal("current_score", { precision: 5, scale: 2 }),
+  
+  // === ESTATÍSTICAS ===
+  totalQuestions: integer("total_questions").default(0),
+  correctAnswers: integer("correct_answers").default(0),
+  studyHours: decimal("study_hours", { precision: 8, scale: 2 }).default("0"),
+  
+  // === PADRÕES IDENTIFICADOS ===
+  strongTopics: text("strong_topics").array().default(sql`'{}'::text[]`),
+  weakTopics: text("weak_topics").array().default(sql`'{}'::text[]`),
+  recommendedActions: text("recommended_actions"),
+  
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ===== HISTÓRICO DE EVOLUÇÃO =====
+export const learningHistory = pgTable("learning_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
+  
+  // === EVENTO ===
+  eventType: varchar("event_type").notNull(), // question_answered, material_studied, session_completed, level_up
+  eventData: jsonb("event_data"), // dados específicos do evento
+  
+  // === PERFORMANCE ===
+  previousScore: decimal("previous_score", { precision: 5, scale: 2 }),
+  newScore: decimal("new_score", { precision: 5, scale: 2 }),
+  scoreDelta: decimal("score_delta", { precision: 5, scale: 2 }),
+  
+  // === CONTEXTO ===
+  sessionDuration: integer("session_duration"), // em minutos
+  difficulty: varchar("difficulty"), // easy, medium, hard
+  topics: text("topics").array().default(sql`'{}'::text[]`),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ===== RESULTADOS DE TESTES INICIAL =====
+export const assessmentResults = pgTable("assessment_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // === TESTE ===
+  assessmentType: varchar("assessment_type").notNull(), // initial_assessment, periodic_review
+  subjectName: varchar("subject_name").notNull(),
+  
+  // === QUESTÕES E RESPOSTAS ===
+  totalQuestions: integer("total_questions").notNull(),
+  correctAnswers: integer("correct_answers").notNull(),
+  timeSpent: integer("time_spent"), // em segundos
+  
+  // === ANÁLISE ===
+  finalScore: decimal("final_score", { precision: 5, scale: 2 }).notNull(),
+  determinedLevel: knowledgeLevelEnum("determined_level").notNull(),
+  strengths: text("strengths").array().default(sql`'{}'::text[]`),
+  weaknesses: text("weaknesses").array().default(sql`'{}'::text[]`),
+  
+  // === DETALHES ===
+  questionsData: jsonb("questions_data"), // perguntas, respostas e análise
+  recommendations: text("recommendations"),
+  
+  completedAt: timestamp("completed_at").defaultNow(),
 });
 
 // Study subjects
@@ -230,6 +348,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   flashcardReviews: many(flashcardReviews),
   knowledgeBase: many(knowledgeBase),
   knowledgeChunks: many(knowledgeChunks),
+  // === NOVAS RELAÇÕES PARA PERFIL AVANÇADO ===
+  subjectKnowledge: many(subjectKnowledge),
+  learningHistory: many(learningHistory),
+  assessmentResults: many(assessmentResults),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -394,6 +516,32 @@ export const knowledgeChunksRelations = relations(knowledgeChunks, ({ one }) => 
   }),
 }));
 
+// === RELAÇÕES DAS NOVAS TABELAS ===
+export const subjectKnowledgeRelations = relations(subjectKnowledge, ({ one }) => ({
+  user: one(users, {
+    fields: [subjectKnowledge.userId],
+    references: [users.id],
+  }),
+}));
+
+export const learningHistoryRelations = relations(learningHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [learningHistory.userId],
+    references: [users.id],
+  }),
+  subject: one(subjects, {
+    fields: [learningHistory.subjectId],
+    references: [subjects.id],
+  }),
+}));
+
+export const assessmentResultsRelations = relations(assessmentResults, ({ one }) => ({
+  user: one(users, {
+    fields: [assessmentResults.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -471,6 +619,23 @@ export const insertKnowledgeChunkSchema = createInsertSchema(knowledgeChunks).om
   createdAt: true,
 });
 
+// === INSERT SCHEMAS PARA NOVAS TABELAS ===
+export const insertSubjectKnowledgeSchema = createInsertSchema(subjectKnowledge).omit({
+  id: true,
+  assessmentDate: true,
+  updatedAt: true,
+});
+
+export const insertLearningHistorySchema = createInsertSchema(learningHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAssessmentResultSchema = createInsertSchema(assessmentResults).omit({
+  id: true,
+  completedAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -500,3 +665,11 @@ export type KnowledgeBase = typeof knowledgeBase.$inferSelect;
 export type InsertKnowledgeBase = z.infer<typeof insertKnowledgeBaseSchema>;
 export type KnowledgeChunk = typeof knowledgeChunks.$inferSelect;
 export type InsertKnowledgeChunk = z.infer<typeof insertKnowledgeChunkSchema>;
+
+// === TIPOS PARA NOVAS TABELAS ===
+export type SubjectKnowledge = typeof subjectKnowledge.$inferSelect;
+export type InsertSubjectKnowledge = z.infer<typeof insertSubjectKnowledgeSchema>;
+export type LearningHistory = typeof learningHistory.$inferSelect;
+export type InsertLearningHistory = z.infer<typeof insertLearningHistorySchema>;
+export type AssessmentResult = typeof assessmentResults.$inferSelect;
+export type InsertAssessmentResult = z.infer<typeof insertAssessmentResultSchema>;
