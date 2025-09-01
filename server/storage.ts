@@ -661,25 +661,6 @@ export class DatabaseStorage implements IStorage {
 
   async searchKnowledgeBase(userId: string, query: string): Promise<string> {
     // Busca melhorada com palavras-chave
-    console.log(`🔍 DEBUG Storage: Buscando para userId=${userId}, query="${query}"`);
-    
-    // Primeiro vamos ver todos os documentos do usuário
-    const allUserDocs = await db
-      .select()
-      .from(knowledgeBase)
-      .where(eq(knowledgeBase.userId, userId));
-    
-    console.log(`📋 DEBUG: Usuário tem ${allUserDocs.length} documentos no total`);
-    
-    // Mostrar uma amostra do conteúdo dos documentos
-    allUserDocs.forEach((doc, index) => {
-      console.log(`📄 DEBUG Documento ${index + 1}: "${doc.title}"`);
-      console.log(`   - Ativo: ${doc.isActive}`);
-      console.log(`   - Tamanho do conteúdo: ${doc.content?.length || 0} caracteres`);
-      if (doc.content) {
-        console.log(`   - Amostra: "${doc.content.substring(0, 200)}..."`);
-      }
-    });
     
     // Extrair palavras-chave da pergunta (remover palavras comuns)
     const stopWords = ['me', 'fale', 'sobre', 'o', 'a', 'os', 'as', 'de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos', 'para', 'por', 'com', 'sem', 'que', 'qual', 'como', 'quando', 'onde'];
@@ -687,8 +668,6 @@ export class DatabaseStorage implements IStorage {
       .split(/\s+/)
       .filter(word => word.length > 2 && !stopWords.includes(word))
       .slice(0, 5); // Usar no máximo 5 palavras-chave
-    
-    console.log(`🔍 DEBUG: Palavras-chave extraídas:`, keywords);
     
     let documents: any[] = [];
     
@@ -707,13 +686,10 @@ export class DatabaseStorage implements IStorage {
           or(...keywordConditions)
         ))
         .limit(3);
-        
-      console.log(`🔍 DEBUG: Busca por palavras-chave encontrou ${documents.length} documentos`);
     }
     
     // Se não encontrou nada com palavras-chave, buscar pela query original
     if (documents.length === 0) {
-      console.log(`🔍 DEBUG: Tentando busca pela query original: "${query}"`);
       documents = await db
         .select()
         .from(knowledgeBase)
@@ -723,10 +699,7 @@ export class DatabaseStorage implements IStorage {
           sql`${knowledgeBase.content} ILIKE ${'%' + query + '%'}`
         ))
         .limit(3);
-      console.log(`🔍 DEBUG: Busca original encontrou ${documents.length} documentos`);
     }
-      
-    console.log(`📋 DEBUG: Encontrados ${documents.length} documentos relevantes para a busca`);
 
     if (documents.length === 0) {
       return "";

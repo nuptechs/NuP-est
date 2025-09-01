@@ -19,11 +19,31 @@ export class PDFService {
       const dataBuffer = fs.readFileSync(filePath);
       const data = await pdf(dataBuffer);
       
+      // Limpar e normalizar o texto extraído
+      let cleanText = data.text;
+      
+      // Corrigir problemas comuns de extração de PDF
+      cleanText = cleanText
+        // Adicionar espaços entre letras maiúsculas consecutivas
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+        // Adicionar espaços antes de letras maiúsculas após letras minúsculas  
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        // Adicionar espaços antes de números após letras
+        .replace(/([a-zA-Z])(\d)/g, '$1 $2')
+        // Adicionar espaços após números antes de letras
+        .replace(/(\d)([a-zA-Z])/g, '$1 $2')
+        // Normalizar múltiplas quebras de linha
+        .replace(/\n\s*\n/g, '\n\n')
+        // Normalizar espaços múltiplos
+        .replace(/\s+/g, ' ')
+        // Remover espaços no início e fim
+        .trim();
+      
       // Chunking simples - divide o texto em pedaços de ~500 palavras
-      const chunks = this.chunkText(data.text, 500);
+      const chunks = this.chunkText(cleanText, 500);
       
       return {
-        text: data.text,
+        text: cleanText,
         pages: data.numpages,
         metadata: data.metadata,
         chunks: chunks
