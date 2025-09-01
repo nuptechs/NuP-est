@@ -94,7 +94,7 @@ Respond with a JSON object containing an array of questions in this exact format
 
     try {
       const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1:free",
+        model: "deepseek/deepseek-r1",
         messages: [
           {
             role: "user",
@@ -142,7 +142,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
 
     try {
       const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1:free",
+        model: "deepseek/deepseek-r1",
         messages: [
           {
             role: "user",
@@ -264,7 +264,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
         attempt++;
         
         const response = await openai.chat.completions.create({
-          model: "deepseek/deepseek-r1:free",
+          model: "deepseek/deepseek-r1",
           messages: [
             {
               role: "user",
@@ -311,7 +311,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
           
           // Usar o prompt melhorado na próxima tentativa
           const improvedResponse = await openai.chat.completions.create({
-            model: "deepseek/deepseek-r1:free",
+            model: "deepseek/deepseek-r1",
             messages: [
               {
                 role: "user",
@@ -370,7 +370,7 @@ Responda com JSON no seguinte formato:
 
     try {
       const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1:free",
+        model: "deepseek/deepseek-r1",
         messages: [
           {
             role: "user",
@@ -490,7 +490,7 @@ Respond with JSON in this format:
 
     try {
       const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1:free",
+        model: "deepseek/deepseek-r1",
         messages: [
           {
             role: "user",
@@ -582,7 +582,7 @@ Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
 
     try {
       const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1:free",
+        model: "deepseek/deepseek-r1",
         messages: [
           {
             role: "user",
