@@ -260,6 +260,11 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       selectedGoal
     });
 
+    console.log(`🎯 [DEBUG] Estratégia escolhida: ${sourceStrategy}`);
+    console.log(`📝 [DEBUG] Knowledge context length: ${knowledgeContext.length}`);
+    console.log(`📝 [DEBUG] Web context length: ${webContext.length}`);
+    console.log(`📝 [DEBUG] Prompt final (primeiros 500 chars):\n${intelligentPrompt.substring(0, 500)}...`);
+
     const prompt = intelligentPrompt;
 
     try {
