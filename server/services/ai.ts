@@ -246,27 +246,75 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     const prompt = robustPrompt;
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7, // Mais consistente mas ainda criativo
-          maxOutputTokens: 600, // Mais espaço para respostas completas
-          topP: 0.9, // Melhor qualidade das respostas
-          topK: 40, // Controle de diversidade
-        },
-      });
+      // NOVA LÓGICA DE REVISÃO AUTOMÁTICA
+      const maxAttempts = 2;
+      let attempt = 0;
+      let responseText = '';
 
-      const response = await result.response;
-      let responseText = response.text();
-      
-      if (!responseText || responseText.trim().length === 0) {
-        responseText = "Desculpe, não consegui processar sua pergunta no momento. Tente novamente em alguns segundos.";
+      while (attempt < maxAttempts) {
+        attempt++;
+        
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7, // Mais consistente mas ainda criativo
+            maxOutputTokens: 800, // Aumentado para respostas mais completas
+            topP: 0.9, // Melhor qualidade das respostas
+            topK: 40, // Controle de diversidade
+          },
+        });
+
+        const response = await result.response;
+        responseText = response.text();
+        
+        if (!responseText || responseText.trim().length === 0) {
+          responseText = "Desculpe, não consegui processar sua pergunta no momento. Tente novamente em alguns segundos.";
+          break;
+        }
+        
+        // Clean the response
+        responseText = responseText.trim();
+
+        // FASE 4: REVISÃO AUTOMÁTICA DA RESPOSTA
+        const reviewResult = await this.reviewResponse(question, responseText);
+        
+        if (reviewResult.isComplete && reviewResult.isCoherent) {
+          // Resposta aprovada na revisão
+          console.log(`Resposta aprovada na tentativa ${attempt}`);
+          break;
+        }
+        
+        if (attempt < maxAttempts) {
+          // Resposta precisa ser melhorada - ajustar prompt para próxima tentativa
+          console.log(`Resposta precisa ser melhorada (tentativa ${attempt}). Problemas: ${reviewResult.issues.join(', ')}`);
+          
+          // Melhorar o prompt baseado no feedback da revisão
+          const improvedPrompt = `${prompt}\n\nIMPORTANTE: A resposta anterior teve os seguintes problemas: ${reviewResult.issues.join(', ')}. 
+          Certifique-se de que sua resposta seja:
+          - Completa e detalhada
+          - Coerente e bem estruturada
+          - Diretamente relacionada à pergunta
+          - Use formatação Markdown adequada
+          - Organize informações em seções claras
+          ${reviewResult.suggestions ? `\n- ${reviewResult.suggestions}` : ''}`;
+          
+          // Usar o prompt melhorado na próxima tentativa
+          const improvedResult = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: improvedPrompt }] }],
+            generationConfig: {
+              temperature: 0.6, // Ligeiramente menos criativo para ser mais focado
+              maxOutputTokens: 1000, // Mais espaço para resposta completa
+              topP: 0.85,
+              topK: 35,
+            },
+          });
+          
+          const improvedResponse = await improvedResult.response;
+          responseText = improvedResponse.text() || responseText;
+        }
       }
-      
-      // Clean the response to prevent JSON parsing issues
-      responseText = responseText.trim();
       
       return responseText;
     } catch (error) {
@@ -278,6 +326,82 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       }
       
       return "Houve um problema temporário com o assistente de IA. Tente fazer sua pergunta novamente.";
+    }
+  }
+
+  private async reviewResponse(originalQuestion: string, response: string): Promise<{
+    isComplete: boolean;
+    isCoherent: boolean;
+    issues: string[];
+    suggestions?: string;
+  }> {
+    const reviewPrompt = `Você é um revisor especializado em qualidade de respostas educacionais. Analise se a resposta está completa e coerente.
+
+PERGUNTA ORIGINAL: ${originalQuestion}
+
+RESPOSTA PARA REVISAR:
+${response}
+
+CRITÉRIOS DE AVALIAÇÃO:
+1. COMPLETUDE: A resposta responde completamente à pergunta? Não deixa pontos importantes sem resposta?
+2. COERÊNCIA: A resposta é logicamente organizada? As informações fluem de forma natural?
+3. ESTRUTURA: A resposta está bem formatada com títulos, listas, etc.?
+4. RELEVÂNCIA: Todo conteúdo da resposta é diretamente relacionado à pergunta?
+5. FINALIZAÇÃO: A resposta parece completa ou foi cortada abruptamente?
+
+Responda com JSON no seguinte formato:
+{
+  "isComplete": true/false,
+  "isCoherent": true/false,
+  "issues": ["lista de problemas encontrados"],
+  "suggestions": "sugestões específicas para melhorar"
+}`;
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: reviewPrompt }] }],
+        generationConfig: {
+          temperature: 0.3, // Baixa criatividade para análise objetiva
+          maxOutputTokens: 400,
+        },
+      });
+
+      const reviewResponse = await result.response;
+      const reviewText = reviewResponse.text();
+      
+      // Extrair JSON da resposta
+      const jsonMatch = reviewText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        // Se não conseguir analisar, considerar aprovado por segurança
+        return {
+          isComplete: true,
+          isCoherent: true,
+          issues: [],
+          suggestions: undefined
+        };
+      }
+      
+      const reviewResult = JSON.parse(jsonMatch[0]);
+      
+      // Validar estrutura do resultado
+      return {
+        isComplete: reviewResult.isComplete || false,
+        isCoherent: reviewResult.isCoherent || false,
+        issues: Array.isArray(reviewResult.issues) ? reviewResult.issues : [],
+        suggestions: reviewResult.suggestions || undefined
+      };
+      
+    } catch (error) {
+      console.error("Erro na revisão da resposta:", error);
+      // Em caso de erro, considerar aprovado por segurança
+      return {
+        isComplete: true,
+        isCoherent: true,
+        issues: [],
+        suggestions: undefined
+      };
     }
   }
 
