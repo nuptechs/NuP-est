@@ -153,28 +153,32 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
   }
 
   async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string): Promise<string> {
-    // FASE 1: Buscar na base de conhecimento pessoal
+    // FASE 1: Busca INTELIGENTE na base de conhecimento
     let knowledgeContext = '';
     let hasPersonalKnowledge = false;
     
     if (userId) {
       try {
-        // Tentar busca com embeddings primeiro
+        // Busca com embeddings (mais precisa)
         const queryEmbedding = await embeddingsService.generateEmbedding(question);
-        const embeddingResults = await storage.searchKnowledgeBaseWithEmbeddings(userId, queryEmbedding, 3);
+        const embeddingResults = await storage.searchKnowledgeBaseWithEmbeddings(userId, queryEmbedding, 5);
         
-        if (embeddingResults.length > 0) {
+        // Busca tradicional por keywords (mais abrangente)
+        const keywordResults = await storage.searchKnowledgeBase(userId, question);
+        
+        // Combinar resultados para ter informação completa
+        if (embeddingResults.length > 0 || keywordResults) {
           hasPersonalKnowledge = true;
-          knowledgeContext = '\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n';
-          embeddingResults.forEach((result, index) => {
-            knowledgeContext += `• [${result.title}] (relevância: ${(result.similarity * 100).toFixed(1)}%)\n${result.content}\n\n`;
-          });
-        } else {
-          // Busca tradicional como backup
-          const relevantContent = await storage.searchKnowledgeBase(userId, question);
-          if (relevantContent) {
-            hasPersonalKnowledge = true;
-            knowledgeContext = `\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n${relevantContent}\n`;
+          knowledgeContext = '\n📚 BASE DE CONHECIMENTO PESSOAL:\n';
+          
+          if (embeddingResults.length > 0) {
+            embeddingResults.forEach((result, index) => {
+              knowledgeContext += `[${result.title}]\n${result.content}\n\n`;
+            });
+          }
+          
+          if (keywordResults && !embeddingResults.some(r => keywordResults.includes(r.content))) {
+            knowledgeContext += `${keywordResults}\n\n`;
           }
         }
       } catch (error) {
@@ -182,17 +186,17 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       }
     }
 
-    // FASE 2: Informações externas complementares (sempre disponíveis)
+    // FASE 2: Busca na internet SOMENTE se não tiver informação suficiente
     let webContext = '';
-    const needsExternal = webSearch.needsExternalInfo(question, hasPersonalKnowledge);
     
-    if (needsExternal) {
+    // Se não tem conhecimento pessoal OU conhecimento é muito limitado, buscar na internet
+    if (!hasPersonalKnowledge || knowledgeContext.length < 200) {
       try {
-        const webResults = await webSearch.search(question, 2);
+        const webResults = await webSearch.search(question, 3);
         if (webResults.length > 0) {
-          webContext = '\n\n🌐 INFORMAÇÕES COMPLEMENTARES:\n';
+          webContext = '\n🌐 INFORMAÇÕES DA INTERNET:\n';
           webResults.forEach((result, index) => {
-            webContext += `• ${result.title}\n${result.content}\n\n`;
+            webContext += `[${result.title}]\n${result.content}\n\n`;
           });
         }
       } catch (error) {
@@ -290,24 +294,31 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
   }): string {
     const { question, studyProfile, context, subjectsList, goalContext, knowledgeContext, webContext, hasPersonalKnowledge } = params;
 
-    // Prompt explícito que força análise do conteúdo
-    return `Você deve analisar o material fornecido e responder com base nele. O material contém informações relevantes sobre a pergunta.
+    // Sistema inteligente: usa base de conhecimento OU busca na internet
+    if (hasPersonalKnowledge && knowledgeContext.length > 200) {
+      // TEM informação suficiente na base pessoal
+      return `Responda usando INTELIGENTEMENTE as informações da base de conhecimento do estudante.
 
-MATERIAL DO ESTUDANTE:
 ${knowledgeContext}
-
-${webContext ? `INFORMAÇÕES COMPLEMENTARES:\n${webContext}` : ''}
 
 PERGUNTA: ${question}
 
-INSTRUÇÕES:
-1. Leia ATENTAMENTE todo o material fornecido
-2. Identifique as informações que respondem à pergunta
-3. Responda usando essas informações específicas
-4. Cite trechos do material para sustentar sua resposta
-5. Se o material menciona nomes, conceitos ou teorias, use-os na resposta
+INSTRUÇÃO: Use TODO o conhecimento disponível acima para dar uma resposta completa e inteligente. Conecte as informações de forma útil para o estudante.`;
+    } else {
+      // NÃO tem informação suficiente - informa + busca internet
+      return `O estudante perguntou: ${question}
 
-RESPOSTA:`;
+${hasPersonalKnowledge ? `Base de conhecimento consultada:\n${knowledgeContext}` : 'Base de conhecimento consultada: Nenhuma informação relevante encontrada.'}
+
+${webContext}
+
+INSTRUÇÃO: 
+1. Se há informação na base pessoal, use-a PRIMEIRO
+2. Se a informação da base é limitada, informe isso brevemente
+3. Use as informações da internet para complementar
+4. Cite fontes quando usar informações externas
+5. Responda de forma útil e completa`;
+    }
   }
 
   async analyzeStudyMaterial(content: string, type: string): Promise<{
