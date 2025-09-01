@@ -20,6 +20,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { pdfService } from "./services/pdf";
+import { embeddingsService } from "./services/embeddings";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -843,6 +844,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = insertKnowledgeBaseSchema.parse(documentData);
       const document = await storage.createKnowledgeDocument(validatedData);
+
+      // Gerar embeddings para os chunks
+      if (pdfResult.chunks && pdfResult.chunks.length > 0) {
+        try {
+          console.log(`🔄 Gerando embeddings para ${pdfResult.chunks.length} chunks...`);
+          const embeddings = await embeddingsService.generateEmbeddings(pdfResult.chunks);
+          
+          const chunksWithEmbeddings = pdfResult.chunks.map((content, index) => ({
+            knowledgeBaseId: document.id,
+            chunkIndex: index,
+            content: content,
+            embedding: embeddings[index],
+          }));
+
+          await storage.createKnowledgeChunks(chunksWithEmbeddings);
+          console.log(`✅ Embeddings gerados para o documento: ${title}`);
+        } catch (error) {
+          console.error("❌ Erro ao gerar embeddings:", error);
+          // Não falha o upload, apenas logs o erro
+        }
+      }
 
       // Limpar arquivo temporário
       pdfService.cleanupFile(req.file.path);

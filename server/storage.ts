@@ -12,6 +12,7 @@ import {
   flashcards,
   flashcardReviews,
   knowledgeBase,
+  knowledgeChunks,
   type User,
   type UpsertUser,
   type Subject,
@@ -38,9 +39,12 @@ import {
   type InsertFlashcardReview,
   type KnowledgeBase,
   type InsertKnowledgeBase,
+  type KnowledgeChunk,
+  type InsertKnowledgeChunk,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, or } from "drizzle-orm";
+import { embeddingsService } from "./services/embeddings";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -123,7 +127,13 @@ export interface IStorage {
   createKnowledgeDocument(document: InsertKnowledgeBase): Promise<KnowledgeBase>;
   updateKnowledgeDocument(id: string, updates: Partial<InsertKnowledgeBase>): Promise<KnowledgeBase>;
   deleteKnowledgeDocument(id: string): Promise<void>;
+  
+  // Knowledge chunks
+  createKnowledgeChunks(chunks: InsertKnowledgeChunk[]): Promise<KnowledgeChunk[]>;
+  deleteKnowledgeChunks(knowledgeBaseId: string): Promise<void>;
+  
   searchKnowledgeBase(userId: string, query: string): Promise<string>;
+  searchKnowledgeBaseWithEmbeddings(userId: string, queryEmbedding: number[], limit?: number): Promise<{ content: string; similarity: number; title: string; }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -709,6 +719,74 @@ export class DatabaseStorage implements IStorage {
     return documents
       .map(doc => `[${doc.title}]\n${doc.content?.substring(0, 1000)}...`)
       .join('\n\n');
+  }
+
+  // Knowledge chunks operations
+  async createKnowledgeChunks(chunks: InsertKnowledgeChunk[]): Promise<KnowledgeChunk[]> {
+    return await db
+      .insert(knowledgeChunks)
+      .values(chunks)
+      .returning();
+  }
+
+  async deleteKnowledgeChunks(knowledgeBaseId: string): Promise<void> {
+    await db
+      .delete(knowledgeChunks)
+      .where(eq(knowledgeChunks.knowledgeBaseId, knowledgeBaseId));
+  }
+
+  async searchKnowledgeBaseWithEmbeddings(
+    userId: string, 
+    queryEmbedding: number[], 
+    limit: number = 3
+  ): Promise<{ content: string; similarity: number; title: string; }[]> {
+    // Buscar documentos do usuário
+    const userDocuments = await db
+      .select({
+        id: knowledgeBase.id,
+        title: knowledgeBase.title,
+      })
+      .from(knowledgeBase)
+      .where(and(
+        eq(knowledgeBase.userId, userId),
+        eq(knowledgeBase.isActive, true)
+      ));
+
+    if (userDocuments.length === 0) {
+      return [];
+    }
+
+    const documentIds = userDocuments.map(doc => doc.id);
+
+    // Buscar todos os chunks dos documentos do usuário
+    const chunks = await db
+      .select({
+        id: knowledgeChunks.id,
+        content: knowledgeChunks.content,
+        embedding: knowledgeChunks.embedding,
+        knowledgeBaseId: knowledgeChunks.knowledgeBaseId,
+      })
+      .from(knowledgeChunks)
+      .where(sql`${knowledgeChunks.knowledgeBaseId} = ANY(${documentIds})`);
+
+    // Calcular similaridade com cada chunk
+    const similarities = chunks
+      .filter(chunk => chunk.embedding) // Apenas chunks com embedding
+      .map(chunk => {
+        const chunkEmbedding = chunk.embedding as number[];
+        const similarity = embeddingsService.calculateCosineSimilarity(queryEmbedding, chunkEmbedding);
+        const document = userDocuments.find(doc => doc.id === chunk.knowledgeBaseId);
+        
+        return {
+          content: chunk.content,
+          similarity,
+          title: document?.title || 'Documento',
+        };
+      })
+      .sort((a, b) => b.similarity - a.similarity) // Ordenar por similaridade descendente
+      .slice(0, limit); // Limitar resultados
+
+    return similarities;
   }
 }
 

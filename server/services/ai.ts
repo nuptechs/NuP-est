@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Material, Subject, Topic, Goal, KnowledgeBase } from "@shared/schema";
 import { storage } from "../storage";
+import { embeddingsService } from "./embeddings";
 import fs from "fs";
 import path from "path";
 
@@ -151,16 +152,37 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
   }
 
   async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string): Promise<string> {
-    // Buscar na base de conhecimento se houver userId
+    // Buscar na base de conhecimento usando embeddings se houver userId
     let knowledgeContext = '';
     if (userId) {
       try {
-        const relevantContent = await storage.searchKnowledgeBase(userId, question);
-        if (relevantContent) {
-          knowledgeContext = `\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n${relevantContent}\n`;
+        // Tentar busca com embeddings primeiro
+        const queryEmbedding = await embeddingsService.generateEmbedding(question);
+        const embeddingResults = await storage.searchKnowledgeBaseWithEmbeddings(userId, queryEmbedding, 3);
+        
+        if (embeddingResults.length > 0) {
+          knowledgeContext = '\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n';
+          embeddingResults.forEach((result, index) => {
+            knowledgeContext += `[${result.title}] (relevância: ${(result.similarity * 100).toFixed(1)}%)\n${result.content}\n\n`;
+          });
+        } else {
+          // Fallback para busca tradicional se não houver embeddings
+          const relevantContent = await storage.searchKnowledgeBase(userId, question);
+          if (relevantContent) {
+            knowledgeContext = `\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n${relevantContent}\n`;
+          }
         }
       } catch (error) {
         console.error("Erro ao buscar na base de conhecimento:", error);
+        // Fallback para busca tradicional
+        try {
+          const relevantContent = await storage.searchKnowledgeBase(userId, question);
+          if (relevantContent) {
+            knowledgeContext = `\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n${relevantContent}\n`;
+          }
+        } catch (fallbackError) {
+          console.error("Erro no fallback da busca:", fallbackError);
+        }
       }
     }
 

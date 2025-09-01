@@ -205,6 +205,16 @@ export const knowledgeBase = pgTable("knowledge_base", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Knowledge base chunks with embeddings
+export const knowledgeChunks = pgTable("knowledge_chunks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  knowledgeBaseId: varchar("knowledge_base_id").notNull().references(() => knowledgeBase.id, { onDelete: "cascade" }),
+  chunkIndex: integer("chunk_index").notNull(),
+  content: text("content").notNull(),
+  embedding: jsonb("embedding"), // OpenAI embedding vector
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   subjects: many(subjects),
@@ -218,6 +228,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   flashcards: many(flashcards),
   flashcardReviews: many(flashcardReviews),
   knowledgeBase: many(knowledgeBase),
+  knowledgeChunks: many(knowledgeChunks),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -367,10 +378,18 @@ export const flashcardReviewsRelations = relations(flashcardReviews, ({ one }) =
   }),
 }));
 
-export const knowledgeBaseRelations = relations(knowledgeBase, ({ one }) => ({
+export const knowledgeBaseRelations = relations(knowledgeBase, ({ one, many }) => ({
   user: one(users, {
     fields: [knowledgeBase.userId],
     references: [users.id],
+  }),
+  chunks: many(knowledgeChunks),
+}));
+
+export const knowledgeChunksRelations = relations(knowledgeChunks, ({ one }) => ({
+  knowledgeBase: one(knowledgeBase, {
+    fields: [knowledgeChunks.knowledgeBaseId],
+    references: [knowledgeBase.id],
   }),
 }));
 
@@ -446,6 +465,11 @@ export const insertKnowledgeBaseSchema = createInsertSchema(knowledgeBase).omit(
   updatedAt: true,
 });
 
+export const insertKnowledgeChunkSchema = createInsertSchema(knowledgeChunks).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -473,3 +497,5 @@ export type FlashcardReview = typeof flashcardReviews.$inferSelect;
 export type InsertFlashcardReview = z.infer<typeof insertFlashcardReviewSchema>;
 export type KnowledgeBase = typeof knowledgeBase.$inferSelect;
 export type InsertKnowledgeBase = z.infer<typeof insertKnowledgeBaseSchema>;
+export type KnowledgeChunk = typeof knowledgeChunks.$inferSelect;
+export type InsertKnowledgeChunk = z.infer<typeof insertKnowledgeChunkSchema>;
