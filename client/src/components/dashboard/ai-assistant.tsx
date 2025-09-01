@@ -250,7 +250,7 @@ export default function AiAssistant() {
     }
     
     // Se há bases de conhecimento e nenhuma categoria foi selecionada, mostrar opções
-    if (knowledgeCategories.length > 0 && !selectedKnowledgeCategory) {
+    if (knowledgeCategories.length > 1 && !selectedKnowledgeCategory) {
       setChatHistory(prev => [
         ...prev.filter(msg => !msg.goalOptions), // Remove mensagem de seleção de metas se existe
         { 
@@ -281,7 +281,7 @@ export default function AiAssistant() {
     ]);
     
     // Se há bases de conhecimento, mostrar opções de categoria
-    if (knowledgeCategories.length > 0 && !selectedKnowledgeCategory) {
+    if (knowledgeCategories.length > 1 && !selectedKnowledgeCategory) {
       setChatHistory(prev => [
         ...prev,
         { 
@@ -406,9 +406,9 @@ export default function AiAssistant() {
                     {/* Knowledge Base Category Selection Options */}
                     {message.knowledgeCategories && (
                       <div className="mt-3 space-y-2">
-                        {message.knowledgeCategories.map((category) => (
+                        {message.knowledgeCategories.map((category, index) => (
                           <Button
-                            key={category}
+                            key={`kb-category-${index}-${category}`}
                             variant="outline"
                             size="sm"
                             onClick={() => handleKnowledgeCategorySelection(category)}
@@ -474,9 +474,9 @@ export default function AiAssistant() {
               "José Afonso da Silva", 
               "Técnicas de memorização",
               "Como me organizar?"
-            ].map((suggestion) => (
+            ].map((suggestion, index) => (
               <Button
-                key={suggestion}
+                key={`suggestion-${index}-${suggestion}`}
                 variant="outline"
                 size="sm"
                 onClick={() => setUserQuestion(suggestion)}

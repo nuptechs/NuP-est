@@ -934,6 +934,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/knowledge-base/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const { category } = req.body;
+      
+      if (!category) {
+        return res.status(400).json({ message: 'Categoria é obrigatória' });
+      }
+      
+      const updatedDocument = await storage.updateKnowledgeDocument(id, { category });
+      res.json(updatedDocument);
+    } catch (error) {
+      console.error('Error updating knowledge document:', error);
+      res.status(500).json({ message: 'Failed to update document' });
+    }
+  });
+
   app.delete('/api/knowledge-base/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
