@@ -129,14 +129,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const updates = req.body;
       
-      // Converter campos de data se necessário
-      if (updates.studyDeadline && typeof updates.studyDeadline === 'string') {
-        updates.studyDeadline = new Date(updates.studyDeadline);
+      // Sanitizar e converter campos de data
+      const sanitizedUpdates = { ...updates };
+      
+      // Converter campos de timestamp para Date ou remover se inválidos
+      const timestampFields = ['studyDeadline', 'createdAt', 'updatedAt'];
+      
+      for (const field of timestampFields) {
+        if (sanitizedUpdates[field]) {
+          if (typeof sanitizedUpdates[field] === 'string') {
+            const date = new Date(sanitizedUpdates[field]);
+            if (isNaN(date.getTime())) {
+              // Data inválida, remover o campo
+              delete sanitizedUpdates[field];
+            } else {
+              sanitizedUpdates[field] = date;
+            }
+          } else if (!(sanitizedUpdates[field] instanceof Date)) {
+            // Não é string nem Date, remover
+            delete sanitizedUpdates[field];
+          }
+        }
       }
+      
+      // Remover campos undefined ou null que podem causar problemas
+      Object.keys(sanitizedUpdates).forEach(key => {
+        if (sanitizedUpdates[key] === undefined || sanitizedUpdates[key] === null || sanitizedUpdates[key] === '') {
+          delete sanitizedUpdates[key];
+        }
+      });
       
       const user = await storage.upsertUser({
         id: userId,
-        ...updates
+        ...sanitizedUpdates
       });
       
       res.json(user);
