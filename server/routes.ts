@@ -455,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/chat', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { question } = req.body;
+      const { question, selectedGoal } = req.body;
       
       if (!question || typeof question !== 'string' || question.trim().length === 0) {
         return res.status(400).json({ message: "Pergunta é obrigatória" });
@@ -464,7 +464,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       const subjects = await storage.getSubjects(userId);
       
-      const response = await aiService.chatWithAI(question.trim(), user?.studyProfile || "average", subjects);
+      const response = await aiService.chatWithAI(
+        question.trim(), 
+        user?.studyProfile || "average", 
+        subjects,
+        selectedGoal
+      );
       
       // Ensure we always return a valid response
       if (!response || response.trim().length === 0) {

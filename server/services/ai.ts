@@ -149,7 +149,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     }
   }
 
-  async chatWithAI(question: string, studyProfile: string, subjects: Subject[]): Promise<string> {
+  async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any): Promise<string> {
     // Customize prompt based on study profile
     const profileContext = {
       disciplined: "Você está falando com um estudante disciplinado que prefere desafios e análises profundas. Seja específico e ofereça técnicas avançadas.",
@@ -162,24 +162,39 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       `O estudante está estudando: ${subjects.map(s => `${s.name} (${s.category})`).join(', ')}.` : 
       'O estudante ainda não cadastrou matérias específicas.';
 
+    // Adicionar contexto da meta se selecionada
+    let goalContext = '';
+    if (selectedGoal) {
+      goalContext = `\n- OBJETIVO PRINCIPAL: ${selectedGoal.title}`;
+      if (selectedGoal.description) {
+        goalContext += ` - ${selectedGoal.description}`;
+      }
+      if (selectedGoal.targetDate) {
+        const targetDate = new Date(selectedGoal.targetDate);
+        goalContext += ` (Prazo: ${targetDate.toLocaleDateString('pt-BR')})`;
+      }
+      goalContext += '\n- IMPORTANTE: Todas as suas respostas devem ser direcionadas para ajudar com este objetivo específico.';
+    }
+
     const prompt = `Você é um assistente de estudos especializado em educação brasileira, respondendo em português brasileiro.
 
 Contexto do estudante:
 - Perfil: ${studyProfile}
 - ${context}
-- ${subjectsList}
+- ${subjectsList}${goalContext}
 
 Pergunta do estudante: ${question}
 
 Instruções:
 1. Responda de forma personalizada baseada no perfil do estudante
-2. Seja prático e actionável
-3. Use linguagem natural e amigável
-4. Mantenha o foco em técnicas de estudo eficazes
-5. Se a pergunta for sobre matérias específicas que o estudante possui, dê conselhos específicos
-6. Mantenha a resposta concisa (2-4 parágrafos no máximo)
-7. NÃO use formatação markdown ou caracteres especiais que possam causar problemas
-8. Responda apenas em texto simples e limpo
+2. ${selectedGoal ? 'FOQUE ESPECIFICAMENTE no objetivo selecionado pelo estudante' : 'Seja geral se não há objetivo específico'}
+3. Seja prático e actionável
+4. Use linguagem natural e amigável
+5. Mantenha o foco em técnicas de estudo eficazes
+6. Se a pergunta for sobre matérias específicas que o estudante possui, dê conselhos específicos
+7. Mantenha a resposta concisa (2-4 parágrafos no máximo)
+8. NÃO use formatação markdown ou caracteres especiais que possam causar problemas
+9. Responda apenas em texto simples e limpo
 
 Responda diretamente à pergunta:`;
 

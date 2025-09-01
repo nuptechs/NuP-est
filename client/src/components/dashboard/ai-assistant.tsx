@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Brain, Lightbulb, BookOpen, Target, Sparkles } from "lucide-react";
-import type { Subject } from "@shared/schema";
+import { Loader2, Brain, Lightbulb, BookOpen, Target, Sparkles, CheckCircle } from "lucide-react";
+import type { Subject, Goal } from "@shared/schema";
 
 interface AIRecommendation {
   recommendation: string;
@@ -17,10 +17,13 @@ interface AIRecommendation {
 
 export default function AiAssistant() {
   const [userQuestion, setUserQuestion] = useState("");
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [showGoalSelection, setShowGoalSelection] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{
-    type: 'user' | 'ai';
+    type: 'user' | 'ai' | 'system';
     message: string;
     timestamp: Date;
+    goalOptions?: Goal[];
   }>>([]);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -29,6 +32,11 @@ export default function AiAssistant() {
   // Fetch subjects for context
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
+  });
+
+  // Fetch user goals
+  const { data: goals = [] } = useQuery<Goal[]>({
+    queryKey: ["/api/goals"],
   });
 
   // Fetch recent recommendation
@@ -62,11 +70,18 @@ export default function AiAssistant() {
     },
   });
 
-  // Chat with AI mutation - usando API real do Gemini
+  // Chat with AI mutation - com verificação de metas
   const chatMutation = useMutation({
     mutationFn: async (question: string) => {
       try {
-        const response = await apiRequest("POST", "/api/ai/chat", { question });
+        const payload: any = { question };
+        
+        // Se há uma meta selecionada, incluir no contexto
+        if (selectedGoal) {
+          payload.selectedGoal = selectedGoal;
+        }
+        
+        const response = await apiRequest("POST", "/api/ai/chat", payload);
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -119,6 +134,42 @@ export default function AiAssistant() {
 
   const handleAskQuestion = () => {
     if (!userQuestion.trim()) return;
+    
+    // Se há metas e nenhuma foi selecionada, mostrar opções primeiro
+    if (goals.length > 0 && !selectedGoal) {
+      setChatHistory(prev => [
+        ...prev,
+        { type: 'user', message: userQuestion, timestamp: new Date() },
+        { 
+          type: 'system', 
+          message: "Para dar uma resposta mais personalizada, me diga qual é o seu objetivo principal de estudo:",
+          timestamp: new Date(),
+          goalOptions: goals
+        },
+      ]);
+      setShowGoalSelection(true);
+      return;
+    }
+    
+    // Caso contrário, proceder normalmente
+    chatMutation.mutate(userQuestion);
+  };
+
+  const handleGoalSelection = (goal: Goal | null) => {
+    setSelectedGoal(goal);
+    setShowGoalSelection(false);
+    
+    // Adicionar mensagem de confirmação
+    const goalMessage = goal 
+      ? `Perfeito! Vou focar nas suas necessidades para: "${goal.title}". Agora posso responder sua pergunta.`
+      : "Ok, vou responder sua pergunta sem focar em um objetivo específico.";
+    
+    setChatHistory(prev => [
+      ...prev.filter(msg => msg.type !== 'system'), // Remove a mensagem de seleção
+      { type: 'system', message: goalMessage, timestamp: new Date() },
+    ]);
+    
+    // Agora fazer a pergunta com o contexto
     chatMutation.mutate(userQuestion);
   };
 
@@ -214,6 +265,26 @@ export default function AiAssistant() {
             <h3 className="font-medium text-gray-900">Pergunte ao Assistente</h3>
           </div>
           
+          {/* Current Goal Display */}
+          {selectedGoal && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-800">
+                  Objetivo atual: {selectedGoal.title}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedGoal(null)}
+                  className="text-green-600 hover:text-green-800 ml-auto"
+                >
+                  Alterar
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Chat History */}
           {chatHistory.length > 0 && (
             <div className="max-h-64 overflow-y-auto mb-4 space-y-3 bg-gray-50 p-3 rounded-lg" data-testid="chat-history">
@@ -222,10 +293,45 @@ export default function AiAssistant() {
                   <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
                     message.type === 'user' 
                       ? 'bg-blue-600 text-white ml-4' 
+                      : message.type === 'system'
+                      ? 'bg-yellow-50 border border-yellow-200 text-yellow-800 mr-4'
                       : 'bg-white border border-gray-200 text-gray-800 mr-4'
                   }`}>
                     <p>{message.message}</p>
-                    <div className={`text-xs mt-1 ${message.type === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
+                    
+                    {/* Goal Selection Options */}
+                    {message.goalOptions && (
+                      <div className="mt-3 space-y-2">
+                        {message.goalOptions.map((goal) => (
+                          <Button
+                            key={goal.id}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGoalSelection(goal)}
+                            className="w-full text-left justify-start"
+                          >
+                            <Target className="w-3 h-3 mr-2" />
+                            {goal.title}
+                          </Button>
+                        ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleGoalSelection(null)}
+                          className="w-full text-left justify-start text-gray-600"
+                        >
+                          Prosseguir sem objetivo específico
+                        </Button>
+                      </div>
+                    )}
+                    
+                    <div className={`text-xs mt-1 ${
+                      message.type === 'user' 
+                        ? 'text-blue-100' 
+                        : message.type === 'system'
+                        ? 'text-yellow-600'
+                        : 'text-gray-500'
+                    }`}>
                       {message.timestamp.toLocaleTimeString()}
                     </div>
                   </div>
