@@ -129,29 +129,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const updates = req.body;
       
-      // Remover TODOS os campos de timestamp que podem causar problemas
+      // TEMPORARIAMENTE remover TODOS os campos de timestamp
       const sanitizedUpdates = { ...updates };
       
-      // Lista de campos que podem causar problemas
-      const problemFields = ['createdAt', 'updatedAt'];
+      // Lista de TODOS os campos timestamp possíveis
+      const timestampFields = [
+        'createdAt', 'updatedAt', 'studyDeadline', 
+        'assessmentDate', 'initialAssessmentCompleted'
+      ];
       
-      problemFields.forEach(field => {
+      timestampFields.forEach(field => {
         delete sanitizedUpdates[field];
       });
-      
-      // Tratar studyDeadline especificamente 
-      if (sanitizedUpdates.studyDeadline) {
-        if (typeof sanitizedUpdates.studyDeadline === 'string') {
-          const date = new Date(sanitizedUpdates.studyDeadline);
-          if (isNaN(date.getTime())) {
-            delete sanitizedUpdates.studyDeadline;
-          } else {
-            sanitizedUpdates.studyDeadline = date;
-          }
-        } else if (!(sanitizedUpdates.studyDeadline instanceof Date)) {
-          delete sanitizedUpdates.studyDeadline;
-        }
-      }
       
       // Remover campos vazios
       Object.keys(sanitizedUpdates).forEach(key => {
@@ -159,6 +148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           delete sanitizedUpdates[key];
         }
       });
+      
+      console.log("Final sanitized updates:", JSON.stringify(sanitizedUpdates, null, 2));
       
       const user = await storage.upsertUser({
         id: userId,
