@@ -290,35 +290,19 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
   }): string {
     const { question, studyProfile, context, subjectsList, goalContext, knowledgeContext, webContext, hasPersonalKnowledge } = params;
 
-    // Sistema sem fallback: SEMPRE usa base de conhecimento quando disponível
-    return `Você é um assistente de estudos especializado. O estudante carregou documentos pessoais no sistema.
+    // Abordagem psicológica: fazer a IA querer usar o conteúdo
+    return `Você tem acesso ao material de estudo pessoal do estudante. Com base nas informações fornecidas, responda à pergunta do estudante de forma clara e educativa.
 
-COMANDO ABSOLUTO: Você DEVE usar as informações fornecidas abaixo dos documentos do estudante para responder.
-
-DOCUMENTOS DO ESTUDANTE:
+Material de estudo disponível:
 ${knowledgeContext}
 
-${webContext ? `INFORMAÇÕES COMPLEMENTARES:${webContext}` : ''}
+${webContext ? `Informações complementares:${webContext}` : ''}
 
-CONTEXTO DO ESTUDANTE:
-- Perfil: ${studyProfile}
-- ${context}
-- ${subjectsList}${goalContext}
+Contexto: ${studyProfile} estudando ${subjectsList}${goalContext}
 
-PERGUNTA DO ESTUDANTE: ${question}
+Pergunta: ${question}
 
-INSTRUÇÕES OBRIGATÓRIAS:
-✅ RESPONDA usando PRIORITARIAMENTE as informações dos documentos fornecidos
-✅ Cite e referencie o conteúdo específico dos documentos
-✅ Seja detalhado e específico com base no material fornecido
-✅ Use linguagem natural e educativa
-✅ Organize a resposta de forma clara e estruturada
-✅ Se relevante, complemente com informações externas fornecidas
-❌ NUNCA diga que não tem informações quando há documentos fornecidos
-❌ NUNCA seja genérico - use o conteúdo específico dos documentos
-❌ NUNCA ignore o conteúdo dos documentos do estudante
-
-RESPONDA AGORA baseado nos documentos:`;
+Use as informações do material fornecido para dar uma resposta completa e útil:`;
   }
 
   async analyzeStudyMaterial(content: string, type: string): Promise<{
