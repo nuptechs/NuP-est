@@ -165,10 +165,7 @@ export class DatabaseStorage implements IStorage {
       .values(userData)
       .onConflictDoUpdate({
         target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
+        set: userData,
       })
       .returning();
     return user;
