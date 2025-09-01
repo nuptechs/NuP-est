@@ -38,6 +38,8 @@ type UploadFileFormData = z.infer<typeof uploadFileSchema>;
 export default function FlashcardsPage() {
   const [activeTab, setActiveTab] = useState("decks");
   const [selectedDeck, setSelectedDeck] = useState<FlashcardDeck | null>(null);
+  const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -187,6 +189,130 @@ export default function FlashcardsPage() {
     return totalCards > 0 ? (studiedCards / totalCards) * 100 : 0;
   };
 
+  const handleStartStudy = (deck: FlashcardDeck) => {
+    setSelectedDeck(deck);
+    setCurrentFlashcardIndex(0);
+    setShowAnswer(false);
+    setActiveTab("study");
+  };
+
+  const handleNextCard = () => {
+    if (currentFlashcardIndex < flashcards.length - 1) {
+      setCurrentFlashcardIndex(prev => prev + 1);
+      setShowAnswer(false);
+    } else {
+      // Finish study session
+      setSelectedDeck(null);
+      setActiveTab("decks");
+      toast({
+        title: "Parabéns!",
+        description: "Você terminou de estudar todos os flashcards deste deck!",
+      });
+    }
+  };
+
+  const handlePrevCard = () => {
+    if (currentFlashcardIndex > 0) {
+      setCurrentFlashcardIndex(prev => prev - 1);
+      setShowAnswer(false);
+    }
+  };
+
+  const handleBackToDecks = () => {
+    setSelectedDeck(null);
+    setActiveTab("decks");
+  };
+
+  // If studying a deck, show study interface
+  if (selectedDeck && activeTab === "study") {
+    const currentCard = flashcards[currentFlashcardIndex];
+
+    if (!flashcards || flashcards.length === 0) {
+      return (
+        <div className="container mx-auto p-6" data-testid="flashcards-study">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <h2 className="text-2xl font-semibold mb-4">{selectedDeck.title}</h2>
+              <p className="text-muted-foreground mb-4">
+                Este deck ainda não possui flashcards.
+              </p>
+              <Button onClick={handleBackToDecks}>
+                Voltar aos Decks
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <div className="container mx-auto p-6" data-testid="flashcards-study">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{selectedDeck.title}</h1>
+            <p className="text-muted-foreground">
+              Flashcard {currentFlashcardIndex + 1} de {flashcards.length}
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleBackToDecks}>
+            Voltar aos Decks
+          </Button>
+        </div>
+
+        <div className="max-w-2xl mx-auto">
+          <Card className="min-h-[400px]">
+            <CardContent className="p-8 text-center flex flex-col justify-center">
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">
+                  {showAnswer ? "Resposta:" : "Pergunta:"}
+                </h2>
+                <p className="text-lg leading-relaxed" data-testid="flashcard-content">
+                  {showAnswer ? currentCard.back : currentCard.front}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {!showAnswer ? (
+                  <Button 
+                    onClick={() => setShowAnswer(true)}
+                    className="w-full"
+                    data-testid="button-show-answer"
+                  >
+                    Mostrar Resposta
+                  </Button>
+                ) : (
+                  <div className="flex gap-4 justify-center">
+                    <Button 
+                      variant="outline" 
+                      onClick={handlePrevCard}
+                      disabled={currentFlashcardIndex === 0}
+                      data-testid="button-prev-card"
+                    >
+                      ← Anterior
+                    </Button>
+                    <Button 
+                      onClick={handleNextCard}
+                      data-testid="button-next-card"
+                    >
+                      {currentFlashcardIndex === flashcards.length - 1 ? "Finalizar" : "Próximo →"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="mt-6">
+            <Progress 
+              value={((currentFlashcardIndex + 1) / flashcards.length) * 100} 
+              className="h-2" 
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6" data-testid="flashcards-page">
       <div className="mb-8">
@@ -257,7 +383,7 @@ export default function FlashcardsPage() {
                       <div className="flex gap-2 pt-2">
                         <Button 
                           size="sm" 
-                          onClick={() => setSelectedDeck(deck)}
+                          onClick={() => handleStartStudy(deck)}
                           data-testid={`button-view-deck-${deck.id}`}
                         >
                           <Play className="w-4 h-4 mr-1" />
