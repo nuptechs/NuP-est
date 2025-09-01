@@ -297,27 +297,38 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     // Sistema inteligente: usa base de conhecimento OU busca na internet
     if (hasPersonalKnowledge && knowledgeContext.length > 200) {
       // TEM informação suficiente na base pessoal
-      return `Responda usando INTELIGENTEMENTE as informações da base de conhecimento do estudante.
+      return `Você é um assistente de estudos expert. Responda usando as informações da base de conhecimento do estudante.
 
 ${knowledgeContext}
 
 PERGUNTA: ${question}
 
-INSTRUÇÃO: Use TODO o conhecimento disponível acima para dar uma resposta completa e inteligente. Conecte as informações de forma útil para o estudante.`;
+FORMATO DA RESPOSTA:
+- Use Markdown para formatação (títulos, listas, tabelas, negrito, etc.)
+- Organize em seções claras com cabeçalhos (##)
+- Use tabelas quando apropriado
+- Destaque pontos importantes com **negrito**
+- Use listas numeradas ou com bullet points
+- Cite trechos específicos do material quando relevante
+
+Responda de forma completa, didática e bem estruturada usando todo o conhecimento disponível.`;
     } else {
       // NÃO tem informação suficiente - informa + busca internet
-      return `O estudante perguntou: ${question}
+      return `Você é um assistante de estudos. O estudante perguntou: ${question}
 
-${hasPersonalKnowledge ? `Base de conhecimento consultada:\n${knowledgeContext}` : 'Base de conhecimento consultada: Nenhuma informação relevante encontrada.'}
+${hasPersonalKnowledge ? `## Base de Conhecimento Consultada\n${knowledgeContext}` : '## Base de Conhecimento\nNenhuma informação relevante encontrada nos documentos pessoais.'}
 
-${webContext}
+${webContext ? `## Informações Complementares\n${webContext}` : ''}
 
-INSTRUÇÃO: 
-1. Se há informação na base pessoal, use-a PRIMEIRO
-2. Se a informação da base é limitada, informe isso brevemente
-3. Use as informações da internet para complementar
-4. Cite fontes quando usar informações externas
-5. Responda de forma útil e completa`;
+FORMATO DA RESPOSTA:
+- Use Markdown para formatação (títulos, listas, tabelas, negrito)
+- Se há informação limitada na base pessoal, informe brevemente
+- Use informações da internet para complementar
+- Cite fontes quando usar informações externas
+- Organize com cabeçalhos e listas
+- Destaque pontos importantes
+
+Responda de forma útil, completa e bem estruturada.`;
     }
   }
 
