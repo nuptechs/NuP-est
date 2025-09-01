@@ -27,7 +27,12 @@ function Router() {
       ) : user && !user.onboardingCompleted ? (
         <>
           <Route path="/onboarding" component={Onboarding} />
-          <Route path="/*" component={() => { window.location.replace('/onboarding'); return null; }} />
+          <Route path="/*" component={() => { 
+            if (window.location.pathname !== '/onboarding') {
+              window.location.replace('/onboarding'); 
+            }
+            return null; 
+          }} />
         </>
       ) : (
         <>

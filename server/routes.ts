@@ -129,6 +129,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const updates = req.body;
       
+      // Converter campos de data se necessário
+      if (updates.studyDeadline && typeof updates.studyDeadline === 'string') {
+        updates.studyDeadline = new Date(updates.studyDeadline);
+      }
+      
       const user = await storage.upsertUser({
         id: userId,
         ...updates
