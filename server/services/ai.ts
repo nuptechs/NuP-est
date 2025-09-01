@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Material, Subject, Topic, Goal, KnowledgeBase } from "@shared/schema";
 import { storage } from "../storage";
 import { embeddingsService } from "./embeddings";
+import { webSearch, type WebSearchResult } from "./web-search";
 import fs from "fs";
 import path from "path";
 
@@ -152,8 +153,10 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
   }
 
   async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string): Promise<string> {
-    // Buscar na base de conhecimento usando embeddings se houver userId
+    // FASE 1: Buscar na base de conhecimento pessoal
     let knowledgeContext = '';
+    let hasPersonalKnowledge = false;
+    
     if (userId) {
       try {
         // Tentar busca com embeddings primeiro
@@ -161,28 +164,39 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
         const embeddingResults = await storage.searchKnowledgeBaseWithEmbeddings(userId, queryEmbedding, 3);
         
         if (embeddingResults.length > 0) {
-          knowledgeContext = '\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n';
+          hasPersonalKnowledge = true;
+          knowledgeContext = '\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n';
           embeddingResults.forEach((result, index) => {
-            knowledgeContext += `[${result.title}] (relevância: ${(result.similarity * 100).toFixed(1)}%)\n${result.content}\n\n`;
+            knowledgeContext += `• [${result.title}] (relevância: ${(result.similarity * 100).toFixed(1)}%)\n${result.content.substring(0, 500)}...\n\n`;
           });
         } else {
           // Fallback para busca tradicional se não houver embeddings
           const relevantContent = await storage.searchKnowledgeBase(userId, question);
           if (relevantContent) {
-            knowledgeContext = `\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n${relevantContent}\n`;
+            hasPersonalKnowledge = true;
+            knowledgeContext = `\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n${relevantContent}\n`;
           }
         }
       } catch (error) {
         console.error("Erro ao buscar na base de conhecimento:", error);
-        // Fallback para busca tradicional
-        try {
-          const relevantContent = await storage.searchKnowledgeBase(userId, question);
-          if (relevantContent) {
-            knowledgeContext = `\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n${relevantContent}\n`;
-          }
-        } catch (fallbackError) {
-          console.error("Erro no fallback da busca:", fallbackError);
+      }
+    }
+
+    // FASE 2: Determinar se precisa de informações externas
+    const needsExternal = webSearch.needsExternalInfo(question, hasPersonalKnowledge);
+    let webContext = '';
+    
+    if (needsExternal) {
+      try {
+        const webResults = await webSearch.search(question, 2);
+        if (webResults.length > 0) {
+          webContext = '\n\n🌐 INFORMAÇÕES COMPLEMENTARES:\n';
+          webResults.forEach((result, index) => {
+            webContext += `• ${result.title}\n${result.content}\n\n`;
+          });
         }
+      } catch (error) {
+        console.error("Erro na busca web:", error);
       }
     }
 
@@ -212,28 +226,24 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       goalContext += '\n- IMPORTANTE: Todas as suas respostas devem ser direcionadas para ajudar com este objetivo específico.';
     }
 
-    const prompt = `Você é um assistente de estudos universal, respondendo em português brasileiro para qualquer área de conhecimento.
+    // FASE 3: Criar prompt inteligente baseado nas fontes disponíveis
+    const sourceStrategy = hasPersonalKnowledge && webContext ? 'hybrid' : 
+                          hasPersonalKnowledge ? 'personal' : 
+                          webContext ? 'external' : 'general';
 
-Contexto do estudante:
-- Perfil: ${studyProfile}
-- ${context}
-- ${subjectsList}${goalContext}${knowledgeContext}
+    const intelligentPrompt = this.createIntelligentPrompt({
+      question,
+      studyProfile,
+      context,
+      subjectsList,
+      goalContext,
+      knowledgeContext,
+      webContext,
+      sourceStrategy,
+      selectedGoal
+    });
 
-Pergunta do estudante: ${question}
-
-Instruções:
-1. Responda de forma personalizada baseada no perfil do estudante
-2. ${selectedGoal ? 'FOQUE ESPECIFICAMENTE no objetivo selecionado pelo estudante' : 'NÃO assuma nenhuma área específica de estudo'}
-3. ${knowledgeContext ? 'Use o conteúdo da base de conhecimento fornecido acima para dar respostas mais precisas e específicas' : 'Seja prático e actionável para qualquer área do conhecimento'}
-4. Use linguagem natural e amigável
-5. Mantenha o foco em técnicas de estudo eficazes universais
-6. Se a pergunta for sobre matérias específicas que o estudante possui, dê conselhos específicos para essa área
-7. Mantenha a resposta concisa (2-4 parágrafos no máximo)
-8. NÃO use formatação markdown ou caracteres especiais que possam causar problemas
-9. Responda apenas em texto simples e limpo
-10. IMPORTANTE: NÃO direcione para Biologia ou qualquer área específica, seja universal
-
-Responda diretamente à pergunta:`;
+    const prompt = intelligentPrompt;
 
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -241,8 +251,10 @@ Responda diretamente à pergunta:`;
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 400,
+          temperature: 0.7, // Mais consistente mas ainda criativo
+          maxOutputTokens: 600, // Mais espaço para respostas completas
+          topP: 0.9, // Melhor qualidade das respostas
+          topK: 40, // Controle de diversidade
         },
       });
 
@@ -267,6 +279,91 @@ Responda diretamente à pergunta:`;
       
       return "Houve um problema temporário com o assistente de IA. Tente fazer sua pergunta novamente.";
     }
+  }
+
+  private createIntelligentPrompt(params: {
+    question: string;
+    studyProfile: string;
+    context: string;
+    subjectsList: string;
+    goalContext: string;
+    knowledgeContext: string;
+    webContext: string;
+    sourceStrategy: 'hybrid' | 'personal' | 'external' | 'general';
+    selectedGoal?: any;
+  }): string {
+    const { question, studyProfile, context, subjectsList, goalContext, knowledgeContext, webContext, sourceStrategy } = params;
+
+    const strategiesPrompts = {
+      hybrid: `Você é um assistente de estudos inteligente que combina conhecimento pessoal com informações atualizadas.
+
+🎯 ESTRATÉGIA: Combine as informações da base pessoal do estudante com dados externos relevantes.
+
+FONTES DISPONÍVEIS:${knowledgeContext}${webContext}
+
+MISSÃO: 
+1. Use PRIORITARIAMENTE o conteúdo da base pessoal do estudante
+2. Complemente com informações externas quando necessário
+3. Crie conexões inteligentes entre as fontes
+4. Seja prático e actionável na resposta`,
+
+      personal: `Você é um assistente de estudos personalizado focado no conteúdo específico do estudante.
+
+🎯 ESTRATÉGIA: Use exclusivamente a base de conhecimento pessoal do estudante.
+
+SUA BASE DE CONHECIMENTO:${knowledgeContext}
+
+MISSÃO:
+1. Responda BASEADO ESPECIFICAMENTE no conteúdo fornecido
+2. Faça referências diretas aos documentos do estudante
+3. Use exemplos e citações do material pessoal
+4. Seja específico e detalhado com base no que o estudante possui`,
+
+      external: `Você é um assistente de estudos que busca informações complementares.
+
+🎯 ESTRATÉGIA: Forneça informações externas relevantes e atualizadas.
+
+INFORMAÇÕES ENCONTRADAS:${webContext}
+
+MISSÃO:
+1. Use as informações externas para responder à pergunta
+2. Sugira onde o estudante pode encontrar mais recursos
+3. Seja atualizado e prático na abordagem
+4. Complemente com conhecimento geral relevante`,
+
+      general: `Você é um assistente de estudos universal e inteligente.
+
+🎯 ESTRATÉGIA: Forneça orientação geral baseada em boas práticas de estudo.
+
+MISSÃO:
+1. Dê conselhos práticos e aplicáveis
+2. Use técnicas de estudo comprovadas
+3. Adapte a resposta ao perfil do estudante
+4. Seja motivacional e construtivo`
+    };
+
+    const basePrompt = strategiesPrompts[sourceStrategy];
+    
+    return `${basePrompt}
+
+CONTEXTO DO ESTUDANTE:
+- Perfil: ${studyProfile}
+- ${context}
+- ${subjectsList}${goalContext}
+
+PERGUNTA: ${question}
+
+DIRETRIZES DE RESPOSTA:
+✅ Linguagem natural e conversacional
+✅ Máximo 4 parágrafos bem estruturados
+✅ Seja específico e actionável
+✅ Use exemplos práticos
+✅ Mantenha tom amigável e motivador
+❌ Não use markdown ou formatação especial
+❌ Não seja genérico demais
+❌ Não ignore o contexto do estudante
+
+RESPONDA DIRETAMENTE:`;
   }
 
   async analyzeStudyMaterial(content: string, type: string): Promise<{
