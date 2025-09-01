@@ -245,12 +245,8 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       goalContext += '\n- IMPORTANTE: Todas as suas respostas devem ser direcionadas para ajudar com este objetivo específico.';
     }
 
-    // FASE 3: Criar prompt inteligente baseado nas fontes disponíveis
-    const sourceStrategy = hasPersonalKnowledge && webContext ? 'hybrid' : 
-                          hasPersonalKnowledge ? 'personal' : 
-                          webContext ? 'external' : 'general';
-
-    const intelligentPrompt = this.createIntelligentPrompt({
+    // FASE 3: Criar prompt robusto que FORCE o uso do conteúdo
+    const robustPrompt = this.createRobustPrompt({
       question,
       studyProfile,
       context,
@@ -258,16 +254,16 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       goalContext,
       knowledgeContext,
       webContext,
-      sourceStrategy,
+      hasPersonalKnowledge,
       selectedGoal
     });
 
-    console.log(`🎯 [DEBUG] Estratégia escolhida: ${sourceStrategy}`);
+    console.log(`🎯 [DEBUG] Tem conhecimento pessoal: ${hasPersonalKnowledge}`);
     console.log(`📝 [DEBUG] Knowledge context length: ${knowledgeContext.length}`);
     console.log(`📝 [DEBUG] Web context length: ${webContext.length}`);
-    console.log(`📝 [DEBUG] Prompt final (primeiros 500 chars):\n${intelligentPrompt.substring(0, 500)}...`);
+    console.log(`📝 [DEBUG] Prompt robusto (primeiros 500 chars):\n${robustPrompt.substring(0, 500)}...`);
 
-    const prompt = intelligentPrompt;
+    const prompt = robustPrompt;
 
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -308,7 +304,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     }
   }
 
-  private createIntelligentPrompt(params: {
+  private createRobustPrompt(params: {
     question: string;
     studyProfile: string;
     context: string;
@@ -316,62 +312,44 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     goalContext: string;
     knowledgeContext: string;
     webContext: string;
-    sourceStrategy: 'hybrid' | 'personal' | 'external' | 'general';
+    hasPersonalKnowledge: boolean;
     selectedGoal?: any;
   }): string {
-    const { question, studyProfile, context, subjectsList, goalContext, knowledgeContext, webContext, sourceStrategy } = params;
+    const { question, studyProfile, context, subjectsList, goalContext, knowledgeContext, webContext, hasPersonalKnowledge } = params;
 
-    const strategiesPrompts = {
-      hybrid: `Você é um assistente de estudos inteligente que combina conhecimento pessoal com informações atualizadas.
+    // Sistema robusto: Se tem conhecimento pessoal, FORCE o uso
+    if (hasPersonalKnowledge && knowledgeContext) {
+      return `Você é um assistente de estudos especializado. O estudante tem documentos pessoais carregados no sistema que contêm informações relevantes para responder à pergunta.
 
-🎯 ESTRATÉGIA: Combine as informações da base pessoal do estudante com dados externos relevantes.
+IMPORTANTE: Você DEVE usar as informações fornecidas abaixo dos documentos do estudante para responder.
 
-FONTES DISPONÍVEIS:${knowledgeContext}${webContext}
+DOCUMENTOS DO ESTUDANTE COM INFORMAÇÕES RELEVANTES:
+${knowledgeContext}
 
-MISSÃO: 
-1. Use PRIORITARIAMENTE o conteúdo da base pessoal do estudante
-2. Complemente com informações externas quando necessário
-3. Crie conexões inteligentes entre as fontes
-4. Seja prático e actionável na resposta`,
+CONTEXTO DO ESTUDANTE:
+- Perfil: ${studyProfile}
+- ${context}
+- ${subjectsList}${goalContext}
 
-      personal: `Você é um assistente de estudos personalizado focado no conteúdo específico do estudante.
+PERGUNTA DO ESTUDANTE: ${question}
 
-🎯 ESTRATÉGIA: Use exclusivamente a base de conhecimento pessoal do estudante.
+INSTRUÇÕES OBRIGATÓRIAS:
+✅ RESPONDA usando EXCLUSIVAMENTE as informações dos documentos fornecidos acima
+✅ Cite e referencie o conteúdo específico dos documentos
+✅ Seja detalhado e específico com base no material fornecido
+✅ Use linguagem natural e educativa
+✅ Organize a resposta de forma clara e estruturada
+❌ NÃO diga que não tem informações - você TEM as informações nos documentos acima
+❌ NÃO seja genérico - use o conteúdo específico fornecido
+❌ NÃO ignore o conteúdo dos documentos
 
-SUA BASE DE CONHECIMENTO:${knowledgeContext}
+RESPONDA AGORA usando as informações dos documentos:`;
+    }
 
-MISSÃO:
-1. Responda BASEADO ESPECIFICAMENTE no conteúdo fornecido
-2. Faça referências diretas aos documentos do estudante
-3. Use exemplos e citações do material pessoal
-4. Seja específico e detalhado com base no que o estudante possui`,
+    // Fallback para quando não tem conhecimento pessoal
+    return `Você é um assistente de estudos universal.
 
-      external: `Você é um assistente de estudos que busca informações complementares.
-
-🎯 ESTRATÉGIA: Forneça informações externas relevantes e atualizadas.
-
-INFORMAÇÕES ENCONTRADAS:${webContext}
-
-MISSÃO:
-1. Use as informações externas para responder à pergunta
-2. Sugira onde o estudante pode encontrar mais recursos
-3. Seja atualizado e prático na abordagem
-4. Complemente com conhecimento geral relevante`,
-
-      general: `Você é um assistente de estudos universal e inteligente.
-
-🎯 ESTRATÉGIA: Forneça orientação geral baseada em boas práticas de estudo.
-
-MISSÃO:
-1. Dê conselhos práticos e aplicáveis
-2. Use técnicas de estudo comprovadas
-3. Adapte a resposta ao perfil do estudante
-4. Seja motivacional e construtivo`
-    };
-
-    const basePrompt = strategiesPrompts[sourceStrategy];
-    
-    return `${basePrompt}
+${webContext ? `INFORMAÇÕES COMPLEMENTARES:${webContext}` : ''}
 
 CONTEXTO DO ESTUDANTE:
 - Perfil: ${studyProfile}
@@ -380,17 +358,7 @@ CONTEXTO DO ESTUDANTE:
 
 PERGUNTA: ${question}
 
-DIRETRIZES DE RESPOSTA:
-✅ Linguagem natural e conversacional
-✅ Máximo 4 parágrafos bem estruturados
-✅ Seja específico e actionável
-✅ Use exemplos práticos
-✅ Mantenha tom amigável e motivador
-❌ Não use markdown ou formatação especial
-❌ Não seja genérico demais
-❌ Não ignore o contexto do estudante
-
-RESPONDA DIRETAMENTE:`;
+Responda de forma útil e educativa, adaptando ao perfil do estudante.`;
   }
 
   async analyzeStudyMaterial(content: string, type: string): Promise<{
