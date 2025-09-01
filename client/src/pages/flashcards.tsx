@@ -380,7 +380,7 @@ export default function FlashcardsPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">Nenhuma matéria</SelectItem>
+                              <SelectItem value="none">Nenhuma matéria</SelectItem>
                               {subjects.map((subject) => (
                                 <SelectItem key={subject.id} value={subject.id}>
                                   {subject.name}
@@ -487,7 +487,7 @@ export default function FlashcardsPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">Nenhuma matéria</SelectItem>
+                              <SelectItem value="none">Nenhuma matéria</SelectItem>
                               {subjects.map((subject) => (
                                 <SelectItem key={subject.id} value={subject.id}>
                                   {subject.name}
