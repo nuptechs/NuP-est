@@ -1,12 +1,10 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Material, Subject, Topic } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" 
-});
+// Initialize Google Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
 export interface QuestionGenerationRequest {
   subject: Subject;
@@ -89,25 +87,27 @@ Respond with a JSON object containing an array of questions in this exact format
 }`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert educational content creator. Always respond with valid JSON in the exact format requested."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-        max_tokens: 3000,
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 3000,
+        },
       });
 
-      const result = JSON.parse(response.choices[0].message.content || '{"questions": []}');
-      return result.questions || [];
+      const response = await result.response;
+      const text = response.text();
+      
+      // Clean JSON response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No valid JSON found in response");
+      }
+      
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.questions || [];
     } catch (error) {
       console.error("Error generating questions:", error);
       throw new Error("Failed to generate questions: " + (error as Error).message);
@@ -131,23 +131,18 @@ Recent Performance: ${recentPerformance.length > 0 ?
 Provide a concise, actionable study recommendation (2-3 sentences) tailored to this student's profile and current progress.`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
-          {
-            role: "system",
-            content: "You are a study advisor providing personalized recommendations. Keep responses concise and actionable."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        max_tokens: 200,
-        temperature: 0.7,
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 200,
+        },
       });
 
-      return response.choices[0].message.content || "Continue with your current study plan and focus on consistent practice.";
+      const response = await result.response;
+      return response.text() || "Continue with your current study plan and focus on consistent practice.";
     } catch (error) {
       console.error("Error generating recommendation:", error);
       return "Keep up the good work! Focus on areas where you need more practice and maintain a consistent study schedule.";
@@ -175,23 +170,26 @@ Respond with JSON in this format:
 }`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
-          {
-            role: "system",
-            content: "You are an educational content analyzer. Always respond with valid JSON."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 500,
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 500,
+        },
       });
 
-      return JSON.parse(response.choices[0].message.content || '{"summary": "", "keyTopics": [], "difficulty": "medium"}');
+      const response = await result.response;
+      const text = response.text();
+      
+      // Clean JSON response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No valid JSON found in response");
+      }
+      
+      return JSON.parse(jsonMatch[0]);
     } catch (error) {
       console.error("Error analyzing material:", error);
       return {
@@ -260,25 +258,27 @@ Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
 }`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
-          {
-            role: "system",
-            content: "Você é um especialista em criar material educativo. Sempre responda com JSON válido no formato exato solicitado. Use português brasileiro."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-        max_tokens: 2000,
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2000,
+        },
       });
 
-      const result = JSON.parse(response.choices[0].message.content || '{"flashcards": []}');
-      return result.flashcards || [];
+      const response = await result.response;
+      const text = response.text();
+      
+      // Clean JSON response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No valid JSON found in response");
+      }
+      
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.flashcards || [];
     } catch (error) {
       console.error("Error generating flashcards:", error);
       throw new Error("Failed to generate flashcards: " + (error as Error).message);
