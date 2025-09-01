@@ -159,63 +159,44 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     
     if (userId) {
       try {
-        console.log(`🔍 [DEBUG] Buscando na base de conhecimento para userId: ${userId}`);
-        console.log(`🔍 [DEBUG] Pergunta: "${question}"`);
-        
         // Tentar busca com embeddings primeiro
         const queryEmbedding = await embeddingsService.generateEmbedding(question);
-        console.log(`🔍 [DEBUG] Embedding gerado: ${queryEmbedding.length} dimensões`);
-        
         const embeddingResults = await storage.searchKnowledgeBaseWithEmbeddings(userId, queryEmbedding, 3);
-        console.log(`🔍 [DEBUG] Resultados do embedding: ${embeddingResults.length} encontrados`);
         
         if (embeddingResults.length > 0) {
           hasPersonalKnowledge = true;
           knowledgeContext = '\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n';
           embeddingResults.forEach((result, index) => {
-            console.log(`🔍 [DEBUG] Resultado ${index + 1}: ${result.title} (${(result.similarity * 100).toFixed(1)}%)`);
-            console.log(`📄 [DEBUG] Conteúdo resultado ${index + 1} (primeiros 200 chars): "${result.content.substring(0, 200)}..."`);
-            knowledgeContext += `• [${result.title}] (relevância: ${(result.similarity * 100).toFixed(1)}%)\n${result.content.substring(0, 500)}...\n\n`;
+            knowledgeContext += `• [${result.title}] (relevância: ${(result.similarity * 100).toFixed(1)}%)\n${result.content}\n\n`;
           });
-          console.log(`✅ [DEBUG] Conhecimento pessoal encontrado com embeddings`);
-          console.log(`📝 [DEBUG] Knowledge Context montado (${knowledgeContext.length} chars): "${knowledgeContext.substring(0, 300)}..."`);
         } else {
-          console.log(`🔍 [DEBUG] Nenhum resultado com embeddings, tentando busca tradicional...`);
-          // Fallback para busca tradicional se não houver embeddings
+          // Busca tradicional como backup
           const relevantContent = await storage.searchKnowledgeBase(userId, question);
           if (relevantContent) {
             hasPersonalKnowledge = true;
             knowledgeContext = `\n\n📚 CONTEÚDO DA SUA BASE PESSOAL:\n${relevantContent}\n`;
-            console.log(`✅ [DEBUG] Conhecimento pessoal encontrado com busca tradicional`);
-          } else {
-            console.log(`❌ [DEBUG] Nenhum conteúdo encontrado na busca tradicional`);
           }
         }
       } catch (error) {
-        console.error("❌ [DEBUG] Erro ao buscar na base de conhecimento:", error);
+        console.error("Erro ao buscar na base de conhecimento:", error);
       }
     }
 
-    // FASE 2: Determinar se precisa de informações externas
-    const needsExternal = webSearch.needsExternalInfo(question, hasPersonalKnowledge);
-    console.log(`🌐 [DEBUG] Precisa de informações externas: ${needsExternal}`);
-    console.log(`📚 [DEBUG] Tem conhecimento pessoal: ${hasPersonalKnowledge}`);
-    
+    // FASE 2: Informações externas complementares (sempre disponíveis)
     let webContext = '';
+    const needsExternal = webSearch.needsExternalInfo(question, hasPersonalKnowledge);
     
     if (needsExternal) {
       try {
-        console.log(`🌐 [DEBUG] Buscando informações externas...`);
         const webResults = await webSearch.search(question, 2);
         if (webResults.length > 0) {
           webContext = '\n\n🌐 INFORMAÇÕES COMPLEMENTARES:\n';
           webResults.forEach((result, index) => {
             webContext += `• ${result.title}\n${result.content}\n\n`;
           });
-          console.log(`✅ [DEBUG] ${webResults.length} resultados web encontrados`);
         }
       } catch (error) {
-        console.error("❌ [DEBUG] Erro na busca web:", error);
+        console.error("Erro na busca web:", error);
       }
     }
 
@@ -258,18 +239,10 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       selectedGoal
     });
 
-    console.log(`🎯 [DEBUG] Tem conhecimento pessoal: ${hasPersonalKnowledge}`);
-    console.log(`📝 [DEBUG] Knowledge context length: ${knowledgeContext.length}`);
-    console.log(`📝 [DEBUG] Web context length: ${webContext.length}`);
-    console.log(`📝 [DEBUG] Prompt robusto (primeiros 500 chars):\n${robustPrompt.substring(0, 500)}...`);
-
     const prompt = robustPrompt;
 
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      console.log(`🤖 [DEBUG] Enviando para IA. Prompt completo (${prompt.length} chars):`);
-      console.log(`🤖 [DEBUG] Prompt: "${prompt}"`);
       
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -317,14 +290,15 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
   }): string {
     const { question, studyProfile, context, subjectsList, goalContext, knowledgeContext, webContext, hasPersonalKnowledge } = params;
 
-    // Sistema robusto: Se tem conhecimento pessoal, FORCE o uso
-    if (hasPersonalKnowledge && knowledgeContext) {
-      return `Você é um assistente de estudos especializado. O estudante tem documentos pessoais carregados no sistema que contêm informações relevantes para responder à pergunta.
+    // Sistema sem fallback: SEMPRE usa base de conhecimento quando disponível
+    return `Você é um assistente de estudos especializado. O estudante carregou documentos pessoais no sistema.
 
-IMPORTANTE: Você DEVE usar as informações fornecidas abaixo dos documentos do estudante para responder.
+COMANDO ABSOLUTO: Você DEVE usar as informações fornecidas abaixo dos documentos do estudante para responder.
 
-DOCUMENTOS DO ESTUDANTE COM INFORMAÇÕES RELEVANTES:
+DOCUMENTOS DO ESTUDANTE:
 ${knowledgeContext}
+
+${webContext ? `INFORMAÇÕES COMPLEMENTARES:${webContext}` : ''}
 
 CONTEXTO DO ESTUDANTE:
 - Perfil: ${studyProfile}
@@ -334,31 +308,17 @@ CONTEXTO DO ESTUDANTE:
 PERGUNTA DO ESTUDANTE: ${question}
 
 INSTRUÇÕES OBRIGATÓRIAS:
-✅ RESPONDA usando EXCLUSIVAMENTE as informações dos documentos fornecidos acima
+✅ RESPONDA usando PRIORITARIAMENTE as informações dos documentos fornecidos
 ✅ Cite e referencie o conteúdo específico dos documentos
 ✅ Seja detalhado e específico com base no material fornecido
 ✅ Use linguagem natural e educativa
 ✅ Organize a resposta de forma clara e estruturada
-❌ NÃO diga que não tem informações - você TEM as informações nos documentos acima
-❌ NÃO seja genérico - use o conteúdo específico fornecido
-❌ NÃO ignore o conteúdo dos documentos
+✅ Se relevante, complemente com informações externas fornecidas
+❌ NUNCA diga que não tem informações quando há documentos fornecidos
+❌ NUNCA seja genérico - use o conteúdo específico dos documentos
+❌ NUNCA ignore o conteúdo dos documentos do estudante
 
-RESPONDA AGORA usando as informações dos documentos:`;
-    }
-
-    // Fallback para quando não tem conhecimento pessoal
-    return `Você é um assistente de estudos universal.
-
-${webContext ? `INFORMAÇÕES COMPLEMENTARES:${webContext}` : ''}
-
-CONTEXTO DO ESTUDANTE:
-- Perfil: ${studyProfile}
-- ${context}
-- ${subjectsList}${goalContext}
-
-PERGUNTA: ${question}
-
-Responda de forma útil e educativa, adaptando ao perfil do estudante.`;
+RESPONDA AGORA baseado nos documentos:`;
   }
 
   async analyzeStudyMaterial(content: string, type: string): Promise<{
