@@ -40,7 +40,7 @@ import {
   type InsertKnowledgeBase,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, or } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -660,7 +660,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchKnowledgeBase(userId: string, query: string): Promise<string> {
-    // Busca simples no conteúdo dos documentos ativos
+    // Busca melhorada com palavras-chave
     console.log(`🔍 DEBUG Storage: Buscando para userId=${userId}, query="${query}"`);
     
     // Primeiro vamos ver todos os documentos do usuário
@@ -671,15 +671,46 @@ export class DatabaseStorage implements IStorage {
     
     console.log(`📋 DEBUG: Usuário tem ${allUserDocs.length} documentos no total`);
     
-    const documents = await db
-      .select()
-      .from(knowledgeBase)
-      .where(and(
-        eq(knowledgeBase.userId, userId),
-        eq(knowledgeBase.isActive, true),
-        sql`${knowledgeBase.content} ILIKE ${'%' + query + '%'}`
-      ))
-      .limit(3);
+    // Extrair palavras-chave da pergunta (remover palavras comuns)
+    const stopWords = ['me', 'fale', 'sobre', 'o', 'a', 'os', 'as', 'de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos', 'para', 'por', 'com', 'sem', 'que', 'qual', 'como', 'quando', 'onde'];
+    const keywords = query.toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.includes(word))
+      .slice(0, 5); // Usar no máximo 5 palavras-chave
+    
+    console.log(`🔍 DEBUG: Palavras-chave extraídas:`, keywords);
+    
+    let documents = [];
+    
+    if (keywords.length > 0) {
+      // Buscar por qualquer uma das palavras-chave
+      const keywordConditions = keywords.map(keyword => 
+        sql`${knowledgeBase.content} ILIKE ${'%' + keyword + '%'}`
+      );
+      
+      documents = await db
+        .select()
+        .from(knowledgeBase)
+        .where(and(
+          eq(knowledgeBase.userId, userId),
+          eq(knowledgeBase.isActive, true),
+          or(...keywordConditions)
+        ))
+        .limit(3);
+    }
+    
+    // Se não encontrou nada com palavras-chave, buscar pela query original
+    if (documents.length === 0) {
+      documents = await db
+        .select()
+        .from(knowledgeBase)
+        .where(and(
+          eq(knowledgeBase.userId, userId),
+          eq(knowledgeBase.isActive, true),
+          sql`${knowledgeBase.content} ILIKE ${'%' + query + '%'}`
+        ))
+        .limit(3);
+    }
       
     console.log(`📋 DEBUG: Encontrados ${documents.length} documentos relevantes para a busca`);
 
