@@ -155,13 +155,20 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     let knowledgeContext = '';
     if (userId) {
       try {
+        console.log(`🔍 DEBUG: Buscando na base de conhecimento para userId: ${userId}, pergunta: "${question}"`);
         const relevantContent = await storage.searchKnowledgeBase(userId, question);
+        console.log(`📚 DEBUG: Conteúdo encontrado:`, relevantContent ? `${relevantContent.length} caracteres` : 'NENHUM');
         if (relevantContent) {
           knowledgeContext = `\n\nCONTEÚDO RELEVANTE DA BASE DE CONHECIMENTO:\n${relevantContent}\n`;
+          console.log(`✅ DEBUG: Contexto adicionado ao prompt`);
+        } else {
+          console.log(`❌ DEBUG: Nenhum contexto encontrado`);
         }
       } catch (error) {
         console.error("Erro ao buscar na base de conhecimento:", error);
       }
+    } else {
+      console.log(`❌ DEBUG: userId não fornecido`);
     }
 
     // Customize prompt based on study profile

@@ -661,6 +661,16 @@ export class DatabaseStorage implements IStorage {
 
   async searchKnowledgeBase(userId: string, query: string): Promise<string> {
     // Busca simples no conteúdo dos documentos ativos
+    console.log(`🔍 DEBUG Storage: Buscando para userId=${userId}, query="${query}"`);
+    
+    // Primeiro vamos ver todos os documentos do usuário
+    const allUserDocs = await db
+      .select()
+      .from(knowledgeBase)
+      .where(eq(knowledgeBase.userId, userId));
+    
+    console.log(`📋 DEBUG: Usuário tem ${allUserDocs.length} documentos no total`);
+    
     const documents = await db
       .select()
       .from(knowledgeBase)
@@ -670,6 +680,8 @@ export class DatabaseStorage implements IStorage {
         sql`${knowledgeBase.content} ILIKE ${'%' + query + '%'}`
       ))
       .limit(3);
+      
+    console.log(`📋 DEBUG: Encontrados ${documents.length} documentos relevantes para a busca`);
 
     if (documents.length === 0) {
       return "";
