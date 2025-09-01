@@ -1,21 +1,24 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Usar Google Gemini para embeddings (gratuito)
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
 
 export class EmbeddingsService {
   
   /**
-   * Gera embeddings para um texto usando OpenAI
+   * Gera embeddings para um texto usando Google Gemini (gratuito)
    */
   async generateEmbedding(text: string): Promise<number[]> {
     try {
-      const response = await openai.embeddings.create({
-        model: "text-embedding-3-small", // modelo mais eficiente
-        input: text,
-      });
-
-      return response.data[0].embedding;
+      const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+      
+      const result = await model.embedContent(text);
+      
+      if (!result.embedding || !result.embedding.values) {
+        throw new Error("Embedding não retornado pela API");
+      }
+      
+      return result.embedding.values;
     } catch (error) {
       console.error("Erro ao gerar embedding:", error);
       throw new Error("Falha ao gerar embedding");
@@ -27,12 +30,18 @@ export class EmbeddingsService {
    */
   async generateEmbeddings(texts: string[]): Promise<number[][]> {
     try {
-      const response = await openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: texts,
-      });
-
-      return response.data.map(item => item.embedding);
+      const embeddings: number[][] = [];
+      
+      // Processar em lotes para evitar rate limits
+      for (const text of texts) {
+        const embedding = await this.generateEmbedding(text);
+        embeddings.push(embedding);
+        
+        // Pequena pausa entre requests para não sobrecarregar
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      return embeddings;
     } catch (error) {
       console.error("Erro ao gerar embeddings em lote:", error);
       throw new Error("Falha ao gerar embeddings");

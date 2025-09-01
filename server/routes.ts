@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { aiService } from "./services/ai";
+import { eq } from "drizzle-orm";
 import { 
   insertSubjectSchema, 
   insertTopicSchema, 
@@ -21,6 +22,8 @@ import path from "path";
 import fs from "fs";
 import { pdfService } from "./services/pdf";
 import { embeddingsService } from "./services/embeddings";
+import { knowledgeChunks } from "@shared/schema";
+import { db } from "./db";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -913,6 +916,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting knowledge document:', error);
       res.status(500).json({ message: 'Failed to delete document' });
+    }
+  });
+
+  // Endpoint para reprocessar documentos sem embeddings
+  app.post('/api/knowledge-base/reprocess-embeddings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Buscar documentos do usuário
+      const documents = await storage.getKnowledgeBase(userId);
+      let processedCount = 0;
+      let errorCount = 0;
+      
+      console.log(`🔄 Iniciando reprocessamento de ${documents.length} documentos...`);
+      
+      for (const document of documents) {
+        try {
+          // Verificar se já tem embeddings
+          const existingChunks = await db
+            .select()
+            .from(knowledgeChunks)
+            .where(eq(knowledgeChunks.knowledgeBaseId, document.id));
+            
+          if (existingChunks.length > 0) {
+            console.log(`📋 "${document.title}" já tem embeddings, pulando...`);
+            continue;
+          }
+          
+          // Gerar embeddings para os chunks existentes
+          if (document.chunks && Array.isArray(document.chunks) && document.chunks.length > 0) {
+            console.log(`🔄 Processando "${document.title}" (${document.chunks.length} chunks)...`);
+            
+            const embeddings = await embeddingsService.generateEmbeddings(document.chunks);
+            
+            const chunksWithEmbeddings = document.chunks.map((content, index) => ({
+              knowledgeBaseId: document.id,
+              chunkIndex: index,
+              content: content,
+              embedding: embeddings[index],
+            }));
+
+            await storage.createKnowledgeChunks(chunksWithEmbeddings);
+            console.log(`✅ Embeddings gerados para "${document.title}"`);
+            processedCount++;
+          }
+        } catch (error) {
+          console.error(`❌ Erro ao processar "${document.title}":`, error);
+          errorCount++;
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Processamento concluído: ${processedCount} documentos processados, ${errorCount} erros.`,
+        processed: processedCount,
+        errors: errorCount,
+        total: documents.length
+      });
+    } catch (error) {
+      console.error('Error reprocessing embeddings:', error);
+      res.status(500).json({ message: 'Failed to reprocess embeddings' });
     }
   });
 
