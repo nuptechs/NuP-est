@@ -95,13 +95,20 @@ export default function OnboardingPage() {
       
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    onSuccess: async () => {
+      // Força atualização do cache do usuário
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+      
       toast({
         title: "Perfil configurado com sucesso!",
         description: "Agora você terá uma experiência de estudo personalizada.",
       });
-      setLocation("/dashboard");
+      
+      // Aguarda um momento para garantir que o estado seja atualizado
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 100);
     },
     onError: () => {
       toast({
