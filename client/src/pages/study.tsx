@@ -6,6 +6,7 @@ import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import MobileNav from "@/components/layout/mobile-nav";
 import AiStudyModal from "@/components/study/ai-study-modal";
+import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -247,6 +248,7 @@ export default function Study() {
       </main>
       
       <MobileNav />
+      <DashboardIcon />
       
       <AiStudyModal 
         isOpen={isAiStudyOpen}

@@ -8,6 +8,7 @@ import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import MobileNav from "@/components/layout/mobile-nav";
 import SubjectForm from "@/components/subjects/subject-form";
+import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -263,6 +264,7 @@ export default function Subjects() {
       </main>
       
       <MobileNav />
+      <DashboardIcon />
     </div>
   );
 }

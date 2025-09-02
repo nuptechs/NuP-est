@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
+import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
@@ -933,6 +934,7 @@ export default function FlashcardsPage() {
           </div>
         </TabsContent>
       </Tabs>
+      <DashboardIcon />
     </div>
   );
 }

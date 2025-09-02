@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { 
   FileText, 
   Upload, 
@@ -539,6 +540,7 @@ export default function KnowledgeBasePage() {
           </div>
         </CardContent>
       </Card>
+      <DashboardIcon />
     </div>
   );
 }

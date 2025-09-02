@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ArrowLeft, ArrowRight, Sparkles, BookOpen, Target, Clock, Brain, Heart, Home } from "lucide-react";
+import { CalendarIcon, ArrowLeft, ArrowRight, Sparkles, BookOpen, Target, Clock, Brain, Heart, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -540,15 +540,15 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900">
-      {/* Home Icon - Top Left */}
+      {/* Dashboard Icon - Bottom Left */}
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => setLocation('/')}
-        className="fixed top-3 left-3 sm:top-4 sm:left-4 z-50 p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-lg border border-gray-200/50 dark:border-gray-700/50"
-        data-testid="button-home"
+        onClick={() => window.location.href = '/dashboard'}
+        className="fixed bottom-4 left-4 z-50 p-2 h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg transition-all duration-200 hover:scale-105"
+        data-testid="button-dashboard"
       >
-        <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+        <LayoutDashboard className="h-4 w-4 text-white" />
       </Button>
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">

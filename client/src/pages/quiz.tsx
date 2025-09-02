@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Subject, Topic } from "@shared/schema";
+import { DashboardIcon } from "@/components/ui/dashboard-icon";
 
 interface QuizQuestion {
   id: string;
@@ -920,6 +921,7 @@ export default function QuizPage() {
           </CardContent>
         </Card>
       </div>
+      <DashboardIcon />
     </div>
   );
 }
