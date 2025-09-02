@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import type { Material, Subject, Topic, Goal, KnowledgeBase } from "@shared/schema";
 import { storage } from "../storage";
 import { embeddingsService } from "./embeddings";
@@ -8,11 +7,9 @@ import fs from "fs";
 import path from "path";
 import mammoth from "mammoth";
 
-// Initialize OpenRouter client for DeepSeek R1
-const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-});
+// Configuração para OpenRouter API
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
 export interface QuestionGenerationRequest {
   subject: Subject;
@@ -95,18 +92,30 @@ Respond with a JSON object containing an array of questions in this exact format
 }`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 3000,
+      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "deepseek/deepseek-r1",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 3000,
+        })
       });
-
+      
+      if (!openRouterResponse.ok) {
+        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
+      }
+      
+      const response = await openRouterResponse.json();
       const text = response.choices[0]?.message?.content;
       if (!text) {
         throw new Error("No response from AI");
@@ -143,18 +152,30 @@ Recent Performance: ${recentPerformance.length > 0 ?
 Provide a concise, actionable study recommendation (2-3 sentences) tailored to this student's profile and current progress.`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 200,
+      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "deepseek/deepseek-r1",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 200,
+        })
       });
-
+      
+      if (!openRouterResponse.ok) {
+        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
+      }
+      
+      const response = await openRouterResponse.json();
       const text = response.choices[0]?.message?.content;
       return text || "Continue with your current study plan and focus on consistent practice.";
     } catch (error) {
@@ -466,19 +487,30 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       while (attempt < maxAttempts) {
         attempt++;
         
-        const response = await openai.chat.completions.create({
-          model: selectedModel.model,
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: selectedModel.temperature,
-          max_tokens: selectedModel.maxTokens,
-          top_p: selectedModel.topP,
+        const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: "deepseek/deepseek-r1", // Forçando DeepSeek R1 sempre
+            messages: [
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 1200,
+          })
         });
-
+        
+        if (!openRouterResponse.ok) {
+          throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
+        }
+        
+        const response = await openRouterResponse.json();
         responseText = response.choices[0]?.message?.content || '';
         
         if (!responseText || responseText.trim().length === 0) {
@@ -518,20 +550,29 @@ SUGESTÕES: ${reviewResult.suggestions || 'Melhore a qualidade geral da resposta
 🎯 IMPORTANTE: Esta é a tentativa ${attempt} de ${maxAttempts}. A resposta deve ser significativamente melhor que a anterior.`;
           
           // Usar o prompt melhorado na próxima tentativa com parâmetros ajustados
-          const improvedResponse = await openai.chat.completions.create({
-            model: selectedModel.model,
-            messages: [
-              {
-                role: "user",
-                content: improvedPrompt
-              }
-            ],
-            temperature: Math.max(selectedModel.temperature - 0.1, 0.4), // Reduzir criatividade para foco
-            max_tokens: selectedModel.maxTokens + 200, // Mais espaço para melhorias
-            top_p: Math.max(selectedModel.topP - 0.05, 0.7),
+          const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: "deepseek/deepseek-r1",
+              messages: [
+                {
+                  role: "user",
+                  content: improvedPrompt
+                }
+              ],
+              temperature: 0.4,
+              max_tokens: 1400,
+            })
           });
           
-          responseText = improvedResponse.choices[0]?.message?.content || responseText;
+          if (openRouterResponse.ok) {
+            const improvedResponse = await openRouterResponse.json();
+            responseText = improvedResponse.choices[0]?.message?.content || responseText;
+          }
         } else {
           console.log(`⚠️ Máximo de ${maxAttempts} tentativas atingido. Enviando melhor resposta disponível.`);
         }
@@ -591,18 +632,30 @@ Responda com JSON no seguinte formato:
 Seja RIGOROSO na avaliação. Uma resposta só deve ser aprovada se for realmente completa, didática e bem estruturada.`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1",
-        messages: [
-          {
-            role: "user",
-            content: reviewPrompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 400,
+      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "deepseek/deepseek-r1",
+          messages: [
+            {
+              role: "user",
+              content: reviewPrompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 400,
+        })
       });
-
+      
+      if (!openRouterResponse.ok) {
+        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
+      }
+      
+      const response = await openRouterResponse.json();
       const reviewText = response.choices[0]?.message?.content || '';
       
       // Extrair JSON da resposta
@@ -720,18 +773,30 @@ Respond with JSON in this format:
 }`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 500,
+      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "deepseek/deepseek-r1",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 500,
+        })
       });
-
+      
+      if (!openRouterResponse.ok) {
+        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
+      }
+      
+      const response = await openRouterResponse.json();
       const text = response.choices[0]?.message?.content;
       if (!text) {
         throw new Error("No response from AI");
@@ -895,18 +960,30 @@ Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
 }`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-r1",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
+      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "deepseek/deepseek-r1",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        })
       });
-
+      
+      if (!openRouterResponse.ok) {
+        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
+      }
+      
+      const response = await openRouterResponse.json();
       const text = response.choices[0]?.message?.content;
       if (!text) {
         throw new Error("No response from AI");

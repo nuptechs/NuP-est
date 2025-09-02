@@ -1,0 +1,29 @@
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'ambient-light-sensor'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'battery'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'execution-while-not-rendered'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'execution-while-out-of-viewport'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'layout-animations'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'legacy-image-formats'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'navigation-override'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'oversized-images'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'publickey-credentials'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'speaker-selection'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'unoptimized-images'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Unrecognized feature: 'unsized-media'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+workspace_iframe.html?initialPath=%2Fai-assistant&id=%3Arpg%3A:1 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'ambient-light-sensor'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'battery'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'execution-while-not-rendered'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'execution-while-out-of-viewport'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'layout-animations'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'legacy-image-formats'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'navigation-override'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'oversized-images'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'publickey-credentials'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'speaker-selection'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'unoptimized-images'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'unsized-media'.Understand this warning
+NupEstudo:1 Unrecognized feature: 'pointer-lock'.Understand this warning
+NupEstudo:1 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+NupEstudo:1 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
