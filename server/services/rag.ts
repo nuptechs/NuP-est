@@ -74,11 +74,15 @@ export class RAGService {
 
       console.log(`📚 RAG: ${hasContext ? `Usando ${usedContext.length} fontes da base` : 'Sem contexto da base, usando conhecimento geral'}`);
 
-      // 4. Gerar resposta - com fallback para OpenRouter
-      let response;
-      try {
-        response = await openai.chat.completions.create({
-          model,
+      // 4. Gerar resposta usando OpenRouter
+      const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek/deepseek-r1',
           messages: [
             {
               role: 'system',
@@ -98,47 +102,14 @@ REGRAS CRÍTICAS:
           ],
           temperature: 0.3,
           max_tokens: 2000,
-        });
-      } catch (openaiError: any) {
-        console.log(`⚠️ OpenAI indisponível (${openaiError.status}), usando OpenRouter...`);
-        
-        // Fallback para OpenRouter
-        const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'deepseek/deepseek-r1',
-            messages: [
-              {
-                role: 'system',
-                content: `Você é um assistente de estudos inteligente que SEMPRE prioriza informações da base de conhecimento do usuário. 
-
-REGRAS CRÍTICAS:
-- Se há contexto da base pessoal: BASE sua resposta EXCLUSIVAMENTE nessas informações
-- Se NÃO há contexto: Use conhecimento geral, mas MENCIONE que não encontrou informações específicas na base do usuário
-- SEMPRE seja preciso, didático e organizado
-- Use formatação markdown para melhor apresentação
-- Cite as fontes quando usar informações da base`
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            temperature: 0.3,
-            max_tokens: 2000,
-          })
-        });
-        
-        if (!openRouterResponse.ok) {
-          throw new Error(`OpenRouter falhou: ${openRouterResponse.status}`);
-        }
-        
-        response = await openRouterResponse.json();
+        })
+      });
+      
+      if (!openRouterResponse.ok) {
+        throw new Error(`OpenRouter falhou: ${openRouterResponse.status}`);
       }
+      
+      const response = await openRouterResponse.json();
 
       const assistantResponse = response.choices?.[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.';
 
