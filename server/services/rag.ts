@@ -1,10 +1,6 @@
-import OpenAI from "openai";
 import { pineconeService } from './pinecone';
 
-// Cliente OpenAI para GPT-4
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Usando apenas OpenRouter + DeepSeek R1 - sem dependências OpenAI
 
 interface RAGContext {
   content: string;
@@ -19,7 +15,7 @@ interface RAGOptions {
   category?: string;
   maxContextLength?: number;
   minSimilarity?: number;
-  model?: 'gpt-4o-mini' | 'gpt-4' | 'gpt-4-turbo' | 'gpt-3.5-turbo';
+  model?: 'deepseek-r1';
 }
 
 export class RAGService {
@@ -38,7 +34,7 @@ export class RAGService {
       category,
       maxContextLength = 4000,
       minSimilarity = 0.1,
-      model = 'gpt-4o-mini'
+      model = 'deepseek-r1'
     } = options;
 
     try {
@@ -121,12 +117,24 @@ REGRAS CRÍTICAS:
         hasContext
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ RAG Error:', error);
       
-      // Fallback para resposta sem contexto
+      // Tratamento específico para diferentes tipos de erro
+      let errorMessage = "Desculpe, ocorreu um erro ao processar sua pergunta.";
+      
+      if (error?.status === 429 || error?.code === 'insufficient_quota') {
+        errorMessage = "⚠️ **Sua cota da OpenAI acabou!** Por favor, verifique seu plano e faturamento no painel da OpenAI.";
+      } else if (error?.status === 401) {
+        errorMessage = "🔑 **Erro de autenticação** - Verifique sua chave de API.";
+      } else if (error?.status === 400) {
+        errorMessage = "📝 **Erro na solicitação** - Por favor, reformule sua pergunta.";
+      } else if (error?.message?.includes('OpenRouter falhou')) {
+        errorMessage = "🔄 **Serviço de IA temporariamente indisponível** - Tente novamente em alguns instantes.";
+      }
+      
       return {
-        response: 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.',
+        response: errorMessage,
         contextUsed: [],
         hasContext: false
       };

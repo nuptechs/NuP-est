@@ -333,7 +333,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
           userId,
           query: question,
           category: selectedKnowledgeCategory,
-          model: 'gpt-4o-mini'
+          model: 'deepseek-r1' // Usando DeepSeek R1 como modelo principal
         });
 
         return ragResponse.response;
