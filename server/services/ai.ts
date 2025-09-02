@@ -4,6 +4,7 @@ import { embeddingsService } from "./embeddings";
 import { webSearch, type WebSearchResult } from "./web-search";
 import { ragService } from "./rag";
 import { aiAnalyze, getAIManager } from "./ai/index";
+import { AppError, errorMessages } from "../utils/ErrorHandler";
 import fs from "fs";
 import path from "path";
 import mammoth from "mammoth";
@@ -106,14 +107,14 @@ Respond with a JSON object containing an array of questions in this exact format
       // Clean JSON response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error("No valid JSON found in response");
+        throw new AppError(503, errorMessages.AI_SERVICE_ERROR, "No valid JSON found in response");
       }
       
       const parsed = JSON.parse(jsonMatch[0]);
       return parsed.questions || [];
     } catch (error) {
       console.error("Error generating questions:", error);
-      throw new Error("Failed to generate questions: " + (error as Error).message);
+      throw new AppError(503, errorMessages.AI_SERVICE_ERROR, "Failed to generate questions: " + (error as Error).message);
     }
   }
 
@@ -583,7 +584,7 @@ Respond with JSON in this format:
       return `Tipo de arquivo ${ext} não suportado. Tipos suportados: PDF, DOCX, TXT, MD.`;
     } catch (error) {
       console.error("Error extracting text from file:", error);
-      throw new Error("Failed to extract text from file");
+      throw new AppError(400, errorMessages.FILE_UPLOAD_ERROR, "Failed to extract text from file");
     }
   }
 
@@ -701,7 +702,7 @@ Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
       return result.flashcards || [];
     } catch (error) {
       console.error("Error generating flashcards:", error);
-      throw new Error("Failed to generate flashcards: " + (error as Error).message);
+      throw new AppError(503, errorMessages.AI_SERVICE_ERROR, "Failed to generate flashcards: " + (error as Error).message);
     }
   }
 }

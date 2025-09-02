@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { AppError, errorMessages } from '../utils/ErrorHandler';
 
 // Usar Google Gemini para embeddings (gratuito)
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
@@ -15,13 +16,13 @@ export class EmbeddingsService {
       const result = await model.embedContent(text);
       
       if (!result.embedding || !result.embedding.values) {
-        throw new Error("Embedding não retornado pela API");
+        throw new AppError(503, errorMessages.AI_SERVICE_ERROR, "Embedding não retornado pela API");
       }
       
       return result.embedding.values;
     } catch (error) {
       console.error("Erro ao gerar embedding:", error);
-      throw new Error("Falha ao gerar embedding");
+      throw new AppError(503, errorMessages.AI_SERVICE_ERROR, "Falha ao gerar embedding");
     }
   }
 
@@ -44,7 +45,7 @@ export class EmbeddingsService {
       return embeddings;
     } catch (error) {
       console.error("Erro ao gerar embeddings em lote:", error);
-      throw new Error("Falha ao gerar embeddings");
+      throw new AppError(503, errorMessages.AI_SERVICE_ERROR, "Falha ao gerar embeddings");
     }
   }
 
@@ -53,7 +54,7 @@ export class EmbeddingsService {
    */
   calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
     if (vecA.length !== vecB.length) {
-      throw new Error("Vetores devem ter o mesmo tamanho");
+      throw new AppError(400, errorMessages.INVALID_INPUT, "Vetores devem ter o mesmo tamanho");
     }
 
     let dotProduct = 0;

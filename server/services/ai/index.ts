@@ -19,6 +19,7 @@ export { OpenRouterProvider } from './providers/openrouter';
  */
 import { getAIManager } from './container';
 import { AIRequest, AIResponse } from './types';
+import { AppError, errorMessages } from '../../utils/ErrorHandler';
 
 /**
  * Função simples para chat completion
@@ -102,7 +103,7 @@ export async function aiAnalyze<T = any>(
   // Extrair JSON da resposta
   const jsonMatch = response.content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error('Resposta da IA não contém JSON válido');
+    throw new AppError(503, errorMessages.AI_SERVICE_ERROR, 'Resposta da IA não contém JSON válido');
   }
   
   return JSON.parse(jsonMatch[0]);

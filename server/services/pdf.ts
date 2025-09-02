@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { createRequire } from 'module';
+import { AppError, errorMessages } from '../utils/ErrorHandler';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 
@@ -50,7 +51,7 @@ export class PDFService {
       };
     } catch (error) {
       console.error('Erro ao processar PDF:', error);
-      throw new Error('Falha ao processar o arquivo PDF');
+      throw new AppError(400, errorMessages.FILE_UPLOAD_ERROR, 'Falha ao processar o arquivo PDF');
     }
   }
 

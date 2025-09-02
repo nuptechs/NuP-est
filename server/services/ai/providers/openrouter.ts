@@ -1,5 +1,6 @@
 import { IAIProvider } from '../interfaces';
 import { AIRequest, AIResponse, AIMetrics, AIProviderConfig } from '../types';
+import { AppError, errorMessages } from '../../../utils/ErrorHandler';
 
 /**
  * Implementação do provedor OpenRouter
@@ -59,7 +60,7 @@ export class OpenRouterProvider implements IAIProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`OpenRouter API error (${response.status}): ${errorText}`);
+        throw new AppError(503, errorMessages.AI_SERVICE_ERROR, `OpenRouter API error (${response.status}): ${errorText}`);
       }
 
       const data = await response.json();

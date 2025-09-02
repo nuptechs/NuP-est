@@ -1,5 +1,6 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 import { embeddingsService } from './embeddings';
+import { AppError, errorMessages } from '../utils/ErrorHandler';
 
 const pinecone = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY || '',
@@ -71,7 +72,7 @@ export class PineconeService {
       }
     }
     
-    throw new Error('Timeout aguardando índice ficar pronto');
+    throw new AppError(503, errorMessages.DATABASE_ERROR, 'Timeout aguardando índice ficar pronto');
   }
 
   /**

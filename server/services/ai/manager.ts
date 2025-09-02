@@ -1,6 +1,7 @@
 import { IAIManager, IAIProvider } from './interfaces';
 import { AIRequest, AIResponse, AIMetrics } from './types';
 import { ModelSelector } from './selector';
+import { AppError, errorMessages } from '../../utils/ErrorHandler';
 
 /**
  * Gerenciador centralizado de provedores de IA
@@ -43,7 +44,7 @@ export class AIManager implements IAIManager {
       .sort((a: IAIProvider, b: IAIProvider) => a.config.priority - b.config.priority);
 
     if (enabledProviders.length === 0) {
-      throw new Error('Nenhum provedor de IA disponível');
+      throw new AppError(503, errorMessages.AI_SERVICE_ERROR, 'Nenhum provedor de IA disponível');
     }
 
     // Por enquanto, retorna o primeiro (maior prioridade)
@@ -64,7 +65,7 @@ export class AIManager implements IAIManager {
       .sort((a: IAIProvider, b: IAIProvider) => a.config.priority - b.config.priority);
 
     if (enabledProviders.length === 0) {
-      throw new Error('❌ Nenhum provedor de IA disponível');
+      throw new AppError(503, errorMessages.AI_SERVICE_ERROR, '❌ Nenhum provedor de IA disponível');
     }
 
     // 🧠 SELEÇÃO INTELIGENTE DE MODELO
@@ -121,7 +122,7 @@ export class AIManager implements IAIManager {
 
     // Se chegou aqui, todos os provedores falharam
     console.error(`❌ Todos os provedores de IA falharam`);
-    throw new Error(`Todos os provedores de IA falharam. Último erro: ${lastError?.message}`);
+    throw new AppError(503, errorMessages.AI_SERVICE_ERROR, `Todos os provedores de IA falharam. Último erro: ${lastError?.message}`);
   }
 
   /**
