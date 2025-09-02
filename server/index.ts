@@ -39,13 +39,9 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
+  // Sistema de tratamento de erro centralizado
+  const { errorMiddleware } = await import("./middleware/errorMiddleware");
+  app.use(errorMiddleware);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

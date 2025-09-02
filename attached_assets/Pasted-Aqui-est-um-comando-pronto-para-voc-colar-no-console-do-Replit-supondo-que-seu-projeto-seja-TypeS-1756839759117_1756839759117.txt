@@ -1,0 +1,69 @@
+Aqui está um comando pronto para você colar no console do Replit (supondo que seu projeto seja TypeScript/Node com a estrutura que me mostrou):
+
+mkdir -p src/utils src/middleware && \
+cat << 'EOF' > src/utils/ErrorHandler.ts
+export class AppError extends Error {
+  statusCode: number;
+  userMessage: string;
+
+  constructor(statusCode: number, userMessage: string, internalMessage?: string) {
+    super(internalMessage || userMessage);
+    this.statusCode = statusCode;
+    this.userMessage = userMessage;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export const errorMessages = {
+  GENERIC: "Ocorreu um erro inesperado. Tente novamente mais tarde.",
+  INVALID_INPUT: "Os dados fornecidos são inválidos.",
+  NOT_FOUND: "O recurso solicitado não foi encontrado.",
+  UNAUTHORIZED: "Você não tem permissão para acessar este recurso.",
+  // 👉 adicione ou edite mensagens aqui facilmente
+};
+EOF
+
+cat << 'EOF' > src/middleware/errorMiddleware.ts
+import { Request, Response, NextFunction } from "express";
+import { AppError, errorMessages } from "../utils/ErrorHandler";
+
+export function errorMiddleware(err: any, req: Request, res: Response, next: NextFunction) {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({ error: err.userMessage });
+  }
+
+  console.error("Erro não tratado:", err);
+  return res.status(500).json({ error: errorMessages.GENERIC });
+}
+EOF
+
+O que esse comando faz:
+
+Cria src/utils/ErrorHandler.ts com:
+
+Uma classe AppError (padroniza status + mensagem amigável ao usuário).
+
+Um objeto errorMessages centralizado para manter as mensagens (fácil de alterar).
+
+Cria src/middleware/errorMiddleware.ts:
+
+Middleware Express para interceptar erros.
+
+Responde sempre com mensagens amigáveis e status corretos.
+
+Loga os erros técnicos para análise, mas sem poluir a experiência do usuário.
+
+🔧 Como usar no seu código
+Nos controladores/serviços, ao invés de lançar throw new Error("msg qualquer"), use:
+
+import { AppError, errorMessages } from "../utils/ErrorHandler";
+
+if (!inputValido) {
+  throw new AppError(400, errorMessages.INVALID_INPUT, "Validação falhou no campo X");
+}
+
+
+E no server.ts / app.ts, logo após os app.use(routes):
+
+import { errorMiddleware } from "./middleware/errorMiddleware";
+app.use(errorMiddleware);
