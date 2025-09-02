@@ -187,7 +187,10 @@ export default function Materials() {
                     + Novo Material
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
+                  <div id="dialog-description" className="sr-only">
+                    Formulário para adicionar novos materiais de estudo
+                  </div>
                   <MaterialUpload onSuccess={handleMaterialUploaded} />
                 </DialogContent>
               </Dialog>

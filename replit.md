@@ -1,22 +1,26 @@
 # Overview
 
-NuP-est is an AI-powered study management application that helps students organize their studies, track progress, and receive personalized AI-generated questions. The platform features a comprehensive study system with subjects, materials, goals, and analytics, built with a modern full-stack TypeScript architecture using React, Express, and PostgreSQL.
+NuP-est is an AI-powered adaptive study management platform that creates personalized learning experiences through deep user profiling and intelligent content delivery. The system guides users through a comprehensive setup process and provides an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
+User Experience Focus: Intuitive, guided workflows with minimal cognitive load.
+Design Philosophy: Clean, minimalist interfaces that prioritize user flow over feature complexity.
 
 # System Architecture
 
 ## Frontend Architecture
 
-The client is built with **React 18** and **TypeScript**, using **Vite** as the build tool and development server. The application follows a modern React patterns approach:
+The client is built with **React 18** and **TypeScript**, using **Vite** as the build tool and development server. The application follows a user-centric design approach:
 
 - **Routing**: Uses `wouter` for client-side routing with a simple, lightweight approach
 - **State Management**: Leverages **TanStack Query (React Query)** for server state management and caching
 - **UI Framework**: Implements **shadcn/ui** components with **Radix UI** primitives and **Tailwind CSS** for styling
 - **Forms**: Uses **React Hook Form** with **Zod** validation for type-safe form handling
 - **Authentication**: Client-side authentication state managed through React Query with automatic redirects
+- **User Experience**: Profile-driven interface that adapts to user study patterns and preferences
+- **Dashboard**: Centralized hub design with guided setup flow and intuitive tool access
 
 ## Backend Architecture
 
@@ -50,10 +54,14 @@ The server is built with **Express.js** and **TypeScript** in ESM format:
 
 ## AI Integration
 
-- **OpenAI Integration**: Uses GPT models for generating personalized study questions
+- **OpenRouter Integration**: Uses DeepSeek R1 model for advanced AI capabilities with cost optimization
+- **Profile-Aware AI**: All AI interactions consider user study profile (disciplined, undisciplined, average)
 - **Question Generation**: Context-aware question generation based on study materials and user profiles
-- **Adaptive Difficulty**: Questions adapt to user's study profile and performance history
+- **Intelligent Hints**: AI-powered hint system during quizzes for guided learning
+- **Personalized Feedback**: Post-quiz analysis with customized improvement recommendations
+- **Adaptive Difficulty**: Questions and content adapt to user's study profile and performance history
 - **Content Processing**: Processes uploaded study materials to generate relevant questions
+- **Smart Recommendations**: AI suggests study strategies based on user profile and progress patterns
 
 # External Dependencies
 
