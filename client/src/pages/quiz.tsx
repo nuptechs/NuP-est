@@ -79,6 +79,9 @@ export default function QuizPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [currentHint, setCurrentHint] = useState<string | null>(null);
+  const [hintsUsed, setHintsUsed] = useState<Set<number>>(new Set());
+  const [personalizedFeedback, setPersonalizedFeedback] = useState<any>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -155,6 +158,65 @@ export default function QuizPage() {
     },
   });
 
+  // Buscar dica para questão atual
+  const getHintMutation = useMutation({
+    mutationFn: async () => {
+      if (!quizState) return;
+      
+      const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
+      const response = await fetch("/api/quiz/hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: currentQuestion.question,
+          options: currentQuestion.options,
+          subject: currentQuestion.subject
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Falha ao gerar dica");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setCurrentHint(data.hint);
+      setHintsUsed(prev => {
+        const newSet = new Set(prev);
+        newSet.add(quizState!.currentQuestionIndex);
+        return newSet;
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar uma dica. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Buscar feedback personalizado
+  const getFeedbackMutation = useMutation({
+    mutationFn: async (quizData: any) => {
+      const response = await fetch("/api/quiz/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(quizData),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Falha ao gerar feedback");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setPersonalizedFeedback(data.feedback);
+    },
+  });
+
   // Timer do quiz
   useEffect(() => {
     if (!quizState || quizState.isCompleted || !quizConfig.timeLimit) return;
@@ -213,6 +275,7 @@ export default function QuizPage() {
 
     setSelectedAnswer(null);
     setShowExplanation(false);
+    setCurrentHint(null); // Limpar dica ao mudar de questão
 
     if (quizState.currentQuestionIndex < quizState.questions.length - 1) {
       setQuizState(prev => ({
@@ -232,20 +295,38 @@ export default function QuizPage() {
     
     setQuizState(prev => ({ ...prev!, isCompleted: true }));
 
+    const correctAnswers = quizState.answers.filter((answer, index) => 
+      answer === quizState.questions[index].correctAnswer
+    ).length;
+
     // Salvar resultado
     const result = {
       subjectId: quizConfig.subjectId,
       topicId: quizConfig.topicId,
       totalQuestions: quizState.questions.length,
-      correctAnswers: quizState.answers.filter((answer, index) => 
-        answer === quizState.questions[index].correctAnswer
-      ).length,
+      correctAnswers,
       score: quizState.score,
       duration,
       difficulty: quizConfig.difficulty,
       answers: quizState.answers,
       questions: quizState.questions.map(q => q.id),
     };
+
+    // Gerar feedback personalizado
+    const feedbackData = {
+      correctAnswers,
+      totalQuestions: quizState.questions.length,
+      difficulty: quizConfig.difficulty,
+      subject: subjects.find(s => s.id === quizConfig.subjectId)?.name || "Matéria",
+      hintsUsed: hintsUsed.size,
+      timeSpent: duration,
+      weakAreas: quizState.questions
+        .filter((q, index) => quizState.answers[index] !== q.correctAnswer)
+        .map(q => q.topic)
+        .filter((topic, index, arr) => arr.indexOf(topic) === index)
+    };
+
+    getFeedbackMutation.mutate(feedbackData);
 
     saveQuizResultMutation.mutate(result);
   };
@@ -261,6 +342,25 @@ export default function QuizPage() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getPerformanceColor = (level: string) => {
+    switch (level) {
+      case 'excelente': return 'text-green-600 bg-green-50 border-green-200';
+      case 'bom': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'regular': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'precisa_melhorar': return 'text-red-600 bg-red-50 border-red-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'alta': return '🔴';
+      case 'média': return '🟡'; 
+      case 'baixa': return '🟢';
+      default: return '⚪';
+    }
   };
 
   if (!quizState) {
@@ -461,6 +561,105 @@ export default function QuizPage() {
             </Card>
           </div>
 
+          {/* Feedback Personalizado com IA */}
+          {personalizedFeedback && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-purple-600" />
+                  Análise Inteligente da sua Performance
+                </CardTitle>
+                <CardDescription>
+                  Insights personalizados para acelerar seu aprendizado
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Nível de Performance */}
+                  <div className={cn("p-4 rounded-lg border", getPerformanceColor(personalizedFeedback.performance_level))}>
+                    <h3 className="font-semibold mb-2">📊 Avaliação Geral</h3>
+                    <p className="font-medium capitalize">{personalizedFeedback.performance_level.replace('_', ' ')}</p>
+                  </div>
+
+                  {/* Pontos Fortes */}
+                  {personalizedFeedback.strengths?.length > 0 && (
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <h3 className="font-semibold text-green-700 mb-2">💪 Seus Pontos Fortes</h3>
+                      <ul className="space-y-1">
+                        {personalizedFeedback.strengths.map((strength: string, index: number) => (
+                          <li key={index} className="text-green-600 text-sm flex items-center gap-2">
+                            <span>✅</span> {strength}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Áreas de Melhoria */}
+                  {personalizedFeedback.improvement_areas?.length > 0 && (
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                      <h3 className="font-semibold text-orange-700 mb-2">🎯 Áreas para Focar</h3>
+                      <ul className="space-y-1">
+                        {personalizedFeedback.improvement_areas.map((area: string, index: number) => (
+                          <li key={index} className="text-orange-600 text-sm flex items-center gap-2">
+                            <span>📈</span> {area}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Recomendações */}
+                  {personalizedFeedback.recommendations?.length > 0 && (
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <h3 className="font-semibold text-blue-700 mb-3">🎓 Plano de Ação Personalizado</h3>
+                      <div className="space-y-3">
+                        {personalizedFeedback.recommendations.map((rec: any, index: number) => (
+                          <div key={index} className="bg-white p-3 rounded border border-blue-200">
+                            <div className="flex items-start gap-2">
+                              <span className="text-lg">{getPriorityIcon(rec.priority)}</span>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-blue-800 mb-1">{rec.action}</h4>
+                                <p className="text-sm text-blue-600">{rec.reason}</p>
+                                <span className="text-xs text-blue-500 font-medium mt-1 inline-block">
+                                  Prioridade: {rec.priority}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mensagem Motivacional */}
+                  {personalizedFeedback.motivational_message && (
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                      <h3 className="font-semibold text-purple-700 mb-2">💫 Mensagem do seu Tutor</h3>
+                      <p className="text-purple-600 italic">"{personalizedFeedback.motivational_message}"</p>
+                    </div>
+                  )}
+
+                  {/* Sugestões Futuras */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {personalizedFeedback.next_difficulty && (
+                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-center">
+                        <h4 className="font-medium text-gray-700 mb-1">🎚️ Próximo Nível</h4>
+                        <p className="text-sm text-gray-600 capitalize">{personalizedFeedback.next_difficulty}</p>
+                      </div>
+                    )}
+                    {personalizedFeedback.study_time_suggestion && (
+                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-center">
+                        <h4 className="font-medium text-gray-700 mb-1">⏰ Tempo Sugerido</h4>
+                        <p className="text-sm text-gray-600">{personalizedFeedback.study_time_suggestion}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>Revisão das Questões</CardTitle>
@@ -615,6 +814,33 @@ export default function QuizPage() {
                     </div>
                   ))}
                 </RadioGroup>
+
+                {/* Botão de dica */}
+                {!currentHint && !hintsUsed.has(quizState.currentQuestionIndex) && (
+                  <Button 
+                    onClick={() => getHintMutation.mutate()}
+                    disabled={getHintMutation.isPending}
+                    variant="outline"
+                    className="w-full mb-3"
+                    data-testid="button-get-hint"
+                  >
+                    <Lightbulb className="h-4 w-4 mr-2" />
+                    {getHintMutation.isPending ? "Gerando dica..." : "💡 Preciso de uma dica"}
+                  </Button>
+                )}
+
+                {/* Mostrar dica se disponível */}
+                {currentHint && (
+                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-4">
+                    <div className="flex items-start gap-2">
+                      <Lightbulb className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-medium text-yellow-700 mb-1">💡 Dica do Tutor</h4>
+                        <p className="text-sm text-yellow-700">{currentHint}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <Button 
                   onClick={submitAnswer}

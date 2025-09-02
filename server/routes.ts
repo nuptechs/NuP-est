@@ -1066,32 +1066,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Subject not found" });
       }
 
-      // Gerar questões usando IA
-      const prompt = `Crie ${questionCount} questões de múltipla escolha sobre ${subject.name}${topicId ? ` focando no tópico específico` : ''}.
+      // Buscar o perfil do usuário para personalização
+      const user = await storage.getUser(userId);
+      
+      // Adaptar prompt baseado no perfil do usuário
+      const profilePrompts = {
+        disciplined: "Crie questões analíticas e desafiadoras que exigem pensamento crítico e aplicação profunda dos conceitos.",
+        undisciplined: "Crie questões práticas e envolventes com exemplos do mundo real para manter o interesse e motivação.",
+        average: "Crie questões equilibradas entre teoria e prática com explicações claras para reforçar o aprendizado."
+      };
+      
+      const profileStrategy = profilePrompts[user?.studyProfile as keyof typeof profilePrompts] || profilePrompts.average;
+      
+      // Gerar questões usando IA com prompt avançado
+      const prompt = `Você é um especialista em educação criando questões personalizadas de alta qualidade.
 
-CONFIGURAÇÕES:
-- Dificuldade: ${difficulty === "mixed" ? "variada (fácil, médio, difícil)" : difficulty}
-- Número de questões: ${questionCount}
-- 4 alternativas por questão
-- Incluir explicação detalhada para cada resposta
+CONTEXTO DO ESTUDANTE:
+- Perfil: ${user?.studyProfile || 'average'}
+- Estratégia: ${profileStrategy}
+- Matéria: ${subject.name} - ${subject.description || 'Sem descrição'}
+- Nível: ${difficulty === "mixed" ? "variado (fácil, médio, difícil)" : difficulty}
 
-FORMATO JSON (retorne APENAS o JSON, sem texto adicional):
+INSTRUÇÕES PARA GERAR ${questionCount} QUESTÕES:
+
+1. **QUALIDADE DAS QUESTÕES:**
+   - Base cada questão em conceitos fundamentais da matéria
+   - Evite pegadinhas desnecessárias
+   - Use linguagem clara e precisa
+   - Teste conhecimento aplicado, não apenas memorização
+
+2. **OPÇÕES DE RESPOSTA:**
+   - 4 alternativas plausíveis e bem elaboradas
+   - Distratores inteligentes (baseados em erros comuns)
+   - Uma resposta claramente correta
+   - Evite opções absurdas ou óbvias
+
+3. **EXPLICAÇÕES EDUCATIVAS:**
+   - Explique por que a resposta correta está certa
+   - Mencione por que cada alternativa incorreta está errada
+   - Adicione dicas para fixar o conceito
+   - Use exemplos práticos quando possível
+
+4. **NÍVEIS DE DIFICULDADE:**
+   - Fácil: Conceitos básicos, definições e reconhecimento
+   - Médio: Aplicação de conceitos, análise e compreensão
+   - Difícil: Síntese, avaliação crítica e resolução de problemas complexos
+
+FORMATO JSON (retorne APENAS o JSON válido, sem texto adicional):
 [
   {
-    "question": "texto da questão",
-    "options": ["opção A", "opção B", "opção C", "opção D"],
+    "question": "Questão formulada de forma clara e específica",
+    "options": ["A) Primeira opção detalhada", "B) Segunda opção detalhada", "C) Terceira opção detalhada", "D) Quarta opção detalhada"],
     "correctAnswer": 0,
-    "explanation": "explicação detalhada da resposta correta",
-    "difficulty": "easy|medium|hard",
-    "topic": "nome do tópico",
-    "points": pontuação_baseada_na_dificuldade
+    "explanation": "RESPOSTA CORRETA: A) ... [explicação] | POR QUE AS OUTRAS ESTÃO ERRADAS: B) ... C) ... D) ... | DICA PARA LEMBRAR: ...",
+    "difficulty": "${difficulty === "mixed" ? "easy" : difficulty}",
+    "topic": "${subject.name}",
+    "points": ${difficulty === 'easy' ? 10 : difficulty === 'medium' ? 20 : 30}
   }
 ]
 
-PONTUAÇÃO:
-- Fácil: 10 pontos
-- Médio: 20 pontos  
-- Difícil: 30 pontos`;
+IMPORTANTE: Gere questões de qualidade acadêmica que realmente testem o conhecimento do estudante!`;
 
       // Fazer chamada direta à API de IA
       const response = await openai.chat.completions.create({
@@ -1134,6 +1168,141 @@ PONTUAÇÃO:
     } catch (error) {
       console.error('Error generating quiz:', error);
       res.status(500).json({ message: 'Failed to generate quiz' });
+    }
+  });
+
+  // Gerar dica para questão
+  app.post('/api/quiz/hint', isAuthenticated, async (req: any, res) => {
+    try {
+      const { question, options, subject } = req.body;
+      
+      const hintPrompt = `Você é um tutor educacional experiente. Para a seguinte questão, forneça uma dica útil que ajude o estudante a raciocinar sobre a resposta, MAS SEM revelar a resposta diretamente.
+
+QUESTÃO: ${question}
+
+OPÇÕES:
+${options.map((opt: string, i: number) => `${i + 1}. ${opt}`).join('\n')}
+
+MATÉRIA: ${subject}
+
+Crie uma dica que:
+- Direcione o pensamento do estudante
+- Destaque conceitos-chave relevantes
+- Elimine 1-2 opções claramente incorretas
+- Mantenha o desafio educativo
+- Use linguagem encorajadora
+
+Responda APENAS com o texto da dica, sem formatação especial.`;
+
+      const response = await openai.chat.completions.create({
+        model: "deepseek/deepseek-r1",
+        messages: [{ role: "user", content: hintPrompt }],
+        max_tokens: 300,
+        temperature: 0.8,
+      });
+
+      const hint = response.choices[0]?.message?.content || "Pense nos conceitos fundamentais desta matéria e elimine as opções que claramente não se encaixam.";
+      
+      res.json({ hint });
+    } catch (error) {
+      console.error('Error generating hint:', error);
+      res.status(500).json({ message: 'Failed to generate hint' });
+    }
+  });
+
+  // Gerar feedback personalizado pós-quiz
+  app.post('/api/quiz/feedback', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { 
+        correctAnswers, 
+        totalQuestions, 
+        difficulty, 
+        subject, 
+        hintsUsed, 
+        timeSpent,
+        weakAreas 
+      } = req.body;
+
+      const user = await storage.getUser(userId);
+      const accuracy = (correctAnswers / totalQuestions) * 100;
+
+      const feedbackPrompt = `Você é um tutor educacional experiente. Analise o desempenho do estudante e forneça feedback personalizado construtivo.
+
+PERFIL DO ESTUDANTE:
+- Tipo: ${user?.studyProfile || 'average'}
+- Matéria: ${subject}
+
+PERFORMANCE NO QUIZ:
+- Acertos: ${correctAnswers}/${totalQuestions} (${accuracy.toFixed(1)}%)
+- Dificuldade: ${difficulty}
+- Dicas usadas: ${hintsUsed}
+- Tempo gasto: ${Math.round(timeSpent / 60)} minutos
+- Áreas problemáticas: ${weakAreas?.join(', ') || 'Nenhuma identificada'}
+
+Forneça um feedback que inclua:
+1. **RECONHECIMENTO**: Parabenize os pontos fortes
+2. **ANÁLISE**: Identifique padrões e áreas de melhoria
+3. **PLANO DE AÇÃO**: 3-4 sugestões específicas para melhorar
+4. **MOTIVAÇÃO**: Mensagem encorajadora adequada ao perfil do estudante
+
+Responda em JSON no formato:
+{
+  "performance_level": "excelente|bom|regular|precisa_melhorar",
+  "strengths": ["ponto forte 1", "ponto forte 2"],
+  "improvement_areas": ["área 1", "área 2"],
+  "recommendations": [
+    {
+      "action": "ação específica",
+      "reason": "por que é importante",
+      "priority": "alta|média|baixa"
+    }
+  ],
+  "motivational_message": "mensagem personalizada encorajadora",
+  "next_difficulty": "easy|medium|hard",
+  "study_time_suggestion": "sugestão de tempo de estudo"
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: "deepseek/deepseek-r1",
+        messages: [{ role: "user", content: feedbackPrompt }],
+        max_tokens: 800,
+        temperature: 0.7,
+      });
+
+      const aiResponse = response.choices[0]?.message?.content || "";
+      
+      let feedback;
+      try {
+        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          feedback = JSON.parse(jsonMatch[0]);
+        } else {
+          feedback = JSON.parse(aiResponse);
+        }
+      } catch (parseError) {
+        // Fallback feedback
+        feedback = {
+          performance_level: accuracy >= 80 ? "bom" : accuracy >= 60 ? "regular" : "precisa_melhorar",
+          strengths: ["Completou o quiz", "Demonstrou interesse em aprender"],
+          improvement_areas: ["Revisar conceitos básicos", "Praticar mais questões"],
+          recommendations: [
+            {
+              action: "Revisar os tópicos com mais erros",
+              reason: "Para fortalecer a base de conhecimento",
+              priority: "alta"
+            }
+          ],
+          motivational_message: "Continue praticando! O aprendizado é uma jornada contínua.",
+          next_difficulty: accuracy >= 70 ? "medium" : "easy",
+          study_time_suggestion: "15-30 minutos por dia"
+        };
+      }
+
+      res.json({ feedback });
+    } catch (error) {
+      console.error('Error generating feedback:', error);
+      res.status(500).json({ message: 'Failed to generate feedback' });
     }
   });
 
