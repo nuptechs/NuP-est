@@ -15,6 +15,7 @@ import Flashcards from "@/pages/flashcards";
 import KnowledgeBase from "@/pages/knowledge-base";
 import Onboarding from "@/pages/onboarding";
 import Quiz from "@/pages/quiz";
+import Goals from "@/pages/goals";
 import AiAssistant from "@/components/dashboard/ai-assistant";
 
 function Router() {
@@ -47,6 +48,7 @@ function Router() {
           <Route path="/analytics" component={Analytics} />
           <Route path="/flashcards" component={Flashcards} />
           <Route path="/quiz" component={Quiz} />
+          <Route path="/goals" component={Goals} />
         </>
       )}
       <Route component={NotFound} />

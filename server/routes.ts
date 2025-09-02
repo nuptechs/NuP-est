@@ -360,6 +360,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/goals/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const goal = await storage.updateGoal(id, updates);
+      res.json(goal);
+    } catch (error) {
+      console.error("Error updating goal:", error);
+      res.status(400).json({ message: "Failed to update goal" });
+    }
+  });
+
+  app.delete('/api/goals/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteGoal(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting goal:", error);
+      res.status(500).json({ message: "Failed to delete goal" });
+    }
+  });
+
   // Target routes
   app.get('/api/targets', isAuthenticated, async (req: any, res) => {
     try {
@@ -399,6 +423,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating target:", error);
       res.status(400).json({ message: "Failed to update target" });
+    }
+  });
+
+  app.delete('/api/targets/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteTarget(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting target:", error);
+      res.status(500).json({ message: "Failed to delete target" });
     }
   });
 
