@@ -8,9 +8,7 @@ import fs from "fs";
 import path from "path";
 import mammoth from "mammoth";
 
-// Configuração para OpenRouter API
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+// Sistema de IA com injeção de dependência integrado
 
 export interface QuestionGenerationRequest {
   subject: Subject;
@@ -136,32 +134,15 @@ Recent Performance: ${recentPerformance.length > 0 ?
 Provide a concise, actionable study recommendation (2-3 sentences) tailored to this student's profile and current progress.`;
 
     try {
-      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1",
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 200,
-        })
+      // Usar sistema de injeção de dependência para chat
+      const aiManager = getAIManager();
+      const aiResponse = await aiManager.request({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        maxTokens: 200
       });
       
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
-      const text = response.choices[0]?.message?.content;
-      return text || "Continue with your current study plan and focus on consistent practice.";
+      return aiResponse.content || "Continue with your current study plan and focus on consistent practice.";
     } catch (error) {
       console.error("Error generating recommendation:", error);
       return "Keep up the good work! Focus on areas where you need more practice and maintain a consistent study schedule.";
@@ -471,31 +452,15 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       while (attempt < maxAttempts) {
         attempt++;
         
-        const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: "deepseek/deepseek-r1", // Forçando DeepSeek R1 sempre
-            messages: [
-              {
-                role: "user",
-                content: prompt
-              }
-            ],
-            temperature: 0.7,
-            max_tokens: 1200,
-          })
+        // Usar sistema de injeção de dependência para chat
+        const aiManager = getAIManager();
+        const aiResponse = await aiManager.request({
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          maxTokens: 1200
         });
         
-        if (!openRouterResponse.ok) {
-          throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-        }
-        
-        const response = await openRouterResponse.json();
-        responseText = response.choices[0]?.message?.content || '';
+        responseText = aiResponse.content || '';
         
         if (!responseText || responseText.trim().length === 0) {
           responseText = "Desculpe, não consegui processar sua pergunta no momento. Tente novamente em alguns segundos.";
@@ -534,28 +499,18 @@ SUGESTÕES: ${reviewResult.suggestions || 'Melhore a qualidade geral da resposta
 🎯 IMPORTANTE: Esta é a tentativa ${attempt} de ${maxAttempts}. A resposta deve ser significativamente melhor que a anterior.`;
           
           // Usar o prompt melhorado na próxima tentativa com parâmetros ajustados
-          const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: "deepseek/deepseek-r1",
-              messages: [
-                {
-                  role: "user",
-                  content: improvedPrompt
-                }
-              ],
+          // Usar sistema de injeção de dependência para iteração melhorada
+          try {
+            const aiManager = getAIManager();
+            const aiResponse = await aiManager.request({
+              messages: [{ role: "user", content: improvedPrompt }],
               temperature: 0.4,
-              max_tokens: 1400,
-            })
-          });
-          
-          if (openRouterResponse.ok) {
-            const improvedResponse = await openRouterResponse.json();
-            responseText = improvedResponse.choices[0]?.message?.content || responseText;
+              maxTokens: 1400
+            });
+            
+            responseText = aiResponse.content || responseText;
+          } catch (iterationError) {
+            console.warn("Erro na iteração melhorada:", iterationError);
           }
         } else {
           console.log(`⚠️ Máximo de ${maxAttempts} tentativas atingido. Enviando melhor resposta disponível.`);
@@ -616,31 +571,15 @@ Responda com JSON no seguinte formato:
 Seja RIGOROSO na avaliação. Uma resposta só deve ser aprovada se for realmente completa, didática e bem estruturada.`;
 
     try {
-      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1",
-          messages: [
-            {
-              role: "user",
-              content: reviewPrompt
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 400,
-        })
+      // Usar sistema de injeção de dependência para revisão
+      const aiManager = getAIManager();
+      const aiResponse = await aiManager.request({
+        messages: [{ role: "user", content: reviewPrompt }],
+        temperature: 0.3,
+        maxTokens: 400
       });
       
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
-      const reviewText = response.choices[0]?.message?.content || '';
+      const reviewText = aiResponse.content || '';
       
       // Extrair JSON da resposta
       const jsonMatch = reviewText.match(/\{[\s\S]*\}/);
@@ -757,42 +696,15 @@ Respond with JSON in this format:
 }`;
 
     try {
-      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1",
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
+      // Usar sistema de injeção de dependência para análise
+      return await aiAnalyze<any>(
+        prompt,
+        `Você é um analisador de conteúdo educacional especializado. Analise o material e extraia informações estruturadas.`,
+        {
           temperature: 0.3,
-          max_tokens: 500,
-        })
-      });
-      
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
-      const text = response.choices[0]?.message?.content;
-      if (!text) {
-        throw new Error("No response from AI");
-      }
-      
-      // Clean JSON response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No valid JSON found in response");
-      }
-      
-      return JSON.parse(jsonMatch[0]);
+          maxTokens: 500
+        }
+      );
     } catch (error) {
       console.error("Error analyzing material:", error);
       return {
@@ -944,43 +856,17 @@ Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
 }`;
 
     try {
-      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1",
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
+      // Usar sistema de injeção de dependência para análise
+      const result = await aiAnalyze<{ flashcards: GeneratedFlashcard[] }>(
+        prompt,
+        `Você é um gerador de flashcards educacionais especializado. Crie flashcards de qualidade baseados no conteúdo fornecido.`,
+        {
           temperature: 0.7,
-          max_tokens: 2000,
-        })
-      });
+          maxTokens: 2000
+        }
+      );
       
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
-      const text = response.choices[0]?.message?.content;
-      if (!text) {
-        throw new Error("No response from AI");
-      }
-      
-      // Clean JSON response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No valid JSON found in response");
-      }
-      
-      const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.flashcards || [];
+      return result.flashcards || [];
     } catch (error) {
       console.error("Error generating flashcards:", error);
       throw new Error("Failed to generate flashcards: " + (error as Error).message);

@@ -27,9 +27,8 @@ import { embeddingsService } from "./services/embeddings";
 import { knowledgeChunks } from "@shared/schema";
 import { db } from "./db";
 
-// Configuração para OpenRouter API
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+// Sistema de IA com injeção de dependência
+import { aiAnalyze, getAIManager } from './services/ai/index';
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -1293,41 +1292,15 @@ FORMATO JSON (retorne APENAS o JSON válido, sem texto adicional):
 
 IMPORTANTE: Gere questões de qualidade acadêmica que realmente testem o conhecimento do estudante!`;
 
-      // Fazer chamada direta ao OpenRouter
-      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 4000,
+      // Usar sistema de injeção de dependência para análise
+      const questions = await aiAnalyze<any[]>(
+        prompt,
+        `Você é um gerador de questões educacionais especializado. Gere questões de múltipla escolha conforme especificado.`,
+        {
           temperature: 0.7,
-        })
-      });
-      
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
-      const aiResponse = response.choices[0]?.message?.content || "";
-
-      let questions;
-      try {
-        // Tentar extrair JSON da resposta
-        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          questions = JSON.parse(jsonMatch[0]);
-        } else {
-          questions = JSON.parse(aiResponse);
+          maxTokens: 4000
         }
-      } catch (parseError) {
-        console.error('Error parsing AI response:', parseError);
-        return res.status(500).json({ message: "Failed to generate valid quiz questions" });
-      }
+      );
 
       // Validar e enriquecer questões
       const validatedQuestions = questions.map((q: any, index: number) => ({
@@ -1372,26 +1345,15 @@ Crie uma dica que:
 
 Responda APENAS com o texto da dica, sem formatação especial.`;
 
-      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1",
-          messages: [{ role: "user", content: hintPrompt }],
-          max_tokens: 300,
-          temperature: 0.8,
-        })
+      // Usar sistema de injeção de dependência para chat
+      const aiManager = getAIManager();
+      const aiResponse = await aiManager.request({
+        messages: [{ role: "user", content: hintPrompt }],
+        maxTokens: 300,
+        temperature: 0.8
       });
       
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
-      const hint = response.choices[0]?.message?.content || "Pense nos conceitos fundamentais desta matéria e elimine as opções que claramente não se encaixam.";
+      const hint = aiResponse.content || "Pense nos conceitos fundamentais desta matéria e elimine as opções que claramente não se encaixam.";
       
       res.json({ hint });
     } catch (error) {
@@ -1453,35 +1415,17 @@ Responda em JSON no formato:
   "study_time_suggestion": "sugestão de tempo de estudo"
 }`;
 
-      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1",
-          messages: [{ role: "user", content: feedbackPrompt }],
-          max_tokens: 800,
-          temperature: 0.7,
-        })
-      });
-      
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
-      const aiResponse = response.choices[0]?.message?.content || "";
-      
+      // Usar sistema de injeção de dependência para análise
       let feedback;
       try {
-        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          feedback = JSON.parse(jsonMatch[0]);
-        } else {
-          feedback = JSON.parse(aiResponse);
-        }
+        feedback = await aiAnalyze<any>(
+          feedbackPrompt,
+          `Você é um tutor educacional experiente. Analise o desempenho e forneça feedback estruturado em JSON.`,
+          {
+            temperature: 0.7,
+            maxTokens: 800
+          }
+        );
       } catch (parseError) {
         // Fallback feedback
         feedback = {
