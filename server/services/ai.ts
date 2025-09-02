@@ -782,7 +782,7 @@ Respond with JSON in this format:
 
     const strategy = profileStrategies[studyProfile as keyof typeof profileStrategies] || profileStrategies.average;
 
-    const prompt = `Você é um especialista em educação criando flashcards personalizados em português.
+    const prompt = `Você é um especialista em educação criando flashcards personalizados e bem formatados em português.
 
 ${subject ? `Matéria: ${subject}` : ''}
 Perfil de Estudo: ${studyProfile}
@@ -800,20 +800,54 @@ INSTRUÇÕES IMPORTANTES:
 - Se o conteúdo contém exemplos, inclua-os nos flashcards
 - Identifique termos técnicos, nomes importantes, datas, processos explicados no texto
 
+FORMATAÇÃO OBRIGATÓRIA (use Markdown):
+- Use **negrito** para destacar termos importantes
+- Use *itálico* para ênfase
+- Use \`código\` para termos técnicos ou conceitos específicos
+- Use ### para subtítulos quando apropriado
+- Use listas numeradas (1. 2. 3.) ou com bullets (- ) para organizar informações
+- Use > para citações ou destaques importantes
+- Use tabelas quando houver dados comparativos:
+  | Conceito | Definição |
+  |----------|-----------|
+  | Termo    | Explicação |
+- Use quebras de linha duplas para separar parágrafos
+- Use --- para separadores visuais quando necessário
+
+EXEMPLOS DE FORMATAÇÃO:
+**Front:** O que é **Direito Constitucional**?
+
+**Back:** 
+### Definição
+O **Direito Constitucional** é o ramo do direito que estuda:
+
+1. **Constituição** - norma fundamental do Estado
+2. **Organização dos poderes** - estrutura governamental  
+3. **Direitos fundamentais** - garantias dos cidadãos
+
+> É considerado o *"direito dos direitos"* por ser hierarquicamente superior.
+
+---
+**Características principais:**
+- Supremacia constitucional
+- Rigidez constitucional
+- Controle de constitucionalidade
+
 Crie exatamente ${count} flashcards baseados no conteúdo fornecido. Cada flashcard deve:
 1. Estar DIRETAMENTE relacionado ao conteúdo fornecido acima
 2. Ser adequado para um estudante com perfil ${studyProfile}
 3. Ter uma pergunta clara na frente (front) extraída do conteúdo
-4. Ter uma resposta completa e educativa no verso (back) baseada no conteúdo
+4. Ter uma resposta completa e educativa no verso (back) com formatação markdown
 5. Estar em português
-6. Referenciar informações específicas do material fornecido
+6. Usar formatação rica para melhor apresentação
+7. Referenciar informações específicas do material fornecido
 
 Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
 {
   "flashcards": [
     {
-      "front": "Pergunta ou conceito aqui",
-      "back": "Resposta detalhada ou explicação aqui"
+      "front": "Pergunta ou conceito aqui (pode usar markdown básico)",
+      "back": "Resposta detalhada com **formatação markdown rica** incluindo:\\n\\n### Subtítulos\\n\\n1. Listas numeradas\\n- Bullets\\n\\n> Citações importantes\\n\\n| Tabela | Quando necessário |\\n|--------|-------------------|\\n| Item   | Descrição        |"
     }
   ]
 }`;

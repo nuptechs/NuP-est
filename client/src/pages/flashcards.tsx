@@ -18,6 +18,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { z } from "zod";
 import { Plus, BookOpen, Upload, Play, Edit, Trash2, Brain, FileText, Folder } from "lucide-react";
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const createDeckSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -321,9 +323,103 @@ export default function FlashcardsPage() {
                 <h2 className="text-xl font-semibold mb-4">
                   {showAnswer ? "Resposta:" : "Pergunta:"}
                 </h2>
-                <p className="text-lg leading-relaxed" data-testid="flashcard-content">
-                  {showAnswer ? currentCard.back : currentCard.front}
-                </p>
+                <div className="text-lg leading-relaxed prose prose-lg max-w-none" data-testid="flashcard-content">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      // Personalizar componentes para flashcards
+                      table: ({ children }) => (
+                        <table className="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden my-4 mx-auto">
+                          {children}
+                        </table>
+                      ),
+                      thead: ({ children }) => (
+                        <thead className="bg-blue-50">
+                          {children}
+                        </thead>
+                      ),
+                      th: ({ children }) => (
+                        <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-800 text-sm">
+                          {children}
+                        </th>
+                      ),
+                      td: ({ children }) => (
+                        <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm">
+                          {children}
+                        </td>
+                      ),
+                      h1: ({ children }) => (
+                        <h1 className="text-xl font-bold text-gray-900 mb-3 mt-4 first:mt-0">
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-lg font-semibold text-gray-800 mb-2 mt-3">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-base font-medium text-gray-800 mb-2 mt-2">
+                          {children}
+                        </h3>
+                      ),
+                      p: ({ children }) => (
+                        <p className="mb-3 leading-relaxed text-gray-700 text-left">
+                          {children}
+                        </p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc pl-6 mb-3 space-y-1 text-left">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal pl-6 mb-3 space-y-1 text-left">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-gray-700 text-left">
+                          {children}
+                        </li>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-blue-500 pl-4 py-2 my-4 bg-blue-50 rounded-r">
+                          {children}
+                        </blockquote>
+                      ),
+                      code: ({ className, children }) => {
+                        const isInline = !className;
+                        return isInline ? (
+                          <code className="bg-gray-100 text-blue-700 px-1 py-0.5 rounded text-sm font-mono">
+                            {children}
+                          </code>
+                        ) : (
+                          <pre className="bg-gray-100 p-3 rounded-lg overflow-x-auto my-3">
+                            <code className="text-sm font-mono text-gray-800">
+                              {children}
+                            </code>
+                          </pre>
+                        );
+                      },
+                      strong: ({ children }) => (
+                        <strong className="font-bold text-gray-900">
+                          {children}
+                        </strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="italic text-gray-800">
+                          {children}
+                        </em>
+                      ),
+                      hr: () => (
+                        <hr className="border-t border-gray-300 my-4" />
+                      )
+                    }}
+                  >
+                    {showAnswer ? currentCard.back : currentCard.front}
+                  </ReactMarkdown>
+                </div>
               </div>
 
               <div className="space-y-4">
