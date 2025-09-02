@@ -743,7 +743,8 @@ Respond with JSON in this format:
         const pdfParse = require('pdf-parse');
         const buffer = fs.readFileSync(filePath);
         const data = await pdfParse(buffer);
-        return data.text;
+        console.log(`📄 PDF extraído: ${data.text.length} caracteres de conteúdo`);
+        return data.text || "Não foi possível extrair texto do PDF";
       }
       
       // For other file types, return filename as placeholder

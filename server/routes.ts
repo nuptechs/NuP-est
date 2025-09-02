@@ -777,6 +777,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileContent = await aiService.extractTextFromFile(file.path);
       console.log(`📄 Arquivo processado: ${file.originalname}`);
       console.log(`📝 Conteúdo extraído (${fileContent.length} caracteres):`, fileContent.substring(0, 200) + '...');
+      
+      // Verificar se o conteúdo foi extraído corretamente
+      if (!fileContent || fileContent.length < 20) {
+        return res.status(400).json({ 
+          message: "Não foi possível extrair conteúdo suficiente do arquivo. Verifique se é um arquivo de texto válido." 
+        });
+      }
 
       // Get user profile for personalized flashcards
       const user = await storage.getUser(userId);
