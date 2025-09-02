@@ -333,7 +333,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
           userId,
           query: question,
           category: selectedKnowledgeCategory,
-          model: 'gpt-4'
+          model: 'gpt-4o-mini'
         });
 
         return ragResponse.response;

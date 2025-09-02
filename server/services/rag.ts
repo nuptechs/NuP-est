@@ -19,7 +19,7 @@ interface RAGOptions {
   category?: string;
   maxContextLength?: number;
   minSimilarity?: number;
-  model?: 'gpt-4' | 'gpt-4-turbo' | 'gpt-3.5-turbo';
+  model?: 'gpt-4o-mini' | 'gpt-4' | 'gpt-4-turbo' | 'gpt-3.5-turbo';
 }
 
 export class RAGService {
@@ -38,7 +38,7 @@ export class RAGService {
       category,
       maxContextLength = 4000,
       minSimilarity = 0.1,
-      model = 'gpt-4'
+      model = 'gpt-4o-mini'
     } = options;
 
     try {
