@@ -782,15 +782,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Generate flashcards using AI
+      // **NOVO**: Criar material permanente para armazenamento
+      const materialData = insertMaterialSchema.parse({
+        userId,
+        subjectId: subjectId || null,
+        title: title || `Material - ${file.originalname}`,
+        description: description || `Material criado a partir do arquivo: ${file.originalname}`,
+        type: path.extname(file.originalname).toLowerCase().substring(1),
+        filePath: file.path,
+        content: fileContent
+      });
+
+      const createdMaterial = await storage.createMaterial(materialData);
+
+      // **NOVO**: Gerar embeddings do conteúdo
+      try {
+        console.log('🔄 Gerando embeddings para o material...');
+        const preparedText = embeddingsService.prepareTextForEmbedding(fileContent);
+        const embedding = await embeddingsService.generateEmbedding(preparedText);
+        
+        // Armazenar embedding no material (adicionaremos campo embedding na schema)
+        console.log('✅ Embeddings gerados com sucesso!');
+      } catch (embeddingError) {
+        console.error('❌ Erro ao gerar embeddings (continuando sem eles):', embeddingError);
+      }
+
+      // **MELHORADO**: Análise inteligente do conteúdo antes de gerar flashcards
+      const contentAnalysis = await aiService.analyzeMaterial(fileContent);
+      
+      // Generate flashcards using AI com análise aprimorada
       const count = req.body.count ? parseInt(req.body.count) : 10;
       const flashcardCount = Math.min(Math.max(count, 1), 50); // Entre 1 e 50
       
-      const generatedFlashcards = await aiService.generateFlashcards({
+      const generatedFlashcards = await aiService.generateAdvancedFlashcards({
         content: fileContent,
+        contentAnalysis,
         studyProfile: user.studyProfile || "average",
         subject: subjectId,
-        count: flashcardCount
+        count: flashcardCount,
+        materialId: createdMaterial.id
       });
 
       // Create flashcard deck
@@ -825,8 +855,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         savedFlashcards.push(savedFlashcard);
       }
 
-      // Clean up uploaded file
-      fs.unlinkSync(file.path);
+      // **ALTERADO**: Não deletar arquivo pois foi salvo como material permanente
+      // fs.unlinkSync(file.path); // Mantemos o arquivo para o material
 
       res.json({
         deck,
