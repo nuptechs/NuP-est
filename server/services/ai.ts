@@ -773,15 +773,25 @@ ${subject ? `Matéria: ${subject}` : ''}
 Perfil de Estudo: ${studyProfile}
 Estratégia: ${strategy}
 
-Conteúdo para basear os flashcards:
-${content.substring(0, 3000)}...
+CONTEÚDO DE ESTUDO QUE DEVE SER USADO PARA CRIAR OS FLASHCARDS:
+---
+${content.substring(0, 6000)}${content.length > 6000 ? '...\n[conteúdo continua]' : ''}
+---
 
-Crie ${count} flashcards baseados no conteúdo fornecido. Cada flashcard deve:
-1. Estar diretamente relacionado ao conteúdo fornecido
+INSTRUÇÕES IMPORTANTES:
+- Os flashcards DEVEM ser baseados EXCLUSIVAMENTE no conteúdo fornecido acima
+- NÃO crie flashcards genéricos ou de conhecimento geral
+- Extraia conceitos, definições, fatos e explicações diretamente do texto
+- Se o conteúdo contém exemplos, inclua-os nos flashcards
+- Identifique termos técnicos, nomes importantes, datas, processos explicados no texto
+
+Crie exatamente ${count} flashcards baseados no conteúdo fornecido. Cada flashcard deve:
+1. Estar DIRETAMENTE relacionado ao conteúdo fornecido acima
 2. Ser adequado para um estudante com perfil ${studyProfile}
-3. Ter uma pergunta clara na frente (front)
-4. Ter uma resposta completa e educativa no verso (back)
+3. Ter uma pergunta clara na frente (front) extraída do conteúdo
+4. Ter uma resposta completa e educativa no verso (back) baseada no conteúdo
 5. Estar em português
+6. Referenciar informações específicas do material fornecido
 
 Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
 {

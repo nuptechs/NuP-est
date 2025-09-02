@@ -775,6 +775,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Extract text from uploaded file
       const fileContent = await aiService.extractTextFromFile(file.path);
+      console.log(`📄 Arquivo processado: ${file.originalname}`);
+      console.log(`📝 Conteúdo extraído (${fileContent.length} caracteres):`, fileContent.substring(0, 200) + '...');
 
       // Get user profile for personalized flashcards
       const user = await storage.getUser(userId);
@@ -808,19 +810,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // **MELHORADO**: Análise inteligente do conteúdo antes de gerar flashcards
-      const contentAnalysis = await aiService.analyzeMaterial(fileContent);
+      const contentAnalysis = await aiService.analyzeStudyMaterial(fileContent, subjectId || "Geral");
       
       // Generate flashcards using AI com análise aprimorada
       const count = req.body.count ? parseInt(req.body.count) : 10;
       const flashcardCount = Math.min(Math.max(count, 1), 50); // Entre 1 e 50
       
-      const generatedFlashcards = await aiService.generateAdvancedFlashcards({
+      const generatedFlashcards = await aiService.generateFlashcards({
         content: fileContent,
-        contentAnalysis,
         studyProfile: user.studyProfile || "average",
         subject: subjectId,
-        count: flashcardCount,
-        materialId: createdMaterial.id
+        count: flashcardCount
       });
 
       // Create flashcard deck
