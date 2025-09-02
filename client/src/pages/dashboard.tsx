@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ChevronRight, User, BookOpen, Target, Brain, MessageSquare, Zap, FileText, BarChart3, Clock, Lightbulb, Trophy } from "lucide-react";
+import { ChevronRight, User, BookOpen, Target, Brain, MessageSquare, Zap, FileText, BarChart3, Clock, Lightbulb, Trophy, Home } from "lucide-react";
 import type { Subject, Goal } from "@shared/schema";
 
 export default function Dashboard() {
@@ -73,15 +73,25 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Home Icon - Top Left */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => window.location.href = '/'}
+        className="fixed top-3 left-3 sm:top-4 sm:left-4 z-50 p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-lg border border-gray-200/50 dark:border-gray-700/50"
+        data-testid="button-home"
+      >
+        <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+      </Button>
       {/* Header minimalista */}
       <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto px-6 py-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 mt-6 sm:mt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">NuP-Study</h1>
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900">NuP-Study</h1>
             <Button
               variant="ghost"
               onClick={() => window.location.href = '/api/logout'}
-              className="text-gray-500 hover:text-gray-900"
+              className="text-gray-500 hover:text-gray-900 text-sm sm:text-base"
             >
               Sair
             </Button>
@@ -90,13 +100,13 @@ export default function Dashboard() {
       </header>
 
       {/* Conteúdo principal */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Saudação */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-light text-gray-900 mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-light text-gray-900 mb-2">
             Olá, {user?.firstName || 'Estudante'}
           </h2>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             {user?.studyProfile === 'disciplined' ? 'Continue mantendo sua disciplina.' :
              user?.studyProfile === 'undisciplined' ? 'Vamos encontrar seu ritmo.' :
              'Encontre seu equilíbrio nos estudos.'}
@@ -104,22 +114,22 @@ export default function Dashboard() {
         </div>
 
         {/* 3 Blocos Principais */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           
           {/* 1. QUEM SOU EU HOJE? */}
           <Card className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-blue-50 rounded-lg">
-                  <User className="h-5 w-5 text-blue-600" />
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900">Quem sou eu hoje?</h3>
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900">Quem sou eu hoje?</h3>
               </div>
               
               <div className="space-y-3">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button className="flex justify-between text-sm w-full hover:bg-gray-50 p-2 rounded transition-colors">
+                    <button className="flex justify-between text-xs sm:text-sm w-full hover:bg-gray-50 p-2 rounded transition-colors">
                       <span className="text-gray-600">Perfil de estudo</span>
                       <span className="font-medium text-gray-900 capitalize">
                         {user?.studyProfile === 'disciplined' ? 'Disciplinado' :

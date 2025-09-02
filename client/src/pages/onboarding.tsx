@@ -545,31 +545,31 @@ export default function OnboardingPage() {
         variant="ghost"
         size="sm"
         onClick={() => setLocation('/')}
-        className="fixed top-4 left-4 z-50 p-2 h-8 w-8 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-md"
+        className="fixed top-3 left-3 sm:top-4 sm:left-4 z-50 p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-lg border border-gray-200/50 dark:border-gray-700/50"
         data-testid="button-home"
       >
-        <Home className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
       </Button>
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Progress Header */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="flex items-center justify-between mb-4">
+        <div className="max-w-4xl mx-auto mb-6 sm:mb-8 mt-6 sm:mt-4">
+          <div className="flex items-center justify-center sm:justify-between mb-4 overflow-x-auto pb-2">
             {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center">
+              <div key={step.id} className="flex items-center flex-shrink-0">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold",
+                    "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-semibold",
                     currentStep >= step.id ? step.color : "bg-gray-300",
-                    currentStep === step.id && "ring-4 ring-white shadow-lg scale-110"
+                    currentStep === step.id && "ring-2 sm:ring-4 ring-white shadow-lg scale-105 sm:scale-110"
                   )}
                 >
-                  <step.icon className="h-5 w-5" />
+                  <step.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
                 {index < STEPS.length - 1 && (
                   <div
                     className={cn(
-                      "h-1 w-16 mx-2",
+                      "h-1 w-8 sm:w-16 mx-1 sm:mx-2",
                       currentStep > step.id ? "bg-green-400" : "bg-gray-300"
                     )}
                   />
@@ -578,7 +578,7 @@ export default function OnboardingPage() {
             ))}
           </div>
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Etapa {currentStep} de {STEPS.length}: {STEPS[currentStep - 1]?.title}
             </p>
           </div>
@@ -587,33 +587,33 @@ export default function OnboardingPage() {
         {/* Main Content */}
         <div className="max-w-2xl mx-auto">
           <Card className="shadow-xl border-0">
-            <CardHeader className="text-center">
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <CardHeader className="text-center px-4 sm:px-6">
+              <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Bem-vindo ao NuP-Study!
               </CardTitle>
-              <CardDescription className="text-lg">
+              <CardDescription className="text-base sm:text-lg">
                 Vamos personalizar sua experiência de estudos
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <AnimatePresence mode="wait">
                 {renderStep()}
               </AnimatePresence>
 
               {/* Navigation */}
-              <div className="flex justify-between pt-6 mt-6 border-t">
+              <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 pt-6 mt-6 border-t">
                 <Button
                   variant="outline"
                   onClick={prevStep}
                   disabled={currentStep === 1}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Anterior
                 </Button>
 
                 {currentStep < STEPS.length ? (
-                  <Button onClick={nextStep} className="flex items-center gap-2">
+                  <Button onClick={nextStep} className="flex items-center justify-center gap-2 w-full sm:w-auto">
                     Próximo
                     <ArrowRight className="h-4 w-4" />
                   </Button>
@@ -621,7 +621,7 @@ export default function OnboardingPage() {
                   <Button
                     onClick={handleFinish}
                     disabled={isLoading || updateProfileMutation.isPending}
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   >
                     {isLoading || updateProfileMutation.isPending ? (
                       <>
