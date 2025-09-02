@@ -5,6 +5,7 @@ import { embeddingsService } from "./embeddings";
 import { webSearch, type WebSearchResult } from "./web-search";
 import fs from "fs";
 import path from "path";
+import mammoth from "mammoth";
 
 // Initialize OpenRouter client for DeepSeek R1
 const openai = new OpenAI({
@@ -747,9 +748,22 @@ Respond with JSON in this format:
         return data.text || "Não foi possível extrair texto do PDF";
       }
       
-      // For other file types, return filename as placeholder
-      // TODO: Add DOC, DOCX support with appropriate libraries
-      return `Content from file: ${path.basename(filePath)}. Please add text extraction library support for ${ext} files.`;
+      // Handle DOCX files
+      if (ext === '.docx') {
+        const buffer = fs.readFileSync(filePath);
+        const result = await mammoth.extractRawText({ buffer });
+        console.log(`📄 DOCX extraído: ${result.value.length} caracteres de conteúdo`);
+        return result.value || "Não foi possível extrair texto do DOCX";
+      }
+      
+      // Handle DOC files (limited support)
+      if (ext === '.doc') {
+        console.log('⚠️ Arquivos .DOC têm suporte limitado. Recomenda-se converter para .DOCX');
+        return "Arquivos .DOC têm suporte limitado. Por favor, converta para .DOCX para melhor extração de texto.";
+      }
+      
+      // For other file types, return error message
+      return `Tipo de arquivo ${ext} não suportado. Tipos suportados: PDF, DOCX, TXT, MD.`;
     } catch (error) {
       console.error("Error extracting text from file:", error);
       throw new Error("Failed to extract text from file");

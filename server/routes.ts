@@ -39,7 +39,15 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const upload = multer({
-  dest: uploadDir,
+  storage: multer.diskStorage({
+    destination: uploadDir,
+    filename: (req, file, cb) => {
+      // Preservar a extensão original do arquivo
+      const ext = path.extname(file.originalname);
+      const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + ext;
+      cb(null, uniqueName);
+    }
+  }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['.pdf', '.doc', '.docx', '.txt', '.md'];
@@ -54,7 +62,15 @@ const upload = multer({
 
 // Multer específico para PDFs da base de conhecimento
 const pdfUpload = multer({
-  dest: uploadDir,
+  storage: multer.diskStorage({
+    destination: uploadDir,
+    filename: (req, file, cb) => {
+      // Preservar a extensão original do arquivo
+      const ext = path.extname(file.originalname);
+      const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + ext;
+      cb(null, uniqueName);
+    }
+  }),
   limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit for PDFs
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
