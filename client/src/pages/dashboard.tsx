@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ChevronRight, User, BookOpen, Target, Brain, MessageSquare, Zap, FileText, BarChart3, Clock, Lightbulb, Trophy } from "lucide-react";
 import type { Subject, Goal } from "@shared/schema";
 
@@ -116,13 +117,31 @@ export default function Dashboard() {
               </div>
               
               <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Perfil de estudo</span>
-                  <span className="font-medium text-gray-900 capitalize">
-                    {user?.studyProfile === 'disciplined' ? 'Disciplinado' :
-                     user?.studyProfile === 'undisciplined' ? 'Livre' : 'Equilibrado'}
-                  </span>
-                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="flex justify-between text-sm w-full hover:bg-gray-50 p-2 rounded transition-colors">
+                      <span className="text-gray-600">Perfil de estudo</span>
+                      <span className="font-medium text-gray-900 capitalize">
+                        {user?.studyProfile === 'disciplined' ? 'Disciplinado' :
+                         user?.studyProfile === 'undisciplined' ? 'Livre' : 'Equilibrado'}
+                      </span>
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Atualizar perfil de estudo</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Você deseja refazer o mapeamento do seu perfil de estudo? Isso pode ajudar a personalizar ainda mais sua experiência de aprendizado.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => window.location.href = '/onboarding'}>
+                        Atualizar perfil
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Matérias ativas</span>
