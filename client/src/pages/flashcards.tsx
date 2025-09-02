@@ -65,7 +65,7 @@ export default function FlashcardsPage() {
 
   // Fetch materials for dropdown
   const { data: materials = [] } = useQuery<Material[]>({
-    queryKey: ["/api/materials/"],
+    queryKey: ["/api/materials"],
   });
 
   // Fetch flashcards for selected deck
@@ -728,6 +728,11 @@ export default function FlashcardsPage() {
                 </CardTitle>
                 <CardDescription>
                   Use materiais já carregados para criar flashcards com IA
+                  {materials.length === 0 && (
+                    <div className="mt-2 text-sm text-orange-600">
+                      ⚠️ Você ainda não tem materiais. Vá para a seção "Materiais" ou "Base de Conhecimento" para adicionar conteúdo primeiro.
+                    </div>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -746,11 +751,17 @@ export default function FlashcardsPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {materials.map((material) => (
-                                <SelectItem key={material.id} value={material.id}>
-                                  {material.title}
+                              {materials.length === 0 ? (
+                                <SelectItem value="no-materials" disabled>
+                                  Nenhum material encontrado
                                 </SelectItem>
-                              ))}
+                              ) : (
+                                materials.map((material) => (
+                                  <SelectItem key={material.id} value={material.id}>
+                                    {material.title}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
