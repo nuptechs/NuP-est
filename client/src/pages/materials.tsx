@@ -183,15 +183,11 @@ export default function Materials() {
               
               <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
                 <DialogTrigger asChild>
-                  <Button data-testid="button-upload-material">
-                    <i className="fas fa-upload mr-2"></i>
-                    Novo Material
+                  <Button size="lg" data-testid="button-upload-material">
+                    + Novo Material
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Material</DialogTitle>
-                  </DialogHeader>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <MaterialUpload onSuccess={handleMaterialUploaded} />
                 </DialogContent>
               </Dialog>
@@ -229,8 +225,7 @@ export default function Materials() {
                   }
                 </p>
                 <Button onClick={() => setIsUploadOpen(true)} data-testid="button-add-first-material">
-                  <i className="fas fa-upload mr-2"></i>
-                  Adicionar material
+                  + Adicionar material
                 </Button>
               </CardContent>
             </Card>
@@ -268,7 +263,7 @@ export default function Materials() {
                             {material.type.toUpperCase()}
                           </Badge>
                           {subject && (
-                            <Badge variant="outline" style={{ borderColor: subject.color, color: subject.color }}>
+                            <Badge variant="outline" style={{ borderColor: subject.color || undefined, color: subject.color || undefined }}>
                               {subject.name}
                             </Badge>
                           )}
