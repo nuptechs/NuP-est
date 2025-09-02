@@ -1,0 +1,121 @@
+1. Arquivo ErrorTypes.ts
+
+Definindo categorias de erro do sistema:
+
+export enum ErrorType {
+  AUTHENTICATION = "AUTHENTICATION_ERROR",
+  AUTHORIZATION = "AUTHORIZATION_ERROR",
+  VALIDATION = "VALIDATION_ERROR",
+  RATE_LIMIT = "RATE_LIMIT_ERROR",
+  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE_ERROR",
+  UNKNOWN = "UNKNOWN_ERROR"
+}
+
+2. Arquivo ErrorMessages.ts
+
+Centraliza mensagens amigáveis (fácil de trocar):
+
+import { ErrorType } from "./ErrorTypes";
+
+export const ErrorMessages: Record<ErrorType, string> = {
+  [ErrorType.AUTHENTICATION]: "Problema de autenticação. Verifique suas credenciais.",
+  [ErrorType.AUTHORIZATION]: "Você não tem permissão para realizar esta ação.",
+  [ErrorType.VALIDATION]: "Os dados enviados são inválidos. Verifique e tente novamente.",
+  [ErrorType.RATE_LIMIT]: "Você atingiu o limite de uso. Tente novamente em alguns minutos.",
+  [ErrorType.SERVICE_UNAVAILABLE]: "O serviço está temporariamente indisponível. Tente novamente mais tarde.",
+  [ErrorType.UNKNOWN]: "Ocorreu um erro inesperado. Nossa equipe já foi notificada."
+};
+
+3. Arquivo AppError.ts
+
+Classe base para transportar os erros de forma padronizada:
+
+import { ErrorType } from "./ErrorTypes";
+
+export class AppError extends Error {
+  public type: ErrorType;
+  public originalError?: any;
+
+  constructor(type: ErrorType, message?: string, originalError?: any) {
+    super(message || type);
+    this.type = type;
+    this.originalError = originalError;
+    Object.setPrototypeOf(this, AppError.prototype);
+  }
+}
+
+4. Arquivo ErrorMapper.ts
+
+Tradução de erros técnicos → AppError:
+
+import { AppError } from "./AppError";
+import { ErrorType } from "./ErrorTypes";
+
+export class ErrorMapper {
+  static map(error: any): AppError {
+    // Exemplos de mapeamento de códigos externos
+    if (error.response?.status === 401) {
+      return new AppError(ErrorType.AUTHENTICATION, undefined, error);
+    }
+    if (error.response?.status === 403) {
+      return new AppError(ErrorType.AUTHORIZATION, undefined, error);
+    }
+    if (error.response?.status === 400) {
+      return new AppError(ErrorType.VALIDATION, undefined, error);
+    }
+    if (error.response?.status === 429 || error.code === "insufficient_quota") {
+      return new AppError(ErrorType.RATE_LIMIT, undefined, error);
+    }
+    if (error.message?.includes("OpenRouter")) {
+      return new AppError(ErrorType.SERVICE_UNAVAILABLE, undefined, error);
+    }
+
+    // Fallback
+    return new AppError(ErrorType.UNKNOWN, undefined, error);
+  }
+}
+
+5. Uso nos serviços (RAGService, PineconeService, etc.)
+
+Exemplo no RAGService:
+
+import { ErrorMapper } from "../errors/ErrorMapper";
+import { ErrorMessages } from "../errors/ErrorMessages";
+
+async generateContextualResponse(userId: string, query: string, category?: string) {
+  try {
+    // fluxo normal
+  } catch (err: any) {
+    const appError = ErrorMapper.map(err);
+    console.error("Erro em generateContextualResponse:", appError);
+
+    return {
+      response: ErrorMessages[appError.type],
+      contextUsed: [],
+      hasContext: false,
+    };
+  }
+}
+
+
+Exemplo no PineconeService:
+
+import { ErrorMapper } from "../errors/ErrorMapper";
+
+async upsert(namespace: string, vectors: any[]) {
+  try {
+    // fluxo normal
+  } catch (err: any) {
+    throw ErrorMapper.map(err); // sempre lança AppError
+  }
+}
+
+📌 Benefícios
+
+Fácil manutenção → todas as mensagens de erro estão no ErrorMessages.ts.
+
+Clareza para o usuário → nunca recebe exceções cruas.
+
+Coerência no sistema → sempre AppError no backend, sempre mensagem amigável no frontend.
+
+Escalabilidade → se amanhã precisar suportar outro serviço (ex.: AWS, Azure, GCP), só adiciona o mapeamento no ErrorMapper.
