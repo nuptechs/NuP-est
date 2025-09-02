@@ -3,6 +3,7 @@ import type { Material, Subject, Topic, Goal, KnowledgeBase } from "@shared/sche
 import { storage } from "../storage";
 import { embeddingsService } from "./embeddings";
 import { webSearch, type WebSearchResult } from "./web-search";
+import { ragService } from "./rag";
 import fs from "fs";
 import path from "path";
 import mammoth from "mammoth";
@@ -319,7 +320,30 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     return truncatedPrompt;
   }
 
+  /**
+   * NOVO: Chat com IA usando RAG - sempre consulta base primeiro
+   */
   async chatWithAI(question: string, studyProfile: string, subjects: Subject[], selectedGoal?: any, userId?: string, selectedKnowledgeCategory?: string): Promise<string> {
+    // Se temos userId, usar o novo sistema RAG
+    if (userId) {
+      try {
+        console.log(`🤖 AI Assistant RAG ativado para: "${question.substring(0, 100)}..."`);
+        
+        const ragResponse = await ragService.generateContextualResponse({
+          userId,
+          query: question,
+          category: selectedKnowledgeCategory,
+          model: 'gpt-4'
+        });
+
+        return ragResponse.response;
+      } catch (error) {
+        console.error('❌ Erro no RAG Assistant:', error);
+        // Fallback para o método anterior
+      }
+    }
+
+    // Método anterior como fallback
     // FASE 1: Busca INTELIGENTE na base de conhecimento
     let knowledgeContext = '';
     let hasPersonalKnowledge = false;
@@ -767,6 +791,24 @@ Respond with JSON in this format:
     } catch (error) {
       console.error("Error extracting text from file:", error);
       throw new Error("Failed to extract text from file");
+    }
+  }
+
+  /**
+   * NOVO: Migra documento para o sistema RAG/Pinecone quando criado
+   */
+  async migrateToRAG(document: any, userId: string) {
+    try {
+      await ragService.addDocumentToRAG(
+        document.id,
+        document.title,
+        document.content || '',
+        userId,
+        document.category || 'Geral'
+      );
+      console.log(`📚 Documento migrado para RAG: ${document.title}`);
+    } catch (error) {
+      console.error('❌ Erro ao migrar para RAG:', error);
     }
   }
 

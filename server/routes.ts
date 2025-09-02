@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { aiService } from "./services/ai";
+import { ragService } from "./services/rag";
+import { setupRAGRoutes } from "./routes/rag";
 import OpenAI from "openai";
 import { eq } from "drizzle-orm";
 import { 
@@ -293,6 +295,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = insertMaterialSchema.parse(materialData);
       const material = await storage.createMaterial(validatedData);
+      
+      // NOVO: Migrar automaticamente para RAG quando material é criado
+      try {
+        if (material.content) {
+          await aiService.migrateToRAG(material, userId);
+        }
+      } catch (error) {
+        console.log('⚠️ Falha na migração automática para RAG:', error);
+        // Não falhar a criação do material por causa disso
+      }
       
       res.json(material);
     } catch (error) {
@@ -1537,6 +1549,9 @@ Responda em JSON no formato:
       res.status(500).json({ message: 'Failed to save quiz result' });
     }
   });
+
+  // Setup RAG routes
+  setupRAGRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
