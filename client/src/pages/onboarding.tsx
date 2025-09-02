@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface OnboardingData {
   age?: number;
@@ -73,8 +74,38 @@ export default function OnboardingPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Detectar se está em modo de edição
+  const isEditMode = new URLSearchParams(window.location.search).get('mode') === 'edit';
+  
+  // Carregar dados atuais do usuário se estiver em modo de edição
+  const { data: currentUserData } = useQuery({
+    queryKey: ["/api/auth/user"],
+    enabled: isEditMode && isAuthenticated,
+  });
+
+  // Pré-preencher dados quando carregar em modo de edição
+  useEffect(() => {
+    if (isEditMode && currentUserData) {
+      setData({
+        age: currentUserData.age || undefined,
+        studyProfile: currentUserData.studyProfile || "average",
+        learningDifficulties: currentUserData.learningDifficulties || [],
+        customDifficulties: currentUserData.customDifficulties,
+        studyObjective: currentUserData.studyObjective,
+        studyDeadline: currentUserData.studyDeadline ? new Date(currentUserData.studyDeadline) : undefined,
+        dailyStudyHours: currentUserData.dailyStudyHours,
+        preferredStudyTime: currentUserData.preferredStudyTime || "flexible",
+        learningStyle: currentUserData.learningStyle || "mixed",
+        preferredExplanationStyle: currentUserData.preferredExplanationStyle || "balanced",
+        needsMotivation: currentUserData.needsMotivation || false,
+        prefersExamples: currentUserData.prefersExamples !== false, // default true
+      });
+    }
+  }, [isEditMode, currentUserData]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: OnboardingData) => {
@@ -152,9 +183,14 @@ export default function OnboardingPage() {
           >
             <div className="text-center space-y-2">
               <BookOpen className="h-12 w-12 text-blue-500 mx-auto" />
-              <h2 className="text-2xl font-bold">Vamos conhecer você!</h2>
+              <h2 className="text-2xl font-bold">
+                {isEditMode ? "Atualize seu perfil" : "Vamos conhecer você!"}
+              </h2>
               <p className="text-muted-foreground">
-                Conte-nos um pouco sobre seu perfil de estudante
+                {isEditMode 
+                  ? "Revise e atualize suas informações de estudante"
+                  : "Conte-nos um pouco sobre seu perfil de estudante"
+                }
               </p>
             </div>
 
@@ -197,9 +233,14 @@ export default function OnboardingPage() {
           >
             <div className="text-center space-y-2">
               <Brain className="h-12 w-12 text-purple-500 mx-auto" />
-              <h2 className="text-2xl font-bold">Desafios de Aprendizado</h2>
+              <h2 className="text-2xl font-bold">
+                {isEditMode ? "Atualize suas dificuldades" : "Desafios de Aprendizado"}
+              </h2>
               <p className="text-muted-foreground">
-                Conhecer suas dificuldades nos ajuda a personalizar sua experiência
+                {isEditMode 
+                  ? "Revise suas dificuldades de aprendizado atuais"
+                  : "Conhecer suas dificuldades nos ajuda a personalizar sua experiência"
+                }
               </p>
             </div>
 
@@ -251,9 +292,14 @@ export default function OnboardingPage() {
           >
             <div className="text-center space-y-2">
               <Target className="h-12 w-12 text-green-500 mx-auto" />
-              <h2 className="text-2xl font-bold">Seus Objetivos</h2>
+              <h2 className="text-2xl font-bold">
+                {isEditMode ? "Atualize seus objetivos" : "Seus Objetivos"}
+              </h2>
               <p className="text-muted-foreground">
-                Vamos alinhar seus estudos com seus objetivos
+                {isEditMode 
+                  ? "Revise seus objetivos e metas de estudo"
+                  : "Vamos alinhar seus estudos com seus objetivos"
+                }
               </p>
             </div>
 
@@ -350,9 +396,14 @@ export default function OnboardingPage() {
           >
             <div className="text-center space-y-2">
               <Heart className="h-12 w-12 text-pink-500 mx-auto" />
-              <h2 className="text-2xl font-bold">Suas Preferências</h2>
+              <h2 className="text-2xl font-bold">
+                {isEditMode ? "Atualize suas preferências" : "Suas Preferências"}
+              </h2>
               <p className="text-muted-foreground">
-                Como você prefere aprender?
+                {isEditMode 
+                  ? "Revise como você prefere aprender e estudar"
+                  : "Como você prefere aprender?"
+                }
               </p>
             </div>
 
@@ -527,7 +578,7 @@ export default function OnboardingPage() {
           <Card className="shadow-xl border-0">
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Bem-vindo ao NuP-est!
+                Bem-vindo ao NuP-Study!
               </CardTitle>
               <CardDescription className="text-lg">
                 Vamos personalizar sua experiência de estudos

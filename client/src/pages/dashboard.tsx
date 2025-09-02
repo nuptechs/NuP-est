@@ -136,7 +136,7 @@ export default function Dashboard() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => window.location.href = '/onboarding'}>
+                      <AlertDialogAction onClick={() => window.location.href = '/onboarding?mode=edit'}>
                         Atualizar perfil
                       </AlertDialogAction>
                     </AlertDialogFooter>
