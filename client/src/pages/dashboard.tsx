@@ -76,7 +76,7 @@ export default function Dashboard() {
       <header className="border-b border-gray-200 bg-white">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">NuP-est</h1>
+            <h1 className="text-xl font-semibold text-gray-900">NuP-Study</h1>
             <Button
               variant="ghost"
               onClick={() => window.location.href = '/api/logout'}
