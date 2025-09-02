@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: "fa-home" },
+  { name: "AI Assistant", href: "/ai-assistant", icon: "fa-robot" },
   { name: "Matérias", href: "/subjects", icon: "fa-book" },
   { name: "Materiais", href: "/materials", icon: "fa-file-alt" },
   { name: "Base de Conhecimento", href: "/knowledge-base", icon: "fa-database" },

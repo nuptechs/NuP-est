@@ -16,6 +16,7 @@ import Flashcards from "@/pages/flashcards";
 import KnowledgeBase from "@/pages/knowledge-base";
 import Onboarding from "@/pages/onboarding";
 import Quiz from "@/pages/quiz";
+import AiAssistant from "@/components/dashboard/ai-assistant";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -39,6 +40,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/onboarding" component={Onboarding} />
+          <Route path="/ai-assistant" component={AiAssistant} />
           <Route path="/subjects" component={Subjects} />
           <Route path="/materials" component={Materials} />
           <Route path="/knowledge-base" component={KnowledgeBase} />
