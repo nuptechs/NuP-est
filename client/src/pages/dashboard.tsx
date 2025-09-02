@@ -69,7 +69,7 @@ export default function Dashboard() {
       <header className="border-b border-gray-100 backdrop-blur-sm bg-white/95">
         <div className="max-w-4xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-black tracking-tight">NuP-est</h1>
+            <h1 className="text-xl font-semibold text-black tracking-tight">NuP-Study</h1>
             <Button
               variant="ghost"
               onClick={() => window.location.href = '/api/logout'}
@@ -80,7 +80,6 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
-
       {/* Conteúdo principal */}
       <main className="max-w-4xl mx-auto px-6 py-16">
         {/* Saudação simples */}
