@@ -50,10 +50,10 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
+          <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-6"></div>
+          <p className="text-gray-500 text-lg font-light">Carregando...</p>
         </div>
       </div>
     );
@@ -66,14 +66,14 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header minimalista */}
-      <header className="border-b border-gray-100">
-        <div className="max-w-4xl mx-auto px-6 py-4">
+      <header className="border-b border-gray-100 backdrop-blur-sm bg-white/95">
+        <div className="max-w-4xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-medium text-black">NuP-est</h1>
+            <h1 className="text-xl font-semibold text-black tracking-tight">NuP-est</h1>
             <Button
               variant="ghost"
               onClick={() => window.location.href = '/api/logout'}
-              className="text-gray-500 hover:text-black text-sm"
+              className="text-gray-500 hover:text-black text-sm transition-colors duration-200 hover:bg-gray-50 rounded-lg px-3 py-2"
             >
               Sair
             </Button>
@@ -82,13 +82,13 @@ export default function Dashboard() {
       </header>
 
       {/* Conteúdo principal */}
-      <main className="max-w-4xl mx-auto px-6 py-12">
+      <main className="max-w-4xl mx-auto px-6 py-16">
         {/* Saudação simples */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-light text-black mb-2">
+        <div className="mb-20">
+          <h2 className="text-4xl font-light text-black mb-3 tracking-tight">
             Olá, {user?.firstName || 'Estudante'}
           </h2>
-          <p className="text-gray-500 text-lg">
+          <p className="text-gray-600 text-xl leading-relaxed">
             {user?.studyProfile === 'disciplined' ? 'Continue mantendo sua disciplina.' :
              user?.studyProfile === 'undisciplined' ? 'Vamos encontrar seu ritmo.' :
              'Encontre seu equilíbrio nos estudos.'}
@@ -97,34 +97,34 @@ export default function Dashboard() {
 
         {/* Setup necessário */}
         {!isSetupComplete && (
-          <div className="mb-16 p-6 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-medium text-black mb-4">Configure seu ambiente</h3>
-            <div className="space-y-3">
+          <div className="mb-20 p-8 bg-gradient-to-br from-gray-50 to-gray-50/50 rounded-xl border border-gray-100 shadow-sm">
+            <h3 className="text-xl font-medium text-black mb-6 tracking-tight">Configure seu ambiente</h3>
+            <div className="space-y-4">
               {!hasSubjects && (
-                <div className="flex items-center justify-between py-3 border-b border-gray-200 last:border-0">
+                <div className="flex items-center justify-between py-4 border-b border-gray-150 last:border-0 group">
                   <div>
-                    <p className="font-medium text-black">Matérias</p>
-                    <p className="text-sm text-gray-500">Defina o que você quer estudar</p>
+                    <p className="font-medium text-black group-hover:text-gray-700 transition-colors">Matérias</p>
+                    <p className="text-sm text-gray-500 mt-1">Defina o que você quer estudar</p>
                   </div>
                   <Button
                     onClick={() => window.location.href = '/subjects'}
                     variant="outline"
-                    className="text-sm"
+                    className="text-sm hover:bg-black hover:text-white transition-all duration-200 hover:shadow-sm"
                   >
                     Configurar
                   </Button>
                 </div>
               )}
               {!hasGoals && (
-                <div className="flex items-center justify-between py-3 border-b border-gray-200 last:border-0">
+                <div className="flex items-center justify-between py-4 border-b border-gray-150 last:border-0 group">
                   <div>
-                    <p className="font-medium text-black">Objetivos</p>
-                    <p className="text-sm text-gray-500">Estabeleça suas metas</p>
+                    <p className="font-medium text-black group-hover:text-gray-700 transition-colors">Objetivos</p>
+                    <p className="text-sm text-gray-500 mt-1">Estabeleça suas metas</p>
                   </div>
                   <Button
                     onClick={() => window.location.href = '/goals'}
                     variant="outline"
-                    className="text-sm"
+                    className="text-sm hover:bg-black hover:text-white transition-all duration-200 hover:shadow-sm"
                   >
                     Configurar
                   </Button>
@@ -135,53 +135,53 @@ export default function Dashboard() {
         )}
 
         {/* Ferramentas principais */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-medium text-black">Ferramentas de estudo</h3>
+        <div className="space-y-8">
+          <h3 className="text-xl font-medium text-black tracking-tight">Ferramentas de estudo</h3>
           
-          <div className="grid gap-4">
+          <div className="grid gap-5">
             <button
               onClick={() => window.location.href = '/quiz'}
-              className="text-left p-6 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+              className="group text-left p-8 border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white"
             >
-              <h4 className="font-medium text-black mb-1">Estudar com IA</h4>
-              <p className="text-gray-500 text-sm">Questões personalizadas para seu perfil</p>
+              <h4 className="font-semibold text-black mb-2 group-hover:text-gray-700 transition-colors">Estudar com IA</h4>
+              <p className="text-gray-500 text-base leading-relaxed">Questões personalizadas para seu perfil</p>
             </button>
 
             <button
               onClick={() => window.location.href = '/flashcards'}
-              className="text-left p-6 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+              className="group text-left p-8 border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white"
             >
-              <h4 className="font-medium text-black mb-1">Flashcards</h4>
-              <p className="text-gray-500 text-sm">Memorização com repetição espaçada</p>
+              <h4 className="font-semibold text-black mb-2 group-hover:text-gray-700 transition-colors">Flashcards</h4>
+              <p className="text-gray-500 text-base leading-relaxed">Memorização com repetição espaçada</p>
             </button>
 
             <button
               onClick={() => window.location.href = '/knowledge-base'}
-              className="text-left p-6 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+              className="group text-left p-8 border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white"
             >
-              <h4 className="font-medium text-black mb-1">Base de conhecimento</h4>
-              <p className="text-gray-500 text-sm">Pesquise e organize seus conteúdos</p>
+              <h4 className="font-semibold text-black mb-2 group-hover:text-gray-700 transition-colors">Base de conhecimento</h4>
+              <p className="text-gray-500 text-base leading-relaxed">Pesquise e organize seus conteúdos</p>
             </button>
           </div>
         </div>
 
         {/* Recursos secundários */}
-        <div className="mt-12 pt-8 border-t border-gray-100">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="mt-16 pt-12 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-6">
             <button
               onClick={() => window.location.href = '/materials'}
-              className="text-left p-4 hover:bg-gray-50 rounded-lg transition-colors"
+              className="group text-left p-6 hover:bg-gray-50 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-200 hover:shadow-sm"
             >
-              <h4 className="font-medium text-black text-sm mb-1">Materiais</h4>
-              <p className="text-gray-500 text-xs">Organize seus recursos</p>
+              <h4 className="font-medium text-black text-base mb-2 group-hover:text-gray-700 transition-colors">Materiais</h4>
+              <p className="text-gray-500 text-sm leading-relaxed">Organize seus recursos</p>
             </button>
 
             <button
               onClick={() => window.location.href = '/analytics'}
-              className="text-left p-4 hover:bg-gray-50 rounded-lg transition-colors"
+              className="group text-left p-6 hover:bg-gray-50 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-200 hover:shadow-sm"
             >
-              <h4 className="font-medium text-black text-sm mb-1">Progresso</h4>
-              <p className="text-gray-500 text-xs">Acompanhe sua evolução</p>
+              <h4 className="font-medium text-black text-base mb-2 group-hover:text-gray-700 transition-colors">Progresso</h4>
+              <p className="text-gray-500 text-sm leading-relaxed">Acompanhe sua evolução</p>
             </button>
           </div>
         </div>
