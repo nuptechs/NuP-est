@@ -29,7 +29,7 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
-  // Redirect to home if not authenticated
+  // Redirect to home if not authenticated or profile not mapped
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -42,7 +42,13 @@ export default function Dashboard() {
       }, 500);
       return;
     }
-  }, [isAuthenticated, isLoading, toast]);
+    
+    // SEMPRE verificar se o usuário tem perfil mapeado PRIMEIRO
+    if (isAuthenticated && user && !user.studyProfile) {
+      window.location.href = "/onboarding";
+      return;
+    }
+  }, [isAuthenticated, isLoading, user, toast]);
 
   const hasSubjects = (subjects?.length || 0) > 0;
   const hasGoals = (goals?.length || 0) > 0;

@@ -410,14 +410,14 @@ export default function QuizPage() {
               {topics.length > 0 && (
                 <div>
                   <Label htmlFor="topic">Tópico (opcional)</Label>
-                  <Select value={quizConfig.topicId || ""} onValueChange={(value) =>
-                    setQuizConfig(prev => ({ ...prev, topicId: value || undefined }))
+                  <Select value={quizConfig.topicId || "all"} onValueChange={(value) =>
+                    setQuizConfig(prev => ({ ...prev, topicId: value === "all" ? undefined : value }))
                   }>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos os tópicos" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos os tópicos</SelectItem>
+                      <SelectItem value="all">Todos os tópicos</SelectItem>
                       {topics.map((topic) => (
                         <SelectItem key={topic.id} value={topic.id}>
                           {topic.name}
@@ -472,7 +472,7 @@ export default function QuizPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sem limite</SelectItem>
+                      <SelectItem value="none">Sem limite</SelectItem>
                       <SelectItem value="5">5 minutos</SelectItem>
                       <SelectItem value="10">10 minutos</SelectItem>
                       <SelectItem value="15">15 minutos</SelectItem>
