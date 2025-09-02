@@ -1083,6 +1083,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // NOVO: Migrar automaticamente para RAG/Pinecone
+      try {
+        if (document.content) {
+          console.log(`🚀 Migrando "${document.title}" para RAG/Pinecone...`);
+          await aiService.migrateToRAG(document, userId);
+        }
+      } catch (error) {
+        console.log('⚠️ Falha na migração automática para RAG:', error);
+      }
+
       // Limpar arquivo temporário
       pdfService.cleanupFile(req.file.path);
 

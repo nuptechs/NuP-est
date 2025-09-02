@@ -156,6 +156,31 @@ export default function KnowledgeBasePage() {
     },
   });
 
+  // Migrar para Pinecone RAG
+  const migrateToPineconeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/rag/migrate-materials");
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Migração para Pinecone Completa! 🚀",
+        description: `${data.migrated} documentos migrados para RAG, ${data.errors} erros.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro na Migração",
+        description: error.message || "Falha ao migrar documentos para Pinecone",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUpload = () => {
     if (!uploadData.file || !uploadData.title.trim()) {
       toast({
@@ -195,6 +220,18 @@ export default function KnowledgeBasePage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button 
+            onClick={() => migrateToPineconeMutation.mutate()}
+            disabled={migrateToPineconeMutation.isPending}
+            variant="outline"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 hover:from-blue-100 hover:to-purple-100"
+            data-testid="button-migrate-pinecone"
+          >
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            {migrateToPineconeMutation.isPending ? "Migrando..." : "Migrar para Pinecone"}
+          </Button>
           <Button 
             onClick={() => reprocessMutation.mutate()}
             disabled={reprocessMutation.isPending}
