@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ArrowLeft, ArrowRight, Sparkles, BookOpen, Target, Clock, Brain, Heart } from "lucide-react";
+import { CalendarIcon, ArrowLeft, ArrowRight, Sparkles, BookOpen, Target, Clock, Brain, Heart, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -540,6 +540,17 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900">
+      {/* Home Icon - Top Left */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setLocation('/')}
+        className="fixed top-4 left-4 z-50 p-2 h-8 w-8 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-md"
+        data-testid="button-home"
+      >
+        <Home className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+      </Button>
+      
       <div className="container mx-auto px-4 py-8">
         {/* Progress Header */}
         <div className="max-w-4xl mx-auto mb-8">
