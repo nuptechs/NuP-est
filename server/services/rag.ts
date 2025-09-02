@@ -1,6 +1,5 @@
 import { pineconeService } from './pinecone';
-
-// Usando apenas OpenRouter + DeepSeek R1 - sem dependências OpenAI
+import { aiChatWithContext } from './ai/index';
 
 interface RAGContext {
   content: string;
@@ -70,44 +69,23 @@ export class RAGService {
 
       console.log(`📚 RAG: ${hasContext ? `Usando ${usedContext.length} fontes da base` : 'Sem contexto da base, usando conhecimento geral'}`);
 
-      // 4. Gerar resposta usando OpenRouter
-      const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'deepseek/deepseek-r1',
-          messages: [
-            {
-              role: 'system',
-              content: `Você é um assistente de estudos inteligente que SEMPRE prioriza informações da base de conhecimento do usuário. 
+      // 4. Gerar resposta usando sistema de IA com injeção de dependência
+      const systemPrompt = `Você é um assistente de estudos inteligente que SEMPRE prioriza informações da base de conhecimento do usuário. 
 
 REGRAS CRÍTICAS:
 - Se há contexto da base pessoal: BASE sua resposta EXCLUSIVAMENTE nessas informações
 - Se NÃO há contexto: Use conhecimento geral, mas MENCIONE que não encontrou informações específicas na base do usuário
 - SEMPRE seja preciso, didático e organizado
 - Use formatação markdown para melhor apresentação
-- Cite as fontes quando usar informações da base`
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 2000,
-        })
-      });
-      
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter falhou: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
+- Cite as fontes quando usar informações da base`;
 
-      const assistantResponse = response.choices?.[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.';
+      const aiResponse = await aiChatWithContext(prompt, systemPrompt, {
+        temperature: 0.3,
+        maxTokens: 2000,
+        model: model === 'deepseek-r1' ? 'deepseek/deepseek-r1' : undefined
+      });
+
+      const assistantResponse = aiResponse.content || 'Desculpe, não consegui gerar uma resposta.';
 
       console.log(`✅ RAG: Resposta gerada com ${assistantResponse.length} caracteres`);
 

@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { embeddingsService } from "./embeddings";
 import { webSearch, type WebSearchResult } from "./web-search";
 import { ragService } from "./rag";
+import { aiAnalyze, getAIManager } from "./ai/index";
 import fs from "fs";
 import path from "path";
 import mammoth from "mammoth";
@@ -92,34 +93,17 @@ Respond with a JSON object containing an array of questions in this exact format
 }`;
 
     try {
-      const openRouterResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1",
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
+      // Usar o sistema de injeção de dependência para análise
+      const analysisResult = await aiAnalyze<{ questions: GeneratedQuestion[] }>(
+        prompt,
+        `Você é um gerador de questões educacionais especializado. Analise o conteúdo e gere questões de múltipla escolha conforme especificado.`,
+        {
           temperature: 0.7,
-          max_tokens: 3000,
-        })
-      });
+          maxTokens: 3000
+        }
+      );
       
-      if (!openRouterResponse.ok) {
-        throw new Error(`OpenRouter failed: ${openRouterResponse.status}`);
-      }
-      
-      const response = await openRouterResponse.json();
-      const text = response.choices[0]?.message?.content;
-      if (!text) {
-        throw new Error("No response from AI");
-      }
+      const text = JSON.stringify(analysisResult);
       
       // Clean JSON response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
