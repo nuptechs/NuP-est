@@ -741,7 +741,7 @@ Respond with JSON in this format:
       
       // Handle PDF files
       if (ext === '.pdf') {
-        const pdfParse = require('pdf-parse');
+        const { default: pdfParse } = await import('pdf-parse');
         const buffer = fs.readFileSync(filePath);
         const data = await pdfParse(buffer);
         console.log(`📄 PDF extraído: ${data.text.length} caracteres de conteúdo`);
