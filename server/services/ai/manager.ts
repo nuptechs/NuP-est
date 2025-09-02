@@ -1,5 +1,6 @@
 import { IAIManager, IAIProvider } from './interfaces';
 import { AIRequest, AIResponse, AIMetrics } from './types';
+import { ModelSelector } from './selector';
 
 /**
  * Gerenciador centralizado de provedores de IA
@@ -8,6 +9,7 @@ import { AIRequest, AIResponse, AIMetrics } from './types';
 export class AIManager implements IAIManager {
   private providers: Map<string, IAIProvider> = new Map();
   private requestHistory: Array<{ provider: string; success: boolean; timestamp: Date }> = [];
+  private modelSelector = new ModelSelector();
 
   /**
    * Registra um novo provedor de IA
@@ -50,9 +52,13 @@ export class AIManager implements IAIManager {
   }
 
   /**
-   * Realiza uma requisição com fallback automático
+   * Realiza uma requisição com seleção inteligente de modelo e fallback automático
    */
-  async request(request: AIRequest): Promise<AIResponse> {
+  async request(request: AIRequest, context?: {
+    question?: string;
+    knowledgeContext?: string;
+    webContext?: string;
+  }): Promise<AIResponse> {
     const enabledProviders = Array.from(this.providers.values())
       .filter((p: IAIProvider) => p.config.enabled)
       .sort((a: IAIProvider, b: IAIProvider) => a.config.priority - b.config.priority);
@@ -61,14 +67,35 @@ export class AIManager implements IAIManager {
       throw new Error('❌ Nenhum provedor de IA disponível');
     }
 
+    // 🧠 SELEÇÃO INTELIGENTE DE MODELO
+    const modelSelection = this.modelSelector.selectOptimalModel(request, context);
+    console.log(`🎯 Modelo selecionado: ${modelSelection.model} - ${modelSelection.reasoning}`);
+
+    // Atualizar request com configurações otimizadas
+    const optimizedRequest: AIRequest = {
+      ...request,
+      model: modelSelection.model,
+      temperature: modelSelection.temperature || request.temperature,
+      maxTokens: modelSelection.maxTokens || request.maxTokens,
+      topP: modelSelection.topP || request.topP
+    };
+
+    // Otimizar prompt se necessário
+    if (optimizedRequest.messages?.length > 0 && context?.question) {
+      const lastMessage = optimizedRequest.messages[optimizedRequest.messages.length - 1];
+      if (lastMessage.content) {
+        lastMessage.content = this.modelSelector.optimizePromptForModel(lastMessage.content, modelSelection.model);
+      }
+    }
+
     let lastError: Error | null = null;
 
     for (const provider of enabledProviders) {
       try {
-        console.log(`🎯 Tentando provedor: ${provider.name}`);
+        console.log(`🎯 Tentando provedor: ${provider.name} com modelo ${modelSelection.model}`);
         
         const startTime = Date.now();
-        const response = await provider.chatCompletion(request);
+        const response = await provider.chatCompletion(optimizedRequest);
         
         // Registrar sucesso
         this.recordRequest(provider.name, true);

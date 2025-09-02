@@ -149,162 +149,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     }
   }
 
-  // 🧠 SISTEMA INTELIGENTE DE SELEÇÃO DE MODELO
-  private selectOptimalModel(question: string, knowledgeContext: string, webContext: string): {
-    model: string;
-    name: string;
-    temperature: number;
-    maxTokens: number;
-    topP: number;
-    reasoning: string;
-  } {
-    const questionLower = question.toLowerCase();
-    const hasComplexContext = knowledgeContext.length > 500 || webContext.length > 500;
-    
-    // 📊 DETECTAR PERGUNTAS SOBRE TABELAS/ANÁLISES (Claude 3.5 Sonnet - Alta qualidade)
-    const tableKeywords = ['tabela', 'table', 'comparar', 'compare', 'análise', 'analysis', 'classificar', 'classify', 'organizar', 'organize', 'estruturar', 'listar detalhadamente', 'diferenças entre', 'semelhanças', 'quadro', 'matriz', 'planilha', 'dados organizados'];
-    const isTableAnalysis = tableKeywords.some(keyword => questionLower.includes(keyword));
-    
-    // 💻 DETECTAR PERGUNTAS TÉCNICAS/CÓDIGO (DeepSeek V3 - Especializado)
-    const techKeywords = ['código', 'code', 'programar', 'programming', 'algoritmo', 'algorithm', 'função', 'function', 'javascript', 'python', 'sql', 'html', 'css', 'api', 'debug', 'erro técnico', 'implementar', 'desenvolvimento'];
-    const isTechnical = techKeywords.some(keyword => questionLower.includes(keyword));
-    
-    // 📝 DETECTAR PERGUNTAS COMPLEXAS QUE PRECISAM DE ALTA QUALIDADE
-    const complexKeywords = ['explique detalhadamente', 'análise profunda', 'compare detalhadamente', 'dissertação', 'ensaio', 'redação', 'argumentação', 'fundamentação teórica'];
-    const isComplex = complexKeywords.some(keyword => questionLower.includes(keyword)) || hasComplexContext;
-    
-    // 📊 LÓGICA DE SELEÇÃO INTELIGENTE
-    if (isTableAnalysis || question.length > 200) {
-      return {
-        model: "anthropic/claude-3.5-sonnet",
-        name: "Claude 3.5 Sonnet (Tabelas/Análises)",
-        temperature: 0.4,
-        maxTokens: 1500,
-        topP: 0.85,
-        reasoning: "Pergunta sobre tabelas/análises ou muito longa - usando Claude para máxima qualidade"
-      };
-    }
-    
-    if (isTechnical) {
-      return {
-        model: "deepseek/deepseek-v3",
-        name: "DeepSeek V3 (Técnico)",
-        temperature: 0.3,
-        maxTokens: 1200,
-        topP: 0.8,
-        reasoning: "Pergunta técnica - usando DeepSeek V3 especializado"
-      };
-    }
-    
-    if (isComplex || hasComplexContext) {
-      return {
-        model: "anthropic/claude-3.5-sonnet",
-        name: "Claude 3.5 Sonnet (Complexo)",
-        temperature: 0.5,
-        maxTokens: 1200,
-        topP: 0.9,
-        reasoning: "Pergunta complexa ou muito contexto - usando Claude para melhor qualidade"
-      };
-    }
-    
-    // 💰 PADRÃO: Perguntas gerais (DeepSeek R1 - Econômico)
-    return {
-      model: "deepseek/deepseek-r1",
-      name: "DeepSeek R1 (Geral)",
-      temperature: 0.7,
-      maxTokens: 1000,
-      topP: 0.9,
-      reasoning: "Pergunta geral - usando modelo econômico"
-    };
-  }
 
-  // ⚡ OTIMIZAÇÃO AUTOMÁTICA DE CONTEXTO para evitar limites de tokens
-  private optimizePromptSize(prompt: string, selectedModel: any): string {
-    // Aproximação: 1 token ≈ 4 caracteres em português
-    const estimatedTokens = Math.ceil(prompt.length / 4);
-    
-    // Limites seguros por modelo (deixando margem para resposta)
-    const tokenLimits = {
-      'anthropic/claude-3.5-sonnet': 8000, // Limite seguro para contas free
-      'deepseek/deepseek-v3': 6000,
-      'deepseek/deepseek-r1': 15000, // Modelo mais generoso
-    };
-    
-    const maxTokens = tokenLimits[selectedModel.model as keyof typeof tokenLimits] || 6000;
-    
-    if (estimatedTokens <= maxTokens) {
-      console.log(`📏 Prompt OK: ${estimatedTokens} tokens (limite: ${maxTokens})`);
-      return prompt;
-    }
-
-    console.log(`⚠️ Prompt muito grande: ${estimatedTokens} tokens, truncando para ${maxTokens}`);
-    
-    // Estratégia de truncamento inteligente:
-    // 1. Manter pergunta original (mais importante)
-    // 2. Reduzir contexto de conhecimento
-    // 3. Reduzir contexto web
-    
-    const lines = prompt.split('\n');
-    let truncatedLines: string[] = [];
-    let currentTokens = 0;
-    let inKnowledgeSection = false;
-    let inWebSection = false;
-    let knowledgeLines = 0;
-    let webLines = 0;
-    
-    // Primeira passagem: identificar seções e manter estrutura essencial
-    for (const line of lines) {
-      const lineTokens = Math.ceil(line.length / 4);
-      
-      // Detectar seções
-      if (line.includes('📚 BASE DE CONHECIMENTO')) {
-        inKnowledgeSection = true;
-        inWebSection = false;
-      } else if (line.includes('🌐 INFORMAÇÕES DA INTERNET')) {
-        inKnowledgeSection = false;
-        inWebSection = true;
-      }
-      
-      // Sempre manter: pergunta, instruções, formato
-      const isEssential = !inKnowledgeSection && !inWebSection;
-      
-      if (isEssential) {
-        if (currentTokens + lineTokens <= maxTokens) {
-          truncatedLines.push(line);
-          currentTokens += lineTokens;
-        }
-      } else if (inKnowledgeSection && knowledgeLines < 20) {
-        // Limitar conhecimento a 20 linhas mais importantes
-        if (currentTokens + lineTokens <= maxTokens) {
-          truncatedLines.push(line);
-          currentTokens += lineTokens;
-          knowledgeLines++;
-        }
-      } else if (inWebSection && webLines < 10) {
-        // Limitar web a 10 linhas mais importantes
-        if (currentTokens + lineTokens <= maxTokens) {
-          truncatedLines.push(line);
-          currentTokens += lineTokens;
-          webLines++;
-        }
-      }
-    }
-    
-    const truncatedPrompt = truncatedLines.join('\n');
-    const finalTokens = Math.ceil(truncatedPrompt.length / 4);
-    
-    console.log(`✅ Prompt otimizado: ${finalTokens} tokens (reduzido de ${estimatedTokens})`);
-    
-    // Se ainda assim for muito grande, cortar mais drasticamente
-    if (finalTokens > maxTokens) {
-      const targetChars = maxTokens * 4;
-      const drasticPrompt = truncatedPrompt.substring(0, targetChars);
-      console.log(`🔥 Corte drástico aplicado para ${Math.ceil(drasticPrompt.length / 4)} tokens`);
-      return drasticPrompt + '\n\n⚠️ Contexto reduzido devido a limites de tokens. Responda com base no conteúdo disponível.';
-    }
-    
-    return truncatedPrompt;
-  }
 
   /**
    * NOVO: Chat com IA usando RAG - sempre consulta base primeiro
@@ -318,8 +163,7 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
         const ragResponse = await ragService.generateContextualResponse({
           userId,
           query: question,
-          category: selectedKnowledgeCategory,
-          model: 'deepseek-r1' // Usando DeepSeek R1 como modelo principal
+          category: selectedKnowledgeCategory
         });
 
         return ragResponse.response;
@@ -423,26 +267,10 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
     let prompt = robustPrompt;
 
     try {
-      // 🧠 SELEÇÃO INTELIGENTE DE MODELO baseado no tipo de pergunta
-      let selectedModel = this.selectOptimalModel(question, knowledgeContext, webContext);
-      console.log(`🎯 Modelo selecionado: ${selectedModel.name} para "${question.substring(0, 50)}..."`);
+      // 🧠 Usando sistema de abstração de IA (sem lógica hardcoded de modelos)
+      console.log(`🤖 Usando sistema de abstração inteligente de IA`);
 
-      // ⚡ OTIMIZAÇÃO AUTOMÁTICA DE CONTEXTO para evitar limite de tokens
-      prompt = this.optimizePromptSize(prompt, selectedModel);
-
-      // 🔄 FALLBACK AUTOMÁTICO: se prompt ainda muito grande, usar modelo econômico
-      const estimatedTokens = Math.ceil(prompt.length / 4);
-      if (estimatedTokens > 8000 && selectedModel.model !== 'deepseek/deepseek-r1') {
-        console.log(`🔄 Fallback: Prompt muito grande (${estimatedTokens} tokens), mudando para DeepSeek R1`);
-        selectedModel = {
-          model: "deepseek/deepseek-r1",
-          name: "DeepSeek R1 (Fallback)",
-          temperature: 0.7,
-          maxTokens: 1200,
-          topP: 0.9,
-          reasoning: "Fallback devido a limite de tokens"
-        };
-      }
+      // 🔄 FALLBACK agora é handled pela camada de abstração automaticamente
 
       // SISTEMA DE REVISÃO AUTOMÁTICA COM ATÉ 3 ITERAÇÕES
       const maxAttempts = 3;
@@ -452,12 +280,16 @@ Provide a concise, actionable study recommendation (2-3 sentences) tailored to t
       while (attempt < maxAttempts) {
         attempt++;
         
-        // Usar sistema de injeção de dependência para chat
+        // Usar sistema de abstração inteligente com contexto
         const aiManager = getAIManager();
         const aiResponse = await aiManager.request({
           messages: [{ role: "user", content: prompt }],
           temperature: 0.7,
           maxTokens: 1200
+        }, {
+          question: question,
+          knowledgeContext: knowledgeContext,
+          webContext: webContext
         });
         
         responseText = aiResponse.content || '';

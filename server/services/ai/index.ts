@@ -33,7 +33,9 @@ export async function aiChat(content: string, role: 'user' | 'system' = 'user'):
     maxTokens: 1500
   };
   
-  const response = await aiManager.request(request);
+  const response = await aiManager.request(request, {
+    question: role === 'user' ? content : undefined
+  });
   return response.content;
 }
 
@@ -61,7 +63,11 @@ export async function aiChatWithContext(
     maxTokens: options.maxTokens || 1500
   };
   
-  return aiManager.request(request);
+  // Usar contexto inteligente para seleção de modelo
+  return aiManager.request(request, {
+    question: userMessage,
+    knowledgeContext: systemContext
+  });
 }
 
 /**
@@ -89,7 +95,9 @@ export async function aiAnalyze<T = any>(
     maxTokens: options.maxTokens || 1000
   };
   
-  const response = await aiManager.request(request);
+  const response = await aiManager.request(request, {
+    question: content
+  });
   
   // Extrair JSON da resposta
   const jsonMatch = response.content.match(/\{[\s\S]*\}/);

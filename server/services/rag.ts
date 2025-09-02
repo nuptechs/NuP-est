@@ -14,7 +14,6 @@ interface RAGOptions {
   category?: string;
   maxContextLength?: number;
   minSimilarity?: number;
-  model?: 'deepseek-r1';
 }
 
 export class RAGService {
@@ -32,8 +31,7 @@ export class RAGService {
       query,
       category,
       maxContextLength = 4000,
-      minSimilarity = 0.1,
-      model = 'deepseek-r1'
+      minSimilarity = 0.1
     } = options;
 
     try {
@@ -81,8 +79,7 @@ REGRAS CRÍTICAS:
 
       const aiResponse = await aiChatWithContext(prompt, systemPrompt, {
         temperature: 0.3,
-        maxTokens: 2000,
-        model: model === 'deepseek-r1' ? 'deepseek/deepseek-r1' : undefined
+        maxTokens: 2000
       });
 
       const assistantResponse = aiResponse.content || 'Desculpe, não consegui gerar uma resposta.';

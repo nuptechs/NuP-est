@@ -54,9 +54,13 @@ export interface IAIManager {
   getActiveProvider(): IAIProvider;
   
   /**
-   * Realiza uma requisição com fallback automático
+   * Realiza uma requisição com fallback automático e seleção inteligente de modelo
    */
-  request(request: AIRequest): Promise<AIResponse>;
+  request(request: AIRequest, context?: {
+    question?: string;
+    knowledgeContext?: string;
+    webContext?: string;
+  }): Promise<AIResponse>;
   
   /**
    * Lista todos os provedores disponíveis
