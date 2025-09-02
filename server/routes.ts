@@ -283,13 +283,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         materialData.filePath = filePath;
         materialData.type = path.extname(req.file.originalname).toLowerCase().substring(1);
         
-        // For text files, read content
-        if (['.txt', '.md'].includes(path.extname(req.file.originalname).toLowerCase())) {
-          try {
+        // Extract content from various file types for RAG
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+        try {
+          if (['.txt', '.md'].includes(fileExt)) {
             materialData.content = fs.readFileSync(filePath, 'utf-8');
-          } catch (err) {
-            console.error("Error reading file content:", err);
+          } else if (['.pdf', '.docx'].includes(fileExt)) {
+            // Extract content for RAG migration
+            materialData.content = await aiService.extractTextFromFile(filePath);
+            console.log(`📝 Conteúdo extraído para RAG: ${materialData.content.length} caracteres`);
           }
+        } catch (err) {
+          console.error("Error extracting file content for RAG:", err);
         }
       }
 

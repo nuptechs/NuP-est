@@ -40,6 +40,59 @@ export function setupRAGRoutes(app: Express) {
     }
   });
 
+  // Migrar materiais existentes que não foram para RAG
+  app.post('/api/rag/migrate-materials', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Buscar materiais do usuário
+      const materials = await storage.getMaterials(userId);
+      
+      let migrated = 0;
+      let errors = 0;
+      let processed = 0;
+      
+      for (const material of materials) {
+        processed++;
+        try {
+          // Se o material tem filePath mas não tem content, extrair
+          let content = material.content;
+          if (!content && material.filePath) {
+            console.log(`📄 Extraindo conteúdo do arquivo: ${material.title}`);
+            // Usar a função de extração de texto
+            content = await aiService.extractTextFromFile(material.filePath);
+          }
+          
+          if (content) {
+            await ragService.addDocumentToRAG(
+              material.id,
+              material.title,
+              content,
+              userId,
+              'Material'
+            );
+            migrated++;
+          }
+        } catch (error) {
+          console.error(`Erro ao migrar material ${material.id}:`, error);
+          errors++;
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        processed,
+        migrated, 
+        errors,
+        message: `Materiais processados: ${processed}, migrados: ${migrated}, erros: ${errors}` 
+      });
+      
+    } catch (error) {
+      console.error("Erro na migração de materiais:", error);
+      res.status(500).json({ message: "Falha na migração de materiais" });
+    }
+  });
+
   // Migrar TODOS os documentos do usuário para RAG
   app.post('/api/rag/migrate-all', isAuthenticated, async (req: any, res) => {
     try {
