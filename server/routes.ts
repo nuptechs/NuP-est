@@ -783,11 +783,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate flashcards using AI
+      const count = req.body.count ? parseInt(req.body.count) : 10;
+      const flashcardCount = Math.min(Math.max(count, 1), 50); // Entre 1 e 50
+      
       const generatedFlashcards = await aiService.generateFlashcards({
         content: fileContent,
         studyProfile: user.studyProfile || "average",
         subject: subjectId,
-        count: 10 // Default to 10 flashcards
+        count: flashcardCount
       });
 
       // Create flashcard deck
@@ -832,6 +835,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating flashcards:", error);
       res.status(500).json({ message: "Failed to generate flashcards: " + (error as Error).message });
+    }
+  });
+
+  // Generate flashcards from existing materials
+  app.post('/api/ai/generate-flashcards-from-material', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { materialId, title, description, subjectId, count } = req.body;
+
+      if (!materialId) {
+        return res.status(400).json({ message: "Material ID is required" });
+      }
+
+      // Get the material
+      const material = await storage.getMaterial(materialId);
+      if (!material || material.userId !== userId) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+
+      // Get material content
+      let content = material.content || "";
+      if (material.filePath && !content) {
+        // Extract content from file if not already stored
+        content = await aiService.extractTextFromFile(material.filePath);
+      }
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ message: "Material has no readable content" });
+      }
+
+      // Get user profile for personalized flashcards
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Validate and set flashcard count
+      const flashcardCount = Math.min(Math.max(count || 10, 1), 50);
+
+      // Generate flashcards using AI
+      const generatedFlashcards = await aiService.generateFlashcards({
+        content,
+        studyProfile: user.studyProfile || "average",
+        subject: subjectId || material.subjectId,
+        count: flashcardCount
+      });
+
+      // Create flashcard deck
+      const deckData = insertFlashcardDeckSchema.parse({
+        userId,
+        subjectId: subjectId || material.subjectId || null,
+        title: title || `Flashcards - ${material.title}`,
+        description: description || `Flashcards gerados do material: ${material.title}`,
+        totalCards: generatedFlashcards.length,
+        studiedCards: 0
+      });
+
+      const deck = await storage.createFlashcardDeck(deckData);
+
+      // Create individual flashcards
+      const savedFlashcards = [];
+      for (let i = 0; i < generatedFlashcards.length; i++) {
+        const fc = generatedFlashcards[i];
+        const flashcardData = insertFlashcardSchema.parse({
+          deckId: deck.id,
+          userId,
+          front: fc.front,
+          back: fc.back,
+          order: i,
+          easeFactor: "2.5",
+          interval: 0,
+          repetitions: 0,
+          nextReview: new Date()
+        });
+        
+        const savedFlashcard = await storage.createFlashcard(flashcardData);
+        savedFlashcards.push(savedFlashcard);
+      }
+
+      res.json({
+        deck,
+        flashcards: savedFlashcards
+      });
+    } catch (error) {
+      console.error("Error generating flashcards from material:", error);
+      res.status(500).json({ message: "Failed to generate flashcards from material: " + (error as Error).message });
     }
   });
 

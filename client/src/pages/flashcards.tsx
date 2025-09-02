@@ -16,8 +16,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
-import { Plus, BookOpen, Upload, Play, Edit, Trash2, Brain, FileText } from "lucide-react";
-import type { FlashcardDeck, Flashcard, Subject } from "@shared/schema";
+import { Plus, BookOpen, Upload, Play, Edit, Trash2, Brain, FileText, Folder } from "lucide-react";
+import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
 
 const createDeckSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -30,10 +30,20 @@ const uploadFileSchema = z.object({
   description: z.string().optional(),
   subjectId: z.string().optional(),
   file: z.instanceof(File).refine((file) => file.size > 0, "Arquivo é obrigatório"),
+  count: z.number().min(1, "Mínimo 1 flashcard").max(50, "Máximo 50 flashcards").default(10),
+});
+
+const materialFlashcardSchema = z.object({
+  title: z.string().min(1, "Título é obrigatório"),
+  description: z.string().optional(),
+  subjectId: z.string().optional(),
+  materialId: z.string().min(1, "Material é obrigatório"),
+  count: z.number().min(1, "Mínimo 1 flashcard").max(50, "Máximo 50 flashcards").default(10),
 });
 
 type CreateDeckFormData = z.infer<typeof createDeckSchema>;
 type UploadFileFormData = z.infer<typeof uploadFileSchema>;
+type MaterialFlashcardFormData = z.infer<typeof materialFlashcardSchema>;
 
 export default function FlashcardsPage() {
   const [activeTab, setActiveTab] = useState("decks");
@@ -51,6 +61,11 @@ export default function FlashcardsPage() {
   // Fetch subjects for dropdown
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
+  });
+
+  // Fetch materials for dropdown
+  const { data: materials = [] } = useQuery<Material[]>({
+    queryKey: ["/api/materials/"],
   });
 
   // Fetch flashcards for selected deck
@@ -96,6 +111,7 @@ export default function FlashcardsPage() {
       const formData = new FormData();
       formData.append("file", data.file);
       formData.append("title", data.title);
+      formData.append("count", data.count.toString());
       if (data.description) formData.append("description", data.description);
       if (data.subjectId) formData.append("subjectId", data.subjectId);
 
@@ -164,6 +180,18 @@ export default function FlashcardsPage() {
       title: "",
       description: "",
       subjectId: "",
+      count: 10,
+    },
+  });
+
+  const materialForm = useForm<MaterialFlashcardFormData>({
+    resolver: zodResolver(materialFlashcardSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      subjectId: "",
+      materialId: "",
+      count: 10,
     },
   });
 
@@ -175,6 +203,33 @@ export default function FlashcardsPage() {
   const handleUploadFile = (data: UploadFileFormData) => {
     uploadFileMutation.mutate(data);
     uploadFileForm.reset();
+  };
+
+  // Generate flashcards from material mutation
+  const materialMutation = useMutation({
+    mutationFn: async (data: MaterialFlashcardFormData) => {
+      const response = await apiRequest("POST", "/api/ai/generate-flashcards-from-material", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/flashcard-decks"] });
+      toast({
+        title: "Sucesso",
+        description: "Flashcards gerados com sucesso a partir do material!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: "Falha ao gerar flashcards: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGenerateFromMaterial = (data: MaterialFlashcardFormData) => {
+    materialMutation.mutate(data);
+    materialForm.reset();
   };
 
   const getSubjectName = (subjectId: string | null) => {
@@ -450,7 +505,7 @@ export default function FlashcardsPage() {
         </TabsContent>
 
         <TabsContent value="create" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Manual Deck Creation */}
             <Card>
               <CardHeader>
@@ -625,6 +680,31 @@ export default function FlashcardsPage() {
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={uploadFileForm.control}
+                      name="count"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quantidade de Flashcards</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="1" 
+                              max="50" 
+                              placeholder="10" 
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              data-testid="input-flashcard-count" 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Entre 1 e 50 flashcards (padrão: 10)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     
                     <Button 
                       type="submit" 
@@ -633,6 +713,111 @@ export default function FlashcardsPage() {
                       data-testid="button-generate-ai-deck"
                     >
                       {uploadFileMutation.isPending ? "Gerando..." : "Gerar Flashcards com IA"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            {/* Generate from Existing Materials */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Folder className="w-5 h-5" />
+                  Gerar de Materiais
+                </CardTitle>
+                <CardDescription>
+                  Use materiais já carregados para criar flashcards com IA
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...materialForm}>
+                  <form onSubmit={materialForm.handleSubmit(handleGenerateFromMaterial)} className="space-y-4">
+                    <FormField
+                      control={materialForm.control}
+                      name="materialId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Material</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-material">
+                                <SelectValue placeholder="Selecione um material..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {materials.map((material) => (
+                                <SelectItem key={material.id} value={material.id}>
+                                  {material.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={materialForm.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Título do Deck</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome do deck..." {...field} data-testid="input-material-deck-title" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={materialForm.control}
+                      name="count"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quantidade de Flashcards</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="1" 
+                              max="50" 
+                              placeholder="10" 
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              data-testid="input-material-flashcard-count" 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Entre 1 e 50 flashcards (padrão: 10)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={materialForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Descrição (Opcional)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Descrição do deck..." {...field} data-testid="input-material-deck-description" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={materialMutation.isPending}
+                      data-testid="button-generate-material-deck"
+                    >
+                      {materialMutation.isPending ? "Gerando..." : "Gerar de Material"}
                     </Button>
                   </form>
                 </Form>

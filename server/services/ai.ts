@@ -733,14 +733,21 @@ Respond with JSON in this format:
     try {
       const ext = path.extname(filePath).toLowerCase();
       
-      // For now, only handle text files
-      // TODO: Add PDF, DOC, DOCX support with appropriate libraries
+      // Handle text files
       if (ext === '.txt' || ext === '.md') {
         return fs.readFileSync(filePath, 'utf-8');
       }
       
+      // Handle PDF files
+      if (ext === '.pdf') {
+        const pdfParse = require('pdf-parse');
+        const buffer = fs.readFileSync(filePath);
+        const data = await pdfParse(buffer);
+        return data.text;
+      }
+      
       // For other file types, return filename as placeholder
-      // In a production app, you'd use libraries like pdf-parse, mammoth, etc.
+      // TODO: Add DOC, DOCX support with appropriate libraries
       return `Content from file: ${path.basename(filePath)}. Please add text extraction library support for ${ext} files.`;
     } catch (error) {
       console.error("Error extracting text from file:", error);
