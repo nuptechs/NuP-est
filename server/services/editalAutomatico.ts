@@ -90,6 +90,23 @@ class EditalAutomaticoService {
         console.log(`📝 Usando edital simulado estruturado para demonstração da IA...`);
         console.log(`📊 Edital simulado tem ${textoSimulado.length} caracteres`);
         
+        // Enviar edital simulado para Pinecone também
+        try {
+          console.log(`🔄 Enviando edital simulado para Pinecone...`);
+          const chunks = editalService.criarChunks(textoSimulado);
+          console.log(`📋 Criados ${chunks.length} chunks do edital simulado`);
+          
+          const editalId = `${concursoNome.toLowerCase().replace(/\s+/g, '_')}_edital_simulado`;
+          await editalService.enviarParaPinecone(editalId, chunks, {
+            concursoNome,
+            fileName: `edital_simulado_${concursoNome}`,
+            type: 'edital_simulado'
+          });
+          console.log(`✅ Edital simulado enviado para Pinecone: ${editalId}`);
+        } catch (pineconeError) {
+          console.log(`⚠️ Falha ao enviar para Pinecone, continuando sem indexação:`, pineconeError);
+        }
+        
         try {
           const cargos = await this.extrairCargosEConteudo(textoSimulado, concursoNome);
           return {
