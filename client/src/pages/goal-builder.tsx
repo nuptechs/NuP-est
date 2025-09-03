@@ -12,7 +12,8 @@ import {
   Trophy,
   BookOpen,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Settings
 } from "lucide-react";
 
 // Tipos de meta disponíveis
@@ -61,6 +62,15 @@ const GOAL_TYPES = [
     gradient: 'from-red-500 to-pink-600',
     bgColor: 'bg-red-50 dark:bg-red-950',
     iconColor: 'text-red-600 dark:text-red-400'
+  },
+  {
+    id: 'outras',
+    title: 'Outras',
+    description: 'Metas personalizadas específicas para seus objetivos únicos',
+    icon: Settings,
+    gradient: 'from-slate-500 to-gray-600',
+    bgColor: 'bg-slate-50 dark:bg-slate-950',
+    iconColor: 'text-slate-600 dark:text-slate-400'
   }
 ];
 
