@@ -363,9 +363,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/goals/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const updates = req.body;
       
-      const goal = await storage.updateGoal(id, updates);
+      // Validar dados com schema parcial (permite campos opcionais)
+      const validatedUpdates = insertGoalSchema.omit({ userId: true }).partial().parse(req.body);
+      
+      const goal = await storage.updateGoal(id, validatedUpdates);
       res.json(goal);
     } catch (error) {
       console.error("Error updating goal:", error);
@@ -416,9 +418,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/targets/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const updates = req.body;
       
-      const target = await storage.updateTarget(id, updates);
+      // Validar dados com schema parcial (permite campos opcionais)
+      const validatedUpdates = insertTargetSchema.omit({ userId: true }).partial().parse(req.body);
+      
+      const target = await storage.updateTarget(id, validatedUpdates);
       res.json(target);
     } catch (error) {
       console.error("Error updating target:", error);
