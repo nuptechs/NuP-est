@@ -29,6 +29,8 @@ class EditalAutomaticoService {
       }>;
     }>;
     error?: string;
+    message?: string;
+    requiresManualUpload?: boolean;
   }> {
     try {
       console.log(`🤖 Iniciando processamento automático do edital: ${concursoNome}`);
@@ -41,8 +43,13 @@ class EditalAutomaticoService {
       // Passo 1: Encontrar URL do edital
       const editalUrl = await this.encontrarUrlEdital(concursoNome);
       if (!editalUrl) {
-        console.log(`❌ URL não encontrada, criando resultado simulado para demonstração...`);
-        return this.criarResultadoSimulado(concursoNome);
+        console.log(`❌ URL não encontrada, solicitando upload manual...`);
+        return {
+          success: false,
+          error: 'URL_NOT_FOUND',
+          message: 'URL do edital não foi encontrada automaticamente',
+          requiresManualUpload: true
+        };
       }
       
       console.log(`📄 URL do edital encontrado: ${editalUrl}`);
@@ -50,8 +57,14 @@ class EditalAutomaticoService {
       // Passo 2: Baixar o PDF do edital
       const caminhoArquivo = await this.baixarPDF(editalUrl, concursoNome);
       if (!caminhoArquivo) {
-        console.log(`❌ Download falhou, criando resultado simulado...`);
-        return this.criarResultadoSimulado(concursoNome);
+        console.log(`❌ Download falhou, solicitando upload manual...`);
+        return {
+          success: false,
+          error: 'DOWNLOAD_FAILED',
+          message: 'Não foi possível baixar o edital automaticamente',
+          editalUrl,
+          requiresManualUpload: true
+        };
       }
       
       console.log(`💾 Arquivo baixado: ${caminhoArquivo}`);
@@ -80,69 +93,29 @@ class EditalAutomaticoService {
           cargos
         };
       } catch (processingError) {
-        console.log(`❌ Erro no processamento, tentando com edital simulado estruturado: ${processingError}`);
+        console.log(`❌ Erro no processamento do PDF, solicitando upload manual: ${processingError}`);
         
         // Limpar arquivo temporário
         this.limparArquivoTemporario(caminhoArquivo);
         
-        // Criar edital simulado estruturado para demonstrar IA
-        const textoSimulado = this.criarEditalSimuladoEstruturado(concursoNome);
-        console.log(`📝 Usando edital simulado estruturado para demonstração da IA...`);
-        console.log(`📊 Edital simulado tem ${textoSimulado.length} caracteres`);
-        
-        // Enviar edital simulado para Pinecone também
-        try {
-          console.log(`🔄 Enviando edital simulado para Pinecone...`);
-          const chunks = editalService.criarChunks(textoSimulado);
-          console.log(`📋 Criados ${chunks.length} chunks do edital simulado`);
-          
-          const editalId = `${concursoNome.toLowerCase().replace(/\s+/g, '_')}_edital_simulado`;
-          await editalService.enviarParaPinecone(editalId, chunks, {
-            concursoNome,
-            fileName: `edital_simulado_${concursoNome}`,
-            type: 'edital_simulado'
-          });
-          console.log(`✅ Edital simulado enviado para Pinecone: ${editalId}`);
-        } catch (pineconeError) {
-          console.log(`⚠️ Falha ao enviar para Pinecone, continuando sem indexação:`, pineconeError);
-        }
-        
-        try {
-          const cargos = await this.extrairCargosEConteudo(textoSimulado, concursoNome);
-          return {
-            success: true,
-            editalUrl,
-            cargos
-          };
-        } catch (extractionError) {
-          console.error('❌ Falha também na extração com IA:', extractionError);
-          // Último recurso: resultado simulado
-          const resultado = this.criarResultadoSimulado(concursoNome);
-          resultado.editalUrl = editalUrl;
-          return resultado;
-        }
+        // Falha no processamento - retornar erro para upload manual
+        return {
+          success: false,
+          error: 'PDF_PROCESSING_FAILED',
+          message: 'Não foi possível processar o arquivo PDF baixado',
+          editalUrl,
+          requiresManualUpload: true
+        };
       }
       
     } catch (error) {
       console.error('❌ Erro no processamento automático:', error);
-      console.log(`🎭 Tentando Claude 3.5 Sonnet como último recurso...`);
-      
-      try {
-        // Último recurso: usar edital simulado estruturado com Claude
-        const textoSimulado = this.criarEditalSimuladoEstruturado(concursoNome);
-        console.log(`📝 Usando Claude 3.5 Sonnet com edital simulado estruturado...`);
-        
-        const cargos = await this.extrairCargosEConteudo(textoSimulado, concursoNome);
-        return {
-          success: true,
-          editalUrl: `https://simulacao.cebraspe.org.br/editais/${this.normalizarNome(concursoNome)}_2025.pdf`,
-          cargos
-        };
-      } catch (claudeError) {
-        console.error('❌ Falha também no Claude 3.5 Sonnet:', claudeError);
-        console.log(`🎭 Criando resultado simulado como último fallback...`);
-        return this.criarResultadoSimulado(concursoNome);
-      }
+      return {
+        success: false,
+        error: 'PROCESSING_FAILED',
+        message: 'Falha no processamento automático do edital',
+        requiresManualUpload: true
+      };
     }
   }
   

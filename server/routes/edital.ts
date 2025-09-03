@@ -157,7 +157,10 @@ router.post('/processar-automatico', async (req, res) => {
     if (!resultado.success) {
       return res.status(400).json({
         success: false,
-        error: resultado.error
+        error: resultado.error,
+        message: resultado.message,
+        requiresManualUpload: resultado.requiresManualUpload,
+        editalUrl: resultado.editalUrl
       });
     }
     

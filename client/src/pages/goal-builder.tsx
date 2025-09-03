@@ -101,7 +101,7 @@ export default function GoalBuilder() {
   const [foundConcurso, setFoundConcurso] = useState<ConcursoResult | null>(null);
   const [processandoEdital, setProcessandoEdital] = useState(false);
   const [editalProcessado, setEditalProcessado] = useState<{
-    editalUrl: string;
+    editalUrl: string | null;
     cargos: Array<{
       nome: string;
       conteudoProgramatico: Array<{
@@ -109,6 +109,8 @@ export default function GoalBuilder() {
         topicos: string[];
       }>;
     }>;
+    requiresManualUpload?: boolean;
+    downloadError?: string;
   } | null>(null);
 
   // Redirect to login if not authenticated
@@ -197,6 +199,20 @@ export default function GoalBuilder() {
         toast({
           title: "🎉 Edital processado automaticamente!",
           description: `Encontramos ${response.cargos?.length || 0} cargo(s) com conteúdo programático estruturado.`,
+        });
+      } else if (response.requiresManualUpload) {
+        // Definir estado para mostrar upload manual
+        setEditalProcessado({
+          editalUrl: response.editalUrl || null,
+          cargos: [],
+          requiresManualUpload: true,
+          downloadError: response.message
+        });
+        
+        toast({
+          title: "📄 Upload manual necessário",
+          description: response.message || "Faça upload do edital manualmente para continuar.",
+          variant: "default"
         });
       } else {
         toast({
@@ -601,7 +617,7 @@ export default function GoalBuilder() {
             )}
 
             {/* Resultado do Processamento Automático */}
-            {editalProcessado && (
+            {editalProcessado && !editalProcessado.requiresManualUpload && (
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="text-center">
                   <h3 className="text-2xl font-bold text-green-700 dark:text-green-300 mb-2">
@@ -657,13 +673,44 @@ export default function GoalBuilder() {
               </div>
             )}
 
-            {/* Seção de Upload Manual (só aparece se não processou automaticamente) */}
-            {foundConcurso && !editalProcessado && (
+            {/* Seção de Upload Manual (aparece quando há falha no download ou não processou automaticamente) */}
+            {foundConcurso && (!editalProcessado || editalProcessado.requiresManualUpload) && (
               <div className="max-w-4xl mx-auto">
+                {/* Mensagem de falha no download automático */}
+                {editalProcessado?.requiresManualUpload && (
+                  <div className="text-center mb-6 p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <div className="flex items-center justify-center mb-2">
+                      <ExternalLink className="h-6 w-6 text-yellow-600 dark:text-yellow-400 mr-2" />
+                      <h3 className="text-lg font-semibold text-yellow-700 dark:text-yellow-300">
+                        Download Automático Falhou
+                      </h3>
+                    </div>
+                    <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-2">
+                      {editalProcessado.downloadError}
+                    </p>
+                    {editalProcessado.editalUrl && (
+                      <p className="text-xs text-yellow-500 dark:text-yellow-400 mb-3">
+                        Você pode tentar acessar manualmente: 
+                        <a href={editalProcessado.editalUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
+                          {editalProcessado.editalUrl}
+                        </a>
+                      </p>
+                    )}
+                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                      Faça upload manual do arquivo PDF para continuar.
+                    </p>
+                  </div>
+                )}
+                
                 <div className="text-center mb-6">
-                  <h3 className="text-xl font-semibold mb-2">Análise Manual do Edital</h3>
+                  <h3 className="text-xl font-semibold mb-2">
+                    {editalProcessado?.requiresManualUpload ? 'Upload Manual do Edital' : 'Análise Manual do Edital'}
+                  </h3>
                   <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
-                    Se o processamento automático não funcionou, você pode fazer upload manual do edital em PDF.
+                    {editalProcessado?.requiresManualUpload 
+                      ? 'Baixe o edital do link acima e faça upload do arquivo PDF aqui.'
+                      : 'Se o processamento automático não funcionou, você pode fazer upload manual do edital em PDF.'
+                    }
                   </p>
                 </div>
                 
