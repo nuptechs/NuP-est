@@ -1591,6 +1591,10 @@ Responda em JSON no formato:
   
   // Setup Edital routes
   app.use("/api/edital", editalRouter);
+  
+  // Setup Admin routes
+  const adminRouter = (await import("./routes/admin")).default;
+  app.use("/api/admin", adminRouter);
 
   const httpServer = createServer(app);
   return httpServer;

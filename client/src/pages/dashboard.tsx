@@ -5,13 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ChevronRight, User, BookOpen, Target, Brain, MessageSquare, Zap, FileText, BarChart3, Clock, Lightbulb, Trophy, Home } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ChevronRight, User, BookOpen, Target, Brain, MessageSquare, Zap, FileText, BarChart3, Clock, Lightbulb, Trophy, Home, Settings, Search, Plus } from "lucide-react";
 import type { Subject, Goal } from "@shared/schema";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
 
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -385,6 +387,56 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Ícone de engrenagem fixo no canto inferior direito */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              className="h-12 w-12 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all"
+              data-testid="button-admin-settings"
+            >
+              <Settings className="h-5 w-5 text-white" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Configurações Administrativas</DialogTitle>
+              <DialogDescription>
+                Gerencie as configurações avançadas do sistema.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-3">
+              <Button
+                onClick={() => {
+                  setIsAdminDialogOpen(false);
+                  window.location.href = '/admin/search-config';
+                }}
+                variant="outline"
+                className="w-full justify-start"
+                data-testid="button-configure-searches"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Configurar buscas
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setIsAdminDialogOpen(false);
+                  alert('Funcionalidade futura');
+                }}
+                variant="outline"
+                className="w-full justify-start opacity-50"
+                disabled
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Outras funções (em breve)
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

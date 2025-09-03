@@ -334,6 +334,36 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ===== CONFIGURAÇÕES ADMINISTRATIVAS =====
+
+// Enum para tipos de busca
+export const searchTypeEnum = pgEnum("search_type", [
+  "concurso_publico", "vestibular", "escola", "faculdade", "desenvolvimento_profissional", "outras"
+]);
+
+// Sites de busca configuráveis
+export const searchSites = pgTable("search_sites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // Nome amigável do site (ex: "Cebraspe")
+  url: text("url").notNull(), // URL base do site (ex: "https://www.cebraspe.org.br")
+  description: text("description"), // Descrição opcional
+  isActive: boolean("is_active").default(true), // Se o site está ativo para buscas
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Configuração de quais tipos de busca cada site suporta
+export const siteSearchTypes = pgTable("site_search_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => searchSites.id, { onDelete: "cascade" }),
+  searchType: searchTypeEnum("search_type").notNull(),
+  isEnabled: boolean("is_enabled").default(true), // Se este tipo está habilitado para o site
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  // Índice único para evitar duplicatas de site + tipo de busca
+  uniqueSiteSearchType: index("idx_unique_site_search_type").on(table.siteId, table.searchType),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   subjects: many(subjects),
@@ -516,6 +546,18 @@ export const knowledgeChunksRelations = relations(knowledgeChunks, ({ one }) => 
   }),
 }));
 
+// === RELAÇÕES DAS CONFIGURAÇÕES ADMINISTRATIVAS ===
+export const searchSitesRelations = relations(searchSites, ({ many }) => ({
+  searchTypes: many(siteSearchTypes),
+}));
+
+export const siteSearchTypesRelations = relations(siteSearchTypes, ({ one }) => ({
+  site: one(searchSites, {
+    fields: [siteSearchTypes.siteId],
+    references: [searchSites.id],
+  }),
+}));
+
 // === RELAÇÕES DAS NOVAS TABELAS ===
 export const subjectKnowledgeRelations = relations(subjectKnowledge, ({ one }) => ({
   user: one(users, {
@@ -624,6 +666,17 @@ export const insertKnowledgeBaseSchema = createInsertSchema(knowledgeBase).omit(
   updatedAt: true,
 });
 
+export const insertSearchSiteSchema = createInsertSchema(searchSites).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSiteSearchTypeSchema = createInsertSchema(siteSearchTypes).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertKnowledgeChunkSchema = createInsertSchema(knowledgeChunks).omit({
   id: true,
   createdAt: true,
@@ -683,3 +736,7 @@ export type LearningHistory = typeof learningHistory.$inferSelect;
 export type InsertLearningHistory = z.infer<typeof insertLearningHistorySchema>;
 export type AssessmentResult = typeof assessmentResults.$inferSelect;
 export type InsertAssessmentResult = z.infer<typeof insertAssessmentResultSchema>;
+export type SearchSite = typeof searchSites.$inferSelect;
+export type InsertSearchSite = z.infer<typeof insertSearchSiteSchema>;
+export type SiteSearchType = typeof siteSearchTypes.$inferSelect;
+export type InsertSiteSearchType = z.infer<typeof insertSiteSearchTypeSchema>;
