@@ -124,12 +124,74 @@ async function findMatchesRAG(userInput: string): Promise<SearchResult> {
       };
     }
     
-    // Filtrar resultados com score mínimo aceitável (0.3) e parsing robusto
+    // Função para verificar relevância baseada em palavras-chave
+    const isRelevantMatch = (query: string, result: any): boolean => {
+      // Normalizar texto removendo acentos
+      const normalize = (str: string) => str.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+      
+      const queryWords = normalize(query).trim().split(/\s+/);
+      const resultContent = normalize(`${result.name} ${result.fullContent || ''}`);
+      
+      console.log(`🔍 Verificando relevância:`);
+      console.log(`   Query: "${query}" -> palavras: [${queryWords.join(', ')}]`);
+      console.log(`   Resultado: "${result.name}"`);
+      console.log(`   Conteúdo: "${resultContent.slice(0, 100)}..."`);
+      
+      // Lista de termos importantes para domínio policial
+      const policeDomainTerms = ['pf', 'prf', 'policia', 'policial', 'delegado', 'escrivao', 'perito', 'investigacao', 'seguranca'];
+      const hasPoliceQuery = queryWords.some(word => policeDomainTerms.includes(word));
+      
+      // Lista de termos que devem ser excluídos quando buscando polícia
+      const negativeTerms = ['banco', 'banrisul', 'seguros', 'susep', 'cartorio', 'notarios', 'tribunal', 'previdencia'];
+      const hasNegativeTerm = negativeTerms.some(term => resultContent.includes(term));
+      
+      if (hasPoliceQuery && hasNegativeTerm) {
+        console.log(`   ❌ Termo negativo encontrado para busca policial`);
+        return false;
+      }
+      
+      // Para cada palavra da query, verificar se há correspondência
+      const relevantWords = queryWords.filter(word => {
+        if (word.length < 3) return false; // Ignorar palavras muito pequenas
+        
+        // Verificar correspondência exata ou parcial
+        const matches = resultContent.includes(word) || 
+               resultContent.includes(word.slice(0, -1));
+        
+        console.log(`   Palavra "${word}": ${matches ? 'MATCH' : 'NO MATCH'}`);
+        return matches;
+      });
+      
+      const isRelevant = relevantWords.length > 0;
+      console.log(`   Resultado: ${isRelevant ? 'RELEVANTE' : 'IRRELEVANTE'}`);
+      console.log(`   ---`);
+      
+      return isRelevant;
+    };
+
+    // Filtrar resultados com score mínimo mais alto e verificação de relevância
     const validResults = results.filter(result => {
       const scoreMatch = result.description?.match(/(?:score|similaridade|relevância)\s*[:=]\s*([\d.,]+)/i) || 
                           result.description?.match(/([\d.]+)/);
       const score = scoreMatch ? parseFloat(scoreMatch[1].replace(',', '.')) : 0;
-      return !isNaN(score) && score >= 0.3 && score <= 1.0;
+      
+      // Critérios mais rigorosos:
+      // 1. Score mínimo de 0.45 (mais alto)
+      // 2. Verificação de relevância por palavras-chave
+      const hasGoodScore = !isNaN(score) && score >= 0.45 && score <= 1.0;
+      
+      console.log(`🧪 Testando resultado: ${result.name}, Score: ${score.toFixed(3)}, HasGoodScore: ${hasGoodScore}`);
+      
+      if (!hasGoodScore) {
+        console.log(`❌ Score insuficiente para ${result.name}`);
+        return false;
+      }
+      
+      const isRelevant = isRelevantMatch(userInput, result);
+      
+      console.log(`🎯 Resultado final para ${result.name}: Score OK (${score.toFixed(3)}) + Relevante (${isRelevant}) = ${hasGoodScore && isRelevant}`);
+      
+      return hasGoodScore && isRelevant;
     }).map(result => {
       const scoreMatch = result.description?.match(/(?:score|similaridade|relevância)\s*[:=]\s*([\d.,]+)/i) || 
                           result.description?.match(/([\d.]+)/);
@@ -146,6 +208,12 @@ async function findMatchesRAG(userInput: string): Promise<SearchResult> {
         message: 'Não encontramos concursos com relevância suficiente. Tente termos mais específicos como "PF", "INSS" ou "Tribunal".'
       };
     }
+    
+    // Log para debug
+    console.log(`🔍 Query: "${userInput}"`);
+    validResults.forEach((result, index) => {
+      console.log(`📋 ${index + 1}. ${result.name} (Score: ${result.numericScore.toFixed(3)})`);
+    });
     
     // Se há apenas um resultado válido, retornar diretamente
     if (validResults.length === 1) {
@@ -170,10 +238,10 @@ async function findMatchesRAG(userInput: string): Promise<SearchResult> {
       const secondScore = validResults[1].numericScore;
       
       // Mostrar múltiplas opções se:
-      // 1. Diferença entre primeiro e segundo é pequena (< 0.15), OU
-      // 2. Score mais alto é baixo (< 0.7), indicando incerteza
+      // 1. Diferença entre primeiro e segundo é pequena (< 0.1), OU
+      // 2. Score mais alto é moderado (< 0.8), indicando alguma incerteza
       const scoreDifference = topScore - secondScore;
-      const showMultiple = scoreDifference < 0.15 || topScore < 0.7;
+      const showMultiple = scoreDifference < 0.1 || topScore < 0.8;
       
       console.log(`📊 Diferença de score: ${scoreDifference.toFixed(3)}, Top score: ${topScore.toFixed(3)}`);
       
