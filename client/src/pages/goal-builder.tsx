@@ -624,7 +624,7 @@ export default function GoalBuilder() {
                     ✅ Edital Processado Automaticamente!
                   </h3>
                   <p className="text-muted-foreground">
-                    Edital baixado de: <a href={editalProcessado.editalUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Edital baixado de: <a href={editalProcessado.editalUrl || undefined} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                       {editalProcessado.editalUrl}
                     </a>
                   </p>
