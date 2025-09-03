@@ -211,7 +211,7 @@ export default function Subjects() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg mb-2" style={{ color: subject.color }}>
+                        <CardTitle className="text-lg mb-2" style={{ color: subject.color || undefined }}>
                           {subject.name}
                         </CardTitle>
                         <p className="text-sm text-muted-foreground line-clamp-2">
@@ -252,7 +252,7 @@ export default function Subjects() {
                       </div>
                       <div 
                         className="w-4 h-4 rounded-full" 
-                        style={{ backgroundColor: subject.color }}
+                        style={{ backgroundColor: subject.color || undefined }}
                       ></div>
                     </div>
                   </CardContent>

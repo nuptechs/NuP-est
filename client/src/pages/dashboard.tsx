@@ -369,8 +369,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        </div>
-      </main>
 
         {/* Ícone de engrenagem fixo no canto inferior direito */}
         <div className="fixed bottom-6 right-6 z-50">

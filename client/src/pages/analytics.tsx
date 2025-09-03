@@ -108,7 +108,7 @@ export default function Analytics() {
   };
 
   const calculateStudyStreak = () => {
-    if (!recentSessions?.length) return 0;
+    if (!Array.isArray(recentSessions) || !recentSessions?.length) return 0;
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -142,7 +142,7 @@ export default function Analytics() {
   };
 
   const calculateWeeklyStudyTime = () => {
-    if (!recentSessions?.length) return 0;
+    if (!Array.isArray(recentSessions) || !recentSessions?.length) return 0;
     
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -212,7 +212,7 @@ export default function Analytics() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-2xl font-bold text-foreground" data-testid="stat-ai-questions">
-                    {stats?.questionsGenerated || 0}
+                    {(stats as any)?.questionsGenerated || 0}
                   </p>
                   <p className="text-sm text-muted-foreground">Questões geradas</p>
                 </div>
@@ -229,7 +229,7 @@ export default function Analytics() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-2xl font-bold text-foreground" data-testid="stat-goal-completion">
-                    {stats?.goalProgress || 0}%
+                    {(stats as any)?.goalProgress || 0}%
                   </p>
                   <p className="text-sm text-muted-foreground">Concluídas</p>
                 </div>
@@ -268,7 +268,7 @@ export default function Analytics() {
                         </div>
                       ))}
                     </div>
-                  ) : !subjectProgress?.length ? (
+                  ) : !Array.isArray(subjectProgress) || !subjectProgress?.length ? (
                     <div className="text-center py-8">
                       <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i className="fas fa-chart-bar text-muted-foreground text-2xl"></i>
@@ -278,7 +278,7 @@ export default function Analytics() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {subjectProgress?.map((subject: any) => (
+                      {Array.isArray(subjectProgress) && subjectProgress?.map((subject: any) => (
                         <div key={subject.id} className="p-4 bg-muted/30 rounded-lg border border-border">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center">
@@ -339,7 +339,7 @@ export default function Analytics() {
                         </div>
                       ))}
                     </div>
-                  ) : !weeklyProgress?.length ? (
+                  ) : !Array.isArray(weeklyProgress) || !weeklyProgress?.length ? (
                     <div className="text-center py-6">
                       <div className="w-12 h-12 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i className="fas fa-target text-muted-foreground"></i>
@@ -348,7 +348,7 @@ export default function Analytics() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {weeklyProgress?.map((goal: any) => (
+                      {Array.isArray(weeklyProgress) && weeklyProgress?.map((goal: any) => (
                         <div key={goal.id} className="space-y-2">
                           <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-foreground" data-testid={`weekly-goal-name-${goal.id}`}>
@@ -387,7 +387,7 @@ export default function Analytics() {
                     </div>
                   ))}
                 </div>
-              ) : !recentSessions?.length ? (
+              ) : !Array.isArray(recentSessions) || !recentSessions?.length ? (
                 <div className="text-center py-8">
                   <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i className="fas fa-history text-muted-foreground text-2xl"></i>
@@ -397,8 +397,8 @@ export default function Analytics() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {recentSessions?.slice(0, 10).map((session: StudySession) => {
-                    const subject = subjects?.find((s: Subject) => s.id === session.subjectId);
+                  {Array.isArray(recentSessions) && recentSessions?.slice(0, 10).map((session: StudySession) => {
+                    const subject = Array.isArray(subjects) ? subjects?.find((s: Subject) => s.id === session.subjectId) : null;
                     return (
                       <div key={session.id} className="flex items-center p-3 bg-muted/30 rounded-lg border border-border">
                         <div className={`w-10 h-10 ${session.completed ? 'bg-secondary' : 'bg-muted'}/10 rounded-lg flex items-center justify-center mr-4`}>
@@ -471,7 +471,7 @@ export default function Analytics() {
                       <span className="text-sm font-medium text-foreground">Matérias ativas</span>
                     </div>
                     <span className="text-sm font-bold text-accent" data-testid="text-active-subjects">
-                      {stats?.subjects || 0}
+                      {(stats as any)?.subjects || 0}
                     </span>
                   </div>
                 </div>
