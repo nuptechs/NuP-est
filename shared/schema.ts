@@ -574,6 +574,16 @@ export const insertGoalSchema = createInsertSchema(goals).omit({
 export const insertTargetSchema = createInsertSchema(targets).omit({
   id: true,
   createdAt: true,
+}).extend({
+  targetValue: z.union([z.string(), z.number(), z.null()]).optional().transform((val) => 
+    val === null || val === undefined ? null : val.toString()
+  ),
+  currentValue: z.union([z.string(), z.number(), z.null()]).optional().transform((val) => 
+    val === null || val === undefined ? "0" : val.toString()
+  ),
+  deadline: z.union([z.string(), z.date(), z.null()]).optional().transform((val) => 
+    val === null || val === undefined ? null : typeof val === 'string' ? new Date(val) : val
+  ),
 });
 
 export const insertStudySessionSchema = createInsertSchema(studySessions).omit({

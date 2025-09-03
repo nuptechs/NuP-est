@@ -196,8 +196,9 @@ export default function Goals() {
     mutationFn: async (data: TargetFormData) => {
       const payload = {
         ...data,
-        targetValue: data.targetValue ? parseFloat(data.targetValue) : null,
-        deadline: data.deadline ? data.deadline.toISOString() : null,
+        // Deixar que o schema transforme os tipos automaticamente
+        targetValue: data.targetValue || null,
+        deadline: data.deadline || null,
       };
       return apiRequest("POST", "/api/targets", payload);
     },
@@ -224,8 +225,9 @@ export default function Goals() {
     mutationFn: async ({ id, data }: { id: string; data: Partial<TargetFormData> }) => {
       const payload = {
         ...data,
-        targetValue: data.targetValue ? parseFloat(data.targetValue) : null,
-        deadline: data.deadline ? data.deadline.toISOString() : null,
+        // Deixar que o schema transforme os tipos automaticamente
+        targetValue: data.targetValue || null,
+        deadline: data.deadline || null,
       };
       return apiRequest("PATCH", `/api/targets/${id}`, payload);
     },
