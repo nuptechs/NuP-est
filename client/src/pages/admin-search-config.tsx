@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Plus, Trash2, Globe, Search } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Plus, Trash2, Save, Edit, Check, X, Globe } from "lucide-react";
 import type { SearchSite, InsertSearchSite, SiteSearchType } from "@shared/schema";
 
 const SEARCH_TYPES = [
@@ -21,19 +22,23 @@ const SEARCH_TYPES = [
   { id: "outras", label: "Outras" },
 ] as const;
 
+interface TableRow {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  selectedTypes: string[];
+  isEditing: boolean;
+  isNew: boolean;
+}
+
 export default function AdminSearchConfig() {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [formData, setFormData] = useState<InsertSearchSite>({
-    name: "",
-    url: "",
-    description: "",
-    isActive: true,
-  });
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [tableRows, setTableRows] = useState<TableRow[]>([]);
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   // Buscar sites existentes
   const { data: sites, isLoading } = useQuery<SearchSite[]>({
@@ -46,6 +51,32 @@ export default function AdminSearchConfig() {
     queryKey: ["/api/admin/site-search-types"],
     enabled: isAuthenticated,
   });
+
+  // Efeito para converter sites existentes para o formato da tabela
+  useEffect(() => {
+    if (sites && tableRows.length === 0) {
+      const rows = sites.map((site: SearchSite) => ({
+        id: site.id,
+        name: site.name,
+        url: site.url,
+        description: site.description || "",
+        selectedTypes: [],
+        isEditing: false,
+        isNew: false,
+      }));
+      setTableRows(rows);
+    }
+  }, [sites, tableRows.length]);
+
+  // Efeito para atualizar os tipos selecionados nas linhas da tabela
+  useEffect(() => {
+    if (siteTypes) {
+      setTableRows(prev => prev.map(row => ({
+        ...row,
+        selectedTypes: siteTypes[row.id]?.filter((t: SiteSearchType) => t.isEnabled).map((t: SiteSearchType) => t.searchType) || []
+      })));
+    }
+  }, [siteTypes]);
 
   // Mutação para criar novo site
   const createSiteMutation = useMutation({
@@ -61,24 +92,7 @@ export default function AdminSearchConfig() {
         throw new Error(await response.text());
       }
       return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Site adicionado",
-        description: "Site de busca configurado com sucesso!",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/search-sites"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/site-search-types"] });
-      setIsAddingNew(false);
-      resetForm();
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao adicionar site",
-        variant: "destructive",
-      });
-    },
+    }
   });
 
   // Mutação para deletar site
@@ -99,30 +113,62 @@ export default function AdminSearchConfig() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/search-sites"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/site-search-types"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao remover site",
-        variant: "destructive",
-      });
-    },
+    }
   });
 
-  const resetForm = () => {
-    setFormData({
+  const addNewRow = () => {
+    const newRow: TableRow = {
+      id: `new-${Date.now()}`,
       name: "",
       url: "",
       description: "",
-      isActive: true,
-    });
-    setSelectedTypes([]);
+      selectedTypes: [],
+      isEditing: true,
+      isNew: true,
+    };
+    setTableRows(prev => [...prev, newRow]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name || !formData.url) {
+  const updateRow = (id: string, updates: Partial<TableRow>) => {
+    setTableRows(prev => prev.map(row => 
+      row.id === id ? { ...row, ...updates } : row
+    ));
+  };
+
+  const removeRow = (id: string) => {
+    const row = tableRows.find(r => r.id === id);
+    if (row?.isNew) {
+      // Se é uma nova linha, apenas remove da tabela
+      setTableRows(prev => prev.filter(r => r.id !== id));
+    } else {
+      // Se é um site existente, chama a API para deletar
+      deleteSiteMutation.mutate(id);
+    }
+  };
+
+  const toggleRowEdit = (id: string) => {
+    setTableRows(prev => prev.map(row => 
+      row.id === id ? { ...row, isEditing: !row.isEditing } : row
+    ));
+  };
+
+  const toggleType = (rowId: string, typeId: string) => {
+    setTableRows(prev => prev.map(row => {
+      if (row.id === rowId) {
+        const selectedTypes = row.selectedTypes.includes(typeId)
+          ? row.selectedTypes.filter(t => t !== typeId)
+          : [...row.selectedTypes, typeId];
+        return { ...row, selectedTypes };
+      }
+      return row;
+    }));
+  };
+
+  const saveRow = async (id: string) => {
+    const row = tableRows.find(r => r.id === id);
+    if (!row) return;
+
+    if (!row.name.trim() || !row.url.trim()) {
       toast({
         title: "Campos obrigatórios",
         description: "Nome e URL são obrigatórios",
@@ -131,7 +177,7 @@ export default function AdminSearchConfig() {
       return;
     }
 
-    if (selectedTypes.length === 0) {
+    if (row.selectedTypes.length === 0) {
       toast({
         title: "Tipos de busca",
         description: "Selecione pelo menos um tipo de busca",
@@ -140,18 +186,76 @@ export default function AdminSearchConfig() {
       return;
     }
 
-    createSiteMutation.mutate({
-      site: formData,
-      searchTypes: selectedTypes,
-    });
+    try {
+      if (row.isNew) {
+        await createSiteMutation.mutateAsync({
+          site: {
+            name: row.name,
+            url: row.url,
+            description: row.description || undefined,
+            isActive: true,
+          },
+          searchTypes: row.selectedTypes,
+        });
+        
+        toast({
+          title: "Site adicionado",
+          description: "Site de busca configurado com sucesso!",
+        });
+        
+        // Recarregar dados
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/search-sites"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/site-search-types"] });
+      } else {
+        // TODO: Implementar update para sites existentes
+        updateRow(id, { isEditing: false });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar site",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleTypeToggle = (typeId: string) => {
-    setSelectedTypes(prev => 
-      prev.includes(typeId) 
-        ? prev.filter(id => id !== typeId)
-        : [...prev, typeId]
-    );
+  const saveBulk = async () => {
+    setIsBulkSaving(true);
+    const newRows = tableRows.filter(row => row.isNew && row.name.trim() && row.url.trim());
+    
+    try {
+      for (const row of newRows) {
+        if (row.selectedTypes.length > 0) {
+          await createSiteMutation.mutateAsync({
+            site: {
+              name: row.name,
+              url: row.url,
+              description: row.description || undefined,
+              isActive: true,
+            },
+            searchTypes: row.selectedTypes,
+          });
+        }
+      }
+      
+      toast({
+        title: "Sites salvos",
+        description: `${newRows.length} sites foram configurados com sucesso!`,
+      });
+      
+      // Recarregar dados
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/search-sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/site-search-types"] });
+      
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar sites",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBulkSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -165,11 +269,14 @@ export default function AdminSearchConfig() {
     );
   }
 
+  const hasNewRows = tableRows.some(row => row.isNew);
+  const newRowsCount = tableRows.filter(row => row.isNew).length;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -181,190 +288,222 @@ export default function AdminSearchConfig() {
               Voltar
             </Button>
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">Configurar Buscas</h1>
-              <p className="text-sm text-gray-600">Gerencie sites e tipos de busca do sistema</p>
+              <h1 className="text-xl font-semibold text-gray-900">Configurar Sites de Busca</h1>
+              <p className="text-sm text-gray-600">Gerencie URLs e tipos de busca do sistema</p>
             </div>
           </div>
         </div>
       </header>
 
       {/* Conteúdo principal */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="space-y-6">
-          {/* Botão adicionar novo */}
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-900">Sites de Busca</h2>
-            <Button 
-              onClick={() => setIsAddingNew(true)}
-              className="flex items-center gap-2"
-              data-testid="button-add-site"
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar Site
-            </Button>
-          </div>
-
-          {/* Formulário para novo site */}
-          {isAddingNew && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Novo Site de Busca</CardTitle>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-blue-500" />
+                  Sites de Busca
+                </CardTitle>
                 <CardDescription>
-                  Configure um novo site para realizar buscas automatizadas
+                  Configure múltiplas URLs de busca e seus tipos. Adicione uma URL por linha.
                 </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Nome do Site</Label>
-                      <Input
-                        id="name"
-                        placeholder="Ex: Cebraspe"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        data-testid="input-site-name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="url">URL do Site</Label>
-                      <Input
-                        id="url"
-                        placeholder="Ex: https://www.cebraspe.org.br"
-                        value={formData.url}
-                        onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                        data-testid="input-site-url"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="description">Descrição (opcional)</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Descreva o que este site oferece..."
-                      value={formData.description || ""}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      data-testid="input-site-description"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Tipos de Busca</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                      {SEARCH_TYPES.map((type) => (
-                        <div key={type.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={type.id}
-                            checked={selectedTypes.includes(type.id)}
-                            onCheckedChange={() => handleTypeToggle(type.id)}
-                            data-testid={`checkbox-${type.id}`}
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={addNewRow}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  data-testid="button-add-row"
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar Linha
+                </Button>
+                {hasNewRows && (
+                  <Button 
+                    onClick={saveBulk}
+                    disabled={isBulkSaving}
+                    className="flex items-center gap-2"
+                    data-testid="button-save-all"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isBulkSaving ? "Salvando..." : `Salvar Todos (${newRowsCount})`}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">Nome</TableHead>
+                    <TableHead className="w-[300px]">URL</TableHead>
+                    <TableHead className="w-[200px]">Descrição</TableHead>
+                    <TableHead className="w-[300px]">Tipos de Busca</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tableRows.map((row) => (
+                    <TableRow key={row.id} className={row.isNew ? "bg-blue-50" : ""}>
+                      <TableCell>
+                        {row.isEditing ? (
+                          <Input
+                            value={row.name}
+                            onChange={(e) => updateRow(row.id, { name: e.target.value })}
+                            placeholder="Nome do site"
+                            className="h-8"
+                            data-testid={`input-name-${row.id}`}
                           />
-                          <Label htmlFor={type.id} className="text-sm">
-                            {type.label}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button 
-                      type="submit" 
-                      disabled={createSiteMutation.isPending}
-                      data-testid="button-save-site"
-                    >
-                      {createSiteMutation.isPending ? "Salvando..." : "Salvar Site"}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => {
-                        setIsAddingNew(false);
-                        resetForm();
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Lista de sites existentes */}
-          <div className="grid gap-4">
-            {sites?.map((site) => {
-              const types = siteTypes?.[site.id] || [];
-              const enabledTypes = types.filter(t => t.isEnabled);
-              
-              return (
-                <Card key={site.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Globe className="h-4 w-4 text-blue-500" />
-                          <h3 className="font-semibold text-gray-900">{site.name}</h3>
-                          {!site.isActive && (
-                            <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
-                              Inativo
-                            </span>
+                        ) : (
+                          <span className="font-medium">{row.name}</span>
+                        )}
+                      </TableCell>
+                      
+                      <TableCell>
+                        {row.isEditing ? (
+                          <Input
+                            value={row.url}
+                            onChange={(e) => updateRow(row.id, { url: e.target.value })}
+                            placeholder="https://exemplo.com"
+                            className="h-8"
+                            data-testid={`input-url-${row.id}`}
+                          />
+                        ) : (
+                          <span className="text-sm text-blue-600 truncate block max-w-[280px]">
+                            {row.url}
+                          </span>
+                        )}
+                      </TableCell>
+                      
+                      <TableCell>
+                        {row.isEditing ? (
+                          <Input
+                            value={row.description}
+                            onChange={(e) => updateRow(row.id, { description: e.target.value })}
+                            placeholder="Descrição opcional"
+                            className="h-8"
+                            data-testid={`input-description-${row.id}`}
+                          />
+                        ) : (
+                          <span className="text-sm text-gray-600 truncate block max-w-[180px]">
+                            {row.description || "-"}
+                          </span>
+                        )}
+                      </TableCell>
+                      
+                      <TableCell>
+                        {row.isEditing ? (
+                          <div className="flex flex-wrap gap-1 max-w-[280px]">
+                            {SEARCH_TYPES.map((type) => (
+                              <label
+                                key={type.id}
+                                className="flex items-center gap-1 text-xs cursor-pointer hover:bg-gray-100 px-1 py-0.5 rounded"
+                              >
+                                <Checkbox
+                                  checked={row.selectedTypes.includes(type.id)}
+                                  onCheckedChange={() => toggleType(row.id, type.id)}
+                                  className="h-3 w-3"
+                                  data-testid={`checkbox-${type.id}-${row.id}`}
+                                />
+                                <span className="text-xs">{type.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-1 max-w-[280px]">
+                            {row.selectedTypes.map((typeId) => {
+                              const typeInfo = SEARCH_TYPES.find(t => t.id === typeId);
+                              return (
+                                <Badge key={typeId} variant="secondary" className="text-xs">
+                                  {typeInfo?.label}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </TableCell>
+                      
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {row.isEditing ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => saveRow(row.id)}
+                                className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                data-testid={`button-save-${row.id}`}
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => toggleRowEdit(row.id)}
+                                className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                                data-testid={`button-cancel-${row.id}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => toggleRowEdit(row.id)}
+                                className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                data-testid={`button-edit-${row.id}`}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removeRow(row.id)}
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                data-testid={`button-delete-${row.id}`}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{site.url}</p>
-                        {site.description && (
-                          <p className="text-sm text-gray-500 mb-3">{site.description}</p>
-                        )}
-                        <div className="flex flex-wrap gap-1">
-                          {enabledTypes.map((type) => {
-                            const typeInfo = SEARCH_TYPES.find(t => t.id === type.searchType);
-                            return (
-                              <span
-                                key={type.id}
-                                className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
-                              >
-                                {typeInfo?.label}
-                              </span>
-                            );
-                          })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  
+                  {tableRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <Globe className="h-8 w-8 text-gray-400" />
+                          <p>Nenhum site configurado</p>
+                          <Button onClick={addNewRow} variant="outline" size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Adicionar Primeiro Site
+                          </Button>
                         </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteSiteMutation.mutate(site.id)}
-                        disabled={deleteSiteMutation.isPending}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        data-testid={`button-delete-${site.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
             
-            {sites?.length === 0 && (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Nenhum site configurado
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Adicione sites para realizar buscas automatizadas de concursos, vestibulares e mais.
-                  </p>
-                  <Button onClick={() => setIsAddingNew(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Primeiro Site
-                  </Button>
-                </CardContent>
-              </Card>
+            {hasNewRows && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>{newRowsCount} nova(s) linha(s)</strong> adicionada(s). 
+                  Clique em "Salvar Todos" para confirmar as configurações.
+                </p>
+              </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
