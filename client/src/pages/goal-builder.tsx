@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { EditalUploader } from "@/components/EditalUploader";
 import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft,
@@ -517,6 +518,32 @@ export default function GoalBuilder() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Seção de Upload de Edital */}
+            {foundConcurso && (
+              <div className="max-w-4xl mx-auto">
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-semibold mb-2">Análise Automática do Edital</h3>
+                  <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
+                    Se você possui o edital em PDF, faça upload para que possamos extrair automaticamente o 
+                    conteúdo programático e criar um plano de estudos personalizado.
+                  </p>
+                </div>
+                
+                <EditalUploader 
+                  concursoNome={foundConcurso.name}
+                  onEditalProcessed={(result) => {
+                    console.log('Edital processado:', result);
+                    toast({
+                      title: "🎉 Edital analisado!",
+                      description: result.hasSingleCargo 
+                        ? `Conteúdo programático extraído para ${result.cargoName}`
+                        : "Edital indexado na base de conhecimento",
+                    });
+                  }}
+                />
+              </div>
             )}
           </div>
         ) : currentStep === 'concurso-area' ? (

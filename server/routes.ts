@@ -6,6 +6,7 @@ import { aiService } from "./services/ai";
 import { ragService } from "./services/rag";
 import { setupRAGRoutes } from "./routes/rag";
 import { cebraspeRouter } from "./routes/cebraspe";
+import { editalRouter } from "./routes/edital";
 import { eq } from "drizzle-orm";
 import { 
   insertSubjectSchema, 
@@ -1587,6 +1588,9 @@ Responda em JSON no formato:
 
   // Setup Cebraspe routes
   app.use("/api/cebraspe", cebraspeRouter);
+  
+  // Setup Edital routes
+  app.use("/api/edital", editalRouter);
 
   const httpServer = createServer(app);
   return httpServer;
