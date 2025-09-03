@@ -32,7 +32,8 @@ import {
   Clock,
   Star,
   ArrowLeft,
-  LogOut
+  LogOut,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal, Target as TargetType } from "@shared/schema";
@@ -401,14 +402,25 @@ export default function Goals() {
               </div>
             </div>
             
-            <Button 
-              onClick={() => openGoalDialog()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              data-testid="button-create-goal"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Meta
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => window.location.href = '/goal-builder'}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-lg"
+                data-testid="button-goal-builder"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Construir Meta
+              </Button>
+              <Button 
+                onClick={() => openGoalDialog()}
+                variant="outline"
+                className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950"
+                data-testid="button-create-goal"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Meta
+              </Button>
+            </div>
           </div>
 
           {/* Goals List */}
