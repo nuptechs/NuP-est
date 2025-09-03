@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import Sidebar from '@/components/layout/sidebar';
+import Header from '@/components/layout/header';
+import MobileNav from '@/components/layout/mobile-nav';
 import { Search, Globe, Database, ExternalLink, Filter, Users, BookOpen, Briefcase, GraduationCap, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -195,13 +198,14 @@ export default function IntegratedSearch() {
   const searchData = searchMutation.data as SearchResponse | undefined;
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Busca Integrada</h1>
-        <p className="text-muted-foreground">
-          Pesquise em concursos do Cebraspe e sites configurados simultaneamente
-        </p>
-      </div>
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <main className="flex-1 overflow-auto">
+        <Header 
+          title="Busca Integrada" 
+          subtitle="Pesquise em concursos do Cebraspe e sites configurados simultaneamente"
+        />
+        <div className="container mx-auto p-6 max-w-7xl">
 
       {/* Formulário de Busca */}
       <Card className="mb-6">
@@ -417,6 +421,9 @@ export default function IntegratedSearch() {
           </CardContent>
         </Card>
       )}
+        </div>
+      </main>
+      <MobileNav />
     </div>
   );
 }

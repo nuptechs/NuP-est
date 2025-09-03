@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import Sidebar from "@/components/layout/sidebar";
+import Header from "@/components/layout/header";
+import MobileNav from "@/components/layout/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ChevronRight, User, BookOpen, Target, Brain, MessageSquare, Zap, FileText, BarChart3, Clock, Lightbulb, Trophy, Home, Settings, Search, Plus } from "lucide-react";
+import { ChevronRight, User, BookOpen, Target, Brain, MessageSquare, Zap, FileText, BarChart3, Clock, Lightbulb, Trophy, Settings, Search, Plus } from "lucide-react";
 import type { Subject, Goal } from "@shared/schema";
 
 export default function Dashboard() {
@@ -74,36 +77,16 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header minimalista */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.location.href = '/'}
-                className="p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200"
-                data-testid="button-home"
-              >
-                <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
-              </Button>
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">NuP-Study</h1>
-            </div>
-            <Button
-              variant="ghost"
-              onClick={() => window.location.href = '/api/logout'}
-              className="text-gray-500 hover:text-gray-900 text-sm sm:text-base"
-            >
-              Sair
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <main className="flex-1 overflow-auto">
+        <Header 
+          title="Dashboard" 
+          subtitle="Bem-vindo ao seu hub de estudos personalizado"
+        />
 
-      {/* Conteúdo principal */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Conteúdo principal */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Saudação */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-light text-gray-900 mb-2">
@@ -386,57 +369,61 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        </div>
       </main>
 
-      {/* Ícone de engrenagem fixo no canto inferior direito */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              className="h-12 w-12 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all"
-              data-testid="button-admin-settings"
-            >
-              <Settings className="h-5 w-5 text-white" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Configurações Administrativas</DialogTitle>
-              <DialogDescription>
-                Gerencie as configurações avançadas do sistema.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-3">
+        {/* Ícone de engrenagem fixo no canto inferior direito */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
+            <DialogTrigger asChild>
               <Button
-                onClick={() => {
-                  setIsAdminDialogOpen(false);
-                  window.location.href = '/admin/search-config';
-                }}
-                variant="outline"
-                className="w-full justify-start"
-                data-testid="button-configure-searches"
+                className="h-12 w-12 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all"
+                data-testid="button-admin-settings"
               >
-                <Search className="h-4 w-4 mr-2" />
-                Configurar buscas
+                <Settings className="h-5 w-5 text-white" />
               </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Configurações Administrativas</DialogTitle>
+                <DialogDescription>
+                  Gerencie as configurações avançadas do sistema.
+                </DialogDescription>
+              </DialogHeader>
               
-              <Button
-                onClick={() => {
-                  setIsAdminDialogOpen(false);
-                  alert('Funcionalidade futura');
-                }}
-                variant="outline"
-                className="w-full justify-start opacity-50"
-                disabled
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Outras funções (em breve)
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    setIsAdminDialogOpen(false);
+                    window.location.href = '/admin/search-config';
+                  }}
+                  variant="outline"
+                  className="w-full justify-start"
+                  data-testid="button-configure-searches"
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Configurar buscas
+                </Button>
+                
+                <Button
+                  onClick={() => {
+                    setIsAdminDialogOpen(false);
+                    alert('Funcionalidade futura');
+                  }}
+                  variant="outline"
+                  className="w-full justify-start opacity-50"
+                  disabled
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Outras funções (em breve)
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+        </div>
+      </main>
+      <MobileNav />
     </div>
   );
 }
