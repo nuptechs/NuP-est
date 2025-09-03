@@ -14,6 +14,9 @@ interface RAGOptions {
   category?: string;
   maxContextLength?: number;
   minSimilarity?: number;
+  enableReRanking?: boolean;
+  initialTopK?: number;
+  finalTopK?: number;
 }
 
 export class RAGService {
@@ -38,13 +41,22 @@ export class RAGService {
       console.log(`🔍 RAG: Processando query "${query.substring(0, 100)}..."`);
 
       // 1. SEMPRE buscar contexto relevante na base primeiro
-      const contextResults = await pineconeService.searchSimilarContent(query, userId, {
-        topK: 5,
+      const initialTopK = options.enableReRanking ? (options.initialTopK || 15) : (options.finalTopK || 5);
+      const rawResults = await pineconeService.searchSimilarContent(query, userId, {
+        topK: initialTopK,
         category,
         minSimilarity
       });
 
-      // 2. Preparar contexto limitado por tamanho
+      // 2. Re-ranking opcional dos resultados usando LLM
+      let contextResults = rawResults;
+      if (options.enableReRanking && rawResults.length > 1) {
+        console.log(`🧠 RAG: Re-ranking ${rawResults.length} resultados para melhor relevância...`);
+        contextResults = await this.reRankResults(query, rawResults, options.finalTopK || 5);
+        console.log(`📈 RAG: Re-ranking concluído, selecionados ${contextResults.length} resultados mais relevantes`);
+      }
+
+      // 3. Preparar contexto limitado por tamanho
       let contextText = '';
       let usedContext: RAGContext[] = [];
       let currentLength = 0;
@@ -62,12 +74,12 @@ export class RAGService {
 
       const hasContext = usedContext.length > 0;
 
-      // 3. Construir prompt inteligente
+      // 4. Construir prompt inteligente
       const prompt = this.buildRAGPrompt(query, contextText, hasContext);
 
       console.log(`📚 RAG: ${hasContext ? `Usando ${usedContext.length} fontes da base` : 'Sem contexto da base, usando conhecimento geral'}`);
 
-      // 4. Gerar resposta usando sistema de IA com injeção de dependência
+      // 5. Gerar resposta usando sistema de IA com injeção de dependência
       const systemPrompt = `Você é um assistente de estudos inteligente que SEMPRE prioriza informações da base de conhecimento do usuário. 
 
 REGRAS CRÍTICAS:
@@ -113,6 +125,91 @@ REGRAS CRÍTICAS:
         contextUsed: [],
         hasContext: false
       };
+    }
+  }
+
+  /**
+   * Re-ordena resultados usando LLM para melhor relevância contextual
+   */
+  private async reRankResults(
+    query: string, 
+    results: RAGContext[], 
+    finalCount: number = 5
+  ): Promise<RAGContext[]> {
+    try {
+      // Preparar resultados para avaliação
+      const resultsForRanking = results.map((result, index) => ({
+        index,
+        title: result.title,
+        category: result.category,
+        similarity: result.similarity,
+        preview: result.content.substring(0, 200) + (result.content.length > 200 ? '...' : ''),
+      }));
+
+      const systemPrompt = `Você é um especialista em relevância de documentos. Sua tarefa é reordenar os documentos por relevância específica para a query do usuário.
+
+Critérios de avaliação:
+1. Relevância direta ao tópico da query
+2. Qualidade e especificidade da informação
+3. Aplicabilidade prática para responder a query
+4. Completude da informação no documento
+
+Retorne APENAS uma lista de índices dos documentos ordenados do mais relevante para o menos relevante.
+Formato: [2, 0, 4, 1, 3] (apenas números separados por vírgula)`;
+
+      const userPrompt = `QUERY DO USUÁRIO: "${query}"
+
+DOCUMENTOS PARA AVALIAR:
+${resultsForRanking.map(r => 
+        `[${r.index}] ${r.title} (${r.category}) [Sim: ${(r.similarity * 100).toFixed(1)}%]
+${r.preview}`
+      ).join('\n\n')}
+
+Reordene os ${Math.min(finalCount, results.length)} documentos mais relevantes para responder a query.
+RESPOSTA:`;
+
+      const aiResponse = await aiChatWithContext(userPrompt, systemPrompt, {
+        temperature: 0.1,
+        maxTokens: 100
+      });
+
+      // Extrair índices da resposta
+      const responseText = aiResponse.content || '';
+      const indexMatches = responseText.match(/\d+/g);
+      
+      if (!indexMatches) {
+        console.warn('⚠️ Re-ranking falhou, usando ordem original');
+        return results.slice(0, finalCount);
+      }
+
+      // Reordenar baseado na resposta do LLM
+      const rankedResults: RAGContext[] = [];
+      const usedIndices = new Set<number>();
+
+      for (const indexStr of indexMatches) {
+        const index = parseInt(indexStr);
+        if (index >= 0 && index < results.length && !usedIndices.has(index)) {
+          rankedResults.push(results[index]);
+          usedIndices.add(index);
+          if (rankedResults.length >= finalCount) break;
+        }
+      }
+
+      // Adicionar documentos restantes se necessário
+      if (rankedResults.length < finalCount) {
+        for (let i = 0; i < results.length && rankedResults.length < finalCount; i++) {
+          if (!usedIndices.has(i)) {
+            rankedResults.push(results[i]);
+          }
+        }
+      }
+
+      console.log(`🎯 Re-ranking mudou ordem: ${indexMatches.slice(0, rankedResults.length).join(' → ')}`);
+      return rankedResults;
+
+    } catch (error) {
+      console.error('❌ Erro no re-ranking, usando ordem original:', error);
+      return results.slice(0, finalCount);
     }
   }
 

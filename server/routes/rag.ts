@@ -149,7 +149,15 @@ export function setupRAGRoutes(app: Express) {
   app.post('/api/rag/search', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { query, category } = req.body;
+      const { 
+        query, 
+        category, 
+        enableReRanking = true,  // Habilitar re-ranking por padrão
+        initialTopK = 15,        // Buscar mais resultados iniciais para re-ranking
+        finalTopK = 5,           // Número final de resultados após re-ranking
+        maxContextLength = 4000,
+        minSimilarity = 0.1
+      } = req.body;
       
       if (!query) {
         return res.status(400).json({ message: "Query é obrigatória" });
@@ -158,7 +166,12 @@ export function setupRAGRoutes(app: Express) {
       const results = await ragService.generateContextualResponse({
         userId,
         query,
-        category
+        category,
+        enableReRanking,
+        initialTopK,
+        finalTopK,
+        maxContextLength,
+        minSimilarity
       });
       
       res.json(results);
