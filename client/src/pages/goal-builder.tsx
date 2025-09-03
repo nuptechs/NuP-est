@@ -23,7 +23,8 @@ import {
   Target,
   ExternalLink,
   CheckCircle2,
-  Loader2
+  Loader2,
+  ListCheck
 } from "lucide-react";
 
 // Tipos de meta disponíveis
@@ -89,16 +90,18 @@ interface ConcursoResult {
   url: string;
   vagas?: string;
   salario?: string;
+  score?: number;
 }
 
 export default function GoalBuilder() {
   const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState<'select-type' | 'concurso-approach' | 'concurso-specific' | 'concurso-area' | 'concurso-found' | 'build-goal'>('select-type');
+  const [currentStep, setCurrentStep] = useState<'select-type' | 'concurso-approach' | 'concurso-specific' | 'concurso-area' | 'concurso-selection' | 'concurso-found' | 'build-goal'>('select-type');
   const [concursoName, setConcursoName] = useState<string>('');
   const [searchingConcurso, setSearchingConcurso] = useState<boolean>(false);
   const [foundConcurso, setFoundConcurso] = useState<ConcursoResult | null>(null);
+  const [multipleOptions, setMultipleOptions] = useState<ConcursoResult[]>([]);
   const [processandoEdital, setProcessandoEdital] = useState(false);
   const [editalProcessado, setEditalProcessado] = useState<{
     editalUrl: string | null;
@@ -150,13 +153,24 @@ export default function GoalBuilder() {
       
       const response = await result.json();
 
-      if (response.success && response.concurso) {
-        setFoundConcurso(response.concurso);
-        setCurrentStep('concurso-found');
-        toast({
-          title: "Concurso encontrado!",
-          description: `Encontramos: ${response.concurso.name}`
-        });
+      if (response.success) {
+        if (response.multipleOptions && response.multipleOptions.length > 1) {
+          // Múltiplas opções encontradas
+          setMultipleOptions(response.multipleOptions);
+          setCurrentStep('concurso-selection');
+          toast({
+            title: "Múltiplas opções encontradas!",
+            description: response.message || `Encontramos ${response.multipleOptions.length} concursos. Selecione o desejado.`
+          });
+        } else if (response.concurso) {
+          // Uma opção encontrada
+          setFoundConcurso(response.concurso);
+          setCurrentStep('concurso-found');
+          toast({
+            title: "Concurso encontrado!",
+            description: `Encontramos: ${response.concurso.name}`
+          });
+        }
       } else {
         toast({
           title: "Concurso não encontrado",
@@ -174,6 +188,16 @@ export default function GoalBuilder() {
     } finally {
       setSearchingConcurso(false);
     }
+  };
+
+  const handleSelectConcurso = (concurso: ConcursoResult) => {
+    setFoundConcurso(concurso);
+    // Não limpar multipleOptions para permitir voltar à seleção
+    setCurrentStep('concurso-found');
+    toast({
+      title: "Concurso selecionado!",
+      description: `Você escolheu: ${concurso.name}`
+    });
   };
 
   const handleProcessarEditalAutomatico = async () => {
@@ -239,9 +263,17 @@ export default function GoalBuilder() {
       setSelectedType(null);
     } else if (currentStep === 'concurso-specific' || currentStep === 'concurso-area') {
       setCurrentStep('concurso-approach');
-    } else if (currentStep === 'concurso-found') {
+    } else if (currentStep === 'concurso-selection') {
       setCurrentStep('concurso-specific');
-      setFoundConcurso(null);
+      setMultipleOptions([]);
+    } else if (currentStep === 'concurso-found') {
+      if (multipleOptions.length > 0) {
+        setCurrentStep('concurso-selection');
+        setFoundConcurso(null);
+      } else {
+        setCurrentStep('concurso-specific');
+        setFoundConcurso(null);
+      }
       setEditalProcessado(null);
     } else if (currentStep === 'build-goal') {
       setCurrentStep('select-type');
@@ -508,6 +540,92 @@ export default function GoalBuilder() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        ) : currentStep === 'concurso-selection' ? (
+          // Step: Seleção de Múltiplos Concursos
+          <div className="space-y-8">
+            <div className="text-center space-y-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900 dark:to-yellow-900 rounded-2xl flex items-center justify-center mx-auto">
+                <ListCheck className="h-10 w-10 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground">
+                Escolha o Concurso
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Encontramos múltiplos concursos para sua busca. Selecione o que melhor corresponde ao seu objetivo.
+              </p>
+            </div>
+
+            <div className="max-w-4xl mx-auto space-y-4">
+              {multipleOptions.map((concurso, index) => (
+                <Card 
+                  key={index} 
+                  className="cursor-pointer hover:bg-accent/50 transition-all duration-200 border-2 hover:border-primary/50"
+                  onClick={() => handleSelectConcurso(concurso)}
+                  data-testid={`card-concurso-option-${index}`}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-2">
+                        <h3 className="text-xl font-semibold text-foreground">
+                          {concurso.name}
+                        </h3>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          {concurso.vagas && (
+                            <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-medium">
+                              👥 {concurso.vagas}
+                            </span>
+                          )}
+                          {concurso.salario && (
+                            <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-medium">
+                              💰 {concurso.salario}
+                            </span>
+                          )}
+                          {concurso.score && (
+                            <span className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm">
+                              📊 Relevância: {(concurso.score * 100).toFixed(0)}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          asChild
+                          className="mr-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <a 
+                            href={concurso.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center"
+                            data-testid={`link-concurso-${index}`}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="text-center">
+              <Button 
+                variant="outline"
+                onClick={handleBackStep}
+                data-testid="button-back-to-search"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar para busca
+              </Button>
+            </div>
           </div>
         ) : currentStep === 'concurso-found' ? (
           // Step 4: Concurso Encontrado

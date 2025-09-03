@@ -10,6 +10,7 @@ interface ConcursoInfo {
   url: string;
   vagas?: string;
   salario?: string;
+  score?: number;
 }
 
 // Dados dos concursos extraídos do site (atualizados dinamicamente)
@@ -58,8 +59,57 @@ let concursosCebraspe: ConcursoInfo[] = [
   { name: "TRT10", url: "https://www.cebraspe.org.br/concursos/TRT10_24", vagas: "8 vagas", salario: "Até R$ 16.035,69" }
 ];
 
+// Função para extrair ano do nome do concurso
+function extractYearFromName(name: string): number {
+  // Primeiro, procurar por ano de 4 dígitos (mais preciso)
+  const fullYearMatch = name.match(/(19|20)\d{2}(?!.*\d{4})/); // Último ano de 4 dígitos
+  if (fullYearMatch) {
+    return parseInt(fullYearMatch[0]);
+  }
+  
+  // Depois, procurar por 2 dígitos em qualquer lugar (ex: TJ_CE_25, PF_25_ADM)
+  const twoDigitMatches = name.match(/\d{2}/g); // Todos os 2 dígitos
+  if (twoDigitMatches && twoDigitMatches.length > 0) {
+    // Pegar o último encontrado (geralmente representa o ano)
+    const lastTwoDigits = twoDigitMatches[twoDigitMatches.length - 1];
+    const year = parseInt(lastTwoDigits);
+    // Assumir que anos 20-50 são 2020-2050, e 51-99 são 1951-1999
+    return year <= 50 ? 2000 + year : 1900 + year;
+  }
+  
+  return 0; // Sem data identificada
+}
+
+// Função para ordenar concursos por data ou nome
+function sortConcursos(concursos: any[]): any[] {
+  return concursos.sort((a, b) => {
+    const yearA = extractYearFromName(a.name);
+    const yearB = extractYearFromName(b.name);
+    
+    // Se ambos têm data, ordenar por data (mais recente primeiro)
+    if (yearA > 0 && yearB > 0) {
+      return yearB - yearA;
+    }
+    
+    // Se apenas um tem data, priorizar o que tem data
+    if (yearA > 0 && yearB === 0) return -1;
+    if (yearA === 0 && yearB > 0) return 1;
+    
+    // Se nenhum tem data clara, ordenar por nome
+    return a.name.localeCompare(b.name);
+  });
+}
+
+// Interface expandida para incluir múltiplas opções
+interface SearchResult {
+  success: boolean;
+  concurso?: ConcursoInfo;
+  multipleOptions?: ConcursoInfo[];
+  message?: string;
+}
+
 // Função para buscar concursos usando RAG
-async function findBestMatchRAG(userInput: string): Promise<ConcursoInfo | null> {
+async function findMatchesRAG(userInput: string): Promise<SearchResult> {
   try {
     console.log(`🔍 Buscando concurso via RAG: "${userInput}"`);
     
@@ -68,22 +118,107 @@ async function findBestMatchRAG(userInput: string): Promise<ConcursoInfo | null>
     
     if (results.length === 0) {
       console.log('❌ Nenhum concurso encontrado via RAG');
-      return null;
+      return {
+        success: false,
+        message: 'Não foi possível encontrar um concurso correspondente no Cebraspe'
+      };
     }
     
-    // Retornar o primeiro resultado (mais relevante)
-    const bestMatch = results[0];
-    console.log(`✅ Melhor match: ${bestMatch.name} (Score: ${bestMatch.description})`);
+    // Filtrar resultados com score mínimo aceitável (0.3) e parsing robusto
+    const validResults = results.filter(result => {
+      const scoreMatch = result.description?.match(/(?:score|similaridade|relevância)\s*[:=]\s*([\d.,]+)/i) || 
+                          result.description?.match(/([\d.]+)/);
+      const score = scoreMatch ? parseFloat(scoreMatch[1].replace(',', '.')) : 0;
+      return !isNaN(score) && score >= 0.3 && score <= 1.0;
+    }).map(result => {
+      const scoreMatch = result.description?.match(/(?:score|similaridade|relevância)\s*[:=]\s*([\d.,]+)/i) || 
+                          result.description?.match(/([\d.]+)/);
+      const score = scoreMatch ? parseFloat(scoreMatch[1].replace(',', '.')) : 0;
+      return { ...result, numericScore: score };
+    }).sort((a, b) => b.numericScore - a.numericScore); // Ordenar por score descendente
+    
+    console.log(`📊 Encontrados ${validResults.length} resultados válidos`);
+    
+    // Se não há resultados válidos após filtragem
+    if (validResults.length === 0) {
+      return {
+        success: false,
+        message: 'Não encontramos concursos com relevância suficiente. Tente termos mais específicos como "PF", "INSS" ou "Tribunal".'
+      };
+    }
+    
+    // Se há apenas um resultado válido, retornar diretamente
+    if (validResults.length === 1) {
+      const bestMatch = validResults[0];
+      console.log(`✅ Único match: ${bestMatch.name} (Score: ${bestMatch.numericScore.toFixed(3)})`);
+      
+      return {
+        success: true,
+        concurso: {
+          name: bestMatch.name,
+          url: bestMatch.url,
+          vagas: bestMatch.vagas,
+          salario: bestMatch.salario,
+          score: bestMatch.numericScore
+        }
+      };
+    }
+    
+    // Se há múltiplos resultados válidos, verificar se precisamos de seleção
+    if (validResults.length > 1) {
+      const topScore = validResults[0].numericScore;
+      const secondScore = validResults[1].numericScore;
+      
+      // Mostrar múltiplas opções se:
+      // 1. Diferença entre primeiro e segundo é pequena (< 0.15), OU
+      // 2. Score mais alto é baixo (< 0.7), indicando incerteza
+      const scoreDifference = topScore - secondScore;
+      const showMultiple = scoreDifference < 0.15 || topScore < 0.7;
+      
+      console.log(`📊 Diferença de score: ${scoreDifference.toFixed(3)}, Top score: ${topScore.toFixed(3)}`);
+      
+      if (showMultiple) {
+        console.log(`🔀 Múltiplas opções encontradas (${validResults.length})`);
+        
+        // Ordenar por data/nome
+        const sortedResults = sortConcursos(validResults);
+        
+        const multipleOptions = sortedResults.slice(0, 8).map(result => ({ // Limitar a 8 opções
+          name: result.name,
+          url: result.url,
+          vagas: result.vagas,
+          salario: result.salario,
+          score: result.numericScore
+        }));
+        
+        return {
+          success: true,
+          multipleOptions,
+          message: `Encontramos ${validResults.length} concursos que correspondem à sua busca. Selecione o desejado:`
+        };
+      }
+    }
+    
+    // Retornar o melhor resultado
+    const bestMatch = validResults[0];
+    console.log(`✅ Melhor match: ${bestMatch.name} (Score: ${bestMatch.numericScore.toFixed(3)})`);
     
     return {
-      name: bestMatch.name,
-      url: bestMatch.url,
-      vagas: bestMatch.vagas,
-      salario: bestMatch.salario
+      success: true,
+      concurso: {
+        name: bestMatch.name,
+        url: bestMatch.url,
+        vagas: bestMatch.vagas,
+        salario: bestMatch.salario,
+        score: bestMatch.numericScore
+      }
     };
   } catch (error) {
     console.error('❌ Erro na busca RAG:', error);
-    return null;
+    return {
+      success: false,
+      message: 'Erro interno do servidor'
+    };
   }
 }
 
@@ -118,19 +253,28 @@ router.post('/search', async (req, res) => {
     
     console.log(`🔍 Buscando concurso para: "${query}"`);
     
-    const matchedConcurso = await findBestMatchRAG(query);
+    const searchResult = await findMatchesRAG(query);
     
-    if (matchedConcurso) {
-      console.log(`✅ Concurso encontrado: ${matchedConcurso.name}`);
-      res.json({
-        success: true,
-        concurso: matchedConcurso
-      });
+    if (searchResult.success) {
+      if (searchResult.multipleOptions) {
+        console.log(`🔀 Múltiplas opções encontradas: ${searchResult.multipleOptions.length}`);
+        res.json({
+          success: true,
+          multipleOptions: searchResult.multipleOptions,
+          message: searchResult.message
+        });
+      } else if (searchResult.concurso) {
+        console.log(`✅ Concurso encontrado: ${searchResult.concurso.name}`);
+        res.json({
+          success: true,
+          concurso: searchResult.concurso
+        });
+      }
     } else {
       console.log('❌ Nenhum concurso encontrado');
       res.json({
         success: false,
-        message: 'Não foi possível encontrar um concurso correspondente no Cebraspe'
+        message: searchResult.message || 'Não foi possível encontrar um concurso correspondente no Cebraspe'
       });
     }
   } catch (error) {
