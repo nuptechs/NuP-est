@@ -99,6 +99,17 @@ export default function GoalBuilder() {
   const [concursoName, setConcursoName] = useState<string>('');
   const [searchingConcurso, setSearchingConcurso] = useState<boolean>(false);
   const [foundConcurso, setFoundConcurso] = useState<ConcursoResult | null>(null);
+  const [processandoEdital, setProcessandoEdital] = useState(false);
+  const [editalProcessado, setEditalProcessado] = useState<{
+    editalUrl: string;
+    cargos: Array<{
+      nome: string;
+      conteudoProgramatico: Array<{
+        disciplina: string;
+        topicos: string[];
+      }>;
+    }>;
+  } | null>(null);
 
   // Redirect to login if not authenticated
   if (!isLoading && !isAuthenticated) {
@@ -163,6 +174,49 @@ export default function GoalBuilder() {
     }
   };
 
+  const handleProcessarEditalAutomatico = async () => {
+    if (!foundConcurso?.name) return;
+    
+    setProcessandoEdital(true);
+    
+    try {
+      console.log(`🤖 Iniciando processamento automático para: ${foundConcurso.name}`);
+      
+      const result = await apiRequest('POST', '/api/edital/processar-automatico', {
+        concursoNome: foundConcurso.name
+      });
+      
+      const response = await result.json();
+      
+      if (response.success) {
+        setEditalProcessado({
+          editalUrl: response.editalUrl,
+          cargos: response.cargos || []
+        });
+        
+        toast({
+          title: "🎉 Edital processado automaticamente!",
+          description: `Encontramos ${response.cargos?.length || 0} cargo(s) com conteúdo programático estruturado.`,
+        });
+      } else {
+        toast({
+          title: "Erro no processamento",
+          description: response.error || "Não foi possível processar o edital automaticamente.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao processar edital:', error);
+      toast({
+        title: "Erro no processamento",
+        description: "Ocorreu um erro ao processar o edital automaticamente. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessandoEdital(false);
+    }
+  };
+
   const handleBackStep = () => {
     if (currentStep === 'concurso-approach') {
       setCurrentStep('select-type');
@@ -172,6 +226,7 @@ export default function GoalBuilder() {
     } else if (currentStep === 'concurso-found') {
       setCurrentStep('concurso-specific');
       setFoundConcurso(null);
+      setEditalProcessado(null);
     } else if (currentStep === 'build-goal') {
       setCurrentStep('select-type');
       setSelectedType(null);
@@ -502,7 +557,7 @@ export default function GoalBuilder() {
                     </Button>
                   </div>
                   
-                  <div className="text-center pt-4 border-t">
+                  <div className="text-center pt-4 border-t space-y-3">
                     <p className="text-sm text-muted-foreground mb-3">
                       Gostaria de criar uma meta de estudos baseada neste concurso?
                     </p>
@@ -515,26 +570,107 @@ export default function GoalBuilder() {
                       <Target className="h-4 w-4 mr-2" />
                       Criar Meta de Estudos
                     </Button>
+                    
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Ou processe automaticamente o edital oficial:
+                      </p>
+                      <Button 
+                        onClick={handleProcessarEditalAutomatico}
+                        disabled={processandoEdital}
+                        variant="outline"
+                        className="border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950"
+                        data-testid="button-processar-edital-automatico"
+                      >
+                        {processandoEdital ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processando...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Processar Edital Automaticamente
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Seção de Upload de Edital */}
-            {foundConcurso && (
+            {/* Resultado do Processamento Automático */}
+            {editalProcessado && (
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-green-700 dark:text-green-300 mb-2">
+                    ✅ Edital Processado Automaticamente!
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Edital baixado de: <a href={editalProcessado.editalUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      {editalProcessado.editalUrl}
+                    </a>
+                  </p>
+                </div>
+
+                {editalProcessado.cargos.length > 0 && (
+                  <div className="space-y-6">
+                    <h4 className="text-xl font-semibold text-center">Conteúdo Programático Extraído</h4>
+                    
+                    {editalProcessado.cargos.map((cargo, cargoIndex) => (
+                      <Card key={cargoIndex} className="border-l-4 border-l-green-500">
+                        <CardHeader>
+                          <CardTitle className="text-lg text-green-700 dark:text-green-300">
+                            📋 {cargo.nome}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {cargo.conteudoProgramatico.length > 0 ? (
+                            <div className="space-y-4">
+                              {cargo.conteudoProgramatico.map((disciplina, discIndex) => (
+                                <div key={discIndex} className="border-l-2 border-l-blue-200 pl-4">
+                                  <h5 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                                    📚 {disciplina.disciplina}
+                                  </h5>
+                                  <ul className="space-y-1 text-sm">
+                                    {disciplina.topicos.map((topico, topicoIndex) => (
+                                      <li key={topicoIndex} className="flex items-start">
+                                        <span className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                        <span>{topico}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground italic">
+                              Conteúdo programático será extraído em breve...
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Seção de Upload Manual (só aparece se não processou automaticamente) */}
+            {foundConcurso && !editalProcessado && (
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-6">
-                  <h3 className="text-xl font-semibold mb-2">Análise Automática do Edital</h3>
+                  <h3 className="text-xl font-semibold mb-2">Análise Manual do Edital</h3>
                   <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
-                    Se você possui o edital em PDF, faça upload para que possamos extrair automaticamente o 
-                    conteúdo programático e criar um plano de estudos personalizado.
+                    Se o processamento automático não funcionou, você pode fazer upload manual do edital em PDF.
                   </p>
                 </div>
                 
                 <EditalUploader 
                   concursoNome={foundConcurso.name}
                   onEditalProcessed={(result) => {
-                    console.log('Edital processado:', result);
+                    console.log('Edital processado manualmente:', result);
                     toast({
                       title: "🎉 Edital analisado!",
                       description: result.hasSingleCargo 

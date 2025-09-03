@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { z } from 'zod';
 import { editalService } from '../services/edital';
+import { editalAutomaticoService } from '../services/editalAutomatico';
 
 const router = Router();
 
@@ -44,6 +45,10 @@ const processarEditalSchema = z.object({
 const consultarEditalSchema = z.object({
   concursoNome: z.string().min(1, 'Nome do concurso é obrigatório'),
   query: z.string().min(1, 'Pergunta é obrigatória')
+});
+
+const processarAutomaticoSchema = z.object({
+  concursoNome: z.string().min(1, 'Nome do concurso é obrigatório')
 });
 
 // Endpoint para upload e processamento de edital
@@ -136,6 +141,48 @@ router.post('/consultar', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erro interno ao consultar edital'
+    });
+  }
+});
+
+// Endpoint para processamento automático completo
+router.post('/processar-automatico', async (req, res) => {
+  try {
+    const { concursoNome } = processarAutomaticoSchema.parse(req.body);
+    
+    console.log(`🤖 Iniciando processamento automático para: ${concursoNome}`);
+    
+    const resultado = await editalAutomaticoService.processarEditalAutomaticamente(concursoNome);
+    
+    if (!resultado.success) {
+      return res.status(400).json({
+        success: false,
+        error: resultado.error
+      });
+    }
+    
+    res.json({
+      success: true,
+      concurso: concursoNome,
+      editalUrl: resultado.editalUrl,
+      cargos: resultado.cargos,
+      message: 'Edital processado automaticamente com sucesso!'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no processamento automático:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dados inválidos',
+        details: error.errors
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno no processamento automático'
     });
   }
 });
