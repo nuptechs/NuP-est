@@ -18,6 +18,7 @@ import Quiz from "@/pages/quiz";
 import Goals from "@/pages/goals";
 import GoalBuilder from "@/pages/goal-builder";
 import AdminSearchConfig from "@/pages/admin-search-config";
+import IntegratedSearch from "@/pages/search-integrated";
 import AiAssistant from "@/components/dashboard/ai-assistant";
 
 function Router() {
@@ -53,6 +54,7 @@ function Router() {
           <Route path="/goals" component={Goals} />
           <Route path="/goal-builder" component={GoalBuilder} />
           <Route path="/admin/search-config" component={AdminSearchConfig} />
+          <Route path="/search" component={IntegratedSearch} />
         </>
       )}
       <Route component={NotFound} />

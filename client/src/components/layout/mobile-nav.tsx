@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Home", href: "/", icon: "fa-home" },
+  { name: "Busca", href: "/search", icon: "fa-search" },
   { name: "Matérias", href: "/subjects", icon: "fa-book" },
   { name: "Estudar", href: "/study", icon: "fa-graduation-cap" },
   { name: "Cards", href: "/flashcards", icon: "fa-layer-group" },

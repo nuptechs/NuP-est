@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { cebraspeEmbeddingsService } from '../services/cebraspe';
+import { integratedSearchService } from '../services/integrated-search';
 
 const router = Router();
 
@@ -347,6 +348,123 @@ router.post('/search', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro ao buscar concurso:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// Nova rota de busca integrada que inclui sites configurados
+router.post('/search-integrated', async (req, res) => {
+  try {
+    const { query, searchTypes, includeWebSites = true, maxResults = 10 } = req.body;
+    
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Query é obrigatória e deve ser uma string'
+      });
+    }
+    
+    console.log(`🔍 Busca integrada para: "${query}"`);
+    
+    const searchResult = await integratedSearchService.search(query, {
+      searchTypes: searchTypes || undefined,
+      includeWebSites,
+      maxResults
+    });
+    
+    // Combinar resultados em formato unificado
+    const allResults = [
+      ...searchResult.cebraspeResults.map(item => ({
+        ...item,
+        source: 'cebraspe',
+        type: 'concurso_publico'
+      })),
+      ...searchResult.webResults.map(item => ({
+        ...item,
+        source: 'website',
+        type: 'scraped'
+      }))
+    ];
+    
+    console.log(`📊 Total de resultados integrados: ${allResults.length}`);
+    
+    res.json({
+      success: true,
+      results: allResults,
+      breakdown: {
+        cebraspe: searchResult.cebraspeResults.length,
+        websites: searchResult.webResults.length,
+        total: searchResult.totalResults
+      },
+      searchTypes: searchResult.searchTypes,
+      query
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro na busca integrada:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// Rota para buscar apenas em sites configurados
+router.post('/search-websites', async (req, res) => {
+  try {
+    const { query, searchTypes, maxResults = 10 } = req.body;
+    
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Query é obrigatória e deve ser uma string'
+      });
+    }
+    
+    if (!searchTypes || !Array.isArray(searchTypes)) {
+      return res.status(400).json({
+        success: false,
+        error: 'searchTypes é obrigatório e deve ser um array'
+      });
+    }
+    
+    console.log(`🌐 Busca em sites para: "${query}" | Tipos: ${searchTypes.join(', ')}`);
+    
+    const results = await integratedSearchService.searchWebsitesOnly(query, searchTypes, maxResults);
+    
+    res.json({
+      success: true,
+      results,
+      count: results.length,
+      searchTypes,
+      query
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro na busca de sites:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// Rota para listar sites configurados por tipo
+router.get('/configured-sites', async (req, res) => {
+  try {
+    const sitesByType = await integratedSearchService.getConfiguredSitesByType();
+    
+    res.json({
+      success: true,
+      sitesByType,
+      totalTypes: Object.keys(sitesByType).length
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao listar sites configurados:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

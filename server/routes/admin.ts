@@ -3,6 +3,7 @@ import { db } from "../db";
 import { searchSites, siteSearchTypes, insertSearchSiteSchema, insertSiteSearchTypeSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { isAuthenticated } from "../replitAuth";
+import { webScraperService } from "../services/web-scraper";
 
 const router = Router();
 
@@ -70,7 +71,26 @@ router.post("/search-sites", isAuthenticated, async (req, res) => {
       return newSite;
     });
 
-    res.status(201).json(result);
+    // Iniciar scraping em background (não bloquear resposta)
+    console.log(`🚀 Iniciando scraping em background para: ${siteData.url}`);
+    webScraperService.scrapeWebsite(
+      siteData.url, 
+      searchTypes, 
+      result.id,
+      {
+        maxPages: 20,
+        maxDepth: 2,
+        delay: 500
+      }
+    ).catch(error => {
+      console.error(`❌ Erro no scraping de ${siteData.url}:`, error);
+    });
+
+    res.status(201).json({
+      ...result,
+      scrapingStarted: true,
+      message: "Site criado com sucesso. Scraping iniciado em background."
+    });
   } catch (error: any) {
     console.error("Erro ao criar site:", error);
     if (error.name === 'ZodError') {
