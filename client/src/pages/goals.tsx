@@ -4,9 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import Sidebar from "@/components/layout/sidebar";
-import Header from "@/components/layout/header";
-import MobileNav from "@/components/layout/mobile-nav";
 import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +30,9 @@ import {
   ListTodo,
   TrendingUp,
   Clock,
-  Star
+  Star,
+  ArrowLeft,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal, Target as TargetType } from "@shared/schema";
@@ -119,7 +118,7 @@ export default function Goals() {
     mutationFn: async (data: GoalFormData) => {
       const payload = {
         ...data,
-        targetDate: data.targetDate?.toISOString(),
+        targetDate: data.targetDate ? data.targetDate.toISOString() : null,
       };
       return apiRequest("POST", "/api/goals", payload);
     },
@@ -146,7 +145,7 @@ export default function Goals() {
     mutationFn: async ({ id, data }: { id: string; data: Partial<GoalFormData> }) => {
       const payload = {
         ...data,
-        targetDate: data.targetDate?.toISOString(),
+        targetDate: data.targetDate ? data.targetDate.toISOString() : null,
       };
       return apiRequest("PATCH", `/api/goals/${id}`, payload);
     },
@@ -197,8 +196,8 @@ export default function Goals() {
     mutationFn: async (data: TargetFormData) => {
       const payload = {
         ...data,
-        targetValue: data.targetValue ? parseFloat(data.targetValue) : undefined,
-        deadline: data.deadline?.toISOString(),
+        targetValue: data.targetValue ? parseFloat(data.targetValue) : null,
+        deadline: data.deadline ? data.deadline.toISOString() : null,
       };
       return apiRequest("POST", "/api/targets", payload);
     },
@@ -225,8 +224,8 @@ export default function Goals() {
     mutationFn: async ({ id, data }: { id: string; data: Partial<TargetFormData> }) => {
       const payload = {
         ...data,
-        targetValue: data.targetValue ? parseFloat(data.targetValue) : undefined,
-        deadline: data.deadline?.toISOString(),
+        targetValue: data.targetValue ? parseFloat(data.targetValue) : null,
+        deadline: data.deadline ? data.deadline.toISOString() : null,
       };
       return apiRequest("PATCH", `/api/targets/${id}`, payload);
     },
@@ -351,11 +350,39 @@ export default function Goals() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 overflow-auto">
-        <Header title="Metas e Objetivos" />
+    <div className="min-h-screen bg-background">
+      <main className="w-full">
+        <div className="border-b bg-card px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.location.href = "/dashboard"}
+                className="flex items-center gap-2 hover:bg-muted"
+                data-testid="button-back-dashboard"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Dashboard
+              </Button>
+              <div className="border-l h-6"></div>
+              <div>
+                <h1 className="text-2xl font-semibold text-foreground">Metas e Objetivos</h1>
+                <p className="text-sm text-muted-foreground mt-1">Gerencie suas metas de estudo e objetivos específicos</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.location.href = '/api/logout'}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+              Sair
+            </Button>
+          </div>
+        </div>
         
         <div className="container mx-auto px-4 py-6">
           {/* Header Actions */}
@@ -611,7 +638,6 @@ export default function Goals() {
         </div>
       </main>
 
-      <MobileNav />
       <DashboardIcon />
 
       {/* Goal Dialog */}
