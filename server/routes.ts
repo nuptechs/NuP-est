@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { aiService } from "./services/ai";
 import { ragService } from "./services/rag";
 import { setupRAGRoutes } from "./routes/rag";
+import { cebraspeRouter } from "./routes/cebraspe";
 import { eq } from "drizzle-orm";
 import { 
   insertSubjectSchema, 
@@ -1583,6 +1584,9 @@ Responda em JSON no formato:
 
   // Setup RAG routes
   setupRAGRoutes(app);
+
+  // Setup Cebraspe routes
+  app.use("/api/cebraspe", cebraspeRouter);
 
   const httpServer = createServer(app);
   return httpServer;

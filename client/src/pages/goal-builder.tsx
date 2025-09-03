@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft,
   LogOut,
@@ -17,7 +19,10 @@ import {
   Sparkles,
   Settings,
   Search,
-  Target
+  Target,
+  ExternalLink,
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 
 // Tipos de meta disponíveis
@@ -78,11 +83,21 @@ const GOAL_TYPES = [
   }
 ];
 
+interface ConcursoResult {
+  name: string;
+  url: string;
+  vagas?: string;
+  salario?: string;
+}
+
 export default function GoalBuilder() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState<'select-type' | 'concurso-approach' | 'concurso-specific' | 'concurso-area' | 'build-goal'>('select-type');
+  const [currentStep, setCurrentStep] = useState<'select-type' | 'concurso-approach' | 'concurso-specific' | 'concurso-area' | 'concurso-found' | 'build-goal'>('select-type');
   const [concursoName, setConcursoName] = useState<string>('');
+  const [searchingConcurso, setSearchingConcurso] = useState<boolean>(false);
+  const [foundConcurso, setFoundConcurso] = useState<ConcursoResult | null>(null);
 
   // Redirect to login if not authenticated
   if (!isLoading && !isAuthenticated) {
@@ -109,12 +124,53 @@ export default function GoalBuilder() {
     }
   };
 
+  const handleSearchConcurso = async () => {
+    if (!concursoName.trim()) return;
+    
+    setSearchingConcurso(true);
+    
+    try {
+      const result = await apiRequest('POST', '/api/cebraspe/search', { 
+        query: concursoName.trim() 
+      });
+      
+      const response = await result.json();
+
+      if (response.success && response.concurso) {
+        setFoundConcurso(response.concurso);
+        setCurrentStep('concurso-found');
+        toast({
+          title: "Concurso encontrado!",
+          description: `Encontramos: ${response.concurso.name}`
+        });
+      } else {
+        toast({
+          title: "Concurso não encontrado",
+          description: response.message || "Não foi possível encontrar este concurso no Cebraspe. Tente com outro nome.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar concurso:', error);
+      toast({
+        title: "Erro na busca",
+        description: "Ocorreu um erro ao buscar o concurso. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setSearchingConcurso(false);
+    }
+  };
+
   const handleBackStep = () => {
     if (currentStep === 'concurso-approach') {
       setCurrentStep('select-type');
       setSelectedType(null);
     } else if (currentStep === 'concurso-specific' || currentStep === 'concurso-area') {
       setCurrentStep('concurso-approach');
+    } else if (currentStep === 'concurso-found') {
+      setCurrentStep('concurso-specific');
+      setFoundConcurso(null);
     } else if (currentStep === 'build-goal') {
       setCurrentStep('select-type');
       setSelectedType(null);
@@ -155,6 +211,7 @@ export default function GoalBuilder() {
                   {currentStep === 'concurso-approach' && 'Como você quer organizar seus estudos?'}
                   {currentStep === 'concurso-specific' && 'Digite o nome do concurso específico'}
                   {currentStep === 'concurso-area' && 'Escolha a área de estudo'}
+                  {currentStep === 'concurso-found' && 'Concurso encontrado! Acesse para mais detalhes'}
                   {currentStep === 'build-goal' && `Configurando meta de ${selectedGoalType?.title}`}
                 </p>
               </div>
@@ -359,20 +416,108 @@ export default function GoalBuilder() {
                     Voltar
                   </Button>
                   <Button 
-                    onClick={() => {
-                      // TODO: Processar concurso específico
-                      console.log('Concurso selecionado:', concursoName);
-                    }}
-                    disabled={!concursoName.trim()}
+                    onClick={handleSearchConcurso}
+                    disabled={!concursoName.trim() || searchingConcurso}
                     className="flex-1 bg-blue-600 hover:bg-blue-700"
                     data-testid="button-continue-concurso"
                   >
-                    Continuar
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    {searchingConcurso ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Buscando...
+                      </>
+                    ) : (
+                      <>
+                        Buscar Concurso
+                        <Search className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
             </Card>
+          </div>
+        ) : currentStep === 'concurso-found' ? (
+          // Step 4: Concurso Encontrado
+          <div className="space-y-8">
+            <div className="text-center space-y-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 rounded-2xl flex items-center justify-center mx-auto">
+                <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground">
+                Concurso Encontrado!
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Encontramos o concurso no site do Cebraspe. Clique no link para acessar todas as informações oficiais.
+              </p>
+            </div>
+
+            {foundConcurso && (
+              <Card className="max-w-2xl mx-auto border-green-200 dark:border-green-800">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-xl text-green-700 dark:text-green-300">
+                    {foundConcurso.name}
+                  </CardTitle>
+                  {(foundConcurso.vagas || foundConcurso.salario) && (
+                    <CardDescription className="flex gap-4 justify-center text-sm">
+                      {foundConcurso.vagas && (
+                        <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                          {foundConcurso.vagas}
+                        </span>
+                      )}
+                      {foundConcurso.salario && (
+                        <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
+                          {foundConcurso.salario}
+                        </span>
+                      )}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      onClick={handleBackStep}
+                      className="flex-1"
+                      data-testid="button-back-search"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Buscar Outro
+                    </Button>
+                    <Button 
+                      asChild
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      data-testid="button-access-concurso"
+                    >
+                      <a 
+                        href={foundConcurso.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center"
+                      >
+                        Acessar Concurso
+                        <ExternalLink className="h-4 w-4 ml-2" />
+                      </a>
+                    </Button>
+                  </div>
+                  
+                  <div className="text-center pt-4 border-t">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Gostaria de criar uma meta de estudos baseada neste concurso?
+                    </p>
+                    <Button 
+                      onClick={() => setCurrentStep('build-goal')}
+                      variant="outline"
+                      className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
+                      data-testid="button-create-goal-from-concurso"
+                    >
+                      <Target className="h-4 w-4 mr-2" />
+                      Criar Meta de Estudos
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : currentStep === 'concurso-area' ? (
           // Step 3: Escolha de Área
