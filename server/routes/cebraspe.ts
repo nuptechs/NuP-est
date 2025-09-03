@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { cebraspeEmbeddingsService } from '../services/cebraspe';
 
 const router = Router();
 
@@ -57,77 +58,31 @@ let concursosCebraspe: ConcursoInfo[] = [
   { name: "TRT10", url: "https://www.cebraspe.org.br/concursos/TRT10_24", vagas: "8 vagas", salario: "Até R$ 16.035,69" }
 ];
 
-// Função para calcular similaridade semântica usando IA
-async function findBestMatch(userInput: string, concursos: ConcursoInfo[]): Promise<ConcursoInfo | null> {
+// Função para buscar concursos usando RAG
+async function findBestMatchRAG(userInput: string): Promise<ConcursoInfo | null> {
   try {
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://nup-est.replit.app',
-        'X-Title': 'NuP-Est - Sistema de Estudos'
-      },
-      body: JSON.stringify({
-        model: 'deepseek/deepseek-r1',
-        messages: [
-          {
-            role: 'user',
-            content: `Você é um especialista em análise semântica de concursos públicos brasileiros. 
-
-TAREFA: Encontre o concurso que mais se assemelha ao que o usuário digitou.
-
-INPUT DO USUÁRIO: "${userInput}"
-
-CONCURSOS DISPONÍVEIS:
-${concursos.map((c, i) => `${i + 1}. ${c.name}`).join('\n')}
-
-INSTRUÇÕES:
-1. Analise semanticamente o texto do usuário
-2. Considere abreviações, variações e sinônimos comuns
-3. Exemplo: "PF" = "Polícia Federal", "INSS" = "Instituto Nacional do Seguro Social"
-4. Retorne APENAS o número (1-${concursos.length}) do concurso que mais combina
-5. Se não encontrar nenhuma correspondência razoável, retorne "0"
-6. Seja tolerante a variações no nome
-
-RESPOSTA (apenas o número):`,
-          }
-        ],
-        max_tokens: 10,
-        temperature: 0.1
-      })
-    });
-
-    if (!openRouterResponse.ok) {
-      throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
-    }
-
-    const data = await openRouterResponse.json();
-    const responseText = data.choices?.[0]?.message?.content?.trim();
+    console.log(`🔍 Buscando concurso via RAG: "${userInput}"`);
     
-    if (!responseText) {
-      throw new Error('Empty response from OpenRouter API');
-    }
-
-    const matchIndex = parseInt(responseText) - 1;
+    // Usar o serviço RAG para buscar concursos
+    const results = await cebraspeEmbeddingsService.buscarConcursoPorRAG(userInput);
     
-    if (matchIndex >= 0 && matchIndex < concursos.length) {
-      return concursos[matchIndex];
+    if (results.length === 0) {
+      console.log('❌ Nenhum concurso encontrado via RAG');
+      return null;
     }
     
-    return null;
+    // Retornar o primeiro resultado (mais relevante)
+    const bestMatch = results[0];
+    console.log(`✅ Melhor match: ${bestMatch.name} (Score: ${bestMatch.description})`);
+    
+    return {
+      name: bestMatch.name,
+      url: bestMatch.url,
+      vagas: bestMatch.vagas,
+      salario: bestMatch.salario
+    };
   } catch (error) {
-    console.error('Erro na análise semântica:', error);
-    
-    // Fallback: busca simples por string
-    const userLower = userInput.toLowerCase();
-    for (const concurso of concursos) {
-      if (concurso.name.toLowerCase().includes(userLower) || 
-          userLower.includes(concurso.name.toLowerCase())) {
-        return concurso;
-      }
-    }
-    
+    console.error('❌ Erro na busca RAG:', error);
     return null;
   }
 }
@@ -137,30 +92,49 @@ const searchConcursoSchema = z.object({
   query: z.string().min(1, 'Nome do concurso é obrigatório')
 });
 
-// Endpoint para buscar concurso
+// Endpoint para processar concursos no Pinecone (admin)
+router.post('/process-embeddings', async (req, res) => {
+  try {
+    console.log('🚀 Iniciando processamento de embeddings dos concursos...');
+    await cebraspeEmbeddingsService.processarConcursosParaPinecone();
+    
+    res.json({
+      success: true,
+      message: 'Todos os concursos foram processados e indexados no Pinecone'
+    });
+  } catch (error) {
+    console.error('Erro ao processar embeddings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao processar embeddings dos concursos'
+    });
+  }
+});
+
+// Endpoint para buscar concurso usando RAG
 router.post('/search', async (req, res) => {
   try {
     const { query } = searchConcursoSchema.parse(req.body);
     
-    console.log(`Buscando concurso para: "${query}"`);
+    console.log(`🔍 Buscando concurso para: "${query}"`);
     
-    const matchedConcurso = await findBestMatch(query, concursosCebraspe);
+    const matchedConcurso = await findBestMatchRAG(query);
     
     if (matchedConcurso) {
-      console.log(`Concurso encontrado: ${matchedConcurso.name}`);
+      console.log(`✅ Concurso encontrado: ${matchedConcurso.name}`);
       res.json({
         success: true,
         concurso: matchedConcurso
       });
     } else {
-      console.log('Nenhum concurso encontrado');
+      console.log('❌ Nenhum concurso encontrado');
       res.json({
         success: false,
         message: 'Não foi possível encontrar um concurso correspondente no Cebraspe'
       });
     }
   } catch (error) {
-    console.error('Erro ao buscar concurso:', error);
+    console.error('❌ Erro ao buscar concurso:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
