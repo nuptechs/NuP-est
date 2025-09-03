@@ -65,6 +65,7 @@ class EditalAutomaticoService {
           caminhoArquivo,
           nomeArquivo
         );
+        console.log(`✅ Arquivo enviado para Pinecone: ${resultadoProcessamento.id}`);
         
         // Passo 4: Detectar cargos e extrair conteúdo programático
         const textoCompleto = fs.readFileSync(caminhoArquivo, 'utf8');
@@ -84,9 +85,10 @@ class EditalAutomaticoService {
         // Limpar arquivo temporário
         this.limparArquivoTemporario(caminhoArquivo);
         
-        // Criar edital simulado estruturado para demonstrar Claude 3.5 Sonnet
+        // Criar edital simulado estruturado para demonstrar IA
         const textoSimulado = this.criarEditalSimuladoEstruturado(concursoNome);
         console.log(`📝 Usando edital simulado estruturado para demonstração da IA...`);
+        console.log(`📊 Edital simulado tem ${textoSimulado.length} caracteres`);
         
         try {
           const cargos = await this.extrairCargosEConteudo(textoSimulado, concursoNome);
@@ -338,35 +340,33 @@ URL do edital:`;
     try {
       console.log(`🧠 Usando DeepSeek R1 para extrair conteúdo programático...`);
       
-      const prompt = `Analise o seguinte edital de concurso e extraia TODOS os cargos com seu conteúdo programático completo.
+      const prompt = `EXTRAIA COMPLETAMENTE TODO O CONTEÚDO PROGRAMÁTICO do edital abaixo.
 
-EDITAL DO CONCURSO: ${concursoNome}
+EDITAL: ${concursoNome}
 
-TEXTO COMPLETO DO EDITAL:
-${textoCompleto.substring(0, 50000)} 
+TEXTO COMPLETO:
+${textoCompleto.substring(0, 80000)}
 
-INSTRUÇÕES DETALHADAS:
-1. Identifique TODOS os cargos/funções mencionados no edital
-2. Para CADA cargo, extraia:
-   - Nome EXATO do cargo como aparece no edital
-   - TODAS as disciplinas do conteúdo programático
-   - TODOS os tópicos/subtópicos de cada disciplina
-3. Mantenha a estrutura hierárquica e numeração original
-4. NÃO invente ou adicione conteúdo que não esteja no edital
-5. Se houver conhecimentos básicos e específicos, inclua ambos
-6. Retorne APENAS o JSON válido, sem explicações
+REGRAS OBRIGATÓRIAS:
+1. EXTRAIA TODOS os cargos mencionados
+2. EXTRAIA TODAS as disciplinas (Conhecimentos Básicos + Específicos)  
+3. EXTRAIA TODOS os tópicos e subtópicos de cada disciplina
+4. MANTENHA numeração original (1.1, 1.2, 2.1, etc.)
+5. NÃO OMITA nenhuma disciplina ou tópico
+6. Se há 15 disciplinas no edital, devem aparecer todas as 15
+7. RETORNE APENAS JSON válido sem explicações
 
-FORMATO OBRIGATÓRIO:
+FORMATO JSON:
 [
   {
-    "nome": "Nome Exato do Cargo",
+    "nome": "Nome do Cargo", 
     "conteudoProgramatico": [
       {
-        "disciplina": "NOME DA DISCIPLINA",
+        "disciplina": "DISCIPLINA COMPLETA",
         "topicos": [
-          "1. Tópico exato como no edital",
-          "2. Outro tópico exato",
-          "..."
+          "1.1 Primeiro tópico completo",
+          "1.2 Segundo tópico completo",
+          "1.3 Terceiro tópico..."
         ]
       }
     ]
@@ -392,7 +392,7 @@ JSON:`;
             }
           ],
           temperature: 0.1,
-          max_tokens: 4000
+          max_tokens: 8000
         })
       });
 
@@ -542,6 +542,66 @@ concursoNome.includes('ANALISTA') ? `5.1 Código de Processo Civil: Lei nº 13.1
 5.8 Planejamento de projeto: estrutura analítica, cronograma, orçamento.
 5.9 Gestão de pessoas: conceitos, importância, relação com os outros sistemas.
 5.10 A função do órgão de gestão de pessoas: atribuições básicas e objetivos.`}
+
+6 DIREITO PENAL:
+6.1 Aplicação da lei penal: princípios da legalidade e da anterioridade.
+6.2 A lei penal no tempo e no espaço, tempo e lugar do crime.
+6.3 Lei penal excepcional, especial e temporária.
+6.4 Territorialidade e extraterritorialidade da lei penal.
+6.5 Pena privativa de liberdade, restritiva de direitos e multa.
+6.6 Aplicação da pena, concurso de crimes, suspensão condicional da pena.
+6.7 Livramento condicional, efeitos da condenação e da reabilitação.
+6.8 Das medidas de segurança: espécies e aplicação.
+6.9 Extinção da punibilidade: perdão judicial, anistia, graça, indulto.
+6.10 Crimes contra a pessoa: homicídio, lesão corporal, rixa.
+
+7 DIREITO PROCESSUAL PENAL:
+7.1 Código de Processo Penal: disposições preliminares.
+7.2 Aplicação da lei processual no tempo, no espaço e em relação às pessoas.
+7.3 Disposições gerais sobre os sujeitos processuais.
+7.4 Competência: critérios de determinação e modificação.
+7.5 Questões e processos incidentes: exceções, conflitos, restituições.
+7.6 Ação penal: conceito, caracteres, espécies, condições.
+7.7 Denúncia: forma, conteúdo, oferecimento e recebimento.
+7.8 Citação, intimação e notificação: modalidades e prazos.
+7.9 Prisão, medidas cautelares e liberdade provisória.
+7.10 Processo comum: procedimento ordinário e sumário.
+
+8 CONTABILIDADE PÚBLICA:
+8.1 Conceituação, objeto e campo de aplicação.
+8.2 Composição do Patrimônio Público: ativo, passivo e patrimônio líquido.
+8.3 Variações patrimoniais: qualitativas e quantitativas.
+8.4 Plano de Contas Aplicado ao Setor Público: conceito, diretrizes, sistema contábil.
+8.5 Fatos contábeis: conceito, classificação, contabilização.
+8.6 Sistema de custos: conceito, classificação, sistemas de custeio.
+8.7 Demonstrações contábeis aplicadas ao setor público.
+8.8 Consolidação das demonstrações contábeis.
+8.9 Prestação de contas e relatório de gestão fiscal.
+8.10 Controles internos: conceito, abrangência, controle contábil.
+
+9 FINANÇAS PÚBLICAS:
+9.1 Conceito e campo de atuação das finanças públicas.
+9.2 A política fiscal: objetivos, instrumentos, limitações.
+9.3 Evolução das funções do setor público: estabilização, distribuição e alocação.
+9.4 Estado regulador e Estado produtor: fronteiras e eficiência.
+9.5 Falhas de mercado e intervenção governamental: monopólios, externalidades, bens públicos.
+9.6 Descentralização fiscal: teorias e experiência brasileira.
+9.7 Federalismo fiscal: conceitos e características principais.
+9.8 Financiamento dos gastos públicos: tributação e equidade.
+9.9 Sistemas tributários: princípios teóricos da tributação ótima.
+9.10 Efeitos econômicos dos tributos: análise de incidência.
+
+10 ECONOMIA:
+10.1 Microeconomia: teoria do consumidor, teoria da firma e estruturas de mercado.
+10.2 Macroeconomia: agregados econômicos, modelo IS-LM, política fiscal e monetária.
+10.3 Economia brasileira: formação histórica e transformações estruturais.
+10.4 Processo de industrialização: modelo de substituição de importações.
+10.5 Reformas econômicas da década de 1990: estabilização e abertura econômica.
+10.6 Sistema financeiro nacional: estrutura e regulação.
+10.7 Política monetária: instrumentos, eficácia e limitações.
+10.8 Setor externo: balanço de pagamentos, taxa de câmbio e política cambial.
+10.9 Crescimento econômico: teorias e determinantes do crescimento de longo prazo.
+10.10 Desenvolvimento econômico: conceitos, indicadores e políticas.
 
 CAPÍTULO VIII - DAS DISPOSIÇÕES FINAIS
 
