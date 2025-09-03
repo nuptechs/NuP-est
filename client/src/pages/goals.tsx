@@ -355,10 +355,7 @@ export default function Goals() {
       <Sidebar />
       
       <main className="flex-1 overflow-auto">
-        <Header 
-          title="Metas e Objetivos"
-          description="Gerencie suas metas de estudo e objetivos específicos"
-        />
+        <Header title="Metas e Objetivos" />
         
         <div className="container mx-auto px-4 py-6">
           {/* Header Actions */}
