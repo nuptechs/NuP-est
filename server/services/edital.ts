@@ -105,6 +105,15 @@ class EditalProcessingService {
    */
   private async extrairTextoPDF(filePath: string): Promise<string> {
     try {
+      // Se for arquivo .txt, ler como texto simples (para demonstração)
+      if (filePath.endsWith('.txt')) {
+        console.log(`📖 Lendo arquivo de texto: ${filePath}`);
+        const texto = fs.readFileSync(filePath, 'utf8');
+        console.log(`✅ Texto extraído: ${texto.length} caracteres`);
+        return texto;
+      }
+      
+      // Para arquivos PDF reais
       const pdf = await loadPdfParse();
       const dataBuffer = fs.readFileSync(filePath);
       const data = await pdf(dataBuffer);
