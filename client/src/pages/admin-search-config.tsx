@@ -5,8 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -299,7 +297,7 @@ export default function AdminSearchConfig() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Globe className="h-5 w-5 text-blue-500" />
@@ -309,7 +307,7 @@ export default function AdminSearchConfig() {
                   Configure múltiplas URLs de busca e seus tipos. Adicione uma URL por linha.
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button 
                   onClick={addNewRow}
                   variant="outline"
@@ -335,68 +333,72 @@ export default function AdminSearchConfig() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[200px]">Nome</TableHead>
-                    <TableHead className="w-[300px]">URL</TableHead>
-                    <TableHead className="w-[200px]">Descrição</TableHead>
-                    <TableHead className="w-[300px]">Tipos de Busca</TableHead>
-                    <TableHead className="w-[100px]">Ações</TableHead>
+                    <TableHead className="min-w-[140px] w-[15%]">Nome</TableHead>
+                    <TableHead className="min-w-[200px] w-[25%]">URL</TableHead>
+                    <TableHead className="min-w-[120px] w-[15%]">Descrição</TableHead>
+                    <TableHead className="min-w-[200px] w-[30%]">Tipos de Busca</TableHead>
+                    <TableHead className="w-[80px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tableRows.map((row) => (
                     <TableRow key={row.id} className={row.isNew ? "bg-blue-50" : ""}>
-                      <TableCell>
+                      {/* Nome */}
+                      <TableCell className="p-2">
                         {row.isEditing ? (
                           <Input
                             value={row.name}
                             onChange={(e) => updateRow(row.id, { name: e.target.value })}
                             placeholder="Nome do site"
-                            className="h-8"
+                            className="h-8 text-sm"
                             data-testid={`input-name-${row.id}`}
                           />
                         ) : (
-                          <span className="font-medium">{row.name}</span>
+                          <div className="font-medium text-sm break-words max-w-[140px]">{row.name}</div>
                         )}
                       </TableCell>
                       
-                      <TableCell>
+                      {/* URL */}
+                      <TableCell className="p-2">
                         {row.isEditing ? (
                           <Input
                             value={row.url}
                             onChange={(e) => updateRow(row.id, { url: e.target.value })}
                             placeholder="https://exemplo.com"
-                            className="h-8"
+                            className="h-8 text-sm"
                             data-testid={`input-url-${row.id}`}
                           />
                         ) : (
-                          <span className="text-sm text-blue-600 truncate block max-w-[280px]">
+                          <div className="text-xs text-blue-600 break-all max-w-[200px]">
                             {row.url}
-                          </span>
+                          </div>
                         )}
                       </TableCell>
                       
-                      <TableCell>
+                      {/* Descrição */}
+                      <TableCell className="p-2">
                         {row.isEditing ? (
                           <Input
                             value={row.description}
                             onChange={(e) => updateRow(row.id, { description: e.target.value })}
                             placeholder="Descrição opcional"
-                            className="h-8"
+                            className="h-8 text-sm"
                             data-testid={`input-description-${row.id}`}
                           />
                         ) : (
-                          <span className="text-sm text-gray-600 truncate block max-w-[180px]">
+                          <div className="text-xs text-gray-600 break-words max-w-[120px]">
                             {row.description || "-"}
-                          </span>
+                          </div>
                         )}
                       </TableCell>
                       
-                      <TableCell>
+                      {/* Tipos de Busca */}
+                      <TableCell className="p-2">
                         {row.isEditing ? (
-                          <div className="flex flex-wrap gap-1 max-w-[280px]">
+                          <div className="grid grid-cols-1 gap-1 max-w-[200px]">
                             {SEARCH_TYPES.map((type) => (
                               <label
                                 key={type.id}
@@ -405,28 +407,32 @@ export default function AdminSearchConfig() {
                                 <Checkbox
                                   checked={row.selectedTypes.includes(type.id)}
                                   onCheckedChange={() => toggleType(row.id, type.id)}
-                                  className="h-3 w-3"
+                                  className="h-3 w-3 flex-shrink-0"
                                   data-testid={`checkbox-${type.id}-${row.id}`}
                                 />
-                                <span className="text-xs">{type.label}</span>
+                                <span className="text-xs leading-none">{type.label}</span>
                               </label>
                             ))}
                           </div>
                         ) : (
-                          <div className="flex flex-wrap gap-1 max-w-[280px]">
+                          <div className="flex flex-wrap gap-1 max-w-[200px]">
                             {row.selectedTypes.map((typeId) => {
                               const typeInfo = SEARCH_TYPES.find(t => t.id === typeId);
                               return (
-                                <Badge key={typeId} variant="secondary" className="text-xs">
+                                <Badge key={typeId} variant="secondary" className="text-xs px-1 py-0 h-5">
                                   {typeInfo?.label}
                                 </Badge>
                               );
                             })}
+                            {row.selectedTypes.length === 0 && (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
                           </div>
                         )}
                       </TableCell>
                       
-                      <TableCell>
+                      {/* Ações */}
+                      <TableCell className="p-2">
                         <div className="flex gap-1">
                           {row.isEditing ? (
                             <>
@@ -442,7 +448,7 @@ export default function AdminSearchConfig() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => toggleRowEdit(row.id)}
+                                onClick={() => row.isNew ? removeRow(row.id) : toggleRowEdit(row.id)}
                                 className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
                                 data-testid={`button-cancel-${row.id}`}
                               >
