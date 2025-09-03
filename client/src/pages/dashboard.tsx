@@ -73,21 +73,22 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Home Icon - Top Left */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => window.location.href = '/'}
-        className="fixed top-3 left-3 sm:top-4 sm:left-4 z-50 p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-lg border border-gray-200/50 dark:border-gray-700/50"
-        data-testid="button-home"
-      >
-        <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
-      </Button>
       {/* Header minimalista */}
       <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 mt-6 sm:mt-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900">NuP-Study</h1>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.location.href = '/'}
+                className="p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200"
+                data-testid="button-home"
+              >
+                <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+              </Button>
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">NuP-Study</h1>
+            </div>
             <Button
               variant="ghost"
               onClick={() => window.location.href = '/api/logout'}
@@ -317,7 +318,7 @@ export default function Dashboard() {
                       <div className="w-full bg-gray-200 rounded-full h-1.5">
                         <div 
                           className="bg-purple-600 h-1.5 rounded-full" 
-                          style={{ width: `${(goal.currentValue / goal.targetValue) * 100}%` }}
+                          style={{ width: `${goal.completed ? 100 : 20}%` }}
                         ></div>
                       </div>
                     </div>
