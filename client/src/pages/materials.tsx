@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import MobileNav from "@/components/layout/mobile-nav";
 import MaterialUpload from "@/components/materials/material-upload";
@@ -149,10 +148,8 @@ export default function Materials() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 overflow-auto">
+    <div className="min-h-screen bg-background">
+      <main className="overflow-auto">
         <Header 
           title="Materiais" 
           subtitle="Gerencie seus materiais de estudo e recursos"

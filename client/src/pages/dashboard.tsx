@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import MobileNav from "@/components/layout/mobile-nav";
 import { Button } from "@/components/ui/button";
@@ -77,9 +76,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
+    <div className="min-h-screen bg-background">
+      <main className="overflow-auto">
         <Header 
           title="Dashboard" 
           subtitle="Bem-vindo ao seu hub de estudos personalizado"

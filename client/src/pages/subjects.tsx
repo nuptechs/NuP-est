@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import MobileNav from "@/components/layout/mobile-nav";
 import SubjectForm from "@/components/subjects/subject-form";
@@ -132,10 +131,8 @@ export default function Subjects() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 overflow-auto">
+    <div className="min-h-screen bg-background">
+      <main className="overflow-auto">
         <Header 
           title="Matérias" 
           subtitle="Organize e gerencie suas disciplinas de estudo"

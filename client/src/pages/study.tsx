@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import MobileNav from "@/components/layout/mobile-nav";
 import AiStudyModal from "@/components/study/ai-study-modal";
@@ -119,10 +118,8 @@ export default function Study() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 overflow-auto">
+    <div className="min-h-screen bg-background">
+      <main className="overflow-auto">
         <Header 
           title="Estudar" 
           subtitle="Escolha seu método de estudo e comece a praticar"
@@ -152,7 +149,7 @@ export default function Study() {
                         <div className="flex items-center">
                           <div 
                             className="w-3 h-3 rounded-full mr-2" 
-                            style={{ backgroundColor: subject.color }}
+                            style={{ backgroundColor: subject.color || '#666' }}
                           ></div>
                           {subject.name}
                         </div>

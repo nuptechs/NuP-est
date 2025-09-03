@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import Sidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import MobileNav from '@/components/layout/mobile-nav';
 import { Search, Globe, Database, ExternalLink, Filter, Users, BookOpen, Briefcase, GraduationCap, Building } from 'lucide-react';
@@ -198,9 +197,8 @@ export default function IntegratedSearch() {
   const searchData = searchMutation.data as SearchResponse | undefined;
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
+    <div className="min-h-screen bg-background">
+      <main className="overflow-auto">
         <Header 
           title="Busca Integrada" 
           subtitle="Pesquise em concursos do Cebraspe e sites configurados simultaneamente"
