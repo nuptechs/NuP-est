@@ -178,14 +178,16 @@ export class WebScraperService {
       this.visitedUrls.add(currentUrl);
       
       try {
-        // Simular requisição HTTP e extração de conteúdo
-        const page = await this.mockExtractPageContent(currentUrl);
-        pages.push(page);
+        // Fazer requisição HTTP real e extração de conteúdo
+        const page = await this.realExtractPageContent(currentUrl);
+        if (page.content.trim()) { // Só adicionar se tiver conteúdo
+          pages.push(page);
+        }
         
         // Se não atingiu a profundidade máxima, adicionar links encontrados
         if (depth < maxDepth) {
           for (const link of page.links) {
-            if (!this.visitedUrls.has(link)) {
+            if (!this.visitedUrls.has(link) && this.isValidUrl(link)) {
               urlsToVisit.push({ url: link, depth: depth + 1 });
             }
           }
@@ -416,32 +418,42 @@ export class WebScraperService {
       // Extrair título
       let title = $('title').text().trim() || $('h1').first().text().trim() || 'Página sem título';
 
-      // Extrair conteúdo principal
+      // Extrair conteúdo principal com lógica específica para sites de concurso
       let content = '';
       
-      // Tentar extrair conteúdo de containers principais
-      const contentSelectors = [
-        'main',
-        '.content',
-        '.main-content', 
-        '#content',
-        'article',
-        '.post',
-        '.entry-content',
-        'body'
-      ];
+      // Verificar se é página do Cebraspe para usar extração específica
+      if (url.includes('cebraspe.org.br')) {
+        content = this.extractCebraspeContent($, title);
+      }
+      
+      // Se não extraiu conteúdo específico, usar seletores gerais
+      if (!content || content.length < 100) {
+        const contentSelectors = [
+          'main',
+          '.content',
+          '.main-content', 
+          '#content',
+          'article',
+          '.post',
+          '.entry-content',
+          '.container',
+          '.lista-concursos',
+          '.concurso-item',
+          'body'
+        ];
 
-      for (const selector of contentSelectors) {
-        const element = $(selector);
-        if (element.length > 0) {
-          content = element.text().trim();
-          if (content.length > 100) { // Se encontrou conteúdo substancial, usar este
-            break;
+        for (const selector of contentSelectors) {
+          const element = $(selector);
+          if (element.length > 0) {
+            content = element.text().trim();
+            if (content.length > 100) { // Se encontrou conteúdo substancial, usar este
+              break;
+            }
           }
         }
       }
 
-      // Se não encontrou conteúdo nos seletores específicos, usar todo o body
+      // Se ainda não encontrou conteúdo, usar todo o body
       if (!content || content.length < 100) {
         content = $('body').text().trim();
       }
@@ -565,6 +577,158 @@ export class WebScraperService {
       }
       throw new Error(`Erro ao validar URL: ${error.message}`);
     }
+  }
+
+  /**
+   * Extrai conteúdo específico de páginas do Cebraspe
+   */
+  private extractCebraspeContent($: any, title: string): string {
+    let concursos: string[] = [];
+    
+    try {
+      // Buscar por diferentes padrões de listagem de concursos
+      const concursoSelectors = [
+        '.lista-concursos .item',
+        '.concurso-item',
+        '.card-concurso',
+        '.concurso',
+        '.item-concurso',
+        'div[class*="concurso"]',
+        'li[class*="concurso"]',
+        '.box-concurso',
+        'article'
+      ];
+      
+      for (const selector of concursoSelectors) {
+        $(selector).each((_, element) => {
+          const $item = $(element);
+          
+          // Extrair informações do concurso
+          let nome = '';
+          let vagas = '';
+          let salario = '';
+          let link = '';
+          
+          // Buscar nome do concurso em vários seletores
+          const nomeSelectors = ['h1', 'h2', 'h3', 'h4', '.titulo', '.nome', '.title', 'strong', '.concurso-nome'];
+          for (const nomeSelector of nomeSelectors) {
+            const nomeEl = $item.find(nomeSelector).first();
+            if (nomeEl.length && nomeEl.text().trim()) {
+              nome = nomeEl.text().trim();
+              break;
+            }
+          }
+          
+          // Se não encontrou nome específico, usar texto principal
+          if (!nome) {
+            nome = $item.text().trim().split('\n')[0].substring(0, 100);
+          }
+          
+          // Buscar vagas
+          const vagasText = $item.text();
+          const vagasMatch = vagasText.match(/(\d+(?:\.\d+)*)\s*vagas?/i);
+          if (vagasMatch) {
+            vagas = vagasMatch[0];
+          }
+          
+          // Buscar salário
+          const salarioMatch = vagasText.match(/(?:até\s*)?R\$\s*([\d.,]+)/i);
+          if (salarioMatch) {
+            salario = `Até R$ ${salarioMatch[1]}`;
+          }
+          
+          // Buscar link
+          const linkEl = $item.find('a').first();
+          if (linkEl.length) {
+            link = linkEl.attr('href') || '';
+          }
+          
+          // Se encontrou informações válidas, adicionar à lista
+          if (nome && nome.length > 5) {
+            let concursoInfo = `CONCURSO: ${nome}`;
+            if (vagas) concursoInfo += ` | VAGAS: ${vagas}`;
+            if (salario) concursoInfo += ` | SALÁRIO: ${salario}`;
+            if (link) concursoInfo += ` | LINK: ${link}`;
+            
+            concursos.push(concursoInfo);
+          }
+        });
+        
+        // Se encontrou concursos com este seletor, parar de buscar
+        if (concursos.length > 0) {
+          break;
+        }
+      }
+      
+      // Se não encontrou via seletores específicos, tentar buscar padrões no texto
+      if (concursos.length === 0) {
+        const bodyText = $('body').text();
+        const lines = bodyText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        
+        for (const line of lines) {
+          // Buscar linhas que parecem ser nomes de concursos
+          if (this.isLikelyContestName(line)) {
+            const nextLines = lines.slice(lines.indexOf(line), lines.indexOf(line) + 5);
+            let concursoInfo = `CONCURSO: ${line}`;
+            
+            // Buscar vagas e salário nas próximas linhas
+            for (const nextLine of nextLines) {
+              const vagasMatch = nextLine.match(/(\d+(?:\.\d+)*)\s*vagas?/i);
+              const salarioMatch = nextLine.match(/(?:até\s*)?R\$\s*([\d.,]+)/i);
+              
+              if (vagasMatch && !concursoInfo.includes('VAGAS:')) {
+                concursoInfo += ` | VAGAS: ${vagasMatch[0]}`;
+              }
+              if (salarioMatch && !concursoInfo.includes('SALÁRIO:')) {
+                concursoInfo += ` | SALÁRIO: Até R$ ${salarioMatch[1]}`;
+              }
+            }
+            
+            concursos.push(concursoInfo);
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.warn('Erro ao extrair conteúdo específico do Cebraspe:', error);
+    }
+    
+    // Se encontrou concursos, retornar lista formatada
+    if (concursos.length > 0) {
+      return `PÁGINA DE CONCURSOS CEBRASPE - ${title}\n\n${concursos.join('\n\n')}`;
+    }
+    
+    // Se não encontrou concursos específicos, retornar texto geral
+    return '';
+  }
+  
+  /**
+   * Verifica se uma linha de texto parece ser nome de concurso
+   */
+  private isLikelyContestName(text: string): boolean {
+    const contestKeywords = [
+      'polícia', 'federal', 'civil', 'militar', 'bombeiros',
+      'tribunal', 'trt', 'tre', 'trf', 'tjdft', 'tjba', 'tjce',
+      'inss', 'ibama', 'anvisa', 'anatel', 'antt',
+      'procurador', 'delegado', 'escrivão', 'agente',
+      'auditor', 'técnico', 'analista',
+      'prefeitura', 'câmara', 'assembleia',
+      'banco', 'banrisul', 'caixa',
+      'universidade', 'ifb', 'unb', 'fub'
+    ];
+    
+    const textLower = text.toLowerCase();
+    
+    // Deve ter pelo menos uma palavra-chave de concurso
+    const hasKeyword = contestKeywords.some(keyword => textLower.includes(keyword));
+    
+    // Deve ter tamanho razoável
+    const hasReasonableLength = text.length >= 8 && text.length <= 100;
+    
+    // Não deve ser apenas números ou caracteres especiais
+    const hasLetters = /[a-zA-Z]/.test(text);
+    
+    return hasKeyword && hasReasonableLength && hasLetters;
   }
 
   /**
