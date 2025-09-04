@@ -24,7 +24,8 @@ import {
   ExternalLink,
   CheckCircle2,
   Loader2,
-  ListCheck
+  ListCheck,
+  Upload
 } from "lucide-react";
 
 // Tipos de meta disponíveis
