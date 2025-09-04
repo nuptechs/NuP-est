@@ -69,21 +69,9 @@ class EditalProcessingService {
         type: 'edital'
       });
       
-      // 4. Analisar se tem apenas um cargo (com tratamento de erro)
-      let analiseCarго;
-      try {
-        analiseCarго = await this.analisarCargo(pdfText);
-        console.log(`🔍 Análise de cargo:`, analiseCarго);
-      } catch (error) {
-        console.error('❌ Erro na análise de cargo, usando valores padrão:', error);
-        analiseCarго = { hasSingleCargo: false, cargoName: undefined };
-      }
-      
-      // Garantir que analiseCarго sempre tenha as propriedades necessárias
-      if (!analiseCarго || typeof analiseCarго.hasSingleCargo === 'undefined') {
-        console.warn('⚠️ Análise de cargo retornou resultado inválido, usando padrão');
-        analiseCarго = { hasSingleCargo: false, cargoName: undefined };
-      }
+      // 4. Analisar cargo - sem tratamento de erro, falha limpa
+      const analiseCarго = await this.analisarCargo(pdfText);
+      console.log(`🔍 Análise de cargo:`, analiseCarго);
       
       // 5. Se tem apenas um cargo, extrair conteúdo programático
       let conteudoProgramatico: ConteudoProgramatico | undefined;
@@ -237,23 +225,13 @@ FORMATO DA RESPOSTA (JSON):
           cargoName: analise.cargoName
         };
       } catch (parseError) {
-        console.warn('⚠️ Erro ao parsear resposta da análise de cargo, usando regex fallback');
-        
-        // Fallback: análise simples por regex
-        const cargosEncontrados = textoEdital.match(/CARGO[:\s]*([A-Z\s]+)/gi) || [];
-        const hasSingleCargo = cargosEncontrados.length === 1;
-        const cargoName = hasSingleCargo ? cargosEncontrados[0].replace(/CARGO[:\s]*/i, '').trim() : undefined;
-        
-        return { hasSingleCargo, cargoName };
+        console.error('❌ Erro ao parsear resposta da análise de cargo:', parseError);
+        throw new Error('Falha na análise de cargo: resposta IA inválida');
       }
       
     } catch (error) {
       console.error('❌ Erro na análise de cargo:', error);
-      // Sempre retornar um objeto com as propriedades necessárias
-      return { 
-        hasSingleCargo: false, 
-        cargoName: undefined 
-      };
+      throw error; // Propagar erro sem mascarar
     }
   }
   
@@ -304,18 +282,8 @@ FORMATO DA RESPOSTA (JSON):
         const conteudo = JSON.parse(resultado.response);
         return conteudo;
       } catch (parseError) {
-        console.warn('⚠️ Erro ao parsear conteúdo programático, retornando estrutura básica');
-        
-        // Fallback: estrutura básica
-        return {
-          cargo: cargoName,
-          disciplinas: [
-            {
-              nome: 'Conteúdo não estruturado',
-              topicos: ['Consulte o edital original para detalhes completos']
-            }
-          ]
-        };
+        console.error('❌ Erro ao parsear conteúdo programático:', parseError);
+        throw new Error('Falha na extração de conteúdo programático: resposta IA inválida');
       }
       
     } catch (error) {
