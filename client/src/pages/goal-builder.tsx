@@ -25,7 +25,7 @@ import {
   CheckCircle2,
   Loader2,
   ListCheck,
-  Upload
+  FileUp
 } from "lucide-react";
 
 // Tipos de meta disponíveis
@@ -550,7 +550,7 @@ export default function GoalBuilder() {
               <div className="max-w-4xl mx-auto mt-12">
                 <div className="text-center mb-6 p-6 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                    <FileUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   </div>
                   <h3 className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-2">
                     Já tem o edital em PDF?

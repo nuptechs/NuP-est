@@ -17,8 +17,23 @@ export class PDFService {
    */
   async processPDF(filePath: string): Promise<PDFProcessingResult> {
     try {
+      // Verificar tamanho do arquivo antes de processar
+      const stats = fs.statSync(filePath);
+      const fileSizeInMB = stats.size / (1024 * 1024);
+      
+      console.log(`📄 Processando PDF: ${fileSizeInMB.toFixed(2)}MB`);
+      
+      // Limitar processamento a arquivos menores que 15MB para evitar problemas de memória
+      if (fileSizeInMB > 15) {
+        throw new AppError(413, 'FILE_TOO_LARGE', 'Arquivo PDF muito grande. Limite máximo: 15MB');
+      }
+
       const dataBuffer = fs.readFileSync(filePath);
       const data = await pdf(dataBuffer);
+      
+      // Limpar buffer da memória imediatamente após uso
+      // @ts-ignore
+      dataBuffer.fill(0);
       
       // Limpar e normalizar o texto extraído
       let cleanText = data.text;
@@ -43,14 +58,33 @@ export class PDFService {
       // Chunking simples - divide o texto em pedaços de ~500 palavras
       const chunks = this.chunkText(cleanText, 500);
       
-      return {
+      const result = {
         text: cleanText,
         pages: data.numpages,
         metadata: data.metadata,
         chunks: chunks
       };
+      
+      // Sugerir garbage collection para liberar memória
+      if (global.gc) {
+        global.gc();
+      }
+      
+      console.log(`✅ PDF processado: ${data.numpages} páginas, ${chunks.length} chunks`);
+      
+      return result;
     } catch (error) {
       console.error('Erro ao processar PDF:', error);
+      
+      // Tratamento específico para erros de memória
+      if (error instanceof Error && error.message.includes('heap out of memory')) {
+        throw new AppError(413, 'MEMORY_ERROR', 'Arquivo muito grande para processar. Tente um arquivo menor.');
+      }
+      
+      if (error instanceof AppError) {
+        throw error;
+      }
+      
       throw new AppError(400, errorMessages.FILE_UPLOAD_ERROR, 'Falha ao processar o arquivo PDF');
     }
   }
