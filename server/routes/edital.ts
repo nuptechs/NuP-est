@@ -75,6 +75,26 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
     
     console.log(`📤 Upload recebido: ${req.file.originalname} para concurso ${concursoNome}`);
     
+    // Verificar se Redis está disponível
+    const redisConnected = await queueService.isRedisConnected();
+    if (!redisConnected) {
+      // Limpar arquivo
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      
+      return res.status(503).json({
+        success: false,
+        error: 'Sistema de processamento indisponível',
+        message: 'O serviço de processamento de arquivos está temporariamente indisponível. Tente novamente em alguns minutos.',
+        details: 'Redis (sistema de filas) não está conectado. Entre em contato com o suporte se o problema persistir.',
+        supportInfo: {
+          errorCode: 'REDIS_UNAVAILABLE',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+    
     // Criar registro do job no banco
     const processingJob = await dbStorage.createProcessingJob({
       userId,
@@ -89,39 +109,67 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
     });
 
     // Enfileirar job para processamento assíncrono
-    await queueService.addPDFProcessingJob({
-      jobId: processingJob.id,
-      userId,
-      filePath: req.file.path,
-      fileName: req.file.originalname,
-      fileSize: req.file.size,
-      metadata: {
-        concursoNome,
-        type: 'edital_processing'
-      }
-    });
+    try {
+      await queueService.addPDFProcessingJob({
+        jobId: processingJob.id,
+        userId,
+        filePath: req.file.path,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        metadata: {
+          concursoNome,
+          type: 'edital_processing'
+        }
+      });
 
-    console.log(`✅ Job ${processingJob.id} enfileirado com sucesso`);
-    
-    res.json({
-      success: true,
-      job: {
-        id: processingJob.id,
-        status: processingJob.status,
-        fileName: processingJob.fileName,
-        concursoNome,
-        createdAt: processingJob.createdAt
-      },
-      message: 'Upload realizado com sucesso. O processamento será feito em segundo plano.',
-      instructions: [
-        'O arquivo está sendo processado automaticamente',
-        'Use o endpoint GET /api/edital/status/{jobId} para acompanhar o progresso',
-        'Você receberá uma notificação quando o processamento for concluído'
-      ]
-    });
+      console.log(`✅ Job ${processingJob.id} enfileirado com sucesso`);
+      
+      res.json({
+        success: true,
+        job: {
+          id: processingJob.id,
+          status: processingJob.status,
+          fileName: processingJob.fileName,
+          concursoNome,
+          createdAt: processingJob.createdAt
+        },
+        message: 'Upload realizado com sucesso. O processamento será feito em segundo plano.',
+        instructions: [
+          'O arquivo está sendo processado automaticamente',
+          'Use o endpoint GET /api/edital/status/{jobId} para acompanhar o progresso',
+          'Você receberá uma notificação quando o processamento for concluído'
+        ]
+      });
+      
+    } catch (queueError) {
+      console.error('❌ Erro ao enfileirar job:', queueError);
+      
+      // Marcar job como falha no banco
+      await dbStorage.updateProcessingJob(processingJob.id, {
+        status: 'failed',
+        errorMessage: 'Falha ao enfileirar processamento: ' + (queueError as Error).message
+      });
+      
+      // Limpar arquivo
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      
+      return res.status(503).json({
+        success: false,
+        error: 'Falha ao enfileirar processamento',
+        message: 'Não foi possível adicionar o arquivo à fila de processamento. Tente novamente.',
+        details: 'Sistema de filas apresentou erro. Se o problema persistir, entre em contato com o suporte.',
+        supportInfo: {
+          errorCode: 'QUEUE_ERROR',
+          jobId: processingJob.id,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
     
   } catch (error) {
-    console.error('❌ Erro ao enfileirar processamento:', error);
+    console.error('❌ Erro ao processar upload:', error);
     
     // Limpar arquivo em caso de erro
     if (req.file && fs.existsSync(req.file.path)) {
@@ -132,13 +180,19 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Dados inválidos',
+        message: 'Os dados enviados são inválidos. Verifique os campos obrigatórios.',
         details: error.errors
       });
     }
     
     res.status(500).json({
       success: false,
-      error: 'Erro interno ao enfileirar processamento'
+      error: 'Erro interno do servidor',
+      message: 'Ocorreu um erro interno ao processar o upload. Tente novamente em alguns minutos.',
+      supportInfo: {
+        errorCode: 'INTERNAL_ERROR',
+        timestamp: new Date().toISOString()
+      }
     });
   }
 });
@@ -376,14 +430,35 @@ router.get('/jobs', async (req, res) => {
 // Endpoint para estatísticas da fila
 router.get('/queue/stats', async (req, res) => {
   try {
-    const stats = await queueService.getQueueStats();
     const redisConnected = await queueService.isRedisConnected();
+    
+    if (!redisConnected) {
+      return res.status(503).json({
+        success: false,
+        error: 'Sistema de filas indisponível',
+        message: 'O Redis não está conectado. Não é possível obter estatísticas das filas.',
+        stats: {
+          waiting: 0,
+          active: 0,
+          completed: 0,
+          failed: 0,
+          total: 0,
+          redisConnected: false
+        },
+        supportInfo: {
+          errorCode: 'REDIS_UNAVAILABLE',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const stats = await queueService.getQueueStats();
     
     res.json({
       success: true,
       stats: {
         ...stats,
-        redisConnected
+        redisConnected: true
       }
     });
 
@@ -391,7 +466,12 @@ router.get('/queue/stats', async (req, res) => {
     console.error('❌ Erro ao obter estatísticas da fila:', error);
     res.status(500).json({
       success: false,
-      error: 'Erro interno ao obter estatísticas'
+      error: 'Erro interno do servidor',
+      message: 'Ocorreu um erro ao obter estatísticas da fila. Tente novamente em alguns minutos.',
+      supportInfo: {
+        errorCode: 'STATS_ERROR',
+        timestamp: new Date().toISOString()
+      }
     });
   }
 });

@@ -19,25 +19,44 @@ const redis = new Redis({
  * Worker para processar PDFs de forma assíncrona
  */
 export class PDFWorker {
-  private worker: Worker;
+  private worker: Worker | null = null;
+  private initialized: boolean = false;
+  private initError: string | null = null;
 
   constructor() {
-    this.worker = new Worker(
-      'pdf-processing',
-      async (job: Job<PDFProcessingJobData>) => {
-        return await this.processJob(job);
-      },
-      {
-        connection: redis,
-        concurrency: 2, // Processar até 2 jobs simultaneamente
-        limiter: {
-          max: 5, // Máximo 5 jobs por minuto
-          duration: 60 * 1000,
-        },
-      }
-    );
+    this.initialize();
+  }
 
-    this.setupEventHandlers();
+  private async initialize() {
+    try {
+      // Testar conexão Redis antes de criar worker
+      await redis.ping();
+      
+      this.worker = new Worker(
+        'pdf-processing',
+        async (job: Job<PDFProcessingJobData>) => {
+          return await this.processJob(job);
+        },
+        {
+          connection: redis,
+          concurrency: 2, // Processar até 2 jobs simultaneamente
+          limiter: {
+            max: 5, // Máximo 5 jobs por minuto
+            duration: 60 * 1000,
+          },
+        }
+      );
+
+      this.setupEventHandlers();
+      this.initialized = true;
+      console.log('🔧 PDF Worker inicializado com sucesso');
+      
+    } catch (error) {
+      this.initError = error instanceof Error ? error.message : 'Erro desconhecido';
+      console.error('❌ Falha ao inicializar PDF Worker:', this.initError);
+      console.error('⚠️ Sistema de processamento assíncrono indisponível - Redis não conectado');
+      this.initialized = false;
+    }
   }
 
   /**
@@ -173,6 +192,8 @@ export class PDFWorker {
    * Configura event handlers para o worker
    */
   private setupEventHandlers(): void {
+    if (!this.worker) return;
+
     this.worker.on('ready', () => {
       console.log('🔧 PDF Worker está pronto e aguardando jobs');
     });
@@ -190,7 +211,7 @@ export class PDFWorker {
     });
 
     this.worker.on('error', (error: Error) => {
-      console.error('❌ Erro no PDF Worker:', error);
+      console.error('❌ Erro no PDF Worker:', error.message);
     });
 
     this.worker.on('stalled', (jobId: string) => {
@@ -202,16 +223,22 @@ export class PDFWorker {
    * Inicia o worker
    */
   async start(): Promise<void> {
-    console.log('🚀 Iniciando PDF Worker...');
-    // Worker é iniciado automaticamente no constructor
+    if (!this.initialized) {
+      console.warn('⚠️ PDF Worker não foi inicializado corretamente');
+      console.warn('⚠️ Erro:', this.initError);
+      return;
+    }
+    console.log('🚀 PDF Worker já está rodando');
   }
 
   /**
    * Para o worker gracefully
    */
   async stop(): Promise<void> {
-    console.log('🛑 Parando PDF Worker...');
-    await this.worker.close();
+    if (this.worker) {
+      console.log('🛑 Parando PDF Worker...');
+      await this.worker.close();
+    }
   }
 
   /**
@@ -219,14 +246,28 @@ export class PDFWorker {
    */
   getStats(): any {
     return {
-      isRunning: !this.worker.closing,
-      concurrency: 2,
+      isInitialized: this.initialized,
+      isRunning: this.worker ? !this.worker.closing : false,
+      concurrency: this.initialized ? 2 : 0,
+      error: this.initError,
     };
+  }
+
+  /**
+   * Verifica se o worker está pronto para processar jobs
+   */
+  isReady(): boolean {
+    return this.initialized && this.worker !== null;
   }
 }
 
 // Instância singleton do worker
 export const pdfWorker = new PDFWorker();
 
-// Auto-iniciar o worker quando o módulo for importado
-pdfWorker.start().catch(console.error);
+// Worker será inicializado automaticamente no constructor
+// Verificar status após alguns segundos
+setTimeout(() => {
+  if (!pdfWorker.isReady()) {
+    console.warn('⚠️ PDF Worker não está disponível - sistema de filas desabilitado');
+  }
+}, 3000);
