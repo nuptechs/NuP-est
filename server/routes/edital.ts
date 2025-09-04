@@ -5,6 +5,8 @@ import fs from 'fs';
 import { z } from 'zod';
 import { editalService } from '../services/edital';
 import { editalAutomaticoService } from '../services/editalAutomatico';
+import { queueService } from '../services/queue';
+import { storage as dbStorage } from '../storage';
 
 const router = Router();
 
@@ -51,7 +53,7 @@ const processarAutomaticoSchema = z.object({
   concursoNome: z.string().min(1, 'Nome do concurso é obrigatório')
 });
 
-// Endpoint para upload e processamento de edital
+// Endpoint para upload e enfileiramento de processamento de edital
 router.post('/upload', upload.single('edital'), async (req, res) => {
   try {
     if (!req.file) {
@@ -62,34 +64,64 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
     }
 
     const { concursoNome } = processarEditalSchema.parse(req.body);
+    const userId = (req as any).user?.claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado'
+      });
+    }
     
     console.log(`📤 Upload recebido: ${req.file.originalname} para concurso ${concursoNome}`);
     
-    // Processar o edital
-    const editalInfo = await editalService.processarEdital(
-      concursoNome,
-      req.file.path,
-      req.file.originalname
-    );
-    
-    console.log(`✅ Edital processado: ${editalInfo.id}`);
+    // Criar registro do job no banco
+    const processingJob = await dbStorage.createProcessingJob({
+      userId,
+      type: 'edital_processing',
+      fileName: req.file.originalname,
+      filePath: req.file.path,
+      fileSize: req.file.size,
+      metadata: {
+        concursoNome,
+        type: 'edital_processing'
+      }
+    });
+
+    // Enfileirar job para processamento assíncrono
+    await queueService.addPDFProcessingJob({
+      jobId: processingJob.id,
+      userId,
+      filePath: req.file.path,
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      metadata: {
+        concursoNome,
+        type: 'edital_processing'
+      }
+    });
+
+    console.log(`✅ Job ${processingJob.id} enfileirado com sucesso`);
     
     res.json({
       success: true,
-      edital: {
-        id: editalInfo.id,
-        concursoNome: editalInfo.concursoNome,
-        fileName: editalInfo.fileName,
-        hasSingleCargo: editalInfo.hasSingleCargo,
-        cargoName: editalInfo.cargoName,
-        conteudoProgramatico: editalInfo.conteudoProgramatico,
-        processedAt: editalInfo.processedAt
+      job: {
+        id: processingJob.id,
+        status: processingJob.status,
+        fileName: processingJob.fileName,
+        concursoNome,
+        createdAt: processingJob.createdAt
       },
-      message: 'Edital processado e indexado com sucesso'
+      message: 'Upload realizado com sucesso. O processamento será feito em segundo plano.',
+      instructions: [
+        'O arquivo está sendo processado automaticamente',
+        'Use o endpoint GET /api/edital/status/{jobId} para acompanhar o progresso',
+        'Você receberá uma notificação quando o processamento for concluído'
+      ]
     });
     
   } catch (error) {
-    console.error('❌ Erro ao processar edital:', error);
+    console.error('❌ Erro ao enfileirar processamento:', error);
     
     // Limpar arquivo em caso de erro
     if (req.file && fs.existsSync(req.file.path)) {
@@ -106,7 +138,7 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
     
     res.status(500).json({
       success: false,
-      error: 'Erro interno ao processar edital'
+      error: 'Erro interno ao enfileirar processamento'
     });
   }
 });
@@ -229,6 +261,137 @@ router.post('/download', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erro interno no download'
+    });
+  }
+});
+
+// Endpoint para consultar status de um job
+router.get('/status/:jobId', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = (req as any).user?.claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado'
+      });
+    }
+
+    // Buscar job no banco
+    const job = await dbStorage.getProcessingJob(jobId);
+    
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job não encontrado'
+      });
+    }
+
+    if (job.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Acesso negado ao job'
+      });
+    }
+
+    // Buscar status na fila se ainda estiver processando
+    let queueStatus = null;
+    if (job.status === 'processing' || job.status === 'pending') {
+      queueStatus = await queueService.getJobStatus(jobId);
+    }
+
+    res.json({
+      success: true,
+      job: {
+        id: job.id,
+        status: job.status,
+        fileName: job.fileName,
+        fileSize: job.fileSize,
+        metadata: job.metadata,
+        result: job.result,
+        errorMessage: job.errorMessage,
+        processingLogs: job.processingLogs,
+        attempts: job.attempts,
+        maxAttempts: job.maxAttempts,
+        createdAt: job.createdAt,
+        startedAt: job.startedAt,
+        completedAt: job.completedAt,
+        queueStatus: queueStatus
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao consultar status do job:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno ao consultar status'
+    });
+  }
+});
+
+// Endpoint para listar jobs do usuário
+router.get('/jobs', async (req, res) => {
+  try {
+    const userId = (req as any).user?.claims?.sub;
+    const { status } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado'
+      });
+    }
+
+    const jobs = await dbStorage.getUserProcessingJobs(userId, status as string);
+    
+    res.json({
+      success: true,
+      jobs: jobs.map(job => ({
+        id: job.id,
+        status: job.status,
+        fileName: job.fileName,
+        fileSize: job.fileSize,
+        metadata: job.metadata,
+        attempts: job.attempts,
+        maxAttempts: job.maxAttempts,
+        createdAt: job.createdAt,
+        startedAt: job.startedAt,
+        completedAt: job.completedAt,
+        hasResult: !!job.result,
+        hasError: !!job.errorMessage
+      })),
+      total: jobs.length
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao listar jobs do usuário:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno ao listar jobs'
+    });
+  }
+});
+
+// Endpoint para estatísticas da fila
+router.get('/queue/stats', async (req, res) => {
+  try {
+    const stats = await queueService.getQueueStats();
+    const redisConnected = await queueService.isRedisConnected();
+    
+    res.json({
+      success: true,
+      stats: {
+        ...stats,
+        redisConnected
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao obter estatísticas da fila:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno ao obter estatísticas'
     });
   }
 });

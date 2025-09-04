@@ -47,6 +47,9 @@ import {
   type InsertAssessmentResult,
   type LearningHistory,
   type InsertLearningHistory,
+  processingJobs,
+  type ProcessingJob,
+  type InsertProcessingJob,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, or, isNotNull } from "drizzle-orm";
@@ -145,6 +148,13 @@ export interface IStorage {
   // === QUIZ & ASSESSMENT OPERATIONS ===
   createAssessmentResult(result: InsertAssessmentResult): Promise<AssessmentResult>;
   createLearningHistory(history: InsertLearningHistory): Promise<LearningHistory>;
+
+  // Processing jobs operations
+  createProcessingJob(job: InsertProcessingJob): Promise<ProcessingJob>;
+  getProcessingJob(id: string): Promise<ProcessingJob | undefined>;
+  getUserProcessingJobs(userId: string, status?: string): Promise<ProcessingJob[]>;
+  updateProcessingJob(id: string, updates: Partial<ProcessingJob>): Promise<ProcessingJob>;
+  deleteProcessingJob(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -851,6 +861,56 @@ export class DatabaseStorage implements IStorage {
       .values(history)
       .returning();
     return learningHistoryEntry;
+  }
+
+  // Processing jobs operations
+  async createProcessingJob(job: InsertProcessingJob): Promise<ProcessingJob> {
+    const [processingJob] = await db
+      .insert(processingJobs)
+      .values(job)
+      .returning();
+    return processingJob;
+  }
+
+  async getProcessingJob(id: string): Promise<ProcessingJob | undefined> {
+    const job = await db
+      .select()
+      .from(processingJobs)
+      .where(eq(processingJobs.id, id))
+      .limit(1);
+    return job[0];
+  }
+
+  async getUserProcessingJobs(userId: string, status?: string): Promise<ProcessingJob[]> {
+    const conditions = [eq(processingJobs.userId, userId)];
+    
+    if (status) {
+      conditions.push(eq(processingJobs.status, status as any));
+    }
+
+    return await db
+      .select()
+      .from(processingJobs)
+      .where(and(...conditions))
+      .orderBy(desc(processingJobs.createdAt));
+  }
+
+  async updateProcessingJob(id: string, updates: Partial<ProcessingJob>): Promise<ProcessingJob> {
+    const [updatedJob] = await db
+      .update(processingJobs)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(processingJobs.id, id))
+      .returning();
+    return updatedJob;
+  }
+
+  async deleteProcessingJob(id: string): Promise<void> {
+    await db
+      .delete(processingJobs)
+      .where(eq(processingJobs.id, id));
   }
 }
 

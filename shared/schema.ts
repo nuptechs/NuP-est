@@ -364,6 +364,46 @@ export const siteSearchTypes = pgTable("site_search_types", {
   uniqueSiteSearchType: index("idx_unique_site_search_type").on(table.siteId, table.searchType),
 }));
 
+// ===== SISTEMA DE JOBS =====
+export const jobStatusEnum = pgEnum("job_status", [
+  "pending", "processing", "completed", "failed", "cancelled"
+]);
+
+export const jobTypeEnum = pgEnum("job_type", [
+  "pdf_processing", "edital_processing", "document_analysis"
+]);
+
+export const processingJobs = pgTable("processing_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  type: jobTypeEnum("type").notNull(),
+  status: jobStatusEnum("status").default("pending").notNull(),
+  
+  // Dados do arquivo
+  fileName: varchar("file_name").notNull(),
+  filePath: varchar("file_path").notNull(),
+  fileSize: integer("file_size"), // em bytes
+  
+  // Metadados específicos do job
+  metadata: jsonb("metadata"), // dados flexíveis como concursoNome, etc
+  
+  // Controle de processamento
+  queueJobId: varchar("queue_job_id"), // ID do job na fila BullMQ
+  attempts: integer("attempts").default(0),
+  maxAttempts: integer("max_attempts").default(3),
+  
+  // Resultados e logs
+  result: jsonb("result"), // resultado do processamento
+  errorMessage: text("error_message"),
+  processingLogs: text("processing_logs"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   subjects: many(subjects),
@@ -682,6 +722,14 @@ export const insertKnowledgeChunkSchema = createInsertSchema(knowledgeChunks).om
   createdAt: true,
 });
 
+export const insertProcessingJobSchema = createInsertSchema(processingJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  startedAt: true,
+  completedAt: true,
+});
+
 // === INSERT SCHEMAS PARA NOVAS TABELAS ===
 export const insertSubjectKnowledgeSchema = createInsertSchema(subjectKnowledge).omit({
   id: true,
@@ -740,3 +788,5 @@ export type SearchSite = typeof searchSites.$inferSelect;
 export type InsertSearchSite = z.infer<typeof insertSearchSiteSchema>;
 export type SiteSearchType = typeof siteSearchTypes.$inferSelect;
 export type InsertSiteSearchType = z.infer<typeof insertSiteSearchTypeSchema>;
+export type ProcessingJob = typeof processingJobs.$inferSelect;
+export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
