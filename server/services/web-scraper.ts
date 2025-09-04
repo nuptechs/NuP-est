@@ -422,9 +422,18 @@ export class WebScraperService {
       // Extrair conteúdo principal com lógica específica para sites de concurso
       let content = '';
       
+      let extraData: any = {};
+
       // Verificar se é página do Cebraspe para usar extração específica
-      if (url.includes('cebraspe.org.br')) {
-        content = this.extractCebraspeContent($, title);
+      if (this.isCebraspeUrl(url)) {
+        console.log('🏛️ URL do Cebraspe detectada - aplicando lógica específica');
+        content = $('body').text().trim();
+        
+        // Processar dados específicos do Cebraspe
+        if (content.length > 100) {
+          extraData = this.processCebraspeContent(content, url);
+          console.log(`📊 Dados estruturados extraídos: ${extraData.concursos?.length || 0} concursos`);
+        }
       }
       
       // Se não extraiu conteúdo específico, usar seletores gerais
@@ -753,12 +762,110 @@ export class WebScraperService {
   }
 
   /**
-   * Gera dados de concurso baseado na URL quando JavaScript é necessário
+   * Detecta automaticamente se é uma URL do Cebraspe e aplica lógica específica
    */
-  private generateCebraspeDataFromUrl(title: string): string {
-    // Retornar string vazia quando não conseguir extrair dados reais
-    console.log('⚠️ Página requer JavaScript e não foi possível extrair dados reais');
-    return '';
+  private isCebraspeUrl(url: string): boolean {
+    return url.includes('cebraspe.org.br') || url.includes('cespe.unb.br');
+  }
+
+  /**
+   * Processa dados específicos do Cebraspe extraindo informações estruturadas
+   */
+  private processCebraspeContent(content: string, url: string): {
+    concursos: Array<{
+      name: string;
+      url: string;
+      vagas: string;
+      salario: string;
+      orgao: string;
+      cargo: string;
+      status: string;
+    }>;
+  } {
+    console.log('🏛️ Processando conteúdo específico do Cebraspe');
+    
+    const concursos: Array<{
+      name: string;
+      url: string;
+      vagas: string;
+      salario: string;
+      orgao: string;
+      cargo: string;
+      status: string;
+    }> = [];
+
+    // Regex para extrair concursos do formato Cebraspe
+    const concursoRegex = /###\s*([^#]+?)\s*(?:\n.*?(\d+\s+vagas))?.*?(?:Até\s+(R\$[\d.,]+))?.*?\[MAIS INFORMAÇÕES\]\((https:\/\/[^)]+)\)/gs;
+    
+    let match;
+    while ((match = concursoRegex.exec(content)) !== null) {
+      const [, nome, vagas, salario, concursoUrl] = match;
+      
+      if (nome && concursoUrl) {
+        concursos.push({
+          name: nome.trim(),
+          url: concursoUrl.trim(),
+          vagas: vagas || '',
+          salario: salario || '',
+          orgao: this.extractOrgaoFromName(nome.trim()),
+          cargo: this.extractCargoFromName(nome.trim()),
+          status: url.includes('encerrado') ? 'Encerrado' : 'Disponível'
+        });
+      }
+    }
+
+    console.log(`✅ Extraídos ${concursos.length} concursos do Cebraspe`);
+    return { concursos };
+  }
+
+  /**
+   * Extrai nome do órgão a partir do nome do concurso
+   */
+  private extractOrgaoFromName(name: string): string {
+    const orgaoMap: Record<string, string> = {
+      'ABIN': 'Agência Brasileira de Inteligência',
+      'AGU': 'Advocacia-Geral da União',
+      'ANAC': 'Agência Nacional de Aviação Civil',
+      'ANVISA': 'Agência Nacional de Vigilância Sanitária',
+      'CBM': 'Corpo de Bombeiros Militar',
+      'DPF': 'Departamento de Polícia Federal',
+      'PRF': 'Polícia Rodoviária Federal',
+      'TCU': 'Tribunal de Contas da União',
+      'INSS': 'Instituto Nacional do Seguro Social'
+    };
+
+    for (const [sigla, nomeCompleto] of Object.entries(orgaoMap)) {
+      if (name.toUpperCase().includes(sigla)) {
+        return nomeCompleto;
+      }
+    }
+
+    return name.split(' ')[0]; // Primeiro termo como fallback
+  }
+
+  /**
+   * Extrai cargo a partir do nome do concurso
+   */
+  private extractCargoFromName(name: string): string {
+    const cargoMap: Record<string, string> = {
+      'DEFENSOR': 'Defensor Público',
+      'ADVOGADO': 'Advogado',
+      'AUDITOR': 'Auditor',
+      'ANALISTA': 'Analista',
+      'TÉCNICO': 'Técnico',
+      'AGENTE': 'Agente',
+      'POLICIAL': 'Policial',
+      'BOMBEIRO': 'Bombeiro'
+    };
+
+    const nameUpper = name.toUpperCase();
+    for (const [termo, cargo] of Object.entries(cargoMap)) {
+      if (nameUpper.includes(termo)) {
+        return cargo;
+      }
+    }
+
+    return 'Servidor Público'; // Fallback genérico
   }
 
 
