@@ -315,35 +315,61 @@ router.post('/process-embeddings', async (req, res) => {
   }
 });
 
-// Endpoint para buscar concurso usando RAG
+// Endpoint para buscar concurso usando RAG + Sites Configurados
 router.post('/search', async (req, res) => {
   try {
     const { query } = searchConcursoSchema.parse(req.body);
     
-    console.log(`🔍 Buscando concurso para: "${query}"`);
+    console.log(`🔍 Buscando concurso integrado para: "${query}"`);
     
-    const searchResult = await findMatchesRAG(query);
+    // Usar busca integrada que inclui sites configurados
+    const searchResult = await integratedSearchService.search(query, {
+      searchTypes: ['concurso_publico'], // Focar em concursos públicos
+      includeWebSites: true, // Incluir dados scrapados das URLs configuradas
+      maxResults: 10
+    });
     
-    if (searchResult.success) {
-      if (searchResult.multipleOptions) {
-        console.log(`🔀 Múltiplas opções encontradas: ${searchResult.multipleOptions.length}`);
+    // Combinar todos os resultados em formato unificado
+    const allResults = [
+      ...searchResult.cebraspeResults,
+      ...searchResult.webResults.map(webResult => ({
+        name: webResult.title || webResult.name,
+        url: webResult.sourceUrl || webResult.url || '',
+        vagas: webResult.vagas || '',
+        salario: webResult.salario || '',
+        orgao: webResult.orgao || '',
+        cargo: webResult.cargo || '',
+        status: webResult.status || 'Disponível',
+        score: webResult.similarity || 0,
+        fullContent: webResult.content || webResult.fullContent,
+        description: `Score: ${(webResult.similarity || 0).toFixed(3)} - Fonte: Site Configurado`
+      }))
+    ];
+    
+    console.log(`📊 Total de resultados encontrados: ${allResults.length} (${searchResult.cebraspeResults.length} Cebraspe + ${searchResult.webResults.length} sites)`);
+    
+    if (allResults.length > 0) {
+      if (allResults.length > 1) {
+        // Múltiplas opções encontradas
+        console.log(`🔀 Múltiplas opções encontradas: ${allResults.length}`);
         res.json({
           success: true,
-          multipleOptions: searchResult.multipleOptions,
-          message: searchResult.message
+          multipleOptions: allResults,
+          message: `Encontramos ${allResults.length} concursos que correspondem à sua busca. ${searchResult.cebraspeResults.length} do Cebraspe e ${searchResult.webResults.length} de sites configurados.`
         });
-      } else if (searchResult.concurso) {
-        console.log(`✅ Concurso encontrado: ${searchResult.concurso.name}`);
+      } else {
+        // Uma opção encontrada
+        console.log(`✅ Concurso encontrado: ${allResults[0].name}`);
         res.json({
           success: true,
-          concurso: searchResult.concurso
+          concurso: allResults[0]
         });
       }
     } else {
       console.log('❌ Nenhum concurso encontrado');
       res.json({
         success: false,
-        message: searchResult.message || 'Não foi possível encontrar um concurso correspondente no Cebraspe'
+        message: 'Não foi possível encontrar um concurso correspondente no Cebraspe nem nos sites configurados'
       });
     }
   } catch (error) {
