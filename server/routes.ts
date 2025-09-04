@@ -21,66 +21,18 @@ import {
   insertFlashcardReviewSchema,
   insertKnowledgeBaseSchema
 } from "@shared/schema";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { pdfService } from "./services/pdf";
 import { embeddingsService } from "./services/embeddings";
 import { knowledgeChunks } from "@shared/schema";
 import { db } from "./db";
+import { UploadConfig } from "./config/uploadConfig";
 
 // Sistema de IA com injeção de dependência
 import { aiAnalyze, getAIManager } from './services/ai/index';
 
-// Configure multer for file uploads
-const uploadDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: uploadDir,
-    filename: (req, file, cb) => {
-      // Preservar a extensão original do arquivo
-      const ext = path.extname(file.originalname);
-      const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + ext;
-      cb(null, uniqueName);
-    }
-  }),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.pdf', '.doc', '.docx', '.txt', '.md'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedTypes.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only PDF, DOC, DOCX, TXT, and MD files are allowed.'));
-    }
-  }
-});
-
-// Multer específico para PDFs da base de conhecimento
-const pdfUpload = multer({
-  storage: multer.diskStorage({
-    destination: uploadDir,
-    filename: (req, file, cb) => {
-      // Preservar a extensão original do arquivo
-      const ext = path.extname(file.originalname);
-      const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + ext;
-      cb(null, uniqueName);
-    }
-  }),
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit for PDFs
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ext === '.pdf') {
-      cb(null, true);
-    } else {
-      cb(new Error('Apenas arquivos PDF são permitidos para a base de conhecimento.'));
-    }
-  }
-});
+// Usar configurações centralizadas
+const upload = UploadConfig.createMaterialUpload();
+const pdfUpload = UploadConfig.createKnowledgeBaseUpload();
 
 // Spaced Repetition Algorithm (SuperMemo 2)
 function calculateSpacedRepetition(

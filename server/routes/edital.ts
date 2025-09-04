@@ -1,46 +1,14 @@
 import { Router } from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { z } from 'zod';
+import fs from 'fs';
 import { newEditalService } from '../services/newEditalService';
 import { fileProcessorService } from '../services/fileProcessor';
+import { UploadConfig } from '../config/uploadConfig';
 
 const router = Router();
 
-// Configurar multer para upload de múltiplos formatos
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/editais';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    // Validar usando o fileProcessorService
-    const isSupported = fileProcessorService.isFileTypeSupported(file.originalname);
-    const supportedMimeTypes = fileProcessorService.getSupportedMimeTypes();
-    
-    if (isSupported && supportedMimeTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      const supportedExtensions = fileProcessorService.getSupportedExtensions().join(', ');
-      cb(new Error(`Tipo de arquivo não suportado. Formatos aceitos: ${supportedExtensions}`));
-    }
-  },
-  limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB limite
-  }
-});
+// Usar configuração centralizada para editais
+const upload = UploadConfig.createEditalUpload();
 
 // Schemas de validação
 const uploadEditalSchema = z.object({

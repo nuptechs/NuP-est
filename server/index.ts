@@ -2,8 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
-// Importar worker para inicialização
-import './services/pdf-worker';
+// PDF worker não é mais necessário com newEditalService
 
 const app = express();
 app.use(express.json());

@@ -396,7 +396,6 @@ export const processingJobs = pgTable("processing_jobs", {
   metadata: jsonb("metadata"), // dados flexíveis como concursoNome, etc
   
   // Controle de processamento
-  queueJobId: varchar("queue_job_id"), // ID do job na fila BullMQ
   attempts: integer("attempts").default(0),
   maxAttempts: integer("max_attempts").default(3),
   
