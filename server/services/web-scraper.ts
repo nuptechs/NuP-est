@@ -992,6 +992,472 @@ export class WebScraperService {
       return [];
     }
   }
+  /**
+   * Valida uma URL para ver se é adequada para scraping
+   */
+  async validateUrlForScraping(url: string): Promise<{
+    valid: boolean;
+    accessible: boolean;
+    scrapable: boolean;
+    method?: 'simple' | 'advanced' | 'unsupported';
+    error?: string;
+    details?: string;
+    suggestions?: string[];
+  }> {
+    try {
+      console.log(`🔍 Validando capacidade de scraping para: ${url}`);
+
+      // Teste 1: Acessibilidade básica
+      let response;
+      try {
+        response = await fetch(url, {
+          method: 'HEAD',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; NuP-est Bot; Educational Content Indexing)'
+          },
+          timeout: 10000
+        });
+      } catch (error) {
+        return {
+          valid: false,
+          accessible: false,
+          scrapable: false,
+          error: "URL inacessível",
+          details: "Não foi possível conectar à URL. Verifique se está correta e acessível."
+        };
+      }
+
+      if (!response.ok) {
+        return {
+          valid: false,
+          accessible: false,
+          scrapable: false,
+          error: `Erro HTTP ${response.status}`,
+          details: "O servidor retornou um erro. Verifique se a URL está correta."
+        };
+      }
+
+      console.log(`✅ URL acessível (HTTP ${response.status})`);
+
+      // Teste 2: Tentativa de scraping simples
+      try {
+        const scrapingTest = await this.testSimpleScraping(url);
+        
+        if (scrapingTest.success) {
+          return {
+            valid: true,
+            accessible: true,
+            scrapable: true,
+            method: 'simple',
+            details: `Scraping simples funcionou! Encontrado ${scrapingTest.contentLength} caracteres de conteúdo útil.`,
+            suggestions: [
+              "Esta URL é compatível com scraping simples",
+              "O processamento será rápido e eficiente",
+              "Conteúdo será indexado automaticamente"
+            ]
+          };
+        }
+      } catch (error) {
+        console.log(`⚠️ Scraping simples falhou: ${error}`);
+      }
+
+      // Teste 3: Verificar se pode usar métodos avançados
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('application/javascript') || 
+          contentType.includes('application/json')) {
+        return {
+          valid: true,
+          accessible: true,
+          scrapable: false,
+          method: 'unsupported',
+          error: "Site requer JavaScript",
+          details: "Este site usa conteúdo gerado dinamicamente por JavaScript. Atualmente não é suportado.",
+          suggestions: [
+            "Procure uma versão alternativa da página",
+            "Verifique se existe uma API pública disponível",
+            "Entre em contato se este site for essencial"
+          ]
+        };
+      }
+
+      // Site acessível mas scraping simples falhou
+      return {
+        valid: true,
+        accessible: true,
+        scrapable: false,
+        method: 'advanced',
+        error: "Requer método avançado",
+        details: "Site acessível mas requer processamento mais avançado. Funcionalidade em desenvolvimento.",
+        suggestions: [
+          "O site pode usar proteções contra scraping",
+          "Conteúdo pode ser carregado dinamicamente",
+          "Tentaremos processar com métodos alternativos"
+        ]
+      };
+
+    } catch (error) {
+      console.error(`❌ Erro na validação de scraping:`, error);
+      return {
+        valid: false,
+        accessible: false,
+        scrapable: false,
+        error: "Erro interno",
+        details: "Erro inesperado durante a validação. Tente novamente."
+      };
+    }
+  }
+
+  /**
+   * Testa scraping simples em uma URL
+   */
+  private async testSimpleScraping(url: string): Promise<{
+    success: boolean;
+    contentLength: number;
+    hasUsefulContent: boolean;
+  }> {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; NuP-est Bot; Educational Content Indexing)'
+        },
+        timeout: 15000
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      // Remover scripts, styles e outros elementos desnecessários
+      $('script, style, nav, footer, header, .advertisement, .ad').remove();
+
+      // Extrair texto útil
+      const bodyText = $('body').text().trim();
+      const usefulContent = bodyText
+        .replace(/\s+/g, ' ')
+        .replace(/\n+/g, '\n')
+        .trim();
+
+      const hasUsefulContent = usefulContent.length > 200 && 
+        /[a-zA-ZÀ-ÿ]/.test(usefulContent);
+
+      return {
+        success: hasUsefulContent,
+        contentLength: usefulContent.length,
+        hasUsefulContent
+      };
+    } catch (error) {
+      return {
+        success: false,
+        contentLength: 0,
+        hasUsefulContent: false
+      };
+    }
+  }
+
+  /**
+   * Processa um website de forma inteligente e progressiva
+   */
+  async processWebsiteIntelligently(
+    url: string,
+    searchTypes: string[],
+    siteId: string
+  ): Promise<{
+    success: boolean;
+    method: 'simple' | 'structured' | 'advanced' | 'failed';
+    documentsProcessed: number;
+    error?: string;
+    details?: string;
+  }> {
+    try {
+      console.log(`🧠 Iniciando processamento inteligente de: ${url}`);
+
+      // Detectar se é um site com padrão conhecido
+      const sitePattern = this.detectSitePattern(url);
+      
+      if (sitePattern) {
+        console.log(`🎯 Padrão detectado: ${sitePattern.name}`);
+        return await this.processWithPattern(url, searchTypes, siteId, sitePattern);
+      }
+
+      // Tentar scraping simples
+      console.log(`🔄 Tentando processamento simples...`);
+      try {
+        const simpleResult = await this.processWithSimpleScraping(url, searchTypes, siteId);
+        if (simpleResult.success) {
+          return simpleResult;
+        }
+      } catch (error) {
+        console.log(`⚠️ Processamento simples falhou: ${error}`);
+      }
+
+      // Se chegou aqui, tentar método avançado (futuro)
+      return {
+        success: false,
+        method: 'failed',
+        documentsProcessed: 0,
+        error: "Método de processamento não suportado",
+        details: "Este site requer processamento avançado que ainda não está implementado."
+      };
+
+    } catch (error) {
+      console.error(`❌ Erro no processamento inteligente:`, error);
+      return {
+        success: false,
+        method: 'failed',
+        documentsProcessed: 0,
+        error: "Erro interno",
+        details: String(error)
+      };
+    }
+  }
+
+  /**
+   * Detecta padrões conhecidos de sites
+   */
+  private detectSitePattern(url: string): {
+    name: string;
+    type: 'competition' | 'education' | 'news' | 'generic';
+    patterns: {
+      titleSelector?: string;
+      contentSelector?: string;
+      listSelector?: string;
+      linkSelector?: string;
+    };
+  } | null {
+    const urlLower = url.toLowerCase();
+
+    // Padrão para sites de concurso similares ao Cebraspe
+    if (urlLower.includes('cebraspe.org.br') || urlLower.includes('cespe.unb.br')) {
+      return {
+        name: 'Cebraspe/Cespe',
+        type: 'competition',
+        patterns: {
+          titleSelector: 'h3, .titulo, .concurso-nome',
+          contentSelector: '.conteudo, .informacoes, .detalhes',
+          listSelector: '.lista-concursos, .concursos',
+          linkSelector: 'a[href*="concurso"], a[href*="edital"]'
+        }
+      };
+    }
+
+    // Adicionar mais padrões conforme necessário
+    return null;
+  }
+
+  /**
+   * Processa usando padrão específico detectado
+   */
+  private async processWithPattern(
+    url: string,
+    searchTypes: string[],
+    siteId: string,
+    pattern: { name: string; type: string; patterns: any }
+  ): Promise<{
+    success: boolean;
+    method: 'structured';
+    documentsProcessed: number;
+    details?: string;
+  }> {
+    console.log(`🏗️ Processando com padrão ${pattern.name}`);
+
+    try {
+      // Para padrão Cebraspe, usar lógica existente mas generalizada
+      if (pattern.name === 'Cebraspe/Cespe') {
+        const result = await this.processCompetitionSite(url, searchTypes, siteId);
+        return {
+          success: true,
+          method: 'structured',
+          documentsProcessed: result.count,
+          details: `Processado usando padrão de concursos. ${result.count} itens indexados.`
+        };
+      }
+
+      // Processar outros padrões conforme implementado
+      throw new Error(`Padrão ${pattern.name} não implementado ainda`);
+
+    } catch (error) {
+      throw new Error(`Erro no processamento com padrão: ${error}`);
+    }
+  }
+
+  /**
+   * Processa usando scraping simples
+   */
+  private async processWithSimpleScraping(
+    url: string,
+    searchTypes: string[],
+    siteId: string
+  ): Promise<{
+    success: boolean;
+    method: 'simple';
+    documentsProcessed: number;
+    details?: string;
+  }> {
+    console.log(`📄 Processando com scraping simples`);
+
+    const pages = await this.realScrapeWithPagination(url, 10, 2);
+    
+    if (pages.length === 0) {
+      throw new Error('Nenhuma página coletada');
+    }
+
+    let processedCount = 0;
+    for (const page of pages) {
+      const chunks = this.chunkContent(page.content, 1000);
+      
+      for (const chunk of chunks) {
+        if (chunk.trim().length > 100) {
+          const embedding = await embeddingsService.generateEmbedding(chunk);
+          
+          await pineconeService.upsertDocument({
+            id: `${siteId}-page-${processedCount}-${Date.now()}`,
+            content: chunk,
+            metadata: {
+              url: page.url,
+              title: page.title,
+              source: 'web-scraping',
+              searchTypes: searchTypes,
+              siteId: siteId,
+              scrapedAt: new Date().toISOString()
+            },
+            embedding
+          });
+          
+          processedCount++;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      method: 'simple',
+      documentsProcessed: processedCount,
+      details: `Processamento simples concluído. ${processedCount} chunks indexados de ${pages.length} páginas.`
+    };
+  }
+
+  /**
+   * Processa site de concursos (generalização da lógica Cebraspe)
+   */
+  private async processCompetitionSite(
+    url: string,
+    searchTypes: string[],
+    siteId: string
+  ): Promise<{ count: number }> {
+    console.log(`🏛️ Processando site de concursos`);
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; NuP-est Bot; Educational Content Indexing)'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const content = await response.text();
+      
+      // Processar conteúdo estruturado
+      const competitions = this.extractCompetitionsFromContent(content, url);
+      
+      if (competitions.length === 0) {
+        throw new Error('Nenhum concurso encontrado no conteúdo');
+      }
+
+      // Indexar cada concurso
+      let count = 0;
+      for (const competition of competitions) {
+        const competitionText = this.formatCompetitionForIndexing(competition);
+        const embedding = await embeddingsService.generateEmbedding(competitionText);
+        
+        await pineconeService.upsertDocument({
+          id: `${siteId}-competition-${count}-${Date.now()}`,
+          content: competitionText,
+          metadata: {
+            url: competition.url,
+            title: competition.name,
+            source: 'competition-site',
+            searchTypes: searchTypes,
+            siteId: siteId,
+            orgao: competition.orgao,
+            cargo: competition.cargo,
+            status: competition.status,
+            scrapedAt: new Date().toISOString()
+          },
+          embedding
+        });
+        
+        count++;
+      }
+
+      console.log(`✅ Indexados ${count} concursos`);
+      return { count };
+
+    } catch (error) {
+      console.error(`❌ Erro no processamento de concursos:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extrai concursos do conteúdo (versão genérica)
+   */
+  private extractCompetitionsFromContent(content: string, url: string): Array<{
+    name: string;
+    url: string;
+    vagas: string;
+    salario: string;
+    orgao: string;
+    cargo: string;
+    status: string;
+  }> {
+    const competitions: Array<{
+      name: string;
+      url: string;
+      vagas: string;
+      salario: string;
+      orgao: string;
+      cargo: string;
+      status: string;
+    }> = [];
+
+    // Padrão Cebraspe (mantido por compatibilidade)
+    const cebraspeRegex = /###\s*([^#]+?)\s*(?:\n.*?(\d+\s+vagas))?.*?(?:Até\s+(R\$[\d.,]+))?.*?\[MAIS INFORMAÇÕES\]\((https:\/\/[^)]+)\)/gs;
+    
+    let match;
+    while ((match = cebraspeRegex.exec(content)) !== null) {
+      const [, nome, vagas, salario, concursoUrl] = match;
+      
+      if (nome && concursoUrl) {
+        competitions.push({
+          name: nome.trim(),
+          url: concursoUrl.trim(),
+          vagas: vagas || '',
+          salario: salario || '',
+          orgao: this.extractOrgaoFromName(nome.trim()),
+          cargo: this.extractCargoFromName(nome.trim()),
+          status: url.includes('encerrado') ? 'Encerrado' : 'Disponível'
+        });
+      }
+    }
+
+    // TODO: Adicionar outros padrões de sites de concurso
+    
+    return competitions;
+  }
+
+  /**
+   * Formatar concurso para indexação
+   */
+  private formatCompetitionForIndexing(competition: any): string {
+    return `${competition.name}\n\nÓrgão: ${competition.orgao}\nCargo: ${competition.cargo}\nStatus: ${competition.status}\nVagas: ${competition.vagas}\nSalário: ${competition.salario}\nMais informações: ${competition.url}`;
+  }
 }
 
 export const webScraperService = new WebScraperService();

@@ -41,6 +41,50 @@ router.get("/site-search-types", isAuthenticated, async (req, res) => {
   }
 });
 
+// Validar e testar URL antes de salvar
+router.post("/validate-url", isAuthenticated, async (req, res) => {
+  try {
+    const { url } = req.body;
+    
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ 
+        valid: false, 
+        error: "URL é obrigatória",
+        details: "Por favor, forneça uma URL válida"
+      });
+    }
+
+    // Validar formato da URL
+    let validUrl: URL;
+    try {
+      validUrl = new URL(url);
+      if (!['http:', 'https:'].includes(validUrl.protocol)) {
+        throw new Error('Protocolo inválido');
+      }
+    } catch (error) {
+      return res.status(400).json({ 
+        valid: false, 
+        error: "Formato de URL inválido",
+        details: "A URL deve estar no formato: https://exemplo.com"
+      });
+    }
+
+    console.log(`🔍 Validando URL: ${url}`);
+
+    // Testar conectividade e scraping
+    const validationResult = await webScraperService.validateUrlForScraping(url);
+    
+    res.json(validationResult);
+  } catch (error: any) {
+    console.error('❌ Erro na validação da URL:', error);
+    res.status(500).json({ 
+      valid: false,
+      error: "Erro interno do servidor",
+      details: "Não foi possível validar a URL. Tente novamente."
+    });
+  }
+});
+
 // Criar novo site de busca
 router.post("/search-sites", isAuthenticated, async (req, res) => {
   try {
@@ -52,6 +96,24 @@ router.post("/search-sites", isAuthenticated, async (req, res) => {
     // Validar tipos de busca
     if (!Array.isArray(searchTypes) || searchTypes.length === 0) {
       return res.status(400).json({ error: "Tipos de busca são obrigatórios" });
+    }
+
+    // Validar URL novamente antes de salvar
+    console.log(`📝 Salvando site configurado: ${siteData.url}`);
+    
+    try {
+      const urlValidation = new URL(siteData.url);
+      if (!['http:', 'https:'].includes(urlValidation.protocol)) {
+        return res.status(400).json({ 
+          error: "URL inválida",
+          details: "A URL deve usar protocolo HTTP ou HTTPS"
+        });
+      }
+    } catch (error) {
+      return res.status(400).json({ 
+        error: "Formato de URL inválido",
+        details: "Verifique se a URL está no formato correto"
+      });
     }
 
     // Iniciar transação
@@ -71,29 +133,25 @@ router.post("/search-sites", isAuthenticated, async (req, res) => {
       return newSite;
     });
 
-    // Iniciar scraping em background (não bloquear resposta)
-    console.log(`🚀 Iniciando scraping em background para: ${siteData.url}`);
-    webScraperService.scrapeWebsite(
+    // Iniciar processamento inteligente em background
+    console.log(`🚀 Iniciando processamento inteligente para: ${siteData.url}`);
+    webScraperService.processWebsiteIntelligently(
       siteData.url, 
       searchTypes, 
-      result.id,
-      {
-        maxPages: 50,  // Aumentado para coletar mais conteúdo
-        maxDepth: 3,   // Profundidade maior para mais paginações
-        delay: 300     // Delay menor para ser mais rápido
-      }
-    ).then(() => {
-      console.log(`✅ Scraping concluído com sucesso para: ${siteData.url}`);
+      result.id
+    ).then((processResult) => {
+      console.log(`✅ Processamento concluído para: ${siteData.url}`);
+      console.log(`📊 Resultados: ${processResult.documentsProcessed} documentos, método: ${processResult.method}`);
     }).catch(error => {
-      console.error(`❌ Erro no scraping de ${siteData.url}:`, error);
+      console.error(`❌ Erro no processamento de ${siteData.url}:`, error);
       // TODO: Notificar usuário sobre erro (WebSocket ou polling)
     });
 
     res.status(201).json({
       ...result,
-      scrapingStarted: true,
-      scrapingStatus: 'iniciado',
-      message: "Site criado com sucesso. Scraping iniciado automaticamente - aguarde enquanto coletamos todo o conteúdo e envios para o sistema de busca."
+      processingStarted: true,
+      processingStatus: 'iniciado',
+      message: `Site '${siteData.name}' configurado com sucesso! O sistema está processando automaticamente o conteúdo e enviando para a base de conhecimento. Você poderá buscar informações deste site em alguns minutos.`
     });
   } catch (error: any) {
     console.error("Erro ao criar site:", error);
