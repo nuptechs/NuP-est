@@ -114,21 +114,28 @@ async function findMatchesRAG(userInput: string): Promise<SearchResult> {
   try {
     console.log(`🔍 Buscando concurso via RAG: "${userInput}"`);
     
-    // Usar o serviço RAG para buscar concursos
-    const results = await cebraspeEmbeddingsService.buscarConcursoPorRAG(userInput);
+    // Usar o serviço para buscar concursos via scraping real
+    const concursos = await cebraspeEmbeddingsService.buscarConcursos();
+    
+    // Filtrar por relevância com a query do usuário
+    const results = concursos.filter(c => 
+      c.name.toLowerCase().includes(userInput.toLowerCase()) ||
+      c.fullContent.toLowerCase().includes(userInput.toLowerCase())
+    ).map(c => ({ ...c, score: 0.5 }));
     
     if (results.length === 0) {
       console.log('❌ Nenhum concurso encontrado via RAG');
       return {
         success: false,
-        message: 'Não foi possível encontrar um concurso correspondente no Cebraspe'
+        message: '🚫 Sistema de Transparência: Nenhum dado obtido via scraping real do Cebraspe',
+        // details removido - não existe na interface SearchResult
       };
     }
     
     // Função para verificar relevância baseada em palavras-chave
     const isRelevantMatch = (query: string, result: any): boolean => {
       // Normalizar texto removendo acentos
-      const normalize = (str: string) => str.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+      const normalize = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       
       const queryWords = normalize(query).trim().split(/\s+/);
       const resultContent = normalize(`${result.name} ${result.fullContent || ''}`);
@@ -206,7 +213,8 @@ async function findMatchesRAG(userInput: string): Promise<SearchResult> {
     if (validResults.length === 0) {
       return {
         success: false,
-        message: 'Não encontramos concursos com relevância suficiente. Tente termos mais específicos como "PF", "INSS" ou "Tribunal".'
+        message: '🔍 Resultados de scraping real insuficientes',
+        // details removido - não existe na interface SearchResult
       };
     }
     
@@ -382,7 +390,16 @@ router.post('/search', async (req, res) => {
       console.log('❌ Nenhum concurso encontrado');
       res.json({
         success: false,
-        message: 'Não foi possível encontrar um concurso correspondente no Cebraspe nem nos sites configurados'
+        message: '🚫 TRANSPARÊNCIA TOTAL: Nenhum dado encontrado via scraping real',
+        details: {
+          explanation: 'Este sistema foi configurado para total transparência - não utilizamos dados hardcoded ou fictícios',
+          attempts: [
+            'Tentativa de scraping real do site Cebraspe',
+            'Busca em sites configurados pelo administrador'
+          ],
+          result: 'Nenhuma fonte retornou dados válidos para sua busca',
+          suggestion: 'Verifique se os sites estão acessíveis ou tente termos de busca diferentes'
+        }
       });
     }
   } catch (error) {
