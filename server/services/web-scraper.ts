@@ -1,5 +1,7 @@
 import { embeddingsService } from './embeddings';
 import { pineconeService } from './pinecone';
+import fetch from 'node-fetch';
+import * as cheerio from 'cheerio';
 
 interface ScrapedPage {
   url: string;
@@ -43,8 +45,8 @@ export class WebScraperService {
       this.baseUrl = new URL(url).origin;
       this.visitedUrls.clear();
 
-      // Simular scraping com Puppeteer (por questões de segurança, vou usar uma versão mock)
-      const scrapedPages = await this.mockScrapeWithPagination(url, maxPages, maxDepth);
+      // Fazer scraping real da URL
+      const scrapedPages = await this.realScrapeWithPagination(url, maxPages, maxDepth);
       
       console.log(`📄 Coletadas ${scrapedPages.length} páginas para processamento`);
 
@@ -86,6 +88,51 @@ export class WebScraperService {
       console.error('❌ Erro durante scraping:', error);
       throw error;
     }
+  }
+
+  /**
+   * Scraping real com paginação usando fetch e cheerio
+   */
+  private async realScrapeWithPagination(url: string, maxPages: number, maxDepth: number): Promise<ScrapedPage[]> {
+    const pages: ScrapedPage[] = [];
+    const urlsToVisit: { url: string; depth: number }[] = [{ url, depth: 0 }];
+    
+    while (urlsToVisit.length > 0 && pages.length < maxPages) {
+      const { url: currentUrl, depth } = urlsToVisit.shift()!;
+      
+      if (this.visitedUrls.has(currentUrl) || depth > maxDepth) {
+        continue;
+      }
+
+      this.visitedUrls.add(currentUrl);
+      
+      try {
+        // Fazer requisição HTTP real e extração de conteúdo
+        const page = await this.realExtractPageContent(currentUrl);
+        if (page.content.trim()) { // Só adicionar se tiver conteúdo
+          pages.push(page);
+        }
+        
+        // Se não atingiu a profundidade máxima, adicionar links encontrados
+        if (depth < maxDepth) {
+          for (const link of page.links) {
+            if (!this.visitedUrls.has(link) && this.isValidUrl(link)) {
+              urlsToVisit.push({ url: link, depth: depth + 1 });
+            }
+          }
+        }
+        
+        console.log(`📊 Coletada: ${page.title} (${pages.length}/${maxPages})`);
+        
+        // Pausa entre requisições para não sobrecarregar o servidor
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+      } catch (error: any) {
+        console.warn(`⚠️ Erro ao processar ${currentUrl}:`, error.message);
+      }
+    }
+    
+    return pages;
   }
 
   /**
@@ -303,6 +350,156 @@ export class WebScraperService {
       content: content.trim(),
       links: links.filter(link => !this.visitedUrls.has(link))
     };
+  }
+
+  /**
+   * Extração real de conteúdo da página usando fetch e cheerio
+   */
+  private async realExtractPageContent(url: string): Promise<ScrapedPage> {
+    try {
+      console.log(`🔍 Fazendo scraping de: ${url}`);
+      
+      // Fazer requisição HTTP com timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      // Remover scripts, styles e outros elementos não desejados
+      $('script, style, nav, header, footer, .menu, .navigation').remove();
+
+      // Extrair título
+      let title = $('title').text().trim() || $('h1').first().text().trim() || 'Página sem título';
+
+      // Extrair conteúdo principal
+      let content = '';
+      
+      // Tentar extrair conteúdo de containers principais
+      const contentSelectors = [
+        'main',
+        '.content',
+        '.main-content', 
+        '#content',
+        'article',
+        '.post',
+        '.entry-content',
+        'body'
+      ];
+
+      for (const selector of contentSelectors) {
+        const element = $(selector);
+        if (element.length > 0) {
+          content = element.text().trim();
+          if (content.length > 100) { // Se encontrou conteúdo substancial, usar este
+            break;
+          }
+        }
+      }
+
+      // Se não encontrou conteúdo nos seletores específicos, usar todo o body
+      if (!content || content.length < 100) {
+        content = $('body').text().trim();
+      }
+
+      // Limpar conteúdo (remover quebras de linha excessivas, espaços)
+      content = content.replace(/\s+/g, ' ').trim();
+
+      // Extrair links da mesma origem
+      const links: string[] = [];
+      $('a[href]').each((_, element) => {
+        const href = $(element).attr('href');
+        if (href) {
+          const absoluteUrl = this.resolveUrl(href, url);
+          if (absoluteUrl && this.isSameOrigin(absoluteUrl, url)) {
+            links.push(absoluteUrl);
+          }
+        }
+      });
+
+      // Remover duplicatas dos links
+      const uniqueLinks = Array.from(new Set(links));
+
+      console.log(`✅ Coletado: ${title} - ${content.length} caracteres, ${uniqueLinks.length} links`);
+
+      return {
+        url,
+        title,
+        content,
+        links: uniqueLinks.slice(0, 20) // Limitar a 20 links por página
+      };
+
+    } catch (error: any) {
+      console.warn(`⚠️ Erro ao fazer scraping de ${url}:`, error.message);
+      return {
+        url,
+        title: `Erro ao carregar: ${url}`,
+        content: '',
+        links: []
+      };
+    }
+  }
+
+  /**
+   * Resolve URL relativa para absoluta
+   */
+  private resolveUrl(href: string, baseUrl: string): string | null {
+    try {
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        return href;
+      }
+      return new URL(href, baseUrl).href;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Verifica se duas URLs são da mesma origem
+   */
+  private isSameOrigin(url1: string, url2: string): boolean {
+    try {
+      const origin1 = new URL(url1).origin;
+      const origin2 = new URL(url2).origin;
+      return origin1 === origin2;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Valida se uma URL é válida e deve ser processada
+   */
+  private isValidUrl(url: string): boolean {
+    try {
+      const parsedUrl = new URL(url);
+      // Filtrar apenas HTTP/HTTPS
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return false;
+      }
+      // Filtrar arquivos que não queremos processar
+      const pathname = parsedUrl.pathname.toLowerCase();
+      const excludeExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.zip', '.rar', '.jpg', '.jpeg', '.png', '.gif'];
+      if (excludeExtensions.some(ext => pathname.endsWith(ext))) {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
