@@ -310,10 +310,21 @@ class CebraspeEmbeddingsService {
         console.log(`📊 ${result.documentsProcessed} documentos processados usando método: ${result.method}`);
         console.log('✅ Dados reais do Cebraspe agora estão indexados no Pinecone');
       } else {
-        console.warn('⚠️ Processamento real falhou, usando dados de fallback...');
+        console.warn('⚠️ Processamento simples falhou, tentando com navegador avançado...');
         
-        // Se o scraping real falhar, usar dados hardcoded como fallback
-        await this.processarDadosHardcoded();
+        // Tentar com browser scraping (Playwright)
+        const browserResult = await this.processarComBrowser();
+        
+        if (browserResult.success) {
+          console.log(`🎉 Processamento com navegador concluído com sucesso!`);
+          console.log(`📊 ${browserResult.documentsProcessed} documentos processados via browser`);
+          console.log('✅ Dados extraídos via navegador agora estão indexados no Pinecone');
+        } else {
+          console.warn('⚠️ Processamento com navegador também falhou, usando dados de fallback...');
+          
+          // Se o browser scraping também falhar, usar dados hardcoded como fallback
+          await this.processarDadosHardcoded();
+        }
       }
       
     } catch (error) {
@@ -322,6 +333,85 @@ class CebraspeEmbeddingsService {
       
       // Em caso de erro, usar dados hardcoded como backup
       await this.processarDadosHardcoded();
+    }
+  }
+
+  /**
+   * Processa usando navegador avançado (Playwright)
+   */
+  private async processarComBrowser(): Promise<{ success: boolean; documentsProcessed: number }> {
+    console.log('🚀 Iniciando processamento com navegador Playwright...');
+    
+    try {
+      // Importar browserScraperService
+      const { browserScraperService } = await import('./browser-scraper');
+      
+      // URLs do site do Cebraspe para tentar com navegador
+      const cebraspeUrls = [
+        'https://www.cebraspe.org.br/concursos/',
+        'https://www.cebraspe.org.br/concursos/encerrado',
+        'https://www.cebraspe.org.br/concursos/andamento'
+      ];
+      
+      // Usar browser scraping para extrair dados reais
+      const result = await browserScraperService.scrapeMultipleCebraspePages(cebraspeUrls);
+      
+      if (result.success && result.results.length > 0) {
+        console.log(`📊 Browser extraiu ${result.totalConcursos} concursos reais!`);
+        
+        // Processar e indexar os concursos extraídos
+        for (const concurso of result.results) {
+          // Criar chunks do conteúdo extraído
+          const chunks = [{
+            content: concurso.texto || concurso.titulo,
+            chunkIndex: 0
+          }];
+          
+          // Extrair ano do título/texto
+          const yearMatch = concurso.titulo.match(/20\d{2}/);
+          const year = yearMatch ? yearMatch[0] : '2025';
+          
+          // Preparar metadados
+          const metadata = {
+            userId: CONCURSOS_NAMESPACE,
+            title: concurso.titulo,
+            category: 'concurso',
+            status: 'Extraído via Browser',
+            year: year,
+            area: this.extractArea(concurso.titulo, concurso.titulo)
+          };
+          
+          // Gerar ID único baseado no título
+          const concursoId = `browser-${concurso.titulo.toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 50)}`;
+          
+          // Enviar para Pinecone
+          await pineconeService.upsertDocument(
+            concursoId,
+            chunks,
+            metadata
+          );
+          
+          console.log(`✅ ${concurso.titulo} indexado via browser`);
+        }
+        
+        return {
+          success: true,
+          documentsProcessed: result.totalConcursos
+        };
+      } else {
+        console.warn('⚠️ Browser scraping não encontrou concursos');
+        return {
+          success: false,
+          documentsProcessed: 0
+        };
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro no processamento com browser:', error);
+      return {
+        success: false,
+        documentsProcessed: 0
+      };
     }
   }
 

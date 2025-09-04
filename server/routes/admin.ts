@@ -325,4 +325,50 @@ router.put("/search-sites/:id/types", isAuthenticated, async (req, res) => {
   }
 });
 
+// ===== ENDPOINT PARA TESTAR BROWSER SCRAPING =====
+
+// Testar browser scraping diretamente no Cebraspe
+router.post("/test-browser-scraping", isAuthenticated, async (req, res) => {
+  try {
+    console.log('🚀 Iniciando teste de browser scraping...');
+    
+    // Importar browserScraperService dinamicamente
+    const { browserScraperService } = await import('../services/browser-scraper');
+    
+    // URLs do Cebraspe para testar
+    const testUrls = [
+      'https://www.cebraspe.org.br/concursos/',
+      'https://www.cebraspe.org.br/concursos/encerrado'
+    ];
+    
+    console.log(`🌐 Testando browser scraping em ${testUrls.length} URLs...`);
+    
+    // Executar browser scraping
+    const result = await browserScraperService.scrapeMultipleCebraspePages(testUrls);
+    
+    res.json({
+      success: result.success,
+      message: `Browser scraping concluído: ${result.totalConcursos} concursos extraídos`,
+      details: {
+        totalConcursos: result.totalConcursos,
+        totalUrls: testUrls.length,
+        errors: result.errors,
+        firstConcursos: result.results.slice(0, 3).map(c => ({ 
+          titulo: c.titulo, 
+          fonte: c.fonte,
+          metodo: c.metodo 
+        }))
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no teste de browser scraping:', error);
+    res.status(500).json({ 
+      success: false,
+      error: "Erro ao executar browser scraping",
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+});
+
 export default router;
