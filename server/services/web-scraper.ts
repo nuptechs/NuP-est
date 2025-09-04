@@ -33,7 +33,7 @@ export class WebScraperService {
     options: ScrapingOptions = {}
   ): Promise<void> {
     try {
-      console.log(`🕷️ Iniciando scraping de: ${url}`);
+      console.log(`🕷️ Iniciando scraping completo de: ${url}`);
       
       const {
         maxPages = 50,
@@ -45,48 +45,73 @@ export class WebScraperService {
       this.baseUrl = new URL(url).origin;
       this.visitedUrls.clear();
 
+      // Validar se a URL é acessível antes de começar
+      await this.validateUrl(url);
+
       // Fazer scraping real da URL
+      console.log(`🌐 Coletando páginas com parâmetros: maxPages=${maxPages}, maxDepth=${maxDepth}`);
       const scrapedPages = await this.realScrapeWithPagination(url, maxPages, maxDepth);
+      
+      if (scrapedPages.length === 0) {
+        throw new Error('Nenhuma página foi coletada. Verifique se a URL está acessível.');
+      }
       
       console.log(`📄 Coletadas ${scrapedPages.length} páginas para processamento`);
 
       // Processar cada página coletada
+      let processedCount = 0;
       for (let index = 0; index < scrapedPages.length; index++) {
         const page = scrapedPages[index];
         console.log(`📝 Processando página ${index + 1}/${scrapedPages.length}: ${page.title}`);
         
-        // Quebrar conteúdo em chunks
-        const chunks = this.chunkContent(page.content, 1000);
-        
-        // Preparar metadados
-        const metadata = {
-          userId: 'admin_scraped', // Namespace para conteúdo scrapado
-          title: page.title,
-          category: 'website',
-          siteId: siteId,
-          sourceUrl: page.url,
-          searchTypes: searchTypes.join(','),
-          scrapedAt: new Date().toISOString()
-        };
+        try {
+          // Quebrar conteúdo em chunks
+          const chunks = this.chunkContent(page.content, 1000);
+          
+          if (chunks.length === 0) {
+            console.warn(`⚠️ Página sem conteúdo válido: ${page.url}`);
+            continue;
+          }
+          
+          // Preparar metadados
+          const metadata = {
+            userId: 'admin_scraped', // Namespace para conteúdo scrapado
+            title: page.title,
+            category: 'website',
+            siteId: siteId,
+            sourceUrl: page.url,
+            searchTypes: searchTypes.join(','),
+            scrapedAt: new Date().toISOString()
+          };
 
-        // Enviar para Pinecone
-        await pineconeService.upsertDocument(
-          `scraped_${siteId}_${index}`,
-          chunks,
-          metadata
-        );
+          // Enviar para Pinecone com retry
+          await this.sendToPineconeWithRetry(
+            `scraped_${siteId}_${index}`,
+            chunks,
+            metadata
+          );
 
-        console.log(`✅ Página processada: ${page.title}`);
+          processedCount++;
+          console.log(`✅ Página processada: ${page.title} (${processedCount}/${scrapedPages.length})`);
+          
+        } catch (pageError: any) {
+          console.error(`❌ Erro ao processar página ${page.url}:`, pageError.message);
+          // Continuar com a próxima página ao invés de parar
+        }
         
         // Pausa entre processamentos
         await new Promise(resolve => setTimeout(resolve, delay));
       }
 
-      console.log(`🎉 Scraping completo! ${scrapedPages.length} páginas processadas e enviadas para Pinecone`);
+      if (processedCount === 0) {
+        throw new Error('Nenhuma página foi processada com sucesso.');
+      }
+
+      console.log(`🎉 Scraping concluído com sucesso! ${processedCount}/${scrapedPages.length} páginas processadas e enviadas para Pinecone`);
       
     } catch (error: any) {
-      console.error('❌ Erro durante scraping:', error);
-      throw error;
+      console.error('❌ Erro crítico durante scraping:', error);
+      throw new Error(`Falha no scraping de ${url}: ${error.message}`);
     }
   }
 
@@ -359,13 +384,19 @@ export class WebScraperService {
     try {
       console.log(`🔍 Fazendo scraping de: ${url}`);
       
-      // Fazer requisição HTTP com timeout
+      // Fazer requisição HTTP com timeout aumentado
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Timeout maior para sites lentos
       
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
         },
         signal: controller.signal
       });
@@ -500,6 +531,79 @@ export class WebScraperService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Valida se uma URL é acessível antes de iniciar o scraping
+   */
+  private async validateUrl(url: string): Promise<void> {
+    try {
+      console.log(`🔗 Validando URL: ${url}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(url, {
+        method: 'HEAD', // Usar HEAD para validar sem baixar conteúdo
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`URL não acessível: HTTP ${response.status} ${response.statusText}`);
+      }
+      
+      console.log(`✅ URL validada com sucesso: ${url}`);
+      
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout ao acessar a URL. Verifique se o site está online.');
+      }
+      throw new Error(`Erro ao validar URL: ${error.message}`);
+    }
+  }
+
+  /**
+   * Envia dados para Pinecone com retry em caso de erro
+   */
+  private async sendToPineconeWithRetry(
+    id: string,
+    chunks: { content: string; chunkIndex: number }[],
+    metadata: any,
+    maxRetries: number = 3
+  ): Promise<void> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Processando ${chunks.length} chunks para Pinecone...`);
+        
+        // Enviar para Pinecone
+        await pineconeService.upsertDocument(id, chunks, metadata);
+        
+        console.log(`📤 Batch ${attempt} enviado para Pinecone`);
+        console.log(`✅ Documento ${id} indexado no Pinecone com ${chunks.length} chunks`);
+        
+        return; // Sucesso, sair da função
+        
+      } catch (error: any) {
+        lastError = error;
+        console.error(`❌ Tentativa ${attempt}/${maxRetries} falhou para ${id}:`, error.message);
+        
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // Backoff exponencial
+          console.log(`⏳ Aguardando ${delay}ms antes da próxima tentativa...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    // Se chegou aqui, todas as tentativas falharam
+    throw new Error(`Falha ao enviar para Pinecone após ${maxRetries} tentativas: ${lastError?.message}`);
   }
 
   /**

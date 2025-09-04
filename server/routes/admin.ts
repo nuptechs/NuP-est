@@ -78,18 +78,22 @@ router.post("/search-sites", isAuthenticated, async (req, res) => {
       searchTypes, 
       result.id,
       {
-        maxPages: 20,
-        maxDepth: 2,
-        delay: 500
+        maxPages: 50,  // Aumentado para coletar mais conteúdo
+        maxDepth: 3,   // Profundidade maior para mais paginações
+        delay: 300     // Delay menor para ser mais rápido
       }
-    ).catch(error => {
+    ).then(() => {
+      console.log(`✅ Scraping concluído com sucesso para: ${siteData.url}`);
+    }).catch(error => {
       console.error(`❌ Erro no scraping de ${siteData.url}:`, error);
+      // TODO: Notificar usuário sobre erro (WebSocket ou polling)
     });
 
     res.status(201).json({
       ...result,
       scrapingStarted: true,
-      message: "Site criado com sucesso. Scraping iniciado em background."
+      scrapingStatus: 'iniciado',
+      message: "Site criado com sucesso. Scraping iniciado automaticamente - aguarde enquanto coletamos todo o conteúdo e envios para o sistema de busca."
     });
   } catch (error: any) {
     console.error("Erro ao criar site:", error);

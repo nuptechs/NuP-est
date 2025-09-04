@@ -202,7 +202,8 @@ export default function AdminSearchConfig() {
         
         toast({
           title: "✅ Site adicionado com sucesso!",
-          description: `${row.name} foi configurado e o scraping iniciou. A nova URL aparecerá na tabela abaixo.`,
+          description: `${row.name} foi configurado e o scraping iniciou automaticamente. Aguarde alguns minutos enquanto coletamos todo o conteúdo da página e suas paginações para o sistema de busca.`,
+          duration: 8000, // Toast mais longo para dar tempo de ler
         });
         
         // Remover a linha editada da tabela local
@@ -245,7 +246,8 @@ export default function AdminSearchConfig() {
       
       toast({
         title: "✅ Sites salvos com sucesso!",
-        description: `${newRows.length} sites foram configurados e o scraping iniciou. As novas URLs aparecerão na tabela abaixo.`,
+        description: `${newRows.length} sites foram configurados e o scraping automático iniciou. Aguarde alguns minutos enquanto coletamos todo o conteúdo das páginas e suas paginações para o sistema de busca.`,
+        duration: 8000, // Toast mais longo para dar tempo de ler
       });
       
       // Limpar todas as linhas novas da tabela
@@ -314,7 +316,10 @@ export default function AdminSearchConfig() {
                 URLs Configuradas ({sites.length})
               </CardTitle>
               <CardDescription>
-                Sites atualmente configurados para busca integrada
+                Sites atualmente configurados para busca integrada. 
+                <span className="text-green-600 font-medium">
+                  Todos os sites passam por scraping automático completo incluindo paginações.
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -378,7 +383,19 @@ export default function AdminSearchConfig() {
                   Adicionar Novos Sites
                 </CardTitle>
                 <CardDescription>
-                  Configure múltiplas URLs de busca e seus tipos. Adicione uma URL por linha.
+                  Configure múltiplas URLs de busca e seus tipos. 
+                  <br />
+                  <span className="text-blue-600 font-medium">
+                    🤖 Ao salvar, o sistema automaticamente:
+                  </span>
+                  <br />
+                  <span className="text-sm text-gray-600">
+                    • Valida se a URL está acessível<br />
+                    • Coleta todo o conteúdo da página<br />
+                    • Navega pelas paginações (até 50 páginas)<br />
+                    • Processa e envia para o sistema de busca<br />
+                    • Torna o conteúdo disponível para pesquisas
+                  </span>
                 </CardDescription>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
