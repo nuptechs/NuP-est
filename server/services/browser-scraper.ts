@@ -1,4 +1,4 @@
-import { chromium, Browser, Page } from 'playwright';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import * as cheerio from 'cheerio';
 
 export interface BrowserScrapingResult {
@@ -20,15 +20,16 @@ export class BrowserScraperService {
    */
   private async initBrowser(): Promise<Browser> {
     if (!this.browser) {
-      console.log('🚀 Iniciando navegador Playwright...');
-      this.browser = await chromium.launch({
+      console.log('🚀 Iniciando navegador Puppeteer...');
+      this.browser = await puppeteer.launch({
         headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
+          '--disable-features=VizDisplayCompositor',
+          '--disable-blink-features=AutomationControlled'
         ]
       });
     }
@@ -67,20 +68,24 @@ export class BrowserScraperService {
       
       // Navegar para a página
       await page.goto(url, { 
-        waitUntil: 'networkidle',
+        waitUntil: 'networkidle0',
         timeout: 30000 
       });
       
       // Aguardar elemento específico se fornecido
       if (options.waitForSelector) {
         console.log(`⏳ Aguardando elemento: ${options.waitForSelector}`);
-        await page.waitForSelector(options.waitForSelector, { timeout: 10000 });
+        try {
+          await page.waitForSelector(options.waitForSelector, { timeout: 10000 });
+        } catch (error) {
+          console.warn(`⚠️ Elemento ${options.waitForSelector} não encontrado, continuando...`);
+        }
       }
       
       // Aguardar tempo adicional se especificado
       if (options.waitTime) {
         console.log(`⏳ Aguardando ${options.waitTime}ms para carregamento completo`);
-        await page.waitForTimeout(options.waitTime);
+        await new Promise(resolve => setTimeout(resolve, options.waitTime));
       }
       
       // Rolar até o final da página se solicitado
