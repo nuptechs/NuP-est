@@ -528,4 +528,49 @@ router.get('/configured-sites', async (req, res) => {
   }
 });
 
+// Rota para testar scraping direto do Cebraspe com Playwright
+router.post('/test-scraper', async (req, res) => {
+  try {
+    const { url } = req.body;
+    const targetUrl = url || 'https://www.cebraspe.org.br/concursos/encerrado';
+    
+    console.log(`🚀 TESTE DIRETO: Fazendo scraping de ${targetUrl}`);
+    
+    // Usar o browser scraper diretamente
+    const { browserScraperService } = await import('../services/browser-scraper');
+    const result = await browserScraperService.scrapeCebraspePage(targetUrl);
+    
+    console.log(`📊 Resultado do teste: ${JSON.stringify({
+      success: result.success,
+      concursosEncontrados: result.concursos?.length || 0,
+      tamanhoConteudo: result.content?.length || 0
+    }, null, 2)}`);
+    
+    res.json({
+      success: true,
+      message: '🎯 Teste de scraping concluído',
+      resultado: {
+        urlTestada: targetUrl,
+        sucessoScraping: result.success,
+        concursosExtraidos: result.concursos?.length || 0,
+        tamanhoConteudo: result.content?.length || 0,
+        erro: result.error || null,
+        primeiros5Concursos: result.concursos?.slice(0, 5).map(c => ({
+          titulo: c.titulo,
+          link: c.link,
+          preview: c.texto.substring(0, 150) + '...'
+        })) || []
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no teste de scraping:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro no teste de scraping',
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+});
+
 export { router as cebraspeRouter };
