@@ -482,7 +482,7 @@ export class WebScraperService {
 
       // Extrair links da mesma origem
       const links: string[] = [];
-      $('a[href]').each((_, element) => {
+      $('a[href]').each((_: any, element: any) => {
         const href = $(element).attr('href');
         if (href) {
           const absoluteUrl = this.resolveUrl(href, url);
@@ -770,34 +770,82 @@ export class WebScraperService {
    * Usa Puppeteer para renderizar páginas que requerem JavaScript
    */
   private async scrapeWithPuppeteer(url: string): Promise<{ title: string; content: string }> {
-    console.log('🚀 Usando Puppeteer para renderizar JavaScript em:', url);
+    console.log('🚀 Puppeteer: Navegando para', url);
     
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     });
 
     try {
       const page = await browser.newPage();
       
-      // Configurar timeout e aguardar carregamento
-      await page.setDefaultNavigationTimeout(30000);
-      await page.goto(url, { waitUntil: 'networkidle0' });
+      // Configurar User-Agent e viewport
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      await page.setViewport({ width: 1920, height: 1080 });
       
-      // Aguardar um pouco mais para JavaScript executar
-      await page.waitForTimeout(3000);
+      // Navegar e aguardar carregamento completo
+      await page.goto(url, { 
+        waitUntil: 'networkidle0',
+        timeout: 45000 
+      });
+      
+      // Aguardar elementos específicos do Cebraspe carregarem
+      try {
+        await page.waitForSelector('body', { timeout: 10000 });
+        console.log('🔍 Puppeteer: Aguardando JavaScript carregar...');
+        await new Promise(resolve => setTimeout(resolve, 8000)); // Mais tempo para JavaScript carregar
+        
+        // Tentar aguardar elementos específicos de concursos
+        await page.waitForFunction(() => {
+          const bodyText = document.body.innerText || document.body.textContent || '';
+          return bodyText.length > 500; // Aguardar até ter conteúdo substancial
+        }, { timeout: 15000 }).catch(() => {
+          console.log('⚠️ Timeout aguardando conteúdo, continuando com o que foi carregado');
+        });
+        
+      } catch (error) {
+        console.log('⚠️ Elementos esperados não encontrados, extraindo conteúdo disponível');
+      }
       
       // Extrair título e conteúdo após renderização
       const title = await page.title();
       const content = await page.evaluate(() => {
-        // Remover scripts e styles para obter apenas conteúdo
-        const scripts = document.querySelectorAll('script, style');
-        scripts.forEach(el => el.remove());
+        // Remover elementos desnecessários
+        const elementsToRemove = document.querySelectorAll('script, style, nav, header, footer, .menu, .navigation');
+        elementsToRemove.forEach(el => el.remove());
         
-        return document.body.innerText || document.body.textContent || '';
+        // Tentar seletores específicos para concursos primeiro
+        const concursoSelectors = [
+          '.lista-concursos',
+          '.concurso-item', 
+          '.concursos',
+          '.content',
+          '.main-content',
+          'main',
+          '.container'
+        ];
+        
+        let content = '';
+        for (const selector of concursoSelectors) {
+          const element = document.querySelector(selector) as HTMLElement;
+          if (element) {
+            const text = (element as any).innerText || element.textContent || '';
+            if (text.length > content.length) {
+              content = text;
+            }
+          }
+        }
+        
+        // Se não encontrou conteúdo específico, usar body inteiro
+        if (content.length < 200) {
+          content = document.body.innerText || document.body.textContent || '';
+        }
+        
+        return content.trim();
       });
 
-      console.log('✅ Puppeteer extraiu conteúdo com sucesso:', content.length, 'caracteres');
+      console.log(`✅ Puppeteer extraiu: ${title} - ${content.length} caracteres`);
       
       return { title, content };
     } catch (error) {
