@@ -254,50 +254,87 @@ class CebraspeEmbeddingsService {
   }
   
   /**
-   * Processa e envia dados dos concursos para o Pinecone
+   * Processa e envia dados dos concursos para o Pinecone usando scraping real
    */
   async processarConcursosParaPinecone(): Promise<void> {
-    console.log('🚀 Iniciando processamento de concursos para Pinecone...');
+    console.log('🚀 Iniciando processamento REAL de concursos do Cebraspe...');
     
     try {
-      for (const concurso of concursosDetalhados) {
-        console.log(`📄 Processando: ${concurso.name}`);
+      // Importar webScraperService
+      const { webScraperService } = await import('./web-scraper');
+      
+      // URL do site real do Cebraspe
+      const cebraspeUrl = 'https://www.cebraspe.org.br/concursos/';
+      
+      console.log('🌐 Fazendo scraping real do site do Cebraspe...');
+      
+      // Usar o sistema de processamento inteligente que implementei
+      const result = await webScraperService.processWebsiteIntelligently(
+        cebraspeUrl,
+        ['concurso_publico'],
+        'cebraspe-real-scraping'
+      );
+      
+      if (result.success) {
+        console.log(`🎉 Processamento real concluído com sucesso!`);
+        console.log(`📊 ${result.documentsProcessed} documentos processados usando método: ${result.method}`);
+        console.log('✅ Dados reais do Cebraspe agora estão indexados no Pinecone');
+      } else {
+        console.warn('⚠️ Processamento real falhou, usando dados de fallback...');
         
-        // Criar chunks do conteúdo (um chunk por concurso)
-        const chunks = [{
-          content: concurso.fullContent,
-          chunkIndex: 0
-        }];
-        
-        // Extrair ano do fullContent para metadados
-        const yearMatch = concurso.fullContent.match(/20\d{2}/);
-        const year = yearMatch ? yearMatch[0] : '2025';
-        
-        // Preparar metadados usando a interface do PineconeService
-        const metadata = {
-          userId: CONCURSOS_NAMESPACE, // Usar namespace como userId para separação
-          title: `${concurso.name} ${year}`,
-          category: 'concurso',
-          status: concurso.status || 'Em Andamento',
-          year: year,
-          area: this.extractArea(concurso.name, concurso.orgao || '')
-        };
-        
-        // Enviar para Pinecone usando o método existente
-        await pineconeService.upsertDocument(
-          concurso.id,
-          chunks,
-          metadata
-        );
-        
-        console.log(`✅ ${concurso.name} processado com sucesso`);
+        // Se o scraping real falhar, usar dados hardcoded como fallback
+        await this.processarDadosHardcoded();
       }
       
-      console.log('🎉 Todos os concursos foram processados com sucesso!');
     } catch (error) {
-      console.error('❌ Erro ao processar concursos:', error);
-      throw error;
+      console.error('❌ Erro no processamento real:', error);
+      console.log('🔄 Tentando com dados de fallback...');
+      
+      // Em caso de erro, usar dados hardcoded como backup
+      await this.processarDadosHardcoded();
     }
+  }
+
+  /**
+   * Processa dados hardcoded como fallback
+   */
+  private async processarDadosHardcoded(): Promise<void> {
+    console.log('📋 Processando dados hardcoded como fallback...');
+    
+    for (const concurso of concursosDetalhados) {
+      console.log(`📄 Processando: ${concurso.name}`);
+      
+      // Criar chunks do conteúdo (um chunk por concurso)
+      const chunks = [{
+        content: concurso.fullContent,
+        chunkIndex: 0
+      }];
+      
+      // Extrair ano do fullContent para metadados
+      const yearMatch = concurso.fullContent.match(/20\d{2}/);
+      const year = yearMatch ? yearMatch[0] : '2025';
+      
+      // Preparar metadados usando a interface do PineconeService
+      const metadata = {
+        userId: CONCURSOS_NAMESPACE, // Usar namespace como userId para separação
+        title: `${concurso.name} ${year}`,
+        category: 'concurso',
+        status: concurso.status || 'Em Andamento',
+        year: year,
+        area: this.extractArea(concurso.name, concurso.orgao || '')
+      };
+      
+      // Enviar para Pinecone usando o método existente
+      await pineconeService.upsertDocument(
+        concurso.id,
+        chunks,
+        metadata
+      );
+      
+      console.log(`✅ ${concurso.name} processado com sucesso`);
+    }
+    
+    console.log('✅ Dados de fallback processados com sucesso!');
   }
   
   /**
