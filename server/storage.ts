@@ -50,6 +50,9 @@ import {
   processingJobs,
   type ProcessingJob,
   type InsertProcessingJob,
+  editais,
+  type Edital,
+  type InsertEdital,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, or, isNotNull } from "drizzle-orm";
@@ -155,6 +158,14 @@ export interface IStorage {
   getUserProcessingJobs(userId: string, status?: string): Promise<ProcessingJob[]>;
   updateProcessingJob(id: string, updates: Partial<ProcessingJob>): Promise<ProcessingJob>;
   deleteProcessingJob(id: string): Promise<void>;
+
+  // Edital operations
+  createEdital(edital: InsertEdital): Promise<Edital>;
+  getEdital(id: string): Promise<Edital | undefined>;
+  getUserEditais(userId: string, status?: string): Promise<Edital[]>;
+  updateEdital(id: string, updates: Partial<Edital>): Promise<Edital>;
+  deleteEdital(id: string): Promise<void>;
+  getEditalByFilename(userId: string, fileName: string): Promise<Edital | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -911,6 +922,68 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(processingJobs)
       .where(eq(processingJobs.id, id));
+  }
+
+  // Edital operations
+  async createEdital(edital: InsertEdital): Promise<Edital> {
+    const [newEdital] = await db
+      .insert(editais)
+      .values(edital)
+      .returning();
+    return newEdital;
+  }
+
+  async getEdital(id: string): Promise<Edital | undefined> {
+    const [edital] = await db
+      .select()
+      .from(editais)
+      .where(eq(editais.id, id))
+      .limit(1);
+    return edital;
+  }
+
+  async getUserEditais(userId: string, status?: string): Promise<Edital[]> {
+    const conditions = [eq(editais.userId, userId)];
+    
+    if (status) {
+      conditions.push(eq(editais.status, status as any));
+    }
+
+    return await db
+      .select()
+      .from(editais)
+      .where(and(...conditions))
+      .orderBy(desc(editais.createdAt));
+  }
+
+  async updateEdital(id: string, updates: Partial<Edital>): Promise<Edital> {
+    const [updatedEdital] = await db
+      .update(editais)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(editais.id, id))
+      .returning();
+    return updatedEdital;
+  }
+
+  async deleteEdital(id: string): Promise<void> {
+    await db
+      .delete(editais)
+      .where(eq(editais.id, id));
+  }
+
+  async getEditalByFilename(userId: string, fileName: string): Promise<Edital | undefined> {
+    const [edital] = await db
+      .select()
+      .from(editais)
+      .where(and(
+        eq(editais.userId, userId),
+        eq(editais.fileName, fileName)
+      ))
+      .limit(1);
+    return edital;
   }
 }
 

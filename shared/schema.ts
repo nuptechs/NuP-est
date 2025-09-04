@@ -370,7 +370,15 @@ export const jobStatusEnum = pgEnum("job_status", [
 ]);
 
 export const jobTypeEnum = pgEnum("job_type", [
-  "pdf_processing", "edital_processing", "document_analysis"
+  "pdf_processing", "edital_processing", "document_analysis", "file_processing"
+]);
+
+export const fileTypeEnum = pgEnum("file_type", [
+  "pdf", "docx", "doc", "xlsx", "xls", "json", "csv", "txt"
+]);
+
+export const editalStatusEnum = pgEnum("edital_status", [
+  "uploaded", "processing", "chunked", "indexed", "analyzed", "completed", "failed"
 ]);
 
 export const processingJobs = pgTable("processing_jobs", {
@@ -404,6 +412,43 @@ export const processingJobs = pgTable("processing_jobs", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ===== EDITAIS =====
+export const editais = pgTable("editais", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // Informações do arquivo
+  fileName: varchar("file_name").notNull(),
+  originalName: varchar("original_name").notNull(),
+  filePath: varchar("file_path").notNull(),
+  fileSize: integer("file_size"),
+  fileType: fileTypeEnum("file_type").notNull(),
+  
+  // Metadados do concurso
+  concursoNome: varchar("concurso_nome").notNull(),
+  status: editalStatusEnum("status").default("uploaded").notNull(),
+  
+  // Conteúdo e processamento
+  rawContent: text("raw_content"), // Texto extraído do arquivo
+  deepseekChunks: jsonb("deepseek_chunks"), // Chunks gerados pelo DeepSeek R1
+  pineconeIndexed: boolean("pinecone_indexed").default(false),
+  
+  // Análise de cargos
+  hasSingleCargo: boolean("has_single_cargo"),
+  cargoName: varchar("cargo_name"),
+  cargos: jsonb("cargos"), // Lista de cargos quando múltiplos
+  conteudoProgramatico: jsonb("conteudo_programatico"),
+  
+  // Controle de processamento
+  processingLogs: text("processing_logs"),
+  errorMessage: text("error_message"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   subjects: many(subjects),
@@ -422,6 +467,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   subjectKnowledge: many(subjectKnowledge),
   learningHistory: many(learningHistory),
   assessmentResults: many(assessmentResults),
+  editais: many(editais),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -624,6 +670,13 @@ export const assessmentResultsRelations = relations(assessmentResults, ({ one })
   }),
 }));
 
+export const editaisRelations = relations(editais, ({ one }) => ({
+  user: one(users, {
+    fields: [editais.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -747,6 +800,13 @@ export const insertAssessmentResultSchema = createInsertSchema(assessmentResults
   completedAt: true,
 });
 
+export const insertEditalSchema = createInsertSchema(editais).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  processedAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -776,6 +836,8 @@ export type KnowledgeBase = typeof knowledgeBase.$inferSelect;
 export type InsertKnowledgeBase = z.infer<typeof insertKnowledgeBaseSchema>;
 export type KnowledgeChunk = typeof knowledgeChunks.$inferSelect;
 export type InsertKnowledgeChunk = z.infer<typeof insertKnowledgeChunkSchema>;
+export type Edital = typeof editais.$inferSelect;
+export type InsertEdital = z.infer<typeof insertEditalSchema>;
 
 // === TIPOS PARA NOVAS TABELAS ===
 export type SubjectKnowledge = typeof subjectKnowledge.$inferSelect;

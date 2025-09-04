@@ -3,14 +3,12 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { z } from 'zod';
-import { editalService } from '../services/edital';
-import { editalAutomaticoService } from '../services/editalAutomatico';
-import { queueService } from '../services/queue';
-import { storage as dbStorage } from '../storage';
+import { newEditalService } from '../services/newEditalService';
+import { fileProcessorService } from '../services/fileProcessor';
 
 const router = Router();
 
-// Configurar multer para upload de PDFs
+// Configurar multer para upload de múltiplos formatos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/editais';
@@ -28,148 +26,132 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
+    // Validar usando o fileProcessorService
+    const isSupported = fileProcessorService.isFileTypeSupported(file.originalname);
+    const supportedMimeTypes = fileProcessorService.getSupportedMimeTypes();
+    
+    if (isSupported && supportedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Apenas arquivos PDF são aceitos'));
+      const supportedExtensions = fileProcessorService.getSupportedExtensions().join(', ');
+      cb(new Error(`Tipo de arquivo não suportado. Formatos aceitos: ${supportedExtensions}`));
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limite para prevenir problemas de memória
+    fileSize: 50 * 1024 * 1024 // 50MB limite
   }
 });
 
 // Schemas de validação
-const processarEditalSchema = z.object({
+const uploadEditalSchema = z.object({
   concursoNome: z.string().min(1, 'Nome do concurso é obrigatório')
 });
 
 const consultarEditalSchema = z.object({
-  concursoNome: z.string().min(1, 'Nome do concurso é obrigatório'),
+  editalId: z.string().min(1, 'ID do edital é obrigatório'),
   query: z.string().min(1, 'Pergunta é obrigatória')
 });
 
-const processarAutomaticoSchema = z.object({
-  concursoNome: z.string().min(1, 'Nome do concurso é obrigatório')
-});
-
-// Endpoint para upload e enfileiramento de processamento de edital
-router.post('/upload', upload.single('edital'), async (req, res) => {
+// ===== NOVA ARQUITETURA DE UPLOAD =====
+// Endpoint principal para upload e processamento direto
+router.post('/upload', upload.single('arquivo'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        error: 'Arquivo PDF é obrigatório'
+        error: 'Arquivo é obrigatório',
+        message: 'Nenhum arquivo foi enviado. Por favor, selecione um arquivo.',
+        supportedFormats: fileProcessorService.getSupportedFileTypes()
       });
     }
 
-    const { concursoNome } = processarEditalSchema.parse(req.body);
+    const { concursoNome } = uploadEditalSchema.parse(req.body);
     const userId = (req as any).user?.claims?.sub;
 
     if (!userId) {
+      // Limpar arquivo se usuário não autenticado
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      
       return res.status(401).json({
         success: false,
-        error: 'Usuário não autenticado'
+        error: 'Usuário não autenticado',
+        message: 'Faça login para enviar arquivos.'
       });
     }
     
-    console.log(`📤 Upload recebido: ${req.file.originalname} para concurso ${concursoNome}`);
+    console.log(`📤 Upload recebido: ${req.file.originalname} (${(req.file.size / 1024 / 1024).toFixed(2)}MB) para concurso ${concursoNome}`);
     
-    // Verificar se Redis está disponível
-    const redisConnected = await queueService.isRedisConnected();
-    if (!redisConnected) {
-      // Limpar arquivo
+    // Validar arquivo usando o novo serviço
+    const validation = newEditalService.validateFile(req.file.originalname, req.file.size);
+    if (!validation.valid) {
+      // Limpar arquivo inválido
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
       
-      return res.status(503).json({
+      return res.status(400).json({
         success: false,
-        error: 'Sistema de processamento indisponível',
-        message: 'O serviço de processamento de arquivos está temporariamente indisponível. Tente novamente em alguns minutos.',
-        details: 'Redis (sistema de filas) não está conectado. Entre em contato com o suporte se o problema persistir.',
-        supportInfo: {
-          errorCode: 'REDIS_UNAVAILABLE',
-          timestamp: new Date().toISOString()
-        }
+        error: validation.error,
+        message: 'Arquivo não atende aos requisitos de formato ou tamanho.',
+        supportedFormats: fileProcessorService.getSupportedFileTypes()
       });
     }
     
-    // Criar registro do job no banco
-    const processingJob = await dbStorage.createProcessingJob({
+    // Processar arquivo diretamente com a nova arquitetura
+    console.log(`🚀 Iniciando processamento síncrono com DeepSeek R1...`);
+    
+    const result = await newEditalService.processEdital({
       userId,
-      type: 'edital_processing',
-      fileName: req.file.originalname,
       filePath: req.file.path,
+      fileName: req.file.filename,
+      originalName: req.file.originalname,
       fileSize: req.file.size,
-      metadata: {
-        concursoNome,
-        type: 'edital_processing'
-      }
+      concursoNome
     });
-
-    // Enfileirar job para processamento assíncrono
-    try {
-      await queueService.addPDFProcessingJob({
-        jobId: processingJob.id,
-        userId,
-        filePath: req.file.path,
-        fileName: req.file.originalname,
-        fileSize: req.file.size,
-        metadata: {
-          concursoNome,
-          type: 'edital_processing'
-        }
-      });
-
-      console.log(`✅ Job ${processingJob.id} enfileirado com sucesso`);
-      
-      res.json({
-        success: true,
-        job: {
-          id: processingJob.id,
-          status: processingJob.status,
-          fileName: processingJob.fileName,
-          concursoNome,
-          createdAt: processingJob.createdAt
-        },
-        message: 'Upload realizado com sucesso. O processamento será feito em segundo plano.',
-        instructions: [
-          'O arquivo está sendo processado automaticamente',
-          'Use o endpoint GET /api/edital/status/{jobId} para acompanhar o progresso',
-          'Você receberá uma notificação quando o processamento for concluído'
-        ]
-      });
-      
-    } catch (queueError) {
-      console.error('❌ Erro ao enfileirar job:', queueError);
-      
-      // Marcar job como falha no banco
-      await dbStorage.updateProcessingJob(processingJob.id, {
-        status: 'failed',
-        errorMessage: 'Falha ao enfileirar processamento: ' + (queueError as Error).message
-      });
-      
-      // Limpar arquivo
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-      
-      return res.status(503).json({
+    
+    if (!result.success) {
+      return res.status(500).json({
         success: false,
-        error: 'Falha ao enfileirar processamento',
-        message: 'Não foi possível adicionar o arquivo à fila de processamento. Tente novamente.',
-        details: 'Sistema de filas apresentou erro. Se o problema persistir, entre em contato com o suporte.',
-        supportInfo: {
-          errorCode: 'QUEUE_ERROR',
-          jobId: processingJob.id,
+        error: 'Falha no processamento',
+        message: result.message,
+        details: {
+          fileName: req.file.originalname,
+          concurso: concursoNome,
           timestamp: new Date().toISOString()
         }
       });
     }
+    
+    console.log(`✅ Edital processado com sucesso: ${result.edital.id}`);
+    
+    res.json({
+      success: true,
+      edital: {
+        id: result.edital.id,
+        fileName: result.edital.originalName,
+        fileType: result.edital.fileType,
+        concursoNome: result.edital.concursoNome,
+        status: result.edital.status,
+        hasSingleCargo: result.edital.hasSingleCargo,
+        cargoName: result.edital.cargoName,
+        cargos: result.edital.cargos,
+        createdAt: result.edital.createdAt,
+        processedAt: result.edital.processedAt
+      },
+      message: 'Edital processado com sucesso usando DeepSeek R1',
+      details: result.details,
+      instructions: [
+        'Arquivo processado e analisado com IA',
+        'Chunks inteligentes foram gerados e indexados',
+        'Use o endpoint POST /api/edital/consultar para fazer perguntas',
+        'Acesse GET /api/edital/lista para ver todos os editais'
+      ]
+    });
     
   } catch (error) {
-    console.error('❌ Erro ao processar upload:', error);
+    console.error('❌ Erro no processamento do edital:', error);
     
     // Limpar arquivo em caso de erro
     if (req.file && fs.existsSync(req.file.path)) {
@@ -188,9 +170,9 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor',
-      message: 'Ocorreu um erro interno ao processar o upload. Tente novamente em alguns minutos.',
+      message: 'Ocorreu um erro interno ao processar o arquivo. Tente novamente.',
       supportInfo: {
-        errorCode: 'INTERNAL_ERROR',
+        errorCode: 'PROCESSING_ERROR',
         timestamp: new Date().toISOString()
       }
     });
@@ -200,17 +182,54 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
 // Endpoint para consultar informações do edital processado
 router.post('/consultar', async (req, res) => {
   try {
-    const { concursoNome, query } = consultarEditalSchema.parse(req.body);
+    const { editalId, query } = consultarEditalSchema.parse(req.body);
+    const userId = (req as any).user?.claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado'
+      });
+    }
     
-    console.log(`🔍 Consultando edital ${concursoNome}: "${query}"`);
+    console.log(`🔍 Consultando edital ${editalId}: "${query}"`);
     
-    const resposta = await editalService.buscarInformacaoEdital(concursoNome, query);
+    // Verificar se o edital existe e pertence ao usuário
+    const edital = await newEditalService.getEdital(editalId);
+    if (!edital) {
+      return res.status(404).json({
+        success: false,
+        error: 'Edital não encontrado'
+      });
+    }
+
+    if (edital.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Acesso negado ao edital'
+      });
+    }
+
+    if (edital.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Edital ainda não foi processado completamente',
+        status: edital.status
+      });
+    }
+    
+    const resposta = await newEditalService.searchEditalContent(userId, editalId, query);
     
     res.json({
       success: true,
-      concurso: concursoNome,
+      edital: {
+        id: edital.id,
+        fileName: edital.originalName,
+        concursoNome: edital.concursoNome
+      },
       pergunta: query,
-      resposta: resposta
+      resposta: resposta,
+      processedAt: edital.processedAt
     });
     
   } catch (error) {
@@ -226,166 +245,14 @@ router.post('/consultar', async (req, res) => {
     
     res.status(500).json({
       success: false,
-      error: 'Erro interno ao consultar edital'
+      error: 'Erro interno ao consultar edital',
+      message: 'Ocorreu um erro ao buscar informações no edital. Tente novamente.'
     });
   }
 });
 
-// Endpoint para processamento automático completo
-router.post('/processar-automatico', async (req, res) => {
-  try {
-    const { concursoNome } = processarAutomaticoSchema.parse(req.body);
-    
-    console.log(`🤖 Iniciando processamento automático para: ${concursoNome}`);
-    
-    const resultado = await editalAutomaticoService.processarEditalAutomaticamente(concursoNome);
-    
-    if (!resultado.success) {
-      return res.status(400).json({
-        success: false,
-        error: resultado.error,
-        message: resultado.message,
-        requiresManualUpload: resultado.requiresManualUpload,
-        editalUrl: resultado.editalUrl
-      });
-    }
-    
-    res.json({
-      success: true,
-      concurso: concursoNome,
-      editalUrl: resultado.editalUrl,
-      cargos: resultado.cargos,
-      message: 'Edital processado automaticamente com sucesso!'
-    });
-    
-  } catch (error) {
-    console.error('❌ Erro no processamento automático:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Dados inválidos',
-        details: error.errors
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno no processamento automático'
-    });
-  }
-});
-
-// Endpoint para download de edital (simulação)
-router.post('/download', async (req, res) => {
-  try {
-    const { concursoNome, url } = z.object({
-      concursoNome: z.string().min(1),
-      url: z.string().url()
-    }).parse(req.body);
-    
-    console.log(`⬇️ Simulando download de edital para: ${concursoNome}`);
-    
-    // Aqui normalmente faria o download real do PDF
-    // Por enquanto, vamos simular retornando informações
-    
-    res.json({
-      success: true,
-      message: 'Download simulado. Use o endpoint /upload para enviar o PDF manualmente.',
-      concurso: concursoNome,
-      url: url,
-      instructions: [
-        '1. Baixe o edital manualmente do link fornecido',
-        '2. Use o endpoint POST /api/edital/upload com o arquivo',
-        '3. O sistema processará automaticamente o conteúdo'
-      ]
-    });
-    
-  } catch (error) {
-    console.error('❌ Erro no download:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Dados inválidos',
-        details: error.errors
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno no download'
-    });
-  }
-});
-
-// Endpoint para consultar status de um job
-router.get('/status/:jobId', async (req, res) => {
-  try {
-    const { jobId } = req.params;
-    const userId = (req as any).user?.claims?.sub;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Usuário não autenticado'
-      });
-    }
-
-    // Buscar job no banco
-    const job = await dbStorage.getProcessingJob(jobId);
-    
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        error: 'Job não encontrado'
-      });
-    }
-
-    if (job.userId !== userId) {
-      return res.status(403).json({
-        success: false,
-        error: 'Acesso negado ao job'
-      });
-    }
-
-    // Buscar status na fila se ainda estiver processando
-    let queueStatus = null;
-    if (job.status === 'processing' || job.status === 'pending') {
-      queueStatus = await queueService.getJobStatus(jobId);
-    }
-
-    res.json({
-      success: true,
-      job: {
-        id: job.id,
-        status: job.status,
-        fileName: job.fileName,
-        fileSize: job.fileSize,
-        metadata: job.metadata,
-        result: job.result,
-        errorMessage: job.errorMessage,
-        processingLogs: job.processingLogs,
-        attempts: job.attempts,
-        maxAttempts: job.maxAttempts,
-        createdAt: job.createdAt,
-        startedAt: job.startedAt,
-        completedAt: job.completedAt,
-        queueStatus: queueStatus
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Erro ao consultar status do job:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno ao consultar status'
-    });
-  }
-});
-
-// Endpoint para listar jobs do usuário
-router.get('/jobs', async (req, res) => {
+// Endpoint para listar editais do usuário
+router.get('/lista', async (req, res) => {
   try {
     const userId = (req as any).user?.claims?.sub;
     const { status } = req.query;
@@ -397,81 +264,173 @@ router.get('/jobs', async (req, res) => {
       });
     }
 
-    const jobs = await dbStorage.getUserProcessingJobs(userId, status as string);
+    const editais = await newEditalService.getUserEditais(userId, status as string);
     
     res.json({
       success: true,
-      jobs: jobs.map(job => ({
-        id: job.id,
-        status: job.status,
-        fileName: job.fileName,
-        fileSize: job.fileSize,
-        metadata: job.metadata,
-        attempts: job.attempts,
-        maxAttempts: job.maxAttempts,
-        createdAt: job.createdAt,
-        startedAt: job.startedAt,
-        completedAt: job.completedAt,
-        hasResult: !!job.result,
-        hasError: !!job.errorMessage
+      editais: editais.map(edital => ({
+        id: edital.id,
+        fileName: edital.originalName,
+        fileType: edital.fileType,
+        fileSize: edital.fileSize,
+        concursoNome: edital.concursoNome,
+        status: edital.status,
+        hasSingleCargo: edital.hasSingleCargo,
+        cargoName: edital.cargoName,
+        totalCargos: Array.isArray(edital.cargos) ? edital.cargos.length : (edital.hasSingleCargo ? 1 : 0),
+        createdAt: edital.createdAt,
+        processedAt: edital.processedAt,
+        hasError: !!edital.errorMessage
       })),
-      total: jobs.length
+      total: editais.length,
+      supportedFormats: fileProcessorService.getSupportedFileTypes()
     });
 
   } catch (error) {
-    console.error('❌ Erro ao listar jobs do usuário:', error);
+    console.error('❌ Erro ao listar editais do usuário:', error);
     res.status(500).json({
       success: false,
-      error: 'Erro interno ao listar jobs'
+      error: 'Erro interno ao listar editais'
     });
   }
 });
 
-// Endpoint para estatísticas da fila
-router.get('/queue/stats', async (req, res) => {
+// Endpoint para obter detalhes de um edital específico
+router.get('/:editalId', async (req, res) => {
   try {
-    const redisConnected = await queueService.isRedisConnected();
-    
-    if (!redisConnected) {
-      return res.status(503).json({
+    const { editalId } = req.params;
+    const userId = (req as any).user?.claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({
         success: false,
-        error: 'Sistema de filas indisponível',
-        message: 'O Redis não está conectado. Não é possível obter estatísticas das filas.',
-        stats: {
-          waiting: 0,
-          active: 0,
-          completed: 0,
-          failed: 0,
-          total: 0,
-          redisConnected: false
-        },
-        supportInfo: {
-          errorCode: 'REDIS_UNAVAILABLE',
-          timestamp: new Date().toISOString()
-        }
+        error: 'Usuário não autenticado'
       });
     }
 
-    const stats = await queueService.getQueueStats();
+    const edital = await newEditalService.getEdital(editalId);
     
+    if (!edital) {
+      return res.status(404).json({
+        success: false,
+        error: 'Edital não encontrado'
+      });
+    }
+
+    if (edital.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Acesso negado ao edital'
+      });
+    }
+
     res.json({
       success: true,
-      stats: {
-        ...stats,
-        redisConnected: true
+      edital: {
+        id: edital.id,
+        fileName: edital.originalName,
+        fileType: edital.fileType,
+        fileSize: edital.fileSize,
+        concursoNome: edital.concursoNome,
+        status: edital.status,
+        rawContentLength: edital.rawContent?.length || 0,
+        chunksGenerated: edital.deepseekChunks ? Object.keys(edital.deepseekChunks).length : 0,
+        pineconeIndexed: edital.pineconeIndexed,
+        hasSingleCargo: edital.hasSingleCargo,
+        cargoName: edital.cargoName,
+        cargos: edital.cargos,
+        conteudoProgramatico: edital.conteudoProgramatico,
+        errorMessage: edital.errorMessage,
+        createdAt: edital.createdAt,
+        processedAt: edital.processedAt,
+        updatedAt: edital.updatedAt
       }
     });
 
   } catch (error) {
-    console.error('❌ Erro ao obter estatísticas da fila:', error);
+    console.error('❌ Erro ao obter detalhes do edital:', error);
     res.status(500).json({
       success: false,
-      error: 'Erro interno do servidor',
-      message: 'Ocorreu um erro ao obter estatísticas da fila. Tente novamente em alguns minutos.',
-      supportInfo: {
-        errorCode: 'STATS_ERROR',
-        timestamp: new Date().toISOString()
+      error: 'Erro interno ao obter detalhes'
+    });
+  }
+});
+
+// Endpoint para remover um edital
+router.delete('/:editalId', async (req, res) => {
+  try {
+    const { editalId } = req.params;
+    const userId = (req as any).user?.claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado'
+      });
+    }
+
+    // Verificar se o edital existe e pertence ao usuário
+    const edital = await newEditalService.getEdital(editalId);
+    if (!edital) {
+      return res.status(404).json({
+        success: false,
+        error: 'Edital não encontrado'
+      });
+    }
+
+    if (edital.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Acesso negado ao edital'
+      });
+    }
+
+    await newEditalService.deleteEdital(editalId);
+    
+    res.json({
+      success: true,
+      message: 'Edital removido com sucesso',
+      deletedEdital: {
+        id: edital.id,
+        fileName: edital.originalName,
+        concursoNome: edital.concursoNome
       }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao remover edital:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno ao remover edital'
+    });
+  }
+});
+
+// Endpoint para informações sobre formatos suportados
+router.get('/info/formatos', (req, res) => {
+  try {
+    const supportedFormats = fileProcessorService.getSupportedFileTypes();
+    
+    res.json({
+      success: true,
+      formatosSuportados: supportedFormats,
+      limites: {
+        tamanhoMaximo: '50MB',
+        tiposAceitos: supportedFormats.map(f => f.extension).join(', ')
+      },
+      observacoes: [
+        'Todos os formatos são processados usando inteligência artificial',
+        'Chunks são gerados automaticamente pelo DeepSeek R1',
+        'Conteúdo é indexado para busca semântica',
+        'Análise de cargos é feita automaticamente'
+      ]
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao obter informações de formatos:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno'
     });
   }
 });
