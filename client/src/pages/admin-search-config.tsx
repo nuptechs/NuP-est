@@ -52,8 +52,11 @@ export default function AdminSearchConfig() {
 
   // Efeito para converter sites existentes para o formato da tabela
   useEffect(() => {
-    if (sites && tableRows.length === 0) {
-      const rows = sites.map((site: SearchSite) => ({
+    if (sites) {
+      // Preservar apenas linhas em edição (novas)
+      const editingRows = tableRows.filter(row => row.isNew && row.isEditing);
+      
+      const existingRows = sites.map((site: SearchSite) => ({
         id: site.id,
         name: site.name,
         url: site.url,
@@ -62,9 +65,10 @@ export default function AdminSearchConfig() {
         isEditing: false,
         isNew: false,
       }));
-      setTableRows(rows);
+      
+      setTableRows([...existingRows, ...editingRows]);
     }
-  }, [sites, tableRows.length]);
+  }, [sites]);
 
   // Efeito para atualizar os tipos selecionados nas linhas da tabela
   useEffect(() => {
@@ -197,11 +201,14 @@ export default function AdminSearchConfig() {
         });
         
         toast({
-          title: "Site adicionado",
-          description: "Site de busca configurado com sucesso!",
+          title: "✅ Site adicionado com sucesso!",
+          description: `${row.name} foi configurado e o scraping iniciou. A nova URL aparecerá na tabela abaixo.`,
         });
         
-        // Recarregar dados
+        // Remover a linha editada da tabela local
+        setTableRows(prev => prev.filter(r => r.id !== id));
+        
+        // Recarregar dados para mostrar o novo site
         queryClient.invalidateQueries({ queryKey: ["/api/admin/search-sites"] });
         queryClient.invalidateQueries({ queryKey: ["/api/admin/site-search-types"] });
       } else {
@@ -237,9 +244,12 @@ export default function AdminSearchConfig() {
       }
       
       toast({
-        title: "Sites salvos",
-        description: `${newRows.length} sites foram configurados com sucesso!`,
+        title: "✅ Sites salvos com sucesso!",
+        description: `${newRows.length} sites foram configurados e o scraping iniciou. As novas URLs aparecerão na tabela abaixo.`,
       });
+      
+      // Limpar todas as linhas novas da tabela
+      setTableRows(prev => prev.filter(row => !row.isNew));
       
       // Recarregar dados
       queryClient.invalidateQueries({ queryKey: ["/api/admin/search-sites"] });
@@ -295,13 +305,77 @@ export default function AdminSearchConfig() {
 
       {/* Conteúdo principal */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Card para URLs Configuradas */}
+        {sites && sites.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-green-500" />
+                URLs Configuradas ({sites.length})
+              </CardTitle>
+              <CardDescription>
+                Sites atualmente configurados para busca integrada
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sites.map((site) => {
+                  const siteTypesList = siteTypes?.[site.id]?.filter(t => t.isEnabled) || [];
+                  return (
+                    <div key={site.id} className="border rounded-lg p-4 bg-white shadow-sm">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-medium text-sm text-gray-900 truncate">{site.name}</h3>
+                        <div className="flex gap-1 ml-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              const row = tableRows.find(r => r.id === site.id);
+                              if (row) toggleRowEdit(site.id);
+                            }}
+                            className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeRow(site.id)}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-blue-600 mb-2 break-all">{site.url}</p>
+                      {site.description && (
+                        <p className="text-xs text-gray-600 mb-2">{site.description}</p>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {siteTypesList.map((type) => {
+                          const typeInfo = SEARCH_TYPES.find(t => t.id === type.searchType);
+                          return (
+                            <Badge key={type.searchType} variant="secondary" className="text-xs">
+                              {typeInfo?.label}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-blue-500" />
-                  Sites de Busca
+                  <Plus className="h-5 w-5 text-blue-500" />
+                  Adicionar Novos Sites
                 </CardTitle>
                 <CardDescription>
                   Configure múltiplas URLs de busca e seus tipos. Adicione uma URL por linha.
@@ -344,154 +418,95 @@ export default function AdminSearchConfig() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tableRows.map((row) => (
-                    <TableRow key={row.id} className={row.isNew ? "bg-blue-50" : ""}>
+                  {/* Mostrar apenas linhas em edição (novas) */}
+                  {tableRows.filter(row => row.isNew).map((row) => (
+                    <TableRow key={row.id} className="bg-blue-50">
                       {/* Nome */}
                       <TableCell className="p-2">
-                        {row.isEditing ? (
-                          <Input
-                            value={row.name}
-                            onChange={(e) => updateRow(row.id, { name: e.target.value })}
-                            placeholder="Nome do site"
-                            className="h-8 text-sm"
-                            data-testid={`input-name-${row.id}`}
-                          />
-                        ) : (
-                          <div className="font-medium text-sm break-words max-w-[140px]">{row.name}</div>
-                        )}
+                        <Input
+                          value={row.name}
+                          onChange={(e) => updateRow(row.id, { name: e.target.value })}
+                          placeholder="Nome do site"
+                          className="h-8 text-sm"
+                          data-testid={`input-name-${row.id}`}
+                        />
                       </TableCell>
                       
                       {/* URL */}
                       <TableCell className="p-2">
-                        {row.isEditing ? (
-                          <Input
-                            value={row.url}
-                            onChange={(e) => updateRow(row.id, { url: e.target.value })}
-                            placeholder="https://exemplo.com"
-                            className="h-8 text-sm"
-                            data-testid={`input-url-${row.id}`}
-                          />
-                        ) : (
-                          <div className="text-xs text-blue-600 break-all max-w-[200px]">
-                            {row.url}
-                          </div>
-                        )}
+                        <Input
+                          value={row.url}
+                          onChange={(e) => updateRow(row.id, { url: e.target.value })}
+                          placeholder="https://exemplo.com"
+                          className="h-8 text-sm"
+                          data-testid={`input-url-${row.id}`}
+                        />
                       </TableCell>
                       
                       {/* Descrição */}
                       <TableCell className="p-2">
-                        {row.isEditing ? (
-                          <Input
-                            value={row.description}
-                            onChange={(e) => updateRow(row.id, { description: e.target.value })}
-                            placeholder="Descrição opcional"
-                            className="h-8 text-sm"
-                            data-testid={`input-description-${row.id}`}
-                          />
-                        ) : (
-                          <div className="text-xs text-gray-600 break-words max-w-[120px]">
-                            {row.description || "-"}
-                          </div>
-                        )}
+                        <Input
+                          value={row.description}
+                          onChange={(e) => updateRow(row.id, { description: e.target.value })}
+                          placeholder="Descrição opcional"
+                          className="h-8 text-sm"
+                          data-testid={`input-description-${row.id}`}
+                        />
                       </TableCell>
                       
                       {/* Tipos de Busca */}
                       <TableCell className="p-2">
-                        {row.isEditing ? (
-                          <div className="grid grid-cols-1 gap-1 max-w-[200px]">
-                            {SEARCH_TYPES.map((type) => (
-                              <label
-                                key={type.id}
-                                className="flex items-center gap-1 text-xs cursor-pointer hover:bg-gray-100 px-1 py-0.5 rounded"
-                              >
-                                <Checkbox
-                                  checked={row.selectedTypes.includes(type.id)}
-                                  onCheckedChange={() => toggleType(row.id, type.id)}
-                                  className="h-3 w-3 flex-shrink-0"
-                                  data-testid={`checkbox-${type.id}-${row.id}`}
-                                />
-                                <span className="text-xs leading-none">{type.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {row.selectedTypes.map((typeId) => {
-                              const typeInfo = SEARCH_TYPES.find(t => t.id === typeId);
-                              return (
-                                <Badge key={typeId} variant="secondary" className="text-xs px-1 py-0 h-5">
-                                  {typeInfo?.label}
-                                </Badge>
-                              );
-                            })}
-                            {row.selectedTypes.length === 0 && (
-                              <span className="text-xs text-gray-400">-</span>
-                            )}
-                          </div>
-                        )}
+                        <div className="grid grid-cols-1 gap-1 max-w-[200px]">
+                          {SEARCH_TYPES.map((type) => (
+                            <label
+                              key={type.id}
+                              className="flex items-center gap-1 text-xs cursor-pointer hover:bg-gray-100 px-1 py-0.5 rounded"
+                            >
+                              <Checkbox
+                                checked={row.selectedTypes.includes(type.id)}
+                                onCheckedChange={() => toggleType(row.id, type.id)}
+                                className="h-3 w-3 flex-shrink-0"
+                                data-testid={`checkbox-${type.id}-${row.id}`}
+                              />
+                              <span className="text-xs leading-none">{type.label}</span>
+                            </label>
+                          ))}
+                        </div>
                       </TableCell>
                       
                       {/* Ações */}
                       <TableCell className="p-2">
                         <div className="flex gap-1">
-                          {row.isEditing ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => saveRow(row.id)}
-                                className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                data-testid={`button-save-${row.id}`}
-                              >
-                                <Check className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => row.isNew ? removeRow(row.id) : toggleRowEdit(row.id)}
-                                className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                                data-testid={`button-cancel-${row.id}`}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => toggleRowEdit(row.id)}
-                                className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                data-testid={`button-edit-${row.id}`}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => removeRow(row.id)}
-                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                data-testid={`button-delete-${row.id}`}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </>
-                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => saveRow(row.id)}
+                            className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            data-testid={`button-save-${row.id}`}
+                          >
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeRow(row.id)}
+                            className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                            data-testid={`button-cancel-${row.id}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
                   
-                  {tableRows.length === 0 && (
+                  {/* Mostrar mensagem quando não há linhas de edição */}
+                  {tableRows.filter(row => row.isNew).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                         <div className="flex flex-col items-center gap-2">
-                          <Globe className="h-8 w-8 text-gray-400" />
-                          <p>Nenhum site configurado</p>
-                          <Button onClick={addNewRow} variant="outline" size="sm">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Adicionar Primeiro Site
-                          </Button>
+                          <Plus className="h-8 w-8 text-gray-400" />
+                          <p>Clique em "Adicionar Linha" para incluir um novo site</p>
                         </div>
                       </TableCell>
                     </TableRow>
