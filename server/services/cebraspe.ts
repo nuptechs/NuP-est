@@ -130,7 +130,7 @@ class CebraspeEmbeddingsService {
     }
   }
 
-  async buscarConcursos(): Promise<ConcursoDetalhado[]> {
+  async buscarConcursos(query?: string): Promise<ConcursoDetalhado[]> {
     console.log('🔍 Buscando concursos reais via scraping...');
     
     try {
@@ -149,11 +149,47 @@ class CebraspeEmbeddingsService {
         try {
           console.log(`📄 Fazendo scraping real de: ${url}`);
           
-          const scrapedData = await browserScraperService.scrapeWithBrowser(url, {
-            containerSelector: '.concurso-card, .card-concurso, .concurso-item',
-            titleSelector: 'h3, h2, .titulo, .nome-concurso',
-            contentSelector: '.descricao, .info, .detalhes'
-          });
+          // Tentar scraping simples primeiro (funciona no Replit)
+          let scrapedData = [];
+          try {
+            // Usar webScraperService que funciona com fetch simples
+            const { webScraperService } = await import('../services/web-scraper');
+            const response = await fetch(url);
+            if (response.ok) {
+              const html = await response.text();
+              
+              // Análise básica do HTML para encontrar informações de concursos
+              const concursoMatches = html.match(/concurso[^<]*(?:<[^>]*>[^<]*)*(?:cargo|vaga|edital)/gi) || [];
+              const tituloMatches = html.match(/<h[1-6][^>]*>([^<]*(?:concurso|edital)[^<]*)<\/h[1-6]>/gi) || [];
+              
+              // Criar dados estruturados dos matches encontrados
+              [...concursoMatches.slice(0, 5), ...tituloMatches.slice(0, 5)].forEach((match, index) => {
+                const cleanText = match.replace(/<[^>]*>/g, '').trim();
+                if (cleanText.length > 20) {
+                  scrapedData.push({
+                    titulo: cleanText.substring(0, 100),
+                    texto: cleanText,
+                    link: url
+                  });
+                }
+              });
+            }
+          } catch (error) {
+            console.warn(`⚠️ Erro no scraping simples de ${url}:`, error);
+          }
+          
+          // Se não conseguiu dados com scraping simples, tentar browser scraper (pode falhar no Replit)
+          if (scrapedData.length === 0) {
+            try {
+              scrapedData = await browserScraperService.scrapeWithBrowser(url, {
+                containerSelector: '.concurso-card, .card-concurso, .concurso-item',
+                titleSelector: 'h3, h2, .titulo, .nome-concurso',
+                contentSelector: '.descricao, .info, .detalhes'
+              });
+            } catch (browserError) {
+              console.warn(`⚠️ Browser scraper falhou (esperado no Replit):`, browserError.message);
+            }
+          }
           
           // Converter dados do scraping para interface ConcursoDetalhado
           for (const item of scrapedData) {
@@ -179,6 +215,20 @@ class CebraspeEmbeddingsService {
       
       if (concursosReais.length > 0) {
         console.log(`✅ Total de ${concursosReais.length} concursos obtidos via scraping real`);
+        
+        // Se há uma query de busca, filtrar os resultados
+        if (query && query.trim()) {
+          const queryLower = query.toLowerCase();
+          const filteredResults = concursosReais.filter(concurso => 
+            concurso.name.toLowerCase().includes(queryLower) ||
+            (concurso.description && concurso.description.toLowerCase().includes(queryLower)) ||
+            concurso.fullContent.toLowerCase().includes(queryLower)
+          );
+          
+          console.log(`🔍 Filtrados ${filteredResults.length} concursos que correspondem à busca: "${query}"`);
+          return filteredResults;
+        }
+        
         return concursosReais;
       } else {
         console.log('❌ Scraping não retornou dados válidos');

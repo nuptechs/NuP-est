@@ -145,7 +145,7 @@ export class IntegratedSearchService {
       // 1. Busca no Cebraspe (sempre incluir se for tipo concurso_publico)
       if (searchTypes.includes('concurso_publico')) {
         searches.push(
-          cebraspeEmbeddingsService.buscarConcursoPorRAG(query)
+          cebraspeEmbeddingsService.buscarConcursos(query)
             .catch(error => {
               console.warn('⚠️ Erro na busca Cebraspe:', error);
               return [];
