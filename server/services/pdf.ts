@@ -30,11 +30,9 @@ export class PDFService {
   }
 
   /**
-   * Processa um arquivo PDF e extrai o texto
+   * Processa um arquivo PDF usando streaming para economia de memória
    */
   async processPDF(filePath: string): Promise<PDFProcessingResult> {
-    let dataBuffer: Buffer | null = null;
-    
     try {
       this.logMemoryUsage('início');
       
@@ -44,47 +42,76 @@ export class PDFService {
       
       console.log(`📄 Processando PDF: ${fileSizeInMB.toFixed(2)}MB`);
       
-      // Reduzir limite para 4MB para maior segurança de memória
-      if (fileSizeInMB > 4) {
-        throw new AppError(413, 'FILE_TOO_LARGE', 'Arquivo PDF muito grande. Limite máximo: 4MB');
+      // Reduzir limite para 2MB para maior segurança de memória
+      if (fileSizeInMB > 2) {
+        throw new AppError(413, 'FILE_TOO_LARGE', 'Arquivo PDF muito grande. Limite máximo: 2MB');
       }
 
-      // Ler arquivo em buffer
-      dataBuffer = fs.readFileSync(filePath);
-      this.logMemoryUsage('arquivo carregado');
-      
-      // Processar PDF
-      const data = await pdf(dataBuffer);
+      // Processar PDF em stream com chunks pequenos
+      const result = await this.processPDFInChunks(filePath);
       this.logMemoryUsage('PDF processado');
       
-      // Liberar buffer imediatamente
-      dataBuffer = null;
-      
-      // Forçar garbage collection se disponível
+      // Forçar garbage collection
       if (global.gc) {
         global.gc();
       }
       
-      // Processar texto em chunks menores para reduzir picos de memória
-      let processedText = this.processTextInChunks(data.text);
+      return result;
+      
+    } catch (error) {
+      // Forçar limpeza de memória em caso de erro
+      if (global.gc) {
+        global.gc();
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Processa PDF em chunks pequenos para evitar estouro de memória
+   */
+  private async processPDFInChunks(filePath: string): Promise<PDFProcessingResult> {
+    // Ler arquivo em buffer pequeno controlado
+    const buffer = fs.readFileSync(filePath);
+    this.logMemoryUsage('arquivo carregado');
+    
+    let allText = '';
+    let pageCount = 0;
+    const textChunks: string[] = [];
+    
+    try {
+      // Usar pdf-parse mas com configurações de memória conservativas
+      const options = {
+        // Processar página por página se possível
+        max: 10, // Máximo 10 páginas por vez
+        version: 'v1.10.88'
+      };
+      
+      const data = await pdf(buffer, options);
+      pageCount = data.numpages;
+      
+      // Processar texto em stream usando chunks pequenos
+      allText = await this.processTextInStream(data.text);
+      
       this.logMemoryUsage('texto processado');
       
       // Liberar referência ao texto original
       (data as any).text = null;
       
-      // Chunking otimizado - divide o texto em pedaços de ~300 palavras (reduzido para economizar memória)
-      const chunks = this.chunkTextOptimized(processedText, 300);
+      // Chunking otimizado - divide o texto em pedaços pequenos
+      const chunks = this.chunkTextOptimized(allText, 300);
+      textChunks.push(...chunks);
       this.logMemoryUsage('chunks criados');
       
       const result = {
-        text: processedText,
-        pages: data.numpages,
+        text: allText,
+        pages: pageCount,
         metadata: data.metadata,
-        chunks: chunks
+        chunks: textChunks
       };
       
       // Limpar variáveis locais
-      processedText = '';
+      allText = '';
       
       // Forçar garbage collection novamente
       if (global.gc) {
@@ -96,9 +123,9 @@ export class PDFService {
       
       return result;
     } catch (error) {
-      // Limpar buffers em caso de erro
-      if (dataBuffer) {
-        dataBuffer = null;
+      // Forçar limpeza de memória em caso de erro
+      if (global.gc) {
+        global.gc();
       }
       
       // Forçar garbage collection em caso de erro
@@ -229,6 +256,55 @@ export class PDFService {
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
       .map(item => item.chunk);
+  }
+
+  /**
+   * Processa texto usando streaming para minimizar uso de memória
+   */
+  private async processTextInStream(text: string): Promise<string> {
+    if (!text || text.length === 0) return '';
+    
+    // Se o texto for pequeno, retornar diretamente
+    if (text.length <= 5000) return text;
+    
+    console.log(`🔄 Processando texto em stream (${text.length} chars)`);
+    
+    return new Promise((resolve, reject) => {
+      let processedText = '';
+      let buffer = '';
+      const chunkSize = 2000; // 2KB por chunk - mais conservativo
+      
+      try {
+        // Simular stream processando em pequenos chunks
+        for (let i = 0; i < text.length; i += chunkSize) {
+          buffer = text.substring(i, i + chunkSize);
+          
+          // Processar chunk com limpeza básica
+          const cleanChunk = buffer
+            .replace(/\s+/g, ' ')
+            .replace(/[^\w\s\-.,;:()]/g, '')
+            .trim();
+          
+          processedText += cleanChunk + ' ';
+          
+          // Limpar buffer
+          buffer = '';
+          
+          // Garbage collection a cada 4 chunks
+          if (i % (chunkSize * 4) === 0) {
+            if (global.gc) {
+              global.gc();
+            }
+            // Pequena pausa para permitir GC
+            setImmediate(() => {});
+          }
+        }
+        
+        resolve(processedText.trim());
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   /**

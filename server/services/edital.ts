@@ -245,7 +245,7 @@ FORMATO DA RESPOSTA (JSON):
       } catch (parseError) {
         console.error('❌ Erro ao parsear JSON da análise de cargo:', parseError);
         console.error('❌ Resposta que falhou no parse:', resultado.response);
-        throw new Error('Falha na análise de cargo: resposta IA inválida - ' + parseError.message);
+        throw new Error('Falha na análise de cargo: resposta IA inválida - ' + (parseError as Error).message);
       }
       
     } catch (error) {
