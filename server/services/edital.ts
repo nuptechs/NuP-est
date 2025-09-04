@@ -45,10 +45,10 @@ class EditalProcessingService {
       let pdfText = await this.extrairTextoPDF(filePath);
       console.log(`✅ Texto extraído do PDF (${pdfText.length} caracteres)`);
       
-      // Se o texto for muito grande, truncar para prevenir problemas de memória
-      if (pdfText.length > 50000) { // 50KB de texto - mais conservativo
-        console.log(`⚠️ Texto muito grande (${pdfText.length} chars), truncando para 50KB`);
-        pdfText = pdfText.substring(0, 50000);
+      // Truncar texto agressivamente para prevenir estouro de memória
+      if (pdfText.length > 20000) { // 20KB - muito mais conservativo
+        console.log(`⚠️ Texto muito grande (${pdfText.length} chars), truncando para 20KB`);
+        pdfText = pdfText.substring(0, 20000);
         
         // Força garbage collection se disponível
         if (global.gc) {
@@ -195,7 +195,7 @@ class EditalProcessingService {
 Analise o seguinte edital de concurso público e identifique quantos cargos estão sendo oferecidos.
 
 TEXTO DO EDITAL:
-${textoEdital.substring(0, 4000)} // Primeiros 4000 caracteres para análise
+${textoEdital.substring(0, 2000)} // Primeiros 2000 caracteres para análise
 
 TAREFA:
 1. Determine se o edital oferece apenas UM cargo ou MÚLTIPLOS cargos
@@ -211,6 +211,7 @@ FORMATO DA RESPOSTA (JSON):
 }
 `;
 
+      console.log('🔍 Enviando prompt para análise de cargo...');
       const resultado = await ragService.generateContextualResponse({
         userId: EDITAIS_NAMESPACE,
         query: prompt,
@@ -218,15 +219,33 @@ FORMATO DA RESPOSTA (JSON):
         enableReRanking: false
       });
 
+      console.log('📥 Resposta da IA recebida:', resultado?.response?.substring(0, 200) + '...');
+      
+      if (!resultado || !resultado.response) {
+        console.error('❌ RAG retornou resultado vazio ou inválido:', resultado);
+        throw new Error('RAG não retornou resposta válida para análise de cargo');
+      }
+
       try {
         const analise = JSON.parse(resultado.response);
+        console.log('✅ Análise parseada com sucesso:', { 
+          hasSingleCargo: analise.hasSingleCargo, 
+          cargoName: analise.cargoName 
+        });
+        
+        if (typeof analise.hasSingleCargo === 'undefined') {
+          console.error('❌ Propriedade hasSingleCargo ausente na resposta:', analise);
+          throw new Error('Resposta da IA não contém propriedade hasSingleCargo');
+        }
+        
         return {
           hasSingleCargo: analise.hasSingleCargo,
           cargoName: analise.cargoName
         };
       } catch (parseError) {
-        console.error('❌ Erro ao parsear resposta da análise de cargo:', parseError);
-        throw new Error('Falha na análise de cargo: resposta IA inválida');
+        console.error('❌ Erro ao parsear JSON da análise de cargo:', parseError);
+        console.error('❌ Resposta que falhou no parse:', resultado.response);
+        throw new Error('Falha na análise de cargo: resposta IA inválida - ' + parseError.message);
       }
       
     } catch (error) {
