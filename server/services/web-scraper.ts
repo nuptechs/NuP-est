@@ -2,7 +2,7 @@ import { embeddingsService } from './embeddings';
 import { pineconeService } from './pinecone';
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
-import puppeteer from 'puppeteer';
+// Browser rendering removido - não funciona em ambientes containerizados como Replit
 
 interface ScrapedPage {
   url: string;
@@ -459,22 +459,17 @@ export class WebScraperService {
         content = $('body').text().trim();
       }
 
-      // Se conteúdo ainda é muito pequeno ou contém JavaScript warning, tentar Puppeteer
+      // Se conteúdo é muito pequeno ou contém JavaScript warning, tentar estratégias alternativas
       if (!content || content.length < 50 || (content.includes('javascript') && content.length < 100)) {
-        console.warn(`⚠️ Conteúdo muito pequeno ou requer JavaScript (${content?.length || 0} chars) - tentando Puppeteer`);
+        console.warn(`⚠️ Conteúdo requer JavaScript - site não é compatível com scraping simples`);
         
-        try {
-          const puppeteerResult = await this.scrapeWithPuppeteer(url);
-          if (puppeteerResult.content && puppeteerResult.content.length > 50) {
-            content = puppeteerResult.content;
-            title = puppeteerResult.title || title;
-            console.log(`✅ Puppeteer recuperou conteúdo: ${content.length} caracteres`);
-          } else {
-            console.log(`❌ Puppeteer também não conseguiu extrair conteúdo suficiente`);
-          }
-        } catch (error) {
-          console.error(`❌ Erro ao usar Puppeteer para ${url}:`, error);
-        }
+        // Marcar como site incompatível em vez de tentar browser rendering
+        return {
+          url,
+          title: `${title} (Requer JavaScript)`,
+          content: `SITE_REQUIRES_JAVASCRIPT: Este site usa JavaScript dinâmico e não pode ser processado pelo sistema de scraping atual. URL: ${url}`,
+          links: []
+        };
       }
 
       // Limpar conteúdo (remover quebras de linha excessivas, espaços)
@@ -766,95 +761,6 @@ export class WebScraperService {
     return '';
   }
 
-  /**
-   * Usa Puppeteer para renderizar páginas que requerem JavaScript
-   */
-  private async scrapeWithPuppeteer(url: string): Promise<{ title: string; content: string }> {
-    console.log('🚀 Puppeteer: Navegando para', url);
-    
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
-
-    try {
-      const page = await browser.newPage();
-      
-      // Configurar User-Agent e viewport
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-      await page.setViewport({ width: 1920, height: 1080 });
-      
-      // Navegar e aguardar carregamento completo
-      await page.goto(url, { 
-        waitUntil: 'networkidle0',
-        timeout: 45000 
-      });
-      
-      // Aguardar elementos específicos do Cebraspe carregarem
-      try {
-        await page.waitForSelector('body', { timeout: 10000 });
-        console.log('🔍 Puppeteer: Aguardando JavaScript carregar...');
-        await new Promise(resolve => setTimeout(resolve, 8000)); // Mais tempo para JavaScript carregar
-        
-        // Tentar aguardar elementos específicos de concursos
-        await page.waitForFunction(() => {
-          const bodyText = document.body.innerText || document.body.textContent || '';
-          return bodyText.length > 500; // Aguardar até ter conteúdo substancial
-        }, { timeout: 15000 }).catch(() => {
-          console.log('⚠️ Timeout aguardando conteúdo, continuando com o que foi carregado');
-        });
-        
-      } catch (error) {
-        console.log('⚠️ Elementos esperados não encontrados, extraindo conteúdo disponível');
-      }
-      
-      // Extrair título e conteúdo após renderização
-      const title = await page.title();
-      const content = await page.evaluate(() => {
-        // Remover elementos desnecessários
-        const elementsToRemove = document.querySelectorAll('script, style, nav, header, footer, .menu, .navigation');
-        elementsToRemove.forEach(el => el.remove());
-        
-        // Tentar seletores específicos para concursos primeiro
-        const concursoSelectors = [
-          '.lista-concursos',
-          '.concurso-item', 
-          '.concursos',
-          '.content',
-          '.main-content',
-          'main',
-          '.container'
-        ];
-        
-        let content = '';
-        for (const selector of concursoSelectors) {
-          const element = document.querySelector(selector) as HTMLElement;
-          if (element) {
-            const text = (element as any).innerText || element.textContent || '';
-            if (text.length > content.length) {
-              content = text;
-            }
-          }
-        }
-        
-        // Se não encontrou conteúdo específico, usar body inteiro
-        if (content.length < 200) {
-          content = document.body.innerText || document.body.textContent || '';
-        }
-        
-        return content.trim();
-      });
-
-      console.log(`✅ Puppeteer extraiu: ${title} - ${content.length} caracteres`);
-      
-      return { title, content };
-    } catch (error) {
-      console.error('❌ Erro no Puppeteer:', error);
-      throw error;
-    } finally {
-      await browser.close();
-    }
-  }
 
 
   /**
@@ -944,9 +850,9 @@ export class WebScraperService {
       
       // Filtrar por tipos de busca e remover conteúdo inválido
       const filteredResults = results.filter((result: any) => {
-        // Remover resultados com conteúdo JavaScript inválido
-        if (result.content && result.content.includes('javascript') && result.content.length < 100) {
-          console.log('⚠️ Removendo resultado com conteúdo JavaScript inválido');
+        // Remover resultados com conteúdo JavaScript inválido ou marcadores de incompatibilidade
+        if (result.content && (result.content.includes('SITE_REQUIRES_JAVASCRIPT') || (result.content.includes('javascript') && result.content.length < 100))) {
+          console.log('⚠️ Removendo resultado de site incompatível (requer JavaScript)');
           return false;
         }
         

@@ -362,7 +362,7 @@ router.post('/search', async (req, res) => {
         if (searchResult.webResults.length > 0) {
           message += ` e ${searchResult.webResults.length} de sites configurados.`;
         } else if (searchResult.cebraspeResults.length > 0) {
-          message += `. Os sites configurados não puderam ser consultados (requerem JavaScript para carregamento dinâmico).`;
+          message += `. Os sites configurados usam JavaScript avançado e não são compatíveis com o sistema atual.`;
         }
 
         res.json({
