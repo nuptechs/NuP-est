@@ -46,9 +46,15 @@ class EditalProcessingService {
       console.log(`✅ Texto extraído do PDF (${pdfText.length} caracteres)`);
       
       // Se o texto for muito grande, truncar para prevenir problemas de memória
-      if (pdfText.length > 100000) { // 100KB de texto
-        console.log(`⚠️ Texto muito grande (${pdfText.length} chars), truncando para 100KB`);
-        pdfText = pdfText.substring(0, 100000);
+      if (pdfText.length > 50000) { // 50KB de texto - mais conservativo
+        console.log(`⚠️ Texto muito grande (${pdfText.length} chars), truncando para 50KB`);
+        pdfText = pdfText.substring(0, 50000);
+        
+        // Força garbage collection se disponível
+        if (global.gc) {
+          global.gc();
+          console.log('🧹 Garbage collection forçado após truncar texto');
+        }
       }
       
       // 2. Criar chunks do conteúdo
@@ -63,9 +69,21 @@ class EditalProcessingService {
         type: 'edital'
       });
       
-      // 4. Analisar se tem apenas um cargo
-      const analiseCarго = await this.analisarCargo(pdfText);
-      console.log(`🔍 Análise de cargo:`, analiseCarго);
+      // 4. Analisar se tem apenas um cargo (com tratamento de erro)
+      let analiseCarго;
+      try {
+        analiseCarго = await this.analisarCargo(pdfText);
+        console.log(`🔍 Análise de cargo:`, analiseCarго);
+      } catch (error) {
+        console.error('❌ Erro na análise de cargo, usando valores padrão:', error);
+        analiseCarго = { hasSingleCargo: false, cargoName: undefined };
+      }
+      
+      // Garantir que analiseCarго sempre tenha as propriedades necessárias
+      if (!analiseCarго || typeof analiseCarго.hasSingleCargo === 'undefined') {
+        console.warn('⚠️ Análise de cargo retornou resultado inválido, usando padrão');
+        analiseCarго = { hasSingleCargo: false, cargoName: undefined };
+      }
       
       // 5. Se tem apenas um cargo, extrair conteúdo programático
       let conteudoProgramatico: ConteudoProgramatico | undefined;
@@ -231,7 +249,11 @@ FORMATO DA RESPOSTA (JSON):
       
     } catch (error) {
       console.error('❌ Erro na análise de cargo:', error);
-      return { hasSingleCargo: false };
+      // Sempre retornar um objeto com as propriedades necessárias
+      return { 
+        hasSingleCargo: false, 
+        cargoName: undefined 
+      };
     }
   }
   
