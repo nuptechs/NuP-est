@@ -263,17 +263,47 @@ class CebraspeEmbeddingsService {
       // Importar webScraperService
       const { webScraperService } = await import('./web-scraper');
       
-      // URL do site real do Cebraspe
-      const cebraspeUrl = 'https://www.cebraspe.org.br/concursos/';
+      // URLs do site real do Cebraspe para tentar
+      const cebraspeUrls = [
+        'https://www.cebraspe.org.br/concursos/',
+        'https://www.cebraspe.org.br/concursos/encerrado',
+        'https://www.cebraspe.org.br/concursos/andamento'
+      ];
       
-      console.log('🌐 Fazendo scraping real do site do Cebraspe...');
+      console.log('🌐 Fazendo scraping real de múltiplas páginas do Cebraspe...');
       
-      // Usar o sistema de processamento inteligente que implementei
-      const result = await webScraperService.processWebsiteIntelligently(
-        cebraspeUrl,
-        ['concurso_publico'],
-        'cebraspe-real-scraping'
-      );
+      let totalProcessed = 0;
+      let successfulUrls = [];
+      
+      // Tentar processar cada URL
+      for (const url of cebraspeUrls) {
+        try {
+          console.log(`🔍 Tentando URL: ${url}`);
+          
+          const result = await webScraperService.processWebsiteIntelligently(
+            url,
+            ['concurso_publico'],
+            `cebraspe-real-${url.split('/').pop() || 'main'}`
+          );
+          
+          if (result.success) {
+            totalProcessed += result.documentsProcessed || 0;
+            successfulUrls.push(url);
+            console.log(`✅ ${url} processada com sucesso - ${result.documentsProcessed} documentos`);
+          } else {
+            console.warn(`⚠️ ${url} falhou: ${result.error}`);
+          }
+        } catch (error) {
+          console.warn(`❌ Erro ao processar ${url}:`, error.message);
+        }
+      }
+      
+      const result = {
+        success: totalProcessed > 0,
+        documentsProcessed: totalProcessed,
+        method: `múltiplas URLs (${successfulUrls.length}/${cebraspeUrls.length} sucessos)`,
+        error: totalProcessed === 0 ? 'Nenhuma URL foi processada com sucesso' : undefined
+      };
       
       if (result.success) {
         console.log(`🎉 Processamento real concluído com sucesso!`);
