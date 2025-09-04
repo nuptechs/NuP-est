@@ -81,7 +81,7 @@ export class NewEditalService {
         fileName: request.originalName,
         fileType,
         concursoNome: request.concursoNome,
-        maxChunks: 50
+        maxChunks: 15 // Reduzido para economizar tokens
       });
 
       console.log(`✅ DeepSeek R1 gerou ${chunkResponse.chunks.length} chunks`);

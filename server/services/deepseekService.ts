@@ -85,7 +85,7 @@ export class DeepSeekService {
           }
         ],
         temperature: 0.1,
-        max_tokens: 4000,
+        max_tokens: 1200, // Reduzido para caber no limite de créditos disponível
       });
 
       const response = completion.choices[0].message.content;
@@ -175,7 +175,7 @@ export class DeepSeekService {
           }
         ],
         temperature: 0.1,
-        max_tokens: 3000,
+        max_tokens: 800, // Reduzido para otimizar uso de créditos
       });
 
       const response = completion.choices[0].message.content;
@@ -210,7 +210,7 @@ INFORMAÇÕES DO ARQUIVO:
 - Concurso: ${request.concursoNome}
 
 CONTEÚDO:
-${request.content.substring(0, 8000)} ${request.content.length > 8000 ? '...' : ''}
+${request.content.substring(0, 1500)} ${request.content.length > 1500 ? '...' : ''}
 
 INSTRUÇÕES:
 1. Analise o conteúdo e identifique seções importantes (cargos, requisitos, conteúdo programático, cronograma, etc.)
@@ -249,7 +249,7 @@ INFORMAÇÕES DO ARQUIVO:
 - Concurso: ${request.concursoNome}
 
 CONTEÚDO DO EDITAL:
-${request.content.substring(0, 4000)} ${request.content.length > 4000 ? '...' : ''}
+${request.content.substring(0, 2000)} ${request.content.length > 2000 ? '...' : ''}
 
 INSTRUÇÕES:
 1. Identifique todos os cargos oferecidos no edital
@@ -280,7 +280,7 @@ INFORMAÇÕES:
 - Concurso: ${request.concursoNome}
 
 CONTEÚDO DO EDITAL:
-${request.content.substring(0, 6000)} ${request.content.length > 6000 ? '...' : ''}
+${request.content.substring(0, 3000)} ${request.content.length > 3000 ? '...' : ''}
 
 INSTRUÇÕES:
 1. Encontre a seção de conteúdo programático/disciplinas para o cargo específico
