@@ -174,6 +174,11 @@ export class IntegratedSearchService {
       const totalResults = cebraspeResults.length + webResults.length;
 
       console.log(`📊 Busca concluída: ${cebraspeResults.length} do Cebraspe + ${webResults.length} de sites = ${totalResults} total`);
+      
+      // Se não encontrou resultados de sites configurados, adicionar mensagem informativa
+      if (webResults.length === 0 && includeWebSites) {
+        console.log('ℹ️ Nenhum resultado encontrado nos sites configurados - possivelmente requerem JavaScript');
+      }
 
       return {
         cebraspeResults: cebraspeResults.slice(0, Math.floor(maxResults / 2)),

@@ -352,10 +352,23 @@ router.post('/search', async (req, res) => {
       if (allResults.length > 1) {
         // Múltiplas opções encontradas
         console.log(`🔀 Múltiplas opções encontradas: ${allResults.length}`);
+        // Preparar mensagem informativa para o usuário
+        let message = `Encontramos ${allResults.length} concursos que correspondem à sua busca.`;
+        
+        if (searchResult.cebraspeResults.length > 0) {
+          message += ` ${searchResult.cebraspeResults.length} do Cebraspe`;
+        }
+        
+        if (searchResult.webResults.length > 0) {
+          message += ` e ${searchResult.webResults.length} de sites configurados.`;
+        } else if (searchResult.cebraspeResults.length > 0) {
+          message += `. Os sites configurados não puderam ser consultados (requerem JavaScript para carregamento dinâmico).`;
+        }
+
         res.json({
           success: true,
           multipleOptions: allResults,
-          message: `Encontramos ${allResults.length} concursos que correspondem à sua busca. ${searchResult.cebraspeResults.length} do Cebraspe e ${searchResult.webResults.length} de sites configurados.`
+          message
         });
       } else {
         // Uma opção encontrada
