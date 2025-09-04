@@ -103,6 +103,7 @@ export default function GoalBuilder() {
   const [foundConcurso, setFoundConcurso] = useState<ConcursoResult | null>(null);
   const [multipleOptions, setMultipleOptions] = useState<ConcursoResult[]>([]);
   const [processandoEdital, setProcessandoEdital] = useState(false);
+  const [searchAttempted, setSearchAttempted] = useState(false);
   const [editalProcessado, setEditalProcessado] = useState<{
     editalUrl: string | null;
     cargos: Array<{
@@ -145,6 +146,7 @@ export default function GoalBuilder() {
     if (!concursoName.trim()) return;
     
     setSearchingConcurso(true);
+    setSearchAttempted(true);
     
     try {
       const result = await apiRequest('POST', '/api/cebraspe/search', { 
@@ -177,6 +179,7 @@ export default function GoalBuilder() {
           description: response.message || "Não foi possível encontrar este concurso no Cebraspe. Tente com outro nome.",
           variant: "destructive"
         });
+        // Mesmo não encontrando, pode fazer upload manual do edital
       }
     } catch (error) {
       console.error('Erro ao buscar concurso:', error);
@@ -540,6 +543,37 @@ export default function GoalBuilder() {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Seção de Upload de Edital - sempre aparece após busca */}
+            {searchAttempted && (
+              <div className="max-w-4xl mx-auto mt-12">
+                <div className="text-center mb-6 p-6 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                    Já tem o edital em PDF?
+                  </h3>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm max-w-2xl mx-auto">
+                    Se você já possui o edital oficial em PDF, pode fazer o upload aqui para análise automática 
+                    e extração do conteúdo programático usando nossa IA.
+                  </p>
+                </div>
+                
+                <EditalUploader 
+                  concursoNome={concursoName || 'Concurso Buscado'}
+                  onEditalProcessed={(result) => {
+                    console.log('Edital processado via upload:', result);
+                    toast({
+                      title: "🎉 Edital analisado!",
+                      description: result.hasSingleCargo 
+                        ? `Conteúdo programático extraído para ${result.cargoName}`
+                        : "Edital indexado na base de conhecimento",
+                    });
+                  }}
+                />
+              </div>
+            )}
           </div>
         ) : currentStep === 'concurso-selection' ? (
           // Step: Seleção de Múltiplos Concursos
