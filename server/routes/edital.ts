@@ -54,7 +54,7 @@ const consultarEditalSchema = z.object({
 
 // ===== NOVA ARQUITETURA DE UPLOAD =====
 // Endpoint principal para upload e processamento direto
-router.post('/upload', upload.single('arquivo'), async (req, res) => {
+router.post('/upload', upload.single('edital'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
