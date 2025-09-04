@@ -2,6 +2,7 @@ import { embeddingsService } from './embeddings';
 import { pineconeService } from './pinecone';
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
+import puppeteer from 'puppeteer';
 
 interface ScrapedPage {
   url: string;
@@ -458,6 +459,24 @@ export class WebScraperService {
         content = $('body').text().trim();
       }
 
+      // Se conteúdo ainda é muito pequeno ou contém JavaScript warning, tentar Puppeteer
+      if (!content || content.length < 50 || (content.includes('javascript') && content.length < 100)) {
+        console.warn(`⚠️ Conteúdo muito pequeno ou requer JavaScript (${content?.length || 0} chars) - tentando Puppeteer`);
+        
+        try {
+          const puppeteerResult = await this.scrapeWithPuppeteer(url);
+          if (puppeteerResult.content && puppeteerResult.content.length > 50) {
+            content = puppeteerResult.content;
+            title = puppeteerResult.title || title;
+            console.log(`✅ Puppeteer recuperou conteúdo: ${content.length} caracteres`);
+          } else {
+            console.log(`❌ Puppeteer também não conseguiu extrair conteúdo suficiente`);
+          }
+        } catch (error) {
+          console.error(`❌ Erro ao usar Puppeteer para ${url}:`, error);
+        }
+      }
+
       // Limpar conteúdo (remover quebras de linha excessivas, espaços)
       content = content.replace(/\s+/g, ' ').trim();
 
@@ -587,8 +606,8 @@ export class WebScraperService {
     // Primeiro verificar se o conteúdo é apenas JavaScript warning
     const bodyText = $('body').text().trim();
     if (bodyText.includes('javascript') && bodyText.length < 100) {
-      console.log('⚠️ Página requer JavaScript, usando dados simulados baseados na URL');
-      return this.generateCebraspeDataFromUrl(title);
+      console.log('⚠️ Página requer JavaScript - será tratada pelo Puppeteer posteriormente');
+      return ''; // Retornar vazio para ser processado pelo Puppeteer
     }
     let concursos: string[] = [];
     
@@ -745,6 +764,48 @@ export class WebScraperService {
     // Retornar string vazia quando não conseguir extrair dados reais
     console.log('⚠️ Página requer JavaScript e não foi possível extrair dados reais');
     return '';
+  }
+
+  /**
+   * Usa Puppeteer para renderizar páginas que requerem JavaScript
+   */
+  private async scrapeWithPuppeteer(url: string): Promise<{ title: string; content: string }> {
+    console.log('🚀 Usando Puppeteer para renderizar JavaScript em:', url);
+    
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
+    try {
+      const page = await browser.newPage();
+      
+      // Configurar timeout e aguardar carregamento
+      await page.setDefaultNavigationTimeout(30000);
+      await page.goto(url, { waitUntil: 'networkidle0' });
+      
+      // Aguardar um pouco mais para JavaScript executar
+      await page.waitForTimeout(3000);
+      
+      // Extrair título e conteúdo após renderização
+      const title = await page.title();
+      const content = await page.evaluate(() => {
+        // Remover scripts e styles para obter apenas conteúdo
+        const scripts = document.querySelectorAll('script, style');
+        scripts.forEach(el => el.remove());
+        
+        return document.body.innerText || document.body.textContent || '';
+      });
+
+      console.log('✅ Puppeteer extraiu conteúdo com sucesso:', content.length, 'caracteres');
+      
+      return { title, content };
+    } catch (error) {
+      console.error('❌ Erro no Puppeteer:', error);
+      throw error;
+    } finally {
+      await browser.close();
+    }
   }
 
 
