@@ -44,9 +44,9 @@ export class PDFService {
       
       console.log(`📄 Processando PDF: ${fileSizeInMB.toFixed(2)}MB`);
       
-      // Reduzir limite para 8MB para maior segurança de memória
-      if (fileSizeInMB > 8) {
-        throw new AppError(413, 'FILE_TOO_LARGE', 'Arquivo PDF muito grande. Limite máximo: 8MB');
+      // Reduzir limite para 4MB para maior segurança de memória
+      if (fileSizeInMB > 4) {
+        throw new AppError(413, 'FILE_TOO_LARGE', 'Arquivo PDF muito grande. Limite máximo: 4MB');
       }
 
       // Ler arquivo em buffer

@@ -2,16 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { pineconeService } from './pinecone';
 import { ragService } from './rag';
-// Lazy import to avoid loading issues
-const loadPdfParse = async () => {
-  try {
-    const pdfParse = await import('pdf-parse');
-    return pdfParse.default;
-  } catch (error) {
-    console.error('Erro ao carregar pdf-parse:', error);
-    throw new Error('Falha ao carregar biblioteca de processamento de PDF');
-  }
-};
+import { pdfService } from './pdf';
 
 // Namespace específico para editais
 const EDITAIS_NAMESPACE = 'editais-cebraspe';
@@ -51,8 +42,14 @@ class EditalProcessingService {
     
     try {
       // 1. Extrair texto do PDF
-      const pdfText = await this.extrairTextoPDF(filePath);
+      let pdfText = await this.extrairTextoPDF(filePath);
       console.log(`✅ Texto extraído do PDF (${pdfText.length} caracteres)`);
+      
+      // Se o texto for muito grande, truncar para prevenir problemas de memória
+      if (pdfText.length > 100000) { // 100KB de texto
+        console.log(`⚠️ Texto muito grande (${pdfText.length} chars), truncando para 100KB`);
+        pdfText = pdfText.substring(0, 100000);
+      }
       
       // 2. Criar chunks do conteúdo
       const chunks = this.criarChunks(pdfText);
@@ -73,8 +70,10 @@ class EditalProcessingService {
       // 5. Se tem apenas um cargo, extrair conteúdo programático
       let conteudoProgramatico: ConteudoProgramatico | undefined;
       if (analiseCarго.hasSingleCargo && analiseCarго.cargoName) {
+        // Usar apenas uma parte do texto para extração programática
+        const textoPrograma = pdfText.length > 50000 ? pdfText.substring(0, 50000) : pdfText;
         conteudoProgramatico = await this.extrairConteudoProgramatico(
-          pdfText, 
+          textoPrograma, 
           analiseCarго.cargoName
         );
         console.log(`📚 Conteúdo programático extraído para: ${analiseCarго.cargoName}`);
@@ -101,7 +100,7 @@ class EditalProcessingService {
   }
   
   /**
-   * Extrai texto de arquivo PDF
+   * Extrai texto de arquivo PDF usando o serviço otimizado
    */
   private async extrairTextoPDF(filePath: string): Promise<string> {
     try {
@@ -113,11 +112,9 @@ class EditalProcessingService {
         return texto;
       }
       
-      // Para arquivos PDF reais
-      const pdf = await loadPdfParse();
-      const dataBuffer = fs.readFileSync(filePath);
-      const data = await pdf(dataBuffer);
-      return data.text;
+      // Para arquivos PDF reais, usar o serviço otimizado
+      const result = await pdfService.processPDF(filePath);
+      return result.text;
     } catch (error) {
       console.error('❌ Erro ao extrair texto do PDF:', error);
       throw new Error('Falha ao processar arquivo PDF');
@@ -125,26 +122,36 @@ class EditalProcessingService {
   }
   
   /**
-   * Cria chunks do texto para processamento
+   * Cria chunks do texto para processamento de forma mais eficiente em memória
    */
   private criarChunks(texto: string): { content: string; chunkIndex: number }[] {
-    const CHUNK_SIZE = 2000;
-    const OVERLAP = 200;
+    // Reduzir tamanho dos chunks para economizar memória
+    const CHUNK_SIZE = 1000;
+    const OVERLAP = 100;
     
     const chunks = [];
     let start = 0;
     let chunkIndex = 0;
     
+    // Processar texto mais longo em batches para evitar picos de memória
     while (start < texto.length) {
       const end = Math.min(start + CHUNK_SIZE, texto.length);
       const chunk = texto.slice(start, end);
       
-      chunks.push({
-        content: chunk,
-        chunkIndex: chunkIndex++
-      });
+      // Só adicionar chunks não vazios
+      if (chunk.trim().length > 0) {
+        chunks.push({
+          content: chunk.trim(),
+          chunkIndex: chunkIndex++
+        });
+      }
       
       start = end - OVERLAP;
+      
+      // Forçar garbage collection a cada 50 chunks se disponível
+      if (chunkIndex % 50 === 0 && global.gc) {
+        global.gc();
+      }
     }
     
     return chunks;

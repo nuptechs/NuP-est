@@ -33,7 +33,7 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limite
+    fileSize: 5 * 1024 * 1024 // 5MB limite para prevenir problemas de memória
   }
 });
 
