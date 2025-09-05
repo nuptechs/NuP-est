@@ -1547,6 +1547,10 @@ Responda em JSON no formato:
   // Setup Edital routes
   app.use("/api/edital", editalRouter);
   
+  // Setup Edital RAG routes
+  const { default: editalRAGRouter } = await import('./routes/editalRAG');
+  app.use('/api/edital-rag', editalRAGRouter);
+  
   // Setup External Processing routes
   app.use("/api/external-processing", externalProcessingRouter);
   

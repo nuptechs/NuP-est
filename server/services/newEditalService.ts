@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileProcessorService } from './fileProcessor';
 import { externalProcessingService } from './externalProcessingService';
+import { pineconeService } from './pinecone';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
 
@@ -123,9 +124,28 @@ export class NewEditalService {
           
           await storage.updateEdital(edital.id, {
             deepseekChunks: chunks,
-            pineconeIndexed: true,
+            pineconeIndexed: false, // Será definido após indexação bem-sucedida
             status: 'completed',
             processedAt: new Date()
+          });
+          
+          // Indexar no Pinecone para permitir busca semântica
+          console.log(`🔄 Indexando ${chunks.length} chunks no Pinecone...`);
+          await pineconeService.upsertDocument(edital.id, 
+            chunks.map(chunk => ({
+              content: chunk.content,
+              chunkIndex: chunk.chunkIndex
+            })),
+            {
+              userId: request.userId,
+              title: edital.fileName,
+              category: 'edital'
+            }
+          );
+          
+          // Atualizar status da indexação
+          await storage.updateEdital(edital.id, {
+            pineconeIndexed: true
           });
       
       } else if (processingResponse.job_id) {
@@ -153,9 +173,28 @@ export class NewEditalService {
             
             await storage.updateEdital(edital.id, {
               deepseekChunks: chunks,
-              pineconeIndexed: true,
+              pineconeIndexed: false, // Será definido após indexação bem-sucedida
               status: 'completed',
               processedAt: new Date()
+            });
+            
+            // Indexar no Pinecone para permitir busca semântica
+            console.log(`🔄 Indexando ${chunks.length} chunks no Pinecone...`);
+            await pineconeService.upsertDocument(edital.id, 
+              chunks.map(chunk => ({
+                content: chunk.content,
+                chunkIndex: chunk.chunkIndex
+              })),
+              {
+                userId: request.userId,
+                title: edital.fileName,
+                category: 'edital'
+              }
+            );
+            
+            // Atualizar status da indexação
+            await storage.updateEdital(edital.id, {
+              pineconeIndexed: true
             });
           }
         } else {
