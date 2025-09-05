@@ -19,6 +19,7 @@ interface EditalResult {
   id: string;
   concursoNome: string;
   fileName: string;
+  status: 'processing' | 'indexed' | 'completed' | 'failed';
   hasSingleCargo: boolean;
   cargoName?: string;
   cargos?: Array<{
@@ -39,6 +40,44 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
   const [result, setResult] = useState<EditalResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  const startPollingForCompletion = (editalId: string) => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/edital/${editalId}`);
+        const data = await response.json();
+        
+        if (data.success && data.edital.status === 'completed') {
+          setResult(data.edital);
+          clearInterval(interval);
+          setPollingInterval(null);
+          
+          toast({
+            title: "✅ Análise de cargos concluída!",
+            description: "O edital foi totalmente processado e analisado.",
+          });
+        } else if (data.success && data.edital.status === 'failed') {
+          clearInterval(interval);
+          setPollingInterval(null);
+          setError('Falha no processamento do edital');
+        }
+      } catch (error) {
+        console.error('Erro no polling:', error);
+      }
+    }, 3000); // Check every 3 seconds
+    
+    setPollingInterval(interval);
+  };
+  
+  // Cleanup polling on unmount
+  React.useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,9 +120,14 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
         onEditalProcessed?.(data.edital);
         
         toast({
-          title: "✅ Edital processado com sucesso!",
-          description: `${file.name} foi analisado e indexado na base de conhecimento.`,
+          title: "📤 Edital enviado para processamento!",
+          description: `${file.name} foi indexado. Análise de cargos em andamento...`,
         });
+
+        // Iniciar polling para verificar status do pós-processamento
+        if (data.edital.status === 'indexed') {
+          startPollingForCompletion(data.edital.id);
+        }
       } else {
         throw new Error(data.message || 'Erro desconhecido');
       }
@@ -244,6 +288,16 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Status de processamento */}
+              {result.status === 'indexed' && (
+                <Alert className="bg-yellow-50 border-yellow-200">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AlertDescription>
+                    <strong>Indexação concluída!</strong> Analisando cargos e conteúdo programático...
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <strong>Arquivo:</strong> {result.fileName}
@@ -252,22 +306,33 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                   <strong>Concurso:</strong> {result.concursoNome}
                 </div>
                 <div>
-                  <strong>Único cargo:</strong> {result.hasSingleCargo ? 'Sim' : 'Não'}
+                  <strong>Status:</strong> 
+                  {result.status === 'indexed' && <span className="text-yellow-600"> 🔄 Analisando cargos</span>}
+                  {result.status === 'completed' && <span className="text-green-600"> ✅ Análise concluída</span>}
+                  {result.status === 'failed' && <span className="text-red-600"> ❌ Erro no processamento</span>}
                 </div>
-                {result.cargoName && (
-                  <div>
-                    <strong>Nome do cargo:</strong> {result.cargoName}
-                  </div>
+                {result.status === 'completed' && (
+                  <>
+                    <div>
+                      <strong>Único cargo:</strong> {result.hasSingleCargo ? 'Sim' : 'Não'}
+                    </div>
+                    {result.cargoName && (
+                      <div>
+                        <strong>Nome do cargo:</strong> {result.cargoName}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
-              {result.cargos && result.cargos.length > 0 && result.hasSingleCargo && (
+              {/* Só mostra conteúdo quando análise está completa */}
+              {result.status === 'completed' && result.cargos && result.cargos.length > 0 && result.hasSingleCargo && (
                 <div className="mt-6">
                   {renderConteudoProgramatico(result.cargos[0])}
                 </div>
               )}
               
-              {result.cargos && result.cargos.length > 1 && (
+              {result.status === 'completed' && result.cargos && result.cargos.length > 1 && (
                 <div className="mt-6 space-y-4">
                   <h3 className="text-lg font-semibold">Cargos Identificados</h3>
                   {result.cargos.map((cargo, index) => (
@@ -275,6 +340,19 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                       {renderConteudoProgramatico(cargo)}
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {/* Placeholder durante análise */}
+              {result.status === 'indexed' && (
+                <div className="mt-6 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-blue-500" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Analisando cargos e organizando conteúdo programático...
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Isso pode levar alguns segundos
+                  </p>
                 </div>
               )}
 

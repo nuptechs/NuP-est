@@ -94,18 +94,19 @@ export class NewEditalService {
 
       console.log(`✅ Aplicação externa processou e indexou no Pinecone com sucesso`);
 
-      // 4. Analisar cargos usando RAG (Pinecone já indexado pela aplicação externa)
-      console.log(`🔍 Analisando cargos do edital usando RAG...`);
-      const cargoAnalysis = await this.analisarCargosViaRAG(request.userId, edital.id);
-      
-      // 5. Atualizar edital com informações dos cargos
+      // 4. Marcar como indexado (pós-processamento será feito separadamente)
       await storage.updateEdital(edital.id, {
-        status: 'completed',
-        processedAt: new Date(),
-        hasSingleCargo: cargoAnalysis.hasSingleCargo,
-        cargoName: cargoAnalysis.hasSingleCargo ? cargoAnalysis.cargos[0]?.nome : null,
-        cargos: cargoAnalysis.cargos
+        status: 'indexed',
+        processedAt: new Date()
       });
+      
+      // 5. AGENDAR pós-processamento automático (não bloquear resposta)
+      console.log(`📋 Agendando pós-processamento automático...`);
+      setTimeout(() => {
+        this.executePostProcessing(request.userId, edital!.id).catch(error => {
+          console.error('❌ Erro no pós-processamento:', error);
+        });
+      }, 5000); // 5 segundos para garantir indexação
 
       // 6. Limpar arquivo local (opcional - manter ou não)
       if (fs.existsSync(request.filePath)) {
@@ -115,19 +116,14 @@ export class NewEditalService {
 
       const updatedEdital = await storage.getEdital(edital.id);
       
-      // 7. Criar mensagem dinâmica baseada na análise
-      const message = cargoAnalysis.hasSingleCargo 
-        ? `Edital processado com sucesso! Identificado 1 cargo: ${cargoAnalysis.cargos[0]?.nome}`
-        : `Edital processado com sucesso! Identificados ${cargoAnalysis.totalCargos} cargos disponíveis`;
-      
       return {
         success: true,
         edital: updatedEdital || edital,
-        message,
+        message: 'Arquivo indexado com sucesso! Análise de cargos em andamento...',
         details: {
           externalProcessingSuccess: true,
           processingMessage: 'Documento processado e indexado no Pinecone pela aplicação externa',
-          cargoAnalysis
+          postProcessingScheduled: true
         }
       };
 
@@ -196,7 +192,122 @@ export class NewEditalService {
   }
 
   /**
-   * Analisa cargos do edital usando RAG após indexação externa
+   * NOVO: Executa pós-processamento com queries específicas
+   */
+  private async executePostProcessing(userId: string, editalId: string): Promise<void> {
+    try {
+      console.log(`🔍 Iniciando pós-processamento para edital ${editalId}`);
+      
+      // Query específica 1: Identificar cargo exato
+      console.log(`🎯 Query 1: Identificando cargo do edital...`);
+      const cargoQuery = "Qual é o cargo específico deste edital? Inclua o estado/UF se mencionado.";
+      const resultadoCargos = await editalRAGService.buscarInformacaoPersonalizada(userId, cargoQuery);
+      
+      // Query específica 2: Conteúdo programático organizado
+      console.log(`📚 Query 2: Organizando conteúdo programático...`);
+      const conteudoQuery = "Liste de maneira organizada o conteúdo programático deste documento, separado por disciplinas e tópicos.";
+      const resultadoConteudo = await editalRAGService.buscarInformacaoPersonalizada(userId, conteudoQuery);
+      
+      // Processar e estruturar resultados
+      const cargos = this.processarResultadosPostProcessamento(resultadoCargos, resultadoConteudo);
+      
+      // Atualizar edital no banco
+      await storage.updateEdital(editalId, {
+        status: 'completed',
+        hasSingleCargo: cargos.length === 1,
+        cargoName: cargos.length === 1 ? cargos[0].nome : null,
+        cargos: cargos,
+        processedAt: new Date()
+      });
+      
+      console.log(`✅ Pós-processamento concluído para edital ${editalId}`);
+      
+    } catch (error) {
+      console.error(`❌ Erro no pós-processamento do edital ${editalId}:`, error);
+      
+      // Marcar como erro
+      await storage.updateEdital(editalId, {
+        status: 'failed',
+        processedAt: new Date()
+      });
+    }
+  }
+
+  /**
+   * Processa resultados das queries específicas
+   */
+  private processarResultadosPostProcessamento(
+    cargoResult: any, 
+    conteudoResult: any
+  ): Array<{ nome: string; conteudoProgramatico?: string[] }> {
+    const cargos = [];
+    
+    // Extrair cargo da resposta
+    const cargoNome = this.extrairCargoDoTexto(cargoResult.resposta);
+    
+    // Estruturar conteúdo programático  
+    const conteudoProgramatico = this.estruturarConteudoProgramatico(conteudoResult.resposta);
+    
+    cargos.push({
+      nome: cargoNome,
+      conteudoProgramatico: conteudoProgramatico
+    });
+    
+    return cargos;
+  }
+
+  /**
+   * Extrai nome do cargo do texto da IA
+   */
+  private extrairCargoDoTexto(texto: string): string {
+    // Patterns para identificar cargo
+    const patterns = [
+      /cargo[:\s]+([^.\n]+)/gi,
+      /auditor[^.\n]*/gi,
+      /analista[^.\n]*/gi,
+      /técnico[^.\n]*/gi,
+      /SEFAZ[^.\n]*/gi,
+    ];
+
+    for (const pattern of patterns) {
+      const match = texto.match(pattern);
+      if (match) {
+        return match[0].trim().replace(/^(cargo[:\s]+)/gi, '');
+      }
+    }
+    
+    return 'Cargo do Concurso';
+  }
+
+  /**
+   * Estrutura conteúdo programático do texto da IA
+   */
+  private estruturarConteudoProgramatico(texto: string): string[] {
+    const linhas = texto.split('\n').filter(l => l.trim());
+    const estruturado: string[] = [];
+    
+    linhas.forEach(linha => {
+      linha = linha.trim();
+      
+      // Disciplinas (geralmente em negrito ou com números)
+      if (linha.match(/^\d+\./) || linha.includes('**') || linha.match(/^[A-Z\s]+:/)) {
+        estruturado.push(`📖 **${linha.replace(/\*\*/g, '').replace(/^\d+\./, '').trim()}**`);
+      }
+      // Tópicos (com - ou •)
+      else if (linha.match(/^[-•]/) || linha.match(/^\s*-/)) {
+        estruturado.push(`   • ${linha.replace(/^[-•\s]+/, '')}`);
+      }
+      // Conteúdo normal
+      else if (linha.length > 5) {
+        estruturado.push(`   • ${linha}`);
+      }
+    });
+    
+    return estruturado.length > 0 ? estruturado : ['📝 Conteúdo programático identificado'];
+  }
+
+  /**
+   * MÉTODO ANTIGO - Mantido para compatibilidade mas não usado no novo fluxo
    */
   private async analisarCargosViaRAG(userId: string, editalId: string): Promise<{
     totalCargos: number;
