@@ -131,6 +131,7 @@ export class PineconeService {
       topK?: number;
       category?: string;
       minSimilarity?: number;
+      documentId?: string; // NOVO: filtrar por documento específico
     } = {}
   ): Promise<{
     content: string;
@@ -143,7 +144,7 @@ export class PineconeService {
         await this.initializeIndex();
       }
 
-      const { topK = 5, category, minSimilarity = 0.1 } = options;
+      const { topK = 5, category, minSimilarity = 0.1, documentId } = options;
 
       // Gerar embedding da query
       const queryEmbedding = await embeddingsService.generateEmbedding(query);
@@ -152,6 +153,10 @@ export class PineconeService {
       const filter: any = { userId };
       if (category) {
         filter.category = category;
+      }
+      if (documentId) {
+        filter.documentId = documentId; // CRÍTICO: filtrar apenas este documento
+        console.log(`🎯 Filtrando RAG por documento específico: ${documentId}`);
       }
 
       // Buscar no Pinecone

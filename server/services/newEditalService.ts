@@ -94,11 +94,14 @@ export class NewEditalService {
 
       console.log(`✅ Aplicação externa processou e indexou no Pinecone com sucesso`);
 
-      // 4. Marcar como indexado (pós-processamento será feito separadamente)
+      // 4. Marcar como indexado e salvar o externalFileId (pós-processamento será feito separadamente)
       await storage.updateEdital(edital.id, {
         status: 'indexed',
+        externalFileId: processingResponse.job_id, // Salvar job_id para filtrar RAG depois
         processedAt: new Date()
       });
+      
+      console.log(`💾 ExternalFileId salvo: ${processingResponse.job_id}`);
       
       // 5. AGENDAR pós-processamento automático (não bloquear resposta)
       console.log(`📋 Agendando pós-processamento automático...`);
@@ -122,8 +125,7 @@ export class NewEditalService {
         message: 'Arquivo indexado com sucesso! Análise de cargos em andamento...',
         details: {
           externalProcessingSuccess: true,
-          processingMessage: 'Documento processado e indexado no Pinecone pela aplicação externa',
-          postProcessingScheduled: true
+          processingMessage: 'Documento processado e indexado no Pinecone pela aplicação externa'
         }
       };
 
@@ -198,15 +200,25 @@ export class NewEditalService {
     try {
       console.log(`🔍 Iniciando pós-processamento para edital ${editalId}`);
       
-      // Query específica 1: Identificar cargo
+      // Buscar o documentId do external processing
+      const edital = await storage.getEdital(editalId);
+      const documentId = edital?.externalFileId; // usar o fileId do external processing
+      
+      if (!documentId) {
+        throw new Error('DocumentId não encontrado - arquivo pode não ter sido indexado corretamente');
+      }
+      
+      console.log(`🎯 Usando documentId específico para RAG: ${documentId}`);
+      
+      // Query específica 1: Identificar cargo (APENAS deste documento)
       console.log(`🎯 Query 1: Identificando cargo do edital...`);
       const cargoQuery = "Qual é o cargo deste edital?";
-      const resultadoCargos = await editalRAGService.buscarInformacaoPersonalizada(userId, cargoQuery);
+      const resultadoCargos = await editalRAGService.buscarInformacaoPersonalizada(userId, cargoQuery, documentId);
       
-      // Query específica 2: Conteúdo programático organizado
+      // Query específica 2: Conteúdo programático organizado (APENAS deste documento)
       console.log(`📚 Query 2: Organizando conteúdo programático...`);
       const conteudoQuery = "Liste de maneira organizada o conteúdo programático deste documento, separado por disciplinas e tópicos.";
-      const resultadoConteudo = await editalRAGService.buscarInformacaoPersonalizada(userId, conteudoQuery);
+      const resultadoConteudo = await editalRAGService.buscarInformacaoPersonalizada(userId, conteudoQuery, documentId);
       
       // Processar e estruturar resultados
       const cargos = this.processarResultadosPostProcessamento(resultadoCargos, resultadoConteudo);

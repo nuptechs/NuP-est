@@ -291,7 +291,11 @@ Responda em JSON no seguinte formato:
   /**
    * Busca personalizada usando RAG para qualquer aspecto do edital
    */
-  async buscarInformacaoPersonalizada(userId: string, query: string): Promise<{
+  async buscarInformacaoPersonalizada(
+    userId: string, 
+    query: string, 
+    documentId?: string // NOVO: filtrar por documento específico
+  ): Promise<{
     resposta: string;
     fontes: string[];
     temContexto: boolean;
@@ -305,7 +309,8 @@ Responda em JSON no seguinte formato:
         minSimilarity: 0.2,
         enableReRanking: true,
         initialTopK: 20,
-        finalTopK: 8
+        finalTopK: 8,
+        documentId // CRÍTICO: usar apenas documento específico se fornecido
       });
 
       const fontes = resultado.contextUsed.map(ctx => ctx.title);

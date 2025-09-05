@@ -439,6 +439,7 @@ export const editais = pgTable("editais", {
   conteudoProgramatico: jsonb("conteudo_programatico"),
   
   // Controle de processamento
+  externalFileId: varchar("external_file_id"), // ID retornado pela aplicação externa (job_id)
   processingLogs: text("processing_logs"),
   errorMessage: text("error_message"),
   

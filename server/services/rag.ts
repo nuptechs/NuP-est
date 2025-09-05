@@ -17,6 +17,7 @@ interface RAGOptions {
   enableReRanking?: boolean;
   initialTopK?: number;
   finalTopK?: number;
+  documentId?: string; // NOVO: filtrar por documento específico
 }
 
 export class RAGService {
@@ -34,7 +35,8 @@ export class RAGService {
       query,
       category,
       maxContextLength = 4000,
-      minSimilarity = 0.1
+      minSimilarity = 0.1,
+      documentId
     } = options;
 
     try {
@@ -44,8 +46,9 @@ export class RAGService {
       const initialTopK = options.enableReRanking ? (options.initialTopK || 15) : (options.finalTopK || 5);
       const rawResults = await pineconeService.searchSimilarContent(query, userId, {
         topK: initialTopK,
-        // Não filtrar por categoria - buscar todos os dados do usuário
-        minSimilarity
+        // Não filtrar por categoria - buscar todos os dados do usuário  
+        minSimilarity,
+        documentId // CRÍTICO: filtrar por documento específico se fornecido
       });
 
       // 2. Re-ranking opcional dos resultados usando LLM
