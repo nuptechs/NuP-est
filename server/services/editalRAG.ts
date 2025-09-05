@@ -71,28 +71,12 @@ export class EditalRAGService {
       if (resultadosUnicos.length === 0) {
         console.log(`❌ Nenhum resultado encontrado no Pinecone para userId: ${userId}`);
         
-        // Tentar busca mais ampla sem filtro de categoria
-        console.log(`🔄 Tentando busca mais ampla...`);
-        const backupResults = await pineconeService.searchSimilarContent(
-          "cargo vaga função concurso edital",
-          userId,
-          {
-            topK: 20,
-            minSimilarity: 0.1 // Muito menos restritivo
-          }
-        );
-        
-        console.log(`🔍 Busca ampla retornou ${backupResults.length} resultados`);
-        
-        if (backupResults.length === 0) {
-          throw new Error('Nenhum dado encontrado no Pinecone para este usuário. Verifique se o documento foi indexado corretamente.');
-        }
-        
-        todosResultados = backupResults;
+        // SEM FALLBACK - falhar diretamente
+        throw new Error('Nenhum dado encontrado no Pinecone para este usuário. Verifique se o documento foi indexado corretamente.');
       }
 
-      // Usar todos os resultados disponíveis se poucos forem encontrados
-      const resultadosParaProcessar = resultadosUnicos.length > 0 ? resultadosUnicos : todosResultados;
+      // Usar apenas resultados únicos - SEM FALLBACK
+      const resultadosParaProcessar = resultadosUnicos;
       
       // Usar AI para extrair e estruturar informações sobre cargos
       const contextText = resultadosParaProcessar
@@ -102,42 +86,46 @@ export class EditalRAGService {
         
       console.log(`📝 Processando ${resultadosParaProcessar.length} resultados para análise de cargos`);
 
-      const prompt = `Analise o contexto abaixo e extraia TODAS as informações sobre cargos/vagas de concurso.
+      const prompt = `Analise EXCLUSIVAMENTE o contexto dos documentos fornecidos e extraia informações sobre cargos de concurso público.
 
-CONTEXTO:
+⚠️  IMPORTANTE: Use APENAS informações presentes nestes documentos específicos. NÃO use conhecimento prévio sobre outros concursos.
+
+CONTEXTO DOS DOCUMENTOS ATUAIS:
 ${contextText}
 
-INSTRUÇÕES:
-1. Identifique TODOS os cargos/vagas mencionados
-2. Para cada cargo, extraia:
-   - Nome do cargo
-   - Requisitos/formação necessária
-   - Atribuições principais
-   - Salário/remuneração
-   - Carga horária
-   - Número de vagas
-3. Organize as informações de forma clara e estruturada
-4. Se não encontrar alguma informação específica, indique como "Não informado"
+INSTRUÇÕES CRÍTICAS:
+1. Identifique cargos mencionados APENAS nestes documentos específicos
+2. Extraia o nome EXATO dos cargos conforme aparecem nos documentos
+3. Se o documento menciona estado/UF específico (SE, DF, RJ, etc.), mantenha essa informação EXATA
+4. Para cada cargo, extraia:
+   - Nome EXATO do cargo conforme aparece no documento
+   - Requisitos de formação quando disponível
+   - Atribuições e funções quando disponível  
+   - Salário/remuneração quando disponível
+   - Carga horária quando disponível
+   - Número de vagas quando disponível
+5. Se alguma informação não estiver nos documentos, marque como "Não informado"
+6. NÃO invente ou complemente informações com conhecimento externo
 
 Responda em JSON no seguinte formato:
 {
   "cargos": [
     {
-      "nome": "Nome do cargo",
-      "requisitos": "Requisitos necessários",
-      "atribuicoes": "Principais atribuições",
-      "salario": "Valor do salário",
-      "cargaHoraria": "Carga horária de trabalho",
-      "vagas": "Número de vagas"
+      "nome": "Nome exato do cargo conforme documento (incluindo UF se mencionada)",
+      "requisitos": "Requisitos ou 'Não informado'",
+      "atribuicoes": "Atribuições ou 'Não informado'", 
+      "salario": "Salário ou 'Não informado'",
+      "cargaHoraria": "Carga horária ou 'Não informado'",
+      "vagas": "Número de vagas ou 'Não informado'"
     }
   ],
-  "resumoGeral": "Resumo geral sobre os cargos encontrados"
+  "resumoGeral": "Resumo sobre os cargos encontrados NESTES documentos específicos"
 }`;
 
       const aiResponse = await aiChatWithContext(prompt, 
-        "Você é um especialista em análise de editais de concurso. Extraia e organize informações sobre cargos de forma precisa e estruturada. Responda SEMPRE em JSON válido.",
+        "Você é um especialista em análise de editais de concurso. Extraia informações EXCLUSIVAMENTE dos documentos fornecidos, sem usar conhecimento prévio. Mantenha nomes de cargos e localizações EXATOS conforme o documento. Responda SEMPRE em JSON válido.",
         {
-          temperature: 0.1,
+          temperature: 0.05, // Mais determinístico
           maxTokens: 2000
         }
       );
@@ -171,11 +159,7 @@ Responda em JSON no seguinte formato:
 
     } catch (error) {
       console.error('❌ Erro ao buscar cargos:', error);
-      return {
-        cargos: [],
-        resumoGeral: "Erro interno ao buscar informações sobre cargos.",
-        totalEncontrado: 0
-      };
+      throw error; // Propagar erro - SEM FALLBACK
     }
   }
 

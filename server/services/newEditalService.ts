@@ -304,98 +304,32 @@ export class NewEditalService {
           }
           
           if (disciplina.detalhamento) {
-            conteudo.push(`   📋 ${disciplina.detalhamento}`);
+            // Garantir que detalhamento seja string
+            const detalhamento = typeof disciplina.detalhamento === 'string' 
+              ? disciplina.detalhamento 
+              : JSON.stringify(disciplina.detalhamento);
+            conteudo.push(`   📋 ${detalhamento}`);
           }
           
           conteudo.push(''); // Linha em branco entre disciplinas
         });
       }
       
-      // Se não há disciplinas estruturadas, usar resumo geral
-      if (conteudo.length === 0 && resultadoConteudo?.resumoGeral) {
-        conteudo.push('📝 **Informações Gerais:**');
-        conteudo.push(resultadoConteudo.resumoGeral);
-      }
-      
-      // Se ainda não há conteúdo, informar que pode ser consultado
+      // Se não há disciplinas estruturadas, falhar - SEM FALLBACK
       if (conteudo.length === 0) {
-        conteudo.push('ℹ️ Conteúdo programático disponível via consulta RAG específica');
+        throw new Error('Não foi possível extrair conteúdo programático estruturado do documento');
       }
       
       console.log(`✅ Conteúdo programático organizado: ${conteudo.length} itens para ${nomeCargo}`);
       
     } catch (error) {
       console.error('❌ Erro ao organizar conteúdo programático:', error);
-      conteudo.push('⚠️ Erro ao organizar conteúdo programático - consulte via RAG');
+      throw error; // Propagar erro - SEM FALLBACK
     }
     
     return conteudo;
   }
 
-  /**
-   * Extrai nomes de cargos do texto usando regex e patterns
-   */
-  private extrairNomesCargos(texto: string): string[] {
-    const cargos: Set<string> = new Set();
-    
-    // Patterns comuns para cargos em editais
-    const patterns = [
-      /cargo[:\s]+([^.,\n]+)/gi,
-      /função[:\s]+([^.,\n]+)/gi,
-      /vaga[:\s]+(para\s+)?([^.,\n]+)/gi,
-      /especialidade[:\s]+([^.,\n]+)/gi,
-      /auditor[^.,\n]*/gi,
-      /analista[^.,\n]*/gi,
-      /técnico[^.,\n]*/gi,
-      /assistente[^.,\n]*/gi,
-      /professor[^.,\n]*/gi,
-      /procurador[^.,\n]*/gi,
-      /delegado[^.,\n]*/gi,
-      /escrivão[^.,\n]*/gi
-    ];
-
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.exec(texto)) !== null) {
-        const cargo = match[1] || match[0];
-        if (cargo && cargo.trim().length > 3) {
-          cargos.add(cargo.trim().replace(/[.:,;]/g, ''));
-        }
-      }
-      pattern.lastIndex = 0; // Reset regex
-    }
-
-    return Array.from(cargos).slice(0, 10); // Limitar a 10 cargos max
-  }
-
-  /**
-   * Extrai conteúdo programático relacionado a um cargo específico
-   */
-  private extrairConteudoProgramatico(texto: string, cargo: string): string[] {
-    const disciplinas: Set<string> = new Set();
-    
-    // Patterns para disciplinas/matérias
-    const patterns = [
-      /disciplinas?[:\s]+([^.]+)/gi,
-      /matérias?[:\s]+([^.]+)/gi,
-      /conteúdo programático[:\s]+([^.]+)/gi,
-      /conhecimentos?[:\s]+([^.]+)/gi
-    ];
-
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.exec(texto)) !== null) {
-        const disciplina = match[1];
-        if (disciplina && disciplina.trim().length > 5) {
-          disciplinas.add(disciplina.trim());
-        }
-      }
-      pattern.lastIndex = 0; // Reset regex
-    }
-
-    const result = Array.from(disciplinas).slice(0, 20); // Limitar a 20 disciplinas
-    return result.length > 0 ? result : ['Consulte conteúdo programático via RAG'];
-  }
 }
 
 export const newEditalService = new NewEditalService();
