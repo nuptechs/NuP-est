@@ -12,18 +12,15 @@ export interface ProcessingRequest {
 
 export interface ProcessingResponse {
   success: boolean;
-  jobId?: string;
-  chunks?: Array<{
-    id: string;
-    content: string;
-    title: string;
-    summary: string;
-    keywords: string[];
-    chunkIndex: number;
-  }>;
-  embeddings?: number[][];
+  job_id?: string;
   error?: string;
-  status?: 'pending' | 'processing' | 'completed' | 'failed';
+}
+
+export interface ProcessingResults {
+  results: {
+    embeddings: number[][];
+    text_chunks: string[];
+  };
 }
 
 export interface JobStatus {
@@ -98,14 +95,14 @@ export class ExternalProcessingService {
       };
 
       if (this.apiKey) {
-        headers['Authorization'] = `Bearer ${this.apiKey}`;
+        headers['X-API-Key'] = this.apiKey;
       }
 
       // Fazer requisição com AbortController para timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos timeout
 
-      const response = await fetch(`${this.baseUrl}/process-document`, {
+      const response = await fetch(`${this.baseUrl}/api/upload`, {
         method: 'POST',
         body: formData,
         headers,
@@ -123,8 +120,7 @@ export class ExternalProcessingService {
       
       console.log(`✅ Resposta recebida da aplicação externa:`, {
         success: result.success,
-        jobId: result.jobId,
-        chunksCount: result.chunks?.length || 0
+        jobId: result.job_id
       });
 
       return result;
@@ -156,10 +152,10 @@ export class ExternalProcessingService {
       };
 
       if (this.apiKey) {
-        headers['Authorization'] = `Bearer ${this.apiKey}`;
+        headers['X-API-Key'] = this.apiKey;
       }
 
-      const response = await fetch(`${this.baseUrl}/status/${jobId}`, {
+      const response = await fetch(`${this.baseUrl}/api/status/${jobId}`, {
         method: 'GET',
         headers
       });
@@ -206,6 +202,50 @@ export class ExternalProcessingService {
   }
 
   /**
+   * Obtém os resultados finais do processamento (embeddings e chunks de texto)
+   */
+  async getResults(jobId: string): Promise<{ success: boolean; results?: any; error?: string }> {
+    if (!this.isEnabled) {
+      return {
+        success: false,
+        error: 'External processing service not configured or disabled'
+      };
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (this.apiKey) {
+        headers['X-API-Key'] = this.apiKey;
+      }
+
+      const response = await fetch(`${this.baseUrl}/api/results/${jobId}`, {
+        method: 'GET',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao obter resultados: ${response.status}`);
+      }
+
+      const data = await response.json() as ProcessingResults;
+      return {
+        success: true,
+        results: data.results
+      };
+
+    } catch (error) {
+      console.error(`❌ Erro ao obter resultados do job ${jobId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      };
+    }
+  }
+
+  /**
    * Testa conectividade com a aplicação externa
    */
   async testConnection(): Promise<{ success: boolean; message: string }> {
@@ -222,13 +262,13 @@ export class ExternalProcessingService {
       };
 
       if (this.apiKey) {
-        headers['Authorization'] = `Bearer ${this.apiKey}`;
+        headers['X-API-Key'] = this.apiKey;
       }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(`${this.baseUrl}/health`, {
+      const response = await fetch(`${this.baseUrl}/api/status/test`, {
         method: 'GET',
         headers,
         signal: controller.signal
@@ -236,7 +276,8 @@ export class ExternalProcessingService {
 
       clearTimeout(timeoutId);
 
-      if (response.ok) {
+      if (response.ok || response.status === 404) {
+        // Status 404 is expected for test job ID, but means service is reachable
         return {
           success: true,
           message: 'Conexão com aplicação externa estabelecida com sucesso'

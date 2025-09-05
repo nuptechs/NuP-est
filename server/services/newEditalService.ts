@@ -98,45 +98,41 @@ export class NewEditalService {
       let cargoAnalysis: any = null;
       let conteudoProgramatico: any = null;
 
-      if (processingResponse.chunks) {
-        chunksGenerated = processingResponse.chunks.length;
+      if (processingResponse.job_id) {
+        // Processamento assíncrono iniciado
+        console.log(`⏳ Processamento assíncrono iniciado. Job ID: ${processingResponse.job_id}`);
         
-        // Se processamento foi síncrono, salvar chunks
-        await storage.updateEdital(edital.id, {
-          deepseekChunks: processingResponse.chunks,
-          pineconeIndexed: true, // Assumindo que aplicação externa já indexou
-          status: 'completed'
-        });
-
-        // Estimar tamanho do texto original pelos chunks
-        textLength = processingResponse.chunks.reduce((total, chunk) => total + chunk.content.length, 0);
+        const finalStatus = await externalProcessingService.waitForCompletion(processingResponse.job_id);
+        
+        if (finalStatus.status === 'completed') {
+          // Obter resultados finais
+          const results = await externalProcessingService.getResults(processingResponse.job_id);
+          if (results.success && results.results) {
+            // Converter os resultados para o formato esperado pelo banco
+            const chunks = results.results.text_chunks.map((chunk: string, index: number) => ({
+              id: `chunk_${index}`,
+              content: chunk,
+              title: `Chunk ${index + 1}`,
+              summary: chunk.substring(0, 100) + '...',
+              keywords: [],
+              chunkIndex: index
+            }));
+            
+            chunksGenerated = chunks.length;
+            textLength = chunks.reduce((total: number, chunk: any) => total + chunk.content.length, 0);
+            
+            await storage.updateEdital(edital.id, {
+              deepseekChunks: chunks,
+              pineconeIndexed: true,
+              status: 'completed'
+            });
+          }
+        } else {
+          throw new Error(finalStatus.error || 'Processamento externo falhou');
+        }
         
         console.log(`📊 Chunks recebidos: ${chunksGenerated}`);
         console.log(`📝 Texto estimado: ${textLength} caracteres`);
-
-      } else if (processingResponse.jobId) {
-        // Se processamento é assíncrono, aguardar conclusão
-        console.log(`⏳ Processamento assíncrono iniciado. Job ID: ${processingResponse.jobId}`);
-        
-        const finalStatus = await externalProcessingService.waitForCompletion(processingResponse.jobId);
-        
-        if (finalStatus.status !== 'completed') {
-          throw new Error(finalStatus.error || 'Processamento externo falhou');
-        }
-
-        // Salvar resultados finais
-        if (finalStatus.result) {
-          await storage.updateEdital(edital.id, {
-            deepseekChunks: finalStatus.result.chunks || [],
-            pineconeIndexed: true,
-            status: 'completed'
-          });
-          
-          chunksGenerated = finalStatus.result.chunks?.length || 0;
-          textLength = finalStatus.result.textLength || 0;
-          cargoAnalysis = finalStatus.result.cargoAnalysis;
-          conteudoProgramatico = finalStatus.result.conteudoProgramatico;
-        }
       } else {
         // Processamento básico sem chunks específicos
         await storage.updateEdital(edital.id, {
