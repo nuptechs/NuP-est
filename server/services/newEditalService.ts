@@ -2,7 +2,6 @@ import fs from 'fs';
 import { fileProcessorService } from './fileProcessor';
 import { externalProcessingService } from './externalProcessingService';
 import { editalRAGService } from './editalRAG';
-import { pineconeService } from './pinecone';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
 
@@ -93,35 +92,13 @@ export class NewEditalService {
         throw new Error(processingResponse.error || 'Erro no processamento externo');
       }
 
-      console.log(`✅ Aplicação externa processou com sucesso`);
+      console.log(`✅ Aplicação externa processou e indexou no Pinecone com sucesso`);
 
-      // 4. INDEXAR OS CHUNKS NO PINECONE (aplicação externa só processa)
-      if (processingResponse.chunks && processingResponse.chunks.length > 0) {
-        console.log(`📤 Indexando ${processingResponse.chunks.length} chunks no Pinecone...`);
-        
-        const chunks = processingResponse.chunks.map((chunk: any, index: number) => ({
-          content: typeof chunk === 'string' ? chunk : chunk.content || '',
-          chunkIndex: typeof chunk === 'object' ? chunk.chunk_index || index : index
-        }));
-
-        await pineconeService.upsertDocument(
-          edital.id,
-          chunks,
-          {
-            userId: request.userId,
-            title: edital.fileName,
-            category: 'edital'
-          }
-        );
-        
-        console.log(`✅ ${chunks.length} chunks indexados no Pinecone com sucesso`);
-      }
-
-      // 5. Analisar cargos usando RAG após indexação
+      // 4. Analisar cargos usando RAG (Pinecone já indexado pela aplicação externa)
       console.log(`🔍 Analisando cargos do edital usando RAG...`);
       const cargoAnalysis = await this.analisarCargosViaRAG(request.userId, edital.id);
       
-      // 6. Atualizar edital com informações dos cargos
+      // 5. Atualizar edital com informações dos cargos
       await storage.updateEdital(edital.id, {
         status: 'completed',
         processedAt: new Date(),
@@ -130,7 +107,7 @@ export class NewEditalService {
         cargos: cargoAnalysis.cargos
       });
 
-      // 7. Limpar arquivo local (opcional - manter ou não)
+      // 6. Limpar arquivo local (opcional - manter ou não)
       if (fs.existsSync(request.filePath)) {
         fs.unlinkSync(request.filePath);
         console.log(`🗑️ Arquivo local removido: ${request.filePath}`);
@@ -138,7 +115,7 @@ export class NewEditalService {
 
       const updatedEdital = await storage.getEdital(edital.id);
       
-      // 8. Criar mensagem dinâmica baseada na análise
+      // 7. Criar mensagem dinâmica baseada na análise
       const message = cargoAnalysis.hasSingleCargo 
         ? `Edital processado com sucesso! Identificado 1 cargo: ${cargoAnalysis.cargos[0]?.nome}`
         : `Edital processado com sucesso! Identificados ${cargoAnalysis.totalCargos} cargos disponíveis`;
@@ -149,7 +126,7 @@ export class NewEditalService {
         message,
         details: {
           externalProcessingSuccess: true,
-          processingMessage: 'Documento processado pela aplicação externa e indexado localmente no Pinecone',
+          processingMessage: 'Documento processado e indexado no Pinecone pela aplicação externa',
           cargoAnalysis
         }
       };
