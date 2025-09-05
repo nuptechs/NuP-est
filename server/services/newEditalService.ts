@@ -5,6 +5,16 @@ import { externalProcessingService } from './externalProcessingService';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
 
+// Type definitions for DeepSeek chunks
+interface DeepSeekChunk {
+  id: string;
+  content: string;
+  title: string;
+  summary: string;
+  keywords: string[];
+  chunkIndex: number;
+}
+
 interface ProcessEditalRequest {
   userId: string;
   filePath: string;
@@ -209,7 +219,8 @@ export class NewEditalService {
       }
 
       // Filtrar chunks relevantes por similaridade simples de texto
-      const relevantChunks = edital.deepseekChunks.filter(chunk => {
+      const chunks = (edital.deepseekChunks as DeepSeekChunk[]) || [];
+      const relevantChunks = chunks.filter((chunk: DeepSeekChunk) => {
         const queryLower = query.toLowerCase();
         const contentLower = chunk.content.toLowerCase();
         const titleLower = chunk.title?.toLowerCase() || '';
@@ -218,7 +229,7 @@ export class NewEditalService {
         return contentLower.includes(queryLower) || 
                titleLower.includes(queryLower) || 
                summaryLower.includes(queryLower) ||
-               (chunk.keywords && chunk.keywords.some(keyword => 
+               (chunk.keywords && chunk.keywords.some((keyword: string) => 
                  keyword.toLowerCase().includes(queryLower)
                ));
       });
@@ -230,7 +241,7 @@ export class NewEditalService {
       // Criar resposta baseada nos chunks relevantes
       const context = relevantChunks
         .slice(0, 3) // Limitar a 3 chunks mais relevantes
-        .map(chunk => `${chunk.title || 'Seção'}: ${chunk.content}`)
+        .map((chunk: DeepSeekChunk) => `${chunk.title || 'Seção'}: ${chunk.content}`)
         .join('\n\n');
 
       return `Informações encontradas no edital:\n\n${context}`;

@@ -40,20 +40,25 @@ export interface JobStatus {
 export class ExternalProcessingService {
   private baseUrl: string;
   private apiKey?: string;
+  private isEnabled: boolean = false;
 
   constructor() {
     this.baseUrl = process.env.PROCESSING_SERVICE_URL || '';
     this.apiKey = process.env.PROCESSING_SERVICE_API_KEY;
     
     if (!this.baseUrl) {
-      throw new Error('PROCESSING_SERVICE_URL environment variable is required');
+      console.warn('⚠️ PROCESSING_SERVICE_URL not configured. External processing service disabled.');
+      return;
     }
 
     // Validar se é uma URL válida
     try {
       new URL(this.baseUrl);
+      this.isEnabled = true;
+      console.log('✅ External processing service configured successfully');
     } catch (error) {
-      throw new Error(`PROCESSING_SERVICE_URL deve ser uma URL válida. Atual: "${this.baseUrl}". Exemplo: https://sua-app.replit.dev`);
+      console.warn(`⚠️ PROCESSING_SERVICE_URL deve ser uma URL válida. Atual: "${this.baseUrl}". Exemplo: https://sua-app.replit.dev`);
+      console.warn('External processing service disabled.');
     }
   }
 
@@ -61,6 +66,13 @@ export class ExternalProcessingService {
    * Envia arquivo para processamento na aplicação externa
    */
   async processDocument(request: ProcessingRequest): Promise<ProcessingResponse> {
+    if (!this.isEnabled) {
+      return {
+        success: false,
+        error: 'External processing service not configured or disabled'
+      };
+    }
+
     try {
       console.log(`🚀 Enviando arquivo para processamento externo: ${request.fileName}`);
       
@@ -130,6 +142,14 @@ export class ExternalProcessingService {
    * Verifica status de um job de processamento
    */
   async getJobStatus(jobId: string): Promise<JobStatus> {
+    if (!this.isEnabled) {
+      return {
+        jobId,
+        status: 'failed',
+        error: 'External processing service not configured or disabled'
+      };
+    }
+
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
@@ -189,6 +209,13 @@ export class ExternalProcessingService {
    * Testa conectividade com a aplicação externa
    */
   async testConnection(): Promise<{ success: boolean; message: string }> {
+    if (!this.isEnabled) {
+      return {
+        success: false,
+        message: 'External processing service not configured or disabled'
+      };
+    }
+
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
