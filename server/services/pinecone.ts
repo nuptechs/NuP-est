@@ -173,7 +173,28 @@ export class PineconeService {
           category: match.metadata.category,
         })) || [];
 
-      console.log(`🔍 Pinecone encontrou ${similarContent.length} resultados relevantes`);
+      console.log(`🔍 Pinecone encontrou ${similarContent.length} resultados relevantes para userId: ${userId}`);
+      
+      // Se não encontrou nada, vamos debugar
+      if (similarContent.length === 0) {
+        console.log(`🔍 Debug - Filtros usados:`, filter);
+        console.log(`🔍 Debug - Query: "${query}"`);
+        console.log(`🔍 Debug - Total matches retornados:`, results.matches?.length || 0);
+        
+        // Tentar busca sem filtro para ver se há dados no índice
+        const debugResults = await this.index.query({
+          vector: queryEmbedding,
+          topK: 5,
+          includeMetadata: true,
+          includeValues: false,
+        });
+        
+        console.log(`🔍 Debug - Busca sem filtro retornou:`, debugResults.matches?.length || 0, 'resultados');
+        if (debugResults.matches && debugResults.matches.length > 0) {
+          console.log(`🔍 Debug - Exemplo de metadata:`, debugResults.matches[0].metadata);
+        }
+      }
+      
       return similarContent;
     } catch (error) {
       console.error('❌ Erro na busca do Pinecone:', error);

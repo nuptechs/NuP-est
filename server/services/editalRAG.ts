@@ -47,15 +47,19 @@ export class EditalRAGService {
       let todosResultados: any[] = [];
       
       for (const cargoQuery of cargosQueries) {
+        console.log(`🔍 Buscando: "${query} ${cargoQuery}" para userId: ${userId}`);
+        
         const resultados = await pineconeService.searchSimilarContent(
           `${query} ${cargoQuery}`,
           userId,
           {
-            topK: 10,
+            topK: 15,
             category: 'edital',
-            minSimilarity: 0.3
+            minSimilarity: 0.2 // Menos restritivo
           }
         );
+        
+        console.log(`🔍 Query "${cargoQuery}" retornou ${resultados.length} resultados`);
         todosResultados = [...todosResultados, ...resultados];
       }
 
@@ -65,18 +69,42 @@ export class EditalRAGService {
       );
 
       if (resultadosUnicos.length === 0) {
-        return {
-          cargos: [],
-          resumoGeral: "Nenhuma informação sobre cargos encontrada nos documentos processados.",
-          totalEncontrado: 0
-        };
+        console.log(`❌ Nenhum resultado encontrado no Pinecone para userId: ${userId}`);
+        
+        // Tentar busca mais ampla sem filtro de categoria
+        console.log(`🔄 Tentando busca mais ampla...`);
+        const backupResults = await pineconeService.searchSimilarContent(
+          "cargo vaga função concurso",
+          userId,
+          {
+            topK: 20,
+            minSimilarity: 0.1 // Muito menos restritivo
+          }
+        );
+        
+        console.log(`🔍 Busca ampla retornou ${backupResults.length} resultados`);
+        
+        if (backupResults.length === 0) {
+          return {
+            cargos: [],
+            resumoGeral: "Nenhuma informação sobre cargos encontrada. Verifique se o documento foi processado corretamente.",
+            totalEncontrado: 0
+          };
+        }
+        
+        todosResultados = backupResults;
       }
 
+      // Usar todos os resultados disponíveis se poucos forem encontrados
+      const resultadosParaProcessar = resultadosUnicos.length > 0 ? resultadosUnicos : todosResultados;
+      
       // Usar AI para extrair e estruturar informações sobre cargos
-      const contextText = resultadosUnicos
+      const contextText = resultadosParaProcessar
         .slice(0, 15) // Limitar para não sobrecarregar
         .map(r => `[${r.title}] ${r.content}`)
         .join('\n\n---\n\n');
+        
+      console.log(`📝 Processando ${resultadosParaProcessar.length} resultados para análise de cargos`);
 
       const prompt = `Analise o contexto abaixo e extraia TODAS as informações sobre cargos/vagas de concurso.
 

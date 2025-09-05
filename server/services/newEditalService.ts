@@ -209,16 +209,21 @@ export class NewEditalService {
     try {
       console.log(`🔍 Iniciando análise de cargos via RAG para edital ${editalId}`);
       
-      // 1. Buscar informações sobre cargos usando RAG
+      // 1. Aguardar um pouco para garantir que a indexação foi concluída
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // 2. Buscar informações sobre cargos usando RAG
+      console.log(`🔍 Buscando cargos para userId: ${userId}`);
       const resultadoCargos = await editalRAGService.buscarCargos(
         userId, 
-        "Liste todos os cargos, vagas, funções disponíveis neste concurso edital"
+        "cargo vaga função concurso público"
       );
 
-      // 2. Buscar conteúdo programático usando RAG  
+      // 3. Buscar conteúdo programático usando RAG  
+      console.log(`📚 Buscando conteúdo programático para userId: ${userId}`);
       const resultadoConteudo = await editalRAGService.buscarConteudoProgramatico(
         userId,
-        "Liste todo o conteúdo programático, disciplinas, matérias de cada cargo"
+        "conteúdo programático disciplina matéria conhecimento"
       );
 
       // 3. Processar resultados e extrair informações estruturadas
@@ -258,39 +263,62 @@ export class NewEditalService {
     conteudoProgramatico?: string[];
   }> {
     try {
+      console.log(`📊 Analisando resultado de cargos:`, resultadoCargos);
+      
       const cargos: Array<{ nome: string; conteudoProgramatico?: string[] }> = [];
 
-      // Analisar texto dos cargos para identificar nomes
-      if (resultadoCargos?.resposta || resultadoCargos?.answer) {
-        const textoCargos = resultadoCargos.resposta || resultadoCargos.answer || '';
+      // Verificar se temos resultados estruturados da IA
+      if (resultadoCargos?.cargos && Array.isArray(resultadoCargos.cargos)) {
+        console.log(`✅ IA identificou ${resultadoCargos.cargos.length} cargos estruturados`);
+        
+        for (const cargo of resultadoCargos.cargos) {
+          cargos.push({
+            nome: cargo.nome || 'Cargo não especificado',
+            conteudoProgramatico: cargo.conteudoProgramatico || this.extrairConteudoProgramatico(
+              resultadoConteudo?.resumoGeral || '', 
+              cargo.nome || ''
+            )
+          });
+        }
+      } else {
+        // Fallback: analisar texto bruto dos resultados
+        console.log(`🔄 Fazendo fallback para análise de texto bruto`);
+        
+        const textoCargos = resultadoCargos?.resumoGeral || resultadoCargos?.resposta || '';
         const nomesIdentificados = this.extrairNomesCargos(textoCargos);
 
-        // Analisar conteúdo programático
-        const textoConteudo = resultadoConteudo?.resposta || resultadoConteudo?.answer || '';
-        
-        for (const nomeCargo of nomesIdentificados) {
-          cargos.push({
-            nome: nomeCargo,
-            conteudoProgramatico: this.extrairConteudoProgramatico(textoConteudo, nomeCargo)
-          });
+        if (nomesIdentificados.length > 0) {
+          console.log(`🎯 Identificados ${nomesIdentificados.length} cargos via regex:`, nomesIdentificados);
+          
+          for (const nomeCargo of nomesIdentificados) {
+            cargos.push({
+              nome: nomeCargo,
+              conteudoProgramatico: this.extrairConteudoProgramatico(
+                resultadoConteudo?.resumoGeral || '', 
+                nomeCargo
+              )
+            });
+          }
         }
       }
 
-      // Se não conseguiu identificar cargos, retornar estrutura básica
+      // Se ainda não conseguiu identificar cargos, usar última tentativa
       if (cargos.length === 0) {
+        console.log(`⚠️ Nenhum cargo identificado, usando dados básicos`);
         cargos.push({
-          nome: 'Cargo disponível no edital',
-          conteudoProgramatico: ['Ver detalhes via consulta RAG específica']
+          nome: 'Vaga/Cargo do Concurso',
+          conteudoProgramatico: ['Consulte detalhes via busca RAG específica']
         });
       }
 
+      console.log(`📋 Total de cargos processados: ${cargos.length}`);
       return cargos;
 
     } catch (error) {
       console.error('❌ Erro ao extrair cargos do RAG:', error);
       return [{
-        nome: 'Cargo disponível',
-        conteudoProgramatico: ['Consulte via endpoints RAG específicos']
+        nome: 'Cargo do Concurso Público',
+        conteudoProgramatico: ['Informações disponíveis via consulta RAG']
       }];
     }
   }
