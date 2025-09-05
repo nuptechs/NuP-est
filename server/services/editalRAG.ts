@@ -85,11 +85,7 @@ export class EditalRAGService {
         console.log(`🔍 Busca ampla retornou ${backupResults.length} resultados`);
         
         if (backupResults.length === 0) {
-          return {
-            cargos: [],
-            resumoGeral: "Nenhuma informação sobre cargos encontrada. Verifique se o documento foi processado corretamente.",
-            totalEncontrado: 0
-          };
+          throw new Error('Nenhum dado encontrado no Pinecone para este usuário. Verifique se o documento foi indexado corretamente.');
         }
         
         todosResultados = backupResults;

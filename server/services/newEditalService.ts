@@ -2,6 +2,7 @@ import fs from 'fs';
 import { fileProcessorService } from './fileProcessor';
 import { externalProcessingService } from './externalProcessingService';
 import { editalRAGService } from './editalRAG';
+import { pineconeService } from './pinecone';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
 
@@ -94,11 +95,33 @@ export class NewEditalService {
 
       console.log(`✅ Aplicação externa processou com sucesso`);
 
-      // 4. Analisar cargos usando RAG após indexação externa
+      // 4. INDEXAR OS CHUNKS NO PINECONE (aplicação externa só processa)
+      if (processingResponse.chunks && processingResponse.chunks.length > 0) {
+        console.log(`📤 Indexando ${processingResponse.chunks.length} chunks no Pinecone...`);
+        
+        const chunks = processingResponse.chunks.map((chunk: any, index: number) => ({
+          content: typeof chunk === 'string' ? chunk : chunk.content || '',
+          chunkIndex: typeof chunk === 'object' ? chunk.chunk_index || index : index
+        }));
+
+        await pineconeService.upsertDocument(
+          edital.id,
+          chunks,
+          {
+            userId: request.userId,
+            title: edital.fileName,
+            category: 'edital'
+          }
+        );
+        
+        console.log(`✅ ${chunks.length} chunks indexados no Pinecone com sucesso`);
+      }
+
+      // 5. Analisar cargos usando RAG após indexação
       console.log(`🔍 Analisando cargos do edital usando RAG...`);
       const cargoAnalysis = await this.analisarCargosViaRAG(request.userId, edital.id);
       
-      // 5. Atualizar edital com informações dos cargos
+      // 6. Atualizar edital com informações dos cargos
       await storage.updateEdital(edital.id, {
         status: 'completed',
         processedAt: new Date(),
@@ -107,7 +130,7 @@ export class NewEditalService {
         cargos: cargoAnalysis.cargos
       });
 
-      // 6. Limpar arquivo local (opcional - manter ou não)
+      // 7. Limpar arquivo local (opcional - manter ou não)
       if (fs.existsSync(request.filePath)) {
         fs.unlinkSync(request.filePath);
         console.log(`🗑️ Arquivo local removido: ${request.filePath}`);
@@ -115,7 +138,7 @@ export class NewEditalService {
 
       const updatedEdital = await storage.getEdital(edital.id);
       
-      // 7. Criar mensagem dinâmica baseada na análise
+      // 8. Criar mensagem dinâmica baseada na análise
       const message = cargoAnalysis.hasSingleCargo 
         ? `Edital processado com sucesso! Identificado 1 cargo: ${cargoAnalysis.cargos[0]?.nome}`
         : `Edital processado com sucesso! Identificados ${cargoAnalysis.totalCargos} cargos disponíveis`;
@@ -126,7 +149,7 @@ export class NewEditalService {
         message,
         details: {
           externalProcessingSuccess: true,
-          processingMessage: 'Documento processado, indexado e analisado via RAG',
+          processingMessage: 'Documento processado pela aplicação externa e indexado localmente no Pinecone',
           cargoAnalysis
         }
       };
@@ -242,16 +265,7 @@ export class NewEditalService {
 
     } catch (error) {
       console.error('❌ Erro na análise de cargos via RAG:', error);
-      
-      // Fallback: retornar estrutura básica se RAG falhar
-      return {
-        totalCargos: 1,
-        hasSingleCargo: true,
-        cargos: [{
-          nome: 'Cargo identificado via processamento externo',
-          conteudoProgramatico: ['Conteúdo disponível via consulta RAG']
-        }]
-      };
+      throw error; // Propagar erro em vez de usar fallback
     }
   }
 
@@ -302,13 +316,10 @@ export class NewEditalService {
         }
       }
 
-      // Se ainda não conseguiu identificar cargos, usar última tentativa
+      // Se não conseguiu identificar cargos, falhar
       if (cargos.length === 0) {
-        console.log(`⚠️ Nenhum cargo identificado, usando dados básicos`);
-        cargos.push({
-          nome: 'Vaga/Cargo do Concurso',
-          conteudoProgramatico: ['Consulte detalhes via busca RAG específica']
-        });
+        console.error(`❌ RAG não conseguiu identificar nenhum cargo no documento`);
+        throw new Error('Não foi possível identificar cargos no documento usando RAG. Verifique se o documento foi processado corretamente.');
       }
 
       console.log(`📋 Total de cargos processados: ${cargos.length}`);
@@ -316,10 +327,7 @@ export class NewEditalService {
 
     } catch (error) {
       console.error('❌ Erro ao extrair cargos do RAG:', error);
-      return [{
-        nome: 'Cargo do Concurso Público',
-        conteudoProgramatico: ['Informações disponíveis via consulta RAG']
-      }];
+      throw error; // Propagar erro em vez de usar fallback
     }
   }
 
