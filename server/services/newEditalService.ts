@@ -1,20 +1,8 @@
 import fs from 'fs';
-import path from 'path';
 import { fileProcessorService } from './fileProcessor';
 import { externalProcessingService } from './externalProcessingService';
-import { pineconeService } from './pinecone';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
-
-// Type definitions for DeepSeek chunks
-interface DeepSeekChunk {
-  id: string;
-  content: string;
-  title: string;
-  summary: string;
-  keywords: string[];
-  chunkIndex: number;
-}
 
 interface ProcessEditalRequest {
   userId: string;
@@ -30,19 +18,16 @@ interface ProcessedEditalResult {
   success: boolean;
   message: string;
   details?: {
-    textLength: number;
-    chunksGenerated: number;
-    pineconeIndexed: boolean;
-    cargoAnalysis: any;
-    conteudoProgramatico?: any;
+    externalProcessingSuccess: boolean;
+    processingMessage?: string;
   };
 }
 
 export class NewEditalService {
 
   /**
-   * Processa um edital completamente de forma síncrona
-   * Nova arquitetura: arquivo → banco → aplicação externa → análise
+   * Processa um edital enviando para aplicação externa
+   * Fluxo simplificado: Upload → Enviar para API externa → Aguardar resposta
    */
   async processEdital(request: ProcessEditalRequest): Promise<ProcessedEditalResult> {
     let edital: Edital | null = null;
@@ -73,8 +58,9 @@ export class NewEditalService {
         status: 'processing'
       });
 
-      // 3. Enviar arquivo para aplicação externa de processamento
-      console.log(`🚀 Enviando arquivo para aplicação externa de processamento...`);
+      // 3. Enviar arquivo para aplicação externa 
+      // A aplicação externa fará: processamento + chunks + embeddings + Pinecone
+      console.log(`🚀 Enviando arquivo para aplicação externa (processamento completo)...`);
       
       const processingResponse = await externalProcessingService.processDocument({
         filePath: request.filePath,
@@ -88,283 +74,85 @@ export class NewEditalService {
       });
 
       if (!processingResponse.success) {
+        // Marcar como erro e manter registro
+        await storage.updateEdital(edital.id, {
+          status: 'failed',
+          processedAt: new Date()
+        });
+        
         throw new Error(processingResponse.error || 'Erro no processamento externo');
       }
 
-      console.log(`✅ Processamento externo concluído com sucesso`);
+      console.log(`✅ Aplicação externa processou com sucesso`);
 
-      // 4. Salvar resultados do processamento externo
-      let textLength = 0;
-      let chunksGenerated = 0;
-      let cargoAnalysis: any = null;
-      let conteudoProgramatico: any = null;
+      // 4. Atualizar status para concluído
+      // A aplicação externa já fez tudo: chunks, embeddings, indexação no Pinecone
+      await storage.updateEdital(edital.id, {
+        status: 'completed',
+        processedAt: new Date()
+      });
 
-      // Verificar primeiro se já temos chunks (processamento síncrono)
-      if (processingResponse.chunks && processingResponse.chunks.length > 0) {
-          console.log(`✅ Processamento síncrono completado. ${processingResponse.chunks.length} chunks recebidos.`);
-          
-          // Converter os chunks da API externa para o formato interno
-          const chunks = processingResponse.chunks.map((chunk: any, index: number) => {
-            // Suportar tanto chunks como objetos quanto como strings
-            const content = typeof chunk === 'string' ? chunk : chunk.content;
-            const chunkId = typeof chunk === 'object' ? chunk.id : undefined;
-            
-            return {
-              id: chunkId || `chunk_${index}`,
-              content: content,
-              title: typeof chunk === 'object' ? chunk.title || `Chunk ${index + 1}` : `Chunk ${index + 1}`,
-              summary: typeof chunk === 'object' ? chunk.summary || content.substring(0, 100) + '...' : content.substring(0, 100) + '...',
-              keywords: typeof chunk === 'object' ? chunk.keywords || [] : [],
-              chunkIndex: typeof chunk === 'object' ? chunk.chunk_index || index : index
-            };
-          });
-          
-          chunksGenerated = chunks.length;
-          textLength = chunks.reduce((total: number, chunk: any) => total + chunk.content.length, 0);
-          
-          await storage.updateEdital(edital.id, {
-            deepseekChunks: chunks,
-            pineconeIndexed: false, // Será definido após indexação bem-sucedida
-            status: 'completed',
-            processedAt: new Date()
-          });
-          
-          // Indexar no Pinecone para permitir busca semântica
-          console.log(`🔄 Indexando ${chunks.length} chunks no Pinecone...`);
-          await pineconeService.upsertDocument(edital.id, 
-            chunks.map((chunk: any) => ({
-              content: chunk.content,
-              chunkIndex: chunk.chunkIndex
-            })),
-            {
-              userId: request.userId,
-              title: edital.fileName,
-              category: 'edital'
-            }
-          );
-          
-          // Atualizar status da indexação
-          await storage.updateEdital(edital.id, {
-            pineconeIndexed: true
-          });
+      // 5. Limpar arquivo local (opcional - manter ou não)
+      if (fs.existsSync(request.filePath)) {
+        fs.unlinkSync(request.filePath);
+        console.log(`🗑️ Arquivo local removido: ${request.filePath}`);
+      }
+
+      const updatedEdital = await storage.getEdital(edital.id);
       
-      } else if (processingResponse.job_id) {
-        // Processamento assíncrono - aguardar conclusão
-        console.log(`⏳ Processamento assíncrono iniciado. Job ID: ${processingResponse.job_id}`);
-        
-        const finalStatus = await externalProcessingService.waitForCompletion(processingResponse.job_id);
-        
-        if (finalStatus.status === 'completed') {
-          // Obter resultados finais
-          const results = await externalProcessingService.getResults(processingResponse.job_id);
-          if (results.success && results.results) {
-            // Converter os resultados para o formato esperado pelo banco
-            const chunks = results.results.text_chunks.map((chunk: string, index: number) => ({
-              id: `chunk_${index}`,
-              content: chunk,
-              title: `Chunk ${index + 1}`,
-              summary: chunk.substring(0, 100) + '...',
-              keywords: [],
-              chunkIndex: index
-            }));
-            
-            chunksGenerated = chunks.length;
-            textLength = chunks.reduce((total: number, chunk: any) => total + chunk.content.length, 0);
-            
-            await storage.updateEdital(edital.id, {
-              deepseekChunks: chunks,
-              pineconeIndexed: false, // Será definido após indexação bem-sucedida
-              status: 'completed',
-              processedAt: new Date()
-            });
-            
-            // Indexar no Pinecone para permitir busca semântica
-            console.log(`🔄 Indexando ${chunks.length} chunks no Pinecone...`);
-            await pineconeService.upsertDocument(edital.id, 
-              chunks.map(chunk => ({
-                content: chunk.content,
-                chunkIndex: chunk.chunkIndex
-              })),
-              {
-                userId: request.userId,
-                title: edital.fileName,
-                category: 'edital'
-              }
-            );
-            
-            // Atualizar status da indexação
-            await storage.updateEdital(edital.id, {
-              pineconeIndexed: true
-            });
-          }
-        } else {
-          throw new Error(finalStatus.error || 'Processamento externo falhou');
-        }
-        
-      } else {
-        throw new Error('Resposta inválida da aplicação externa: sem job_id e sem chunks processados');
-      }
-      
-      console.log(`📊 Chunks recebidos: ${chunksGenerated}`);
-      console.log(`📝 Texto estimado: ${textLength} caracteres`);
-
-      // 5. Salvar análise final no banco (se disponível)
-      if (cargoAnalysis) {
-        await storage.updateEdital(edital.id, {
-          hasSingleCargo: cargoAnalysis.hasSingleCargo,
-          cargoName: cargoAnalysis.cargoName,
-          cargos: cargoAnalysis.cargos || [],
-          conteudoProgramatico,
-          status: 'completed',
-          processedAt: new Date()
-        });
-      }
-
-      const finalEdital = await storage.getEdital(edital.id);
-      if (!finalEdital) {
-        throw new Error('Erro ao recuperar edital processado');
-      }
-
-      console.log(`✅ Edital processado com sucesso: ${edital.id}`);
-
       return {
-        edital: finalEdital,
         success: true,
-        message: 'Edital processado com sucesso',
+        edital: updatedEdital || edital,
+        message: 'Edital processado com sucesso pela aplicação externa',
         details: {
-          textLength,
-          chunksGenerated,
-          pineconeIndexed: true,
-          cargoAnalysis,
-          conteudoProgramatico
+          externalProcessingSuccess: true,
+          processingMessage: 'Documento processado, indexado e pronto para consultas RAG'
         }
       };
 
     } catch (error) {
-      console.error(`❌ Erro ao processar edital ${request.originalName}:`, error);
+      console.error('❌ Erro no processamento:', error);
       
-      // Atualizar status de erro no banco se temos o edital
+      // Limpar arquivo em caso de erro
+      if (fs.existsSync(request.filePath)) {
+        fs.unlinkSync(request.filePath);
+      }
+      
+      // Atualizar status se edital foi criado
       if (edital) {
         await storage.updateEdital(edital.id, {
           status: 'failed',
-          errorMessage: (error as Error).message
+          processedAt: new Date()
         });
       }
-
-      return {
-        edital: edital!,
-        success: false,
-        message: `Falha no processamento: ${(error as Error).message}`,
-      };
-    } finally {
-      // Limpar arquivo temporário
-      if (fs.existsSync(request.filePath)) {
-        try {
-          fs.unlinkSync(request.filePath);
-          console.log(`🗑️ Arquivo temporário removido: ${request.filePath}`);
-        } catch (cleanupError) {
-          console.warn(`⚠️ Erro ao limpar arquivo temporário: ${cleanupError}`);
-        }
-      }
-    }
-  }
-
-  /**
-   * Busca informações de um edital processado usando dados armazenados
-   */
-  async searchEditalContent(userId: string, editalId: string, query: string): Promise<string> {
-    try {
-      console.log(`🔍 Buscando no edital ${editalId}: "${query}"`);
-
-      // Buscar edital no banco de dados
-      const edital = await storage.getEdital(editalId);
-      if (!edital || !edital.deepseekChunks) {
-        return 'Edital não encontrado ou não processado.';
-      }
-
-      // Filtrar chunks relevantes por similaridade simples de texto
-      const chunks = (edital.deepseekChunks as DeepSeekChunk[]) || [];
-      const relevantChunks = chunks.filter((chunk: DeepSeekChunk) => {
-        const queryLower = query.toLowerCase();
-        const contentLower = chunk.content.toLowerCase();
-        const titleLower = chunk.title?.toLowerCase() || '';
-        const summaryLower = chunk.summary?.toLowerCase() || '';
-        
-        return contentLower.includes(queryLower) || 
-               titleLower.includes(queryLower) || 
-               summaryLower.includes(queryLower) ||
-               (chunk.keywords && chunk.keywords.some((keyword: string) => 
-                 keyword.toLowerCase().includes(queryLower)
-               ));
-      });
-
-      if (relevantChunks.length === 0) {
-        return 'Nenhuma informação encontrada no edital para esta consulta.';
-      }
-
-      // Criar resposta baseada nos chunks relevantes
-      const context = relevantChunks
-        .slice(0, 3) // Limitar a 3 chunks mais relevantes
-        .map((chunk: DeepSeekChunk) => `${chunk.title || 'Seção'}: ${chunk.content}`)
-        .join('\n\n');
-
-      return `Informações encontradas no edital:\n\n${context}`;
-
-    } catch (error) {
-      console.error('❌ Erro ao buscar conteúdo do edital:', error);
-      throw new Error(`Falha na busca: ${(error as Error).message}`);
-    }
-  }
-
-  /**
-   * Lista editais de um usuário
-   */
-  async getUserEditais(userId: string, status?: string): Promise<Edital[]> {
-    return await storage.getUserEditais(userId, status);
-  }
-
-  /**
-   * Obtém um edital específico
-   */
-  async getEdital(editalId: string): Promise<Edital | undefined> {
-    return await storage.getEdital(editalId);
-  }
-
-  /**
-   * Remove um edital e seus dados associados
-   */
-  async deleteEdital(editalId: string): Promise<void> {
-    try {
-      console.log(`🗑️ Removendo edital: ${editalId}`);
       
-      // Remover do banco
-      await storage.deleteEdital(editalId);
-      console.log(`✅ Edital removido do banco: ${editalId}`);
-
-    } catch (error) {
-      console.error(`❌ Erro ao remover edital ${editalId}:`, error);
-      throw new Error(`Falha na remoção: ${(error as Error).message}`);
+      return {
+        success: false,
+        edital: edital!,
+        message: error instanceof Error ? error.message : 'Erro desconhecido no processamento'
+      };
     }
   }
 
   /**
-   * Valida se um arquivo pode ser processado
+   * Valida se o arquivo pode ser processado
    */
   validateFile(fileName: string, fileSize: number): { valid: boolean; error?: string } {
-    // Verificar tipo de arquivo
+    // Validar extensão
     if (!fileProcessorService.isFileTypeSupported(fileName)) {
-      const supportedTypes = fileProcessorService.getSupportedExtensions().join(', ');
+      const supportedExtensions = fileProcessorService.getSupportedExtensions().join(', ');
       return {
         valid: false,
-        error: `Tipo de arquivo não suportado. Tipos aceitos: ${supportedTypes}`
+        error: `Tipo de arquivo não suportado. Tipos aceitos: ${supportedExtensions}`
       };
     }
 
-    // Verificar tamanho (50MB máximo)
-    if (!fileProcessorService.validateFileSize(fileSize, 50)) {
+    // Validar tamanho (50MB max)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (fileSize > maxSize) {
       return {
         valid: false,
-        error: 'Arquivo muito grande. Tamanho máximo: 50MB'
+        error: `Arquivo muito grande. Tamanho máximo: ${(maxSize / 1024 / 1024).toFixed(0)}MB`
       };
     }
 
@@ -372,10 +160,18 @@ export class NewEditalService {
   }
 
   /**
-   * Obtém informações sobre tipos de arquivo suportados
+   * Recupera um edital por ID
    */
-  getSupportedFileTypes() {
-    return fileProcessorService.getSupportedFileTypes();
+  async getEdital(editalId: string): Promise<Edital | null> {
+    const edital = await storage.getEdital(editalId);
+    return edital || null;
+  }
+
+  /**
+   * Lista editais do usuário
+   */
+  async listEditals(userId: string): Promise<Edital[]> {
+    return await storage.getUserEditais(userId);
   }
 }
 

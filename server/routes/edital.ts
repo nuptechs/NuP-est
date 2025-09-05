@@ -4,6 +4,7 @@ import fs from 'fs';
 import { newEditalService } from '../services/newEditalService';
 import { fileProcessorService } from '../services/fileProcessor';
 import { UploadConfig } from '../config/uploadConfig';
+import { storage } from '../storage';
 
 const router = Router();
 
@@ -111,10 +112,11 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
       message: 'Edital processado com sucesso usando DeepSeek R1',
       details: result.details,
       instructions: [
-        'Arquivo processado e analisado com IA',
-        'Chunks inteligentes foram gerados e indexados',
-        'Use o endpoint POST /api/edital/consultar para fazer perguntas',
-        'Acesse GET /api/edital/lista para ver todos os editais'
+        'Arquivo processado externamente com sucesso',
+        'Documento indexado e pronto para consultas RAG',
+        'Use POST /api/edital-rag/buscar-cargos para buscar vagas',
+        'Use POST /api/edital-rag/buscar-conteudo-programatico para ver disciplinas',
+        'Use POST /api/edital-rag/buscar-personalizada para perguntas gerais'
       ]
     });
     
@@ -147,77 +149,10 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
   }
 });
 
-// Endpoint para consultar informações do edital processado
-router.post('/consultar', async (req, res) => {
-  try {
-    const { editalId, query } = consultarEditalSchema.parse(req.body);
-    const userId = (req as any).user?.claims?.sub;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Usuário não autenticado'
-      });
-    }
-    
-    console.log(`🔍 Consultando edital ${editalId}: "${query}"`);
-    
-    // Verificar se o edital existe e pertence ao usuário
-    const edital = await newEditalService.getEdital(editalId);
-    if (!edital) {
-      return res.status(404).json({
-        success: false,
-        error: 'Edital não encontrado'
-      });
-    }
-
-    if (edital.userId !== userId) {
-      return res.status(403).json({
-        success: false,
-        error: 'Acesso negado ao edital'
-      });
-    }
-
-    if (edital.status !== 'completed') {
-      return res.status(400).json({
-        success: false,
-        error: 'Edital ainda não foi processado completamente',
-        status: edital.status
-      });
-    }
-    
-    const resposta = await newEditalService.searchEditalContent(userId, editalId, query);
-    
-    res.json({
-      success: true,
-      edital: {
-        id: edital.id,
-        fileName: edital.originalName,
-        concursoNome: edital.concursoNome
-      },
-      pergunta: query,
-      resposta: resposta,
-      processedAt: edital.processedAt
-    });
-    
-  } catch (error) {
-    console.error('❌ Erro ao consultar edital:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Dados inválidos',
-        details: error.errors
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno ao consultar edital',
-      message: 'Ocorreu um erro ao buscar informações no edital. Tente novamente.'
-    });
-  }
-});
+// ENDPOINT REMOVIDO - Use os endpoints RAG específicos:
+// POST /api/edital-rag/buscar-cargos
+// POST /api/edital-rag/buscar-conteudo-programatico
+// POST /api/edital-rag/buscar-personalizada
 
 // Endpoint para listar editais do usuário
 router.get('/lista', async (req, res) => {
@@ -232,11 +167,11 @@ router.get('/lista', async (req, res) => {
       });
     }
 
-    const editais = await newEditalService.getUserEditais(userId, status as string);
+    const editais = await newEditalService.listEditals(userId);
     
     res.json({
       success: true,
-      editais: editais.map(edital => ({
+      editais: editais.map((edital: any) => ({
         id: edital.id,
         fileName: edital.originalName,
         fileType: edital.fileType,
@@ -301,13 +236,12 @@ router.get('/:editalId', async (req, res) => {
         fileSize: edital.fileSize,
         concursoNome: edital.concursoNome,
         status: edital.status,
-        rawContentLength: edital.rawContent?.length || 0,
-        chunksGenerated: edital.deepseekChunks ? Object.keys(edital.deepseekChunks).length : 0,
-        pineconeIndexed: edital.pineconeIndexed,
+        // Campos removidos: rawContentLength, chunksGenerated, pineconeIndexed
+        // A aplicação externa gerencia processamento e indexação
         hasSingleCargo: edital.hasSingleCargo,
         cargoName: edital.cargoName,
         cargos: edital.cargos,
-        conteudoProgramatico: edital.conteudoProgramatico,
+        // conteudoProgramatico: gerenciado pela aplicação externa
         errorMessage: edital.errorMessage,
         createdAt: edital.createdAt,
         processedAt: edital.processedAt,
@@ -353,9 +287,11 @@ router.delete('/:editalId', async (req, res) => {
       });
     }
 
-    await newEditalService.deleteEdital(editalId);
+    // Implementar remoção real
+    await storage.deleteEdital(editalId);
+    console.log(`✅ Edital removido do banco de dados: ${editalId}`);
     
-    res.json({
+    res.status(204).json({
       success: true,
       message: 'Edital removido com sucesso',
       deletedEdital: {

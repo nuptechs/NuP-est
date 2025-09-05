@@ -1,8 +1,15 @@
 import express from 'express';
+import { z } from 'zod';
 import { editalRAGService } from '../services/editalRAG';
 import { isAuthenticated } from '../replitAuth';
 
 const router = express.Router();
+
+// Schemas de validação
+const ragQuerySchema = z.object({
+  query: z.string().min(1, 'Consulta é obrigatória').max(500, 'Consulta muito longa'),
+  topK: z.number().min(1).max(20).optional().default(10) // Limitar resultados
+});
 
 /**
  * POST /api/edital-rag/buscar-cargos
@@ -10,7 +17,7 @@ const router = express.Router();
  */
 router.post('/buscar-cargos', isAuthenticated, async (req: any, res) => {
   try {
-    const { query } = req.body;
+    const { query, topK } = ragQuerySchema.parse(req.body);
     const userId = req.user?.claims?.sub;
 
     if (!userId) {
@@ -25,6 +32,7 @@ router.post('/buscar-cargos', isAuthenticated, async (req: any, res) => {
     const resultado = await editalRAGService.buscarCargos(
       userId, 
       query || "cargos vagas concurso"
+      // Note: topK pode ser adicionado futuramente como parâmetro adicional
     );
 
     res.json({
@@ -47,7 +55,7 @@ router.post('/buscar-cargos', isAuthenticated, async (req: any, res) => {
  */
 router.post('/buscar-conteudo-programatico', isAuthenticated, async (req: any, res) => {
   try {
-    const { query } = req.body;
+    const { query, topK } = ragQuerySchema.parse(req.body);
     const userId = req.user?.claims?.sub;
 
     if (!userId) {
@@ -84,7 +92,7 @@ router.post('/buscar-conteudo-programatico', isAuthenticated, async (req: any, r
  */
 router.post('/buscar-personalizada', isAuthenticated, async (req: any, res) => {
   try {
-    const { query } = req.body;
+    const { query, topK } = ragQuerySchema.parse(req.body);
     const userId = req.user?.claims?.sub;
 
     if (!userId) {
