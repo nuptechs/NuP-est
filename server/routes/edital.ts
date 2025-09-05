@@ -109,14 +109,14 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
         createdAt: result.edital.createdAt,
         processedAt: result.edital.processedAt
       },
-      message: 'Edital processado com sucesso usando DeepSeek R1',
+      message: result.message,
       details: result.details,
       instructions: [
-        'Arquivo processado externamente com sucesso',
-        'Documento indexado e pronto para consultas RAG',
-        'Use POST /api/edital-rag/buscar-cargos para buscar vagas',
-        'Use POST /api/edital-rag/buscar-conteudo-programatico para ver disciplinas',
-        'Use POST /api/edital-rag/buscar-personalizada para perguntas gerais'
+        'Documento processado e analisado automaticamente via RAG',
+        'Cargos e conteúdo programático identificados pelos embeddings',
+        'Use POST /api/edital-rag/buscar-cargos para detalhes das vagas',
+        'Use POST /api/edital-rag/buscar-conteudo-programatico para disciplinas organizadas',
+        'Use POST /api/edital-rag/buscar-personalizada para consultas específicas'
       ]
     });
     

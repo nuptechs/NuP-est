@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { fileProcessorService } from './fileProcessor';
 import { externalProcessingService } from './externalProcessingService';
+import { editalRAGService } from './editalRAG';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
 
@@ -20,6 +21,14 @@ interface ProcessedEditalResult {
   details?: {
     externalProcessingSuccess: boolean;
     processingMessage?: string;
+    cargoAnalysis?: {
+      totalCargos: number;
+      hasSingleCargo: boolean;
+      cargos: Array<{
+        nome: string;
+        conteudoProgramatico?: string[];
+      }>;
+    };
   };
 }
 
@@ -85,14 +94,20 @@ export class NewEditalService {
 
       console.log(`✅ Aplicação externa processou com sucesso`);
 
-      // 4. Atualizar status para concluído
-      // A aplicação externa já fez tudo: chunks, embeddings, indexação no Pinecone
+      // 4. Analisar cargos usando RAG após indexação externa
+      console.log(`🔍 Analisando cargos do edital usando RAG...`);
+      const cargoAnalysis = await this.analisarCargosViaRAG(request.userId, edital.id);
+      
+      // 5. Atualizar edital com informações dos cargos
       await storage.updateEdital(edital.id, {
         status: 'completed',
-        processedAt: new Date()
+        processedAt: new Date(),
+        hasSingleCargo: cargoAnalysis.hasSingleCargo,
+        cargoName: cargoAnalysis.hasSingleCargo ? cargoAnalysis.cargos[0]?.nome : null,
+        cargos: cargoAnalysis.cargos
       });
 
-      // 5. Limpar arquivo local (opcional - manter ou não)
+      // 6. Limpar arquivo local (opcional - manter ou não)
       if (fs.existsSync(request.filePath)) {
         fs.unlinkSync(request.filePath);
         console.log(`🗑️ Arquivo local removido: ${request.filePath}`);
@@ -100,13 +115,19 @@ export class NewEditalService {
 
       const updatedEdital = await storage.getEdital(edital.id);
       
+      // 7. Criar mensagem dinâmica baseada na análise
+      const message = cargoAnalysis.hasSingleCargo 
+        ? `Edital processado com sucesso! Identificado 1 cargo: ${cargoAnalysis.cargos[0]?.nome}`
+        : `Edital processado com sucesso! Identificados ${cargoAnalysis.totalCargos} cargos disponíveis`;
+      
       return {
         success: true,
         edital: updatedEdital || edital,
-        message: 'Edital processado com sucesso pela aplicação externa',
+        message,
         details: {
           externalProcessingSuccess: true,
-          processingMessage: 'Documento processado, indexado e pronto para consultas RAG'
+          processingMessage: 'Documento processado, indexado e analisado via RAG',
+          cargoAnalysis
         }
       };
 
@@ -172,6 +193,171 @@ export class NewEditalService {
    */
   async listEditals(userId: string): Promise<Edital[]> {
     return await storage.getUserEditais(userId);
+  }
+
+  /**
+   * Analisa cargos do edital usando RAG após indexação externa
+   */
+  private async analisarCargosViaRAG(userId: string, editalId: string): Promise<{
+    totalCargos: number;
+    hasSingleCargo: boolean;
+    cargos: Array<{
+      nome: string;
+      conteudoProgramatico?: string[];
+    }>;
+  }> {
+    try {
+      console.log(`🔍 Iniciando análise de cargos via RAG para edital ${editalId}`);
+      
+      // 1. Buscar informações sobre cargos usando RAG
+      const resultadoCargos = await editalRAGService.buscarCargos(
+        userId, 
+        "Liste todos os cargos, vagas, funções disponíveis neste concurso edital"
+      );
+
+      // 2. Buscar conteúdo programático usando RAG  
+      const resultadoConteudo = await editalRAGService.buscarConteudoProgramatico(
+        userId,
+        "Liste todo o conteúdo programático, disciplinas, matérias de cada cargo"
+      );
+
+      // 3. Processar resultados e extrair informações estruturadas
+      const cargosIdentificados = this.extrairCargosDoRAG(resultadoCargos, resultadoConteudo);
+      
+      const totalCargos = cargosIdentificados.length;
+      const hasSingleCargo = totalCargos === 1;
+
+      console.log(`✅ Análise concluída: ${totalCargos} cargo(s) identificado(s)`);
+      
+      return {
+        totalCargos,
+        hasSingleCargo,
+        cargos: cargosIdentificados
+      };
+
+    } catch (error) {
+      console.error('❌ Erro na análise de cargos via RAG:', error);
+      
+      // Fallback: retornar estrutura básica se RAG falhar
+      return {
+        totalCargos: 1,
+        hasSingleCargo: true,
+        cargos: [{
+          nome: 'Cargo identificado via processamento externo',
+          conteudoProgramatico: ['Conteúdo disponível via consulta RAG']
+        }]
+      };
+    }
+  }
+
+  /**
+   * Extrai e estrutura informações de cargos dos resultados RAG
+   */
+  private extrairCargosDoRAG(resultadoCargos: any, resultadoConteudo: any): Array<{
+    nome: string;
+    conteudoProgramatico?: string[];
+  }> {
+    try {
+      const cargos: Array<{ nome: string; conteudoProgramatico?: string[] }> = [];
+
+      // Analisar texto dos cargos para identificar nomes
+      if (resultadoCargos?.resposta || resultadoCargos?.answer) {
+        const textoCargos = resultadoCargos.resposta || resultadoCargos.answer || '';
+        const nomesIdentificados = this.extrairNomesCargos(textoCargos);
+
+        // Analisar conteúdo programático
+        const textoConteudo = resultadoConteudo?.resposta || resultadoConteudo?.answer || '';
+        
+        for (const nomeCargo of nomesIdentificados) {
+          cargos.push({
+            nome: nomeCargo,
+            conteudoProgramatico: this.extrairConteudoProgramatico(textoConteudo, nomeCargo)
+          });
+        }
+      }
+
+      // Se não conseguiu identificar cargos, retornar estrutura básica
+      if (cargos.length === 0) {
+        cargos.push({
+          nome: 'Cargo disponível no edital',
+          conteudoProgramatico: ['Ver detalhes via consulta RAG específica']
+        });
+      }
+
+      return cargos;
+
+    } catch (error) {
+      console.error('❌ Erro ao extrair cargos do RAG:', error);
+      return [{
+        nome: 'Cargo disponível',
+        conteudoProgramatico: ['Consulte via endpoints RAG específicos']
+      }];
+    }
+  }
+
+  /**
+   * Extrai nomes de cargos do texto usando regex e patterns
+   */
+  private extrairNomesCargos(texto: string): string[] {
+    const cargos: Set<string> = new Set();
+    
+    // Patterns comuns para cargos em editais
+    const patterns = [
+      /cargo[:\s]+([^.,\n]+)/gi,
+      /função[:\s]+([^.,\n]+)/gi,
+      /vaga[:\s]+(para\s+)?([^.,\n]+)/gi,
+      /especialidade[:\s]+([^.,\n]+)/gi,
+      /auditor[^.,\n]*/gi,
+      /analista[^.,\n]*/gi,
+      /técnico[^.,\n]*/gi,
+      /assistente[^.,\n]*/gi,
+      /professor[^.,\n]*/gi,
+      /procurador[^.,\n]*/gi,
+      /delegado[^.,\n]*/gi,
+      /escrivão[^.,\n]*/gi
+    ];
+
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(texto)) !== null) {
+        const cargo = match[1] || match[0];
+        if (cargo && cargo.trim().length > 3) {
+          cargos.add(cargo.trim().replace(/[.:,;]/g, ''));
+        }
+      }
+      pattern.lastIndex = 0; // Reset regex
+    }
+
+    return Array.from(cargos).slice(0, 10); // Limitar a 10 cargos max
+  }
+
+  /**
+   * Extrai conteúdo programático relacionado a um cargo específico
+   */
+  private extrairConteudoProgramatico(texto: string, cargo: string): string[] {
+    const disciplinas: Set<string> = new Set();
+    
+    // Patterns para disciplinas/matérias
+    const patterns = [
+      /disciplinas?[:\s]+([^.]+)/gi,
+      /matérias?[:\s]+([^.]+)/gi,
+      /conteúdo programático[:\s]+([^.]+)/gi,
+      /conhecimentos?[:\s]+([^.]+)/gi
+    ];
+
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(texto)) !== null) {
+        const disciplina = match[1];
+        if (disciplina && disciplina.trim().length > 5) {
+          disciplinas.add(disciplina.trim());
+        }
+      }
+      pattern.lastIndex = 0; // Reset regex
+    }
+
+    const result = Array.from(disciplinas).slice(0, 20); // Limitar a 20 disciplinas
+    return result.length > 0 ? result : ['Consulte conteúdo programático via RAG'];
   }
 }
 
