@@ -262,9 +262,12 @@ export class NewEditalService {
       console.log(`✅ IA identificou ${resultadoCargos.cargos.length} cargos estruturados`);
       
       for (const cargo of resultadoCargos.cargos) {
+        // Buscar conteúdo programático específico para este cargo
+        const conteudoCargo = this.organizarConteudoProgramatico(resultadoConteudo, cargo.nome);
+        
         cargos.push({
           nome: cargo.nome || 'Cargo não especificado',
-          conteudoProgramatico: cargo.conteudoProgramatico || ['Consulte via RAG específico']
+          conteudoProgramatico: conteudoCargo
         });
       }
     }
@@ -279,6 +282,55 @@ export class NewEditalService {
     return cargos;
   }
 
+
+  /**
+   * Organiza conteúdo programático de forma estruturada
+   */
+  private organizarConteudoProgramatico(resultadoConteudo: any, nomeCargo: string): string[] {
+    const conteudo: string[] = [];
+    
+    try {
+      if (resultadoConteudo?.disciplinas && Array.isArray(resultadoConteudo.disciplinas)) {
+        console.log(`📚 Organizando ${resultadoConteudo.disciplinas.length} disciplinas para ${nomeCargo}`);
+        
+        resultadoConteudo.disciplinas.forEach((disciplina: any, index: number) => {
+          const nomeDisciplina = disciplina.disciplina || `Disciplina ${index + 1}`;
+          conteudo.push(`📖 **${nomeDisciplina}**`);
+          
+          if (disciplina.topicos && Array.isArray(disciplina.topicos)) {
+            disciplina.topicos.forEach((topico: string) => {
+              conteudo.push(`   • ${topico}`);
+            });
+          }
+          
+          if (disciplina.detalhamento) {
+            conteudo.push(`   📋 ${disciplina.detalhamento}`);
+          }
+          
+          conteudo.push(''); // Linha em branco entre disciplinas
+        });
+      }
+      
+      // Se não há disciplinas estruturadas, usar resumo geral
+      if (conteudo.length === 0 && resultadoConteudo?.resumoGeral) {
+        conteudo.push('📝 **Informações Gerais:**');
+        conteudo.push(resultadoConteudo.resumoGeral);
+      }
+      
+      // Se ainda não há conteúdo, informar que pode ser consultado
+      if (conteudo.length === 0) {
+        conteudo.push('ℹ️ Conteúdo programático disponível via consulta RAG específica');
+      }
+      
+      console.log(`✅ Conteúdo programático organizado: ${conteudo.length} itens para ${nomeCargo}`);
+      
+    } catch (error) {
+      console.error('❌ Erro ao organizar conteúdo programático:', error);
+      conteudo.push('⚠️ Erro ao organizar conteúdo programático - consulte via RAG');
+    }
+    
+    return conteudo;
+  }
 
   /**
    * Extrai nomes de cargos do texto usando regex e patterns
