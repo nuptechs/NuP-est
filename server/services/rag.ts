@@ -44,7 +44,7 @@ export class RAGService {
       const initialTopK = options.enableReRanking ? (options.initialTopK || 15) : (options.finalTopK || 5);
       const rawResults = await pineconeService.searchSimilarContent(query, userId, {
         topK: initialTopK,
-        category,
+        // Não filtrar por categoria - buscar todos os dados do usuário
         minSimilarity
       });
 

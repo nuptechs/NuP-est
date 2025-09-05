@@ -54,7 +54,7 @@ export class EditalRAGService {
           userId,
           {
             topK: 15,
-            category: 'edital',
+            // Remover filtro de categoria - buscar todos os dados do usuário
             minSimilarity: 0.2 // Menos restritivo
           }
         );
@@ -74,7 +74,7 @@ export class EditalRAGService {
         // Tentar busca mais ampla sem filtro de categoria
         console.log(`🔄 Tentando busca mais ampla...`);
         const backupResults = await pineconeService.searchSimilarContent(
-          "cargo vaga função concurso",
+          "cargo vaga função concurso edital",
           userId,
           {
             topK: 20,
@@ -207,7 +207,7 @@ Responda em JSON no seguinte formato:
           userId,
           {
             topK: 12,
-            category: 'edital',
+            // Remover filtro de categoria - buscar todos os dados do usuário
             minSimilarity: 0.25
           }
         );
@@ -316,7 +316,7 @@ Responda em JSON no seguinte formato:
       const resultado = await this.ragService.generateContextualResponse({
         userId,
         query,
-        category: 'edital',
+        // Remover filtro de categoria - buscar todos os dados do usuário
         maxContextLength: 6000,
         minSimilarity: 0.2,
         enableReRanking: true,
