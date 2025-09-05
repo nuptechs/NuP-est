@@ -8,11 +8,8 @@ import { Upload, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-reac
 import { useToast } from '@/hooks/use-toast';
 
 interface ConteudoProgramatico {
-  cargo: string;
-  disciplinas: {
-    nome: string;
-    topicos: string[];
-  }[];
+  disciplina: string;
+  topicos: string[];
 }
 
 interface EditalResult {
@@ -24,9 +21,12 @@ interface EditalResult {
   cargoName?: string;
   cargos?: Array<{
     nome: string;
-    conteudoProgramatico?: string[];
+    requisitos?: string;
+    atribuicoes?: string;
+    salario?: string;
+    vagas?: number;
   }>;
-  conteudoProgramatico?: ConteudoProgramatico;
+  conteudoProgramatico?: ConteudoProgramatico[];
   processedAt: string;
 }
 
@@ -146,83 +146,86 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
     }
   };
 
-  const renderConteudoProgramatico = (cargo: {nome: string; conteudoProgramatico?: string[]}) => {
+  const renderCargoDetails = (cargo: {nome: string; requisitos?: string; atribuicoes?: string; salario?: string; vagas?: number}) => {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <FileText className="h-5 w-5 text-blue-600" />
-          <h3 className="text-lg font-semibold">Conteúdo Programático</h3>
-        </div>
-        
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4">
-          <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-            📋 {cargo.nome}
-          </h4>
-        </div>
+      <Card className="border-l-4 border-l-green-500">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            👤 {cargo.nome}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {cargo.vagas && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">Vagas:</span>
+              <span className="text-sm">{cargo.vagas}</span>
+            </div>
+          )}
+          {cargo.salario && (
+            <div className="flex items-start gap-2">
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">Salário:</span>
+              <span className="text-sm flex-1">{cargo.salario}</span>
+            </div>
+          )}
+          {cargo.requisitos && (
+            <div className="flex items-start gap-2">
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">Requisitos:</span>
+              <span className="text-sm flex-1">{cargo.requisitos}</span>
+            </div>
+          )}
+          {cargo.atribuicoes && (
+            <div className="flex items-start gap-2">
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">Atribuições:</span>
+              <span className="text-sm flex-1">{cargo.atribuicoes}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
+  const renderConteudoProgramatico = (conteudoProgramatico: Array<{disciplina: string; topicos: string[]}>) => {
+    if (!conteudoProgramatico || conteudoProgramatico.length === 0) {
+      return (
         <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              📚 Disciplinas e Tópicos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {cargo.conteudoProgramatico?.map((item, index) => {
-              // Verifica se é título de disciplina (com **)
-              if (item.includes('**') || item.startsWith('📖')) {
-                return (
-                  <div key={index} className="mt-4 first:mt-0">
-                    <h4 className="font-semibold text-blue-700 dark:text-blue-300 text-sm bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded">
-                      {item.replace(/\*\*/g, '').replace('📖', '').trim()}
-                    </h4>
-                  </div>
-                );
-              }
-              
-              // Verifica se é item de lista (com •)
-              if (item.trim().startsWith('•') || item.trim().startsWith('-')) {
-                return (
-                  <div key={index} className="flex items-start gap-3 ml-3">
-                    <span className="text-blue-500 mt-1">•</span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                      {item.replace(/^[\s]*[•-]\s*/, '').trim()}
-                    </span>
-                  </div>
-                );
-              }
-              
-              // Verifica se é informação geral (com 📝)
-              if (item.startsWith('📝') || item.startsWith('ℹ️') || item.startsWith('⚠️')) {
-                return (
-                  <div key={index} className="bg-gray-50 dark:bg-gray-800 p-3 rounded text-sm">
-                    {item}
-                  </div>
-                );
-              }
-              
-              // Linha vazia ou separador
-              if (item.trim() === '') {
-                return <div key={index} className="h-2"></div>;
-              }
-              
-              // Texto normal
-              return (
-                <div key={index} className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {item}
-                </div>
-              );
-            })}
-            
-            {(!cargo.conteudoProgramatico || cargo.conteudoProgramatico.length === 0) && (
-              <div className="text-center py-8 text-gray-500">
-                <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Conteúdo programático será organizado em breve</p>
-                <p className="text-xs mt-1">Use a busca RAG para consultas específicas</p>
-              </div>
-            )}
+          <CardContent className="pt-6">
+            <div className="text-center py-8 text-gray-500">
+              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>Conteúdo programático será organizado em breve</p>
+              <p className="text-xs mt-1">Use a busca RAG para consultas específicas</p>
+            </div>
           </CardContent>
         </Card>
-      </div>
+      );
+    }
+
+    return (
+      <Card className="border-l-4 border-l-blue-500">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            📚 Conteúdo Programático ({conteudoProgramatico.length} disciplinas)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {conteudoProgramatico.map((disciplina, index) => (
+            <div key={index} className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-800/50">
+              <h4 className="font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+                📖 {disciplina.disciplina}
+              </h4>
+              <div className="grid gap-2">
+                {disciplina.topicos.map((topico, topicIndex) => (
+                  <div key={topicIndex} className="flex items-start gap-3 text-sm">
+                    <span className="text-blue-500 mt-1 text-xs">•</span>
+                    <span className="text-gray-700 dark:text-gray-300 flex-1">
+                      {topico}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     );
   };
 
@@ -325,21 +328,27 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                 )}
               </div>
 
-              {/* Só mostra conteúdo quando análise está completa */}
-              {result.status === 'completed' && result.cargos && result.cargos.length > 0 && result.hasSingleCargo && (
-                <div className="mt-6">
-                  {renderConteudoProgramatico(result.cargos[0])}
-                </div>
-              )}
-              
-              {result.status === 'completed' && result.cargos && result.cargos.length > 1 && (
-                <div className="mt-6 space-y-4">
-                  <h3 className="text-lg font-semibold">Cargos Identificados</h3>
-                  {result.cargos.map((cargo, index) => (
-                    <div key={index} className="mt-4">
-                      {renderConteudoProgramatico(cargo)}
+              {/* Exibe cargos e conteúdo programático quando análise está completa */}
+              {result.status === 'completed' && result.cargos && result.cargos.length > 0 && (
+                <div className="mt-6 space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      👥 Cargos Identificados ({result.cargos.length})
+                    </h3>
+                    <div className="space-y-4">
+                      {result.cargos.map((cargo, index) => (
+                        <div key={index}>
+                          {renderCargoDetails(cargo)}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                  
+                  {result.conteudoProgramatico && result.conteudoProgramatico.length > 0 && (
+                    <div>
+                      {renderConteudoProgramatico(result.conteudoProgramatico)}
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -356,11 +365,11 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                 </div>
               )}
 
-              {!result.hasSingleCargo && (
+              {result.status === 'completed' && (!result.cargos || result.cargos.length === 0) && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Este edital possui múltiplos cargos. O sistema foi otimizado para editais com cargo único.
+                    Não foi possível identificar informações específicas sobre cargos neste edital.
                     O conteúdo foi indexado e está disponível para consultas via RAG.
                   </AlertDescription>
                 </Alert>

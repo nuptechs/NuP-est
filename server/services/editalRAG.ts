@@ -25,6 +25,139 @@ export class EditalRAGService {
   private ragService = new RAGService();
 
   /**
+   * NOVO: Análise completa de edital com queries estruturadas em JSON
+   */
+  async analyzeEdital(userId: string, documentId: string): Promise<{
+    cargos: Array<{
+      nome: string;
+      requisitos?: string;
+      atribuicoes?: string;
+      salario?: string;
+      vagas?: number;
+    }>;
+    conteudoProgramatico: Array<{
+      disciplina: string;
+      topicos: string[];
+    }>;
+    rawResponses: {
+      cargoAnalysis: string;
+      conteudoAnalysis: string;
+    };
+    hasMultipleCargos: boolean;
+  }> {
+    try {
+      console.log(`🔍 Iniciando análise completa para documento ${documentId}`);
+      
+      // Query 1: Análise de cargos com prompt estruturado
+      const cargoQuery = `
+Analise este edital e extraia informações sobre os cargos/vagas disponíveis.
+Retorne um JSON válido no seguinte formato:
+{
+  "cargos": [
+    {
+      "nome": "Nome do cargo",
+      "requisitos": "Requisitos de formação e experiência",
+      "atribuicoes": "Principais atribuições do cargo",
+      "salario": "Valor do salário ou vencimento",
+      "vagas": 10
+    }
+  ]
+}
+Se houver múltiplos cargos, inclua todos no array. Se não encontrar informações específicas, omita o campo.
+`.trim();
+
+      const cargoResult = await this.ragService.generateContextualResponse({
+        userId,
+        query: cargoQuery,
+        documentId,
+        maxContextLength: 8000,
+        minSimilarity: 0.2,
+        enableReRanking: true,
+        initialTopK: 20,
+        finalTopK: 10
+      });
+
+      // Query 2: Análise de conteúdo programático estruturado
+      const conteudoQuery = `
+Analise este edital e extraia o conteúdo programático/matérias de estudo.
+Retorne um JSON válido no seguinte formato:
+{
+  "conteudoProgramatico": [
+    {
+      "disciplina": "Nome da disciplina/matéria",
+      "topicos": [
+        "Tópico 1 da disciplina",
+        "Tópico 2 da disciplina",
+        "Tópico 3 da disciplina"
+      ]
+    }
+  ]
+}
+Organize por disciplinas e liste todos os tópicos/assuntos de cada uma.
+`.trim();
+
+      const conteudoResult = await this.ragService.generateContextualResponse({
+        userId,
+        query: conteudoQuery,
+        documentId,
+        maxContextLength: 8000,
+        minSimilarity: 0.2,
+        enableReRanking: true,
+        initialTopK: 20,
+        finalTopK: 10
+      });
+
+      // Processar e validar respostas JSON
+      const cargosData = this.parseJsonResponse(cargoResult.response, 'cargos');
+      const conteudoData = this.parseJsonResponse(conteudoResult.response, 'conteudoProgramatico');
+
+      console.log(`✅ Análise concluída: ${cargosData.cargos?.length || 0} cargos, ${conteudoData.conteudoProgramatico?.length || 0} disciplinas`);
+
+      return {
+        cargos: cargosData.cargos || [],
+        conteudoProgramatico: conteudoData.conteudoProgramatico || [],
+        rawResponses: {
+          cargoAnalysis: cargoResult.response,
+          conteudoAnalysis: conteudoResult.response
+        },
+        hasMultipleCargos: (cargosData.cargos?.length || 0) > 1
+      };
+
+    } catch (error) {
+      console.error('❌ Erro na análise do edital:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(`Falha na análise do edital: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Parser seguro para respostas JSON da IA
+   */
+  private parseJsonResponse(response: string, expectedField: string): any {
+    try {
+      // Tentar extrair JSON da resposta
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn(`⚠️ Nenhum JSON encontrado na resposta para ${expectedField}`);
+        return { [expectedField]: [] };
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      if (!parsed[expectedField]) {
+        console.warn(`⚠️ Campo ${expectedField} não encontrado no JSON parseado`);
+        return { [expectedField]: [] };
+      }
+
+      return parsed;
+    } catch (error) {
+      console.error(`❌ Erro ao parsear JSON para ${expectedField}:`, error);
+      console.log(`📝 Resposta original: ${response.substring(0, 500)}...`);
+      return { [expectedField]: [] };
+    }
+  }
+
+  /**
    * Busca informações sobre cargos em documentos processados
    */
   async buscarCargos(userId: string, query: string = "cargos vagas concurso"): Promise<{

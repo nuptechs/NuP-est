@@ -194,7 +194,7 @@ export class NewEditalService {
   }
 
   /**
-   * NOVO: Executa pós-processamento com queries específicas
+   * NOVO: Executa pós-processamento com análise estruturada
    */
   private async executePostProcessing(userId: string, editalId: string): Promise<void> {
     try {
@@ -202,44 +202,44 @@ export class NewEditalService {
       
       // Buscar o documentId do external processing
       const edital = await storage.getEdital(editalId);
-      const documentId = edital?.externalFileId; // usar o fileId do external processing
+      const documentId = edital?.externalFileId;
       
       if (!documentId) {
         throw new Error('DocumentId não encontrado - arquivo pode não ter sido indexado corretamente');
       }
       
-      console.log(`🎯 Usando documentId específico para RAG: ${documentId}`);
+      console.log(`🎯 Usando documentId específico para análise: ${documentId}`);
       
-      // Query específica 1: Identificar cargo (APENAS deste documento)
-      console.log(`🎯 Query 1: Identificando cargo do edital...`);
-      const cargoQuery = "Qual é o cargo deste edital?";
-      const resultadoCargos = await editalRAGService.buscarInformacaoPersonalizada(userId, cargoQuery, documentId);
+      // USAR NOVO MÉTODO analyzeEdital com queries estruturadas em JSON
+      const analiseCompleta = await editalRAGService.analyzeEdital(userId, documentId);
       
-      // Query específica 2: Conteúdo programático organizado (APENAS deste documento)
-      console.log(`📚 Query 2: Organizando conteúdo programático...`);
-      const conteudoQuery = "Liste de maneira organizada o conteúdo programático deste documento, separado por disciplinas e tópicos.";
-      const resultadoConteudo = await editalRAGService.buscarInformacaoPersonalizada(userId, conteudoQuery, documentId);
-      
-      // Processar e estruturar resultados
-      const cargos = this.processarResultadosPostProcessamento(resultadoCargos, resultadoConteudo);
-      
-      // Atualizar edital no banco
+      // Persistir resultados estruturados + texto bruto para auditoria
       await storage.updateEdital(editalId, {
         status: 'completed',
-        hasSingleCargo: cargos.length === 1,
-        cargoName: cargos.length === 1 ? cargos[0].nome : null,
-        cargos: cargos,
+        hasSingleCargo: !analiseCompleta.hasMultipleCargos,
+        cargoName: analiseCompleta.cargos.length === 1 ? analiseCompleta.cargos[0].nome : null,
+        cargos: analiseCompleta.cargos,
+        conteudoProgramatico: analiseCompleta.conteudoProgramatico,
+        // AUDITORIA: Salvar respostas brutas da IA para revisão manual
+        processingLogs: JSON.stringify({
+          rawCargoAnalysis: analiseCompleta.rawResponses.cargoAnalysis,
+          rawConteudoAnalysis: analiseCompleta.rawResponses.conteudoAnalysis,
+          processedAt: new Date().toISOString(),
+          documentId: documentId
+        }),
         processedAt: new Date()
       });
       
       console.log(`✅ Pós-processamento concluído para edital ${editalId}`);
+      console.log(`📊 Resultados: ${analiseCompleta.cargos.length} cargos, ${analiseCompleta.conteudoProgramatico.length} disciplinas`);
       
     } catch (error) {
       console.error(`❌ Erro no pós-processamento do edital ${editalId}:`, error);
       
-      // Marcar como erro
+      // Marcar como erro com detalhes
       await storage.updateEdital(editalId, {
         status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
         processedAt: new Date()
       });
     }
