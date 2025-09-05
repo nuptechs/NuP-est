@@ -198,9 +198,9 @@ export class NewEditalService {
     try {
       console.log(`🔍 Iniciando pós-processamento para edital ${editalId}`);
       
-      // Query específica 1: Identificar cargo exato
+      // Query específica 1: Identificar cargo
       console.log(`🎯 Query 1: Identificando cargo do edital...`);
-      const cargoQuery = "Qual é o cargo específico deste edital? Inclua o estado/UF se mencionado.";
+      const cargoQuery = "Qual é o cargo deste edital?";
       const resultadoCargos = await editalRAGService.buscarInformacaoPersonalizada(userId, cargoQuery);
       
       // Query específica 2: Conteúdo programático organizado
@@ -260,13 +260,12 @@ export class NewEditalService {
    * Extrai nome do cargo do texto da IA
    */
   private extrairCargoDoTexto(texto: string): string {
-    // Patterns para identificar cargo
+    // Patterns genéricos para identificar cargo
     const patterns = [
       /cargo[:\s]+([^.\n]+)/gi,
       /auditor[^.\n]*/gi,
       /analista[^.\n]*/gi,
       /técnico[^.\n]*/gi,
-      /SEFAZ[^.\n]*/gi,
     ];
 
     for (const pattern of patterns) {
