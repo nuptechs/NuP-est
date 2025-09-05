@@ -2,6 +2,7 @@ import fs from 'fs';
 import { fileProcessorService } from './fileProcessor';
 import { externalProcessingService } from './externalProcessingService';
 import { editalRAGService } from './editalRAG';
+import { pineconeService } from './pinecone';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
 
@@ -258,38 +259,34 @@ export class NewEditalService {
       
       const cargos: Array<{ nome: string; conteudoProgramatico?: string[] }> = [];
 
-      // Verificar se temos resultados estruturados da IA
-      if (resultadoCargos?.cargos && Array.isArray(resultadoCargos.cargos)) {
+      // Se IA falhou, usar análise direta dos dados encontrados no RAG
+      if (resultadoCargos?.totalEncontrado === 0 || !resultadoCargos?.cargos) {
+        console.log(`🔄 IA falhou, usando análise direta dos dados do Pinecone`);
+        
+        // Buscar dados brutos do Pinecone para análise direta
+        const dadosBrutos = await this.buscarDadosBrutosPinecone(userId);
+        
+        if (dadosBrutos.length > 0) {
+          console.log(`📊 Analisando ${dadosBrutos.length} chunks diretamente`);
+          
+          // Análise direta sem IA
+          const cargosEncontrados = this.extrairCargosTextoSimples(dadosBrutos);
+          
+          for (const cargo of cargosEncontrados) {
+            cargos.push({
+              nome: cargo,
+              conteudoProgramatico: ['Informações disponíveis via consulta RAG específica']
+            });
+          }
+        }
+      } else if (resultadoCargos?.cargos && Array.isArray(resultadoCargos.cargos)) {
         console.log(`✅ IA identificou ${resultadoCargos.cargos.length} cargos estruturados`);
         
         for (const cargo of resultadoCargos.cargos) {
           cargos.push({
             nome: cargo.nome || 'Cargo não especificado',
-            conteudoProgramatico: cargo.conteudoProgramatico || this.extrairConteudoProgramatico(
-              resultadoConteudo?.resumoGeral || '', 
-              cargo.nome || ''
-            )
+            conteudoProgramatico: cargo.conteudoProgramatico || ['Consulte via RAG específico']
           });
-        }
-      } else {
-        // Fallback: analisar texto bruto dos resultados
-        console.log(`🔄 Fazendo fallback para análise de texto bruto`);
-        
-        const textoCargos = resultadoCargos?.resumoGeral || resultadoCargos?.resposta || '';
-        const nomesIdentificados = this.extrairNomesCargos(textoCargos);
-
-        if (nomesIdentificados.length > 0) {
-          console.log(`🎯 Identificados ${nomesIdentificados.length} cargos via regex:`, nomesIdentificados);
-          
-          for (const nomeCargo of nomesIdentificados) {
-            cargos.push({
-              nome: nomeCargo,
-              conteudoProgramatico: this.extrairConteudoProgramatico(
-                resultadoConteudo?.resumoGeral || '', 
-                nomeCargo
-              )
-            });
-          }
         }
       }
 
@@ -306,6 +303,70 @@ export class NewEditalService {
       console.error('❌ Erro ao extrair cargos do RAG:', error);
       throw error; // Propagar erro em vez de usar fallback
     }
+  }
+
+  /**
+   * Busca dados brutos do Pinecone quando IA falha
+   */
+  private async buscarDadosBrutosPinecone(userId: string): Promise<string[]> {
+    try {
+      const resultados = await pineconeService.searchSimilarContent(
+        "cargo vaga edital concurso função",
+        userId,
+        {
+          topK: 10,
+          minSimilarity: 0.1
+        }
+      );
+      
+      return resultados.map(r => r.content);
+    } catch (error) {
+      console.error('❌ Erro ao buscar dados brutos:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Extrai cargos de texto simples sem IA
+   */
+  private extrairCargosTextoSimples(textos: string[]): string[] {
+    const cargos: Set<string> = new Set();
+    const textoCompleto = textos.join(' ').toLowerCase();
+    
+    // Patterns simples e comuns em editais
+    const patterns = [
+      /cargo:\s*([^.,\n]+)/gi,
+      /vaga para\s*([^.,\n]+)/gi,
+      /função de\s*([^.,\n]+)/gi,
+      /auditor[^.,\n]*/gi,
+      /analista[^.,\n]*/gi,
+      /técnico[^.,\n]*/gi,
+      /professor[^.,\n]*/gi,
+      /delegado[^.,\n]*/gi,
+      /escrivão[^.,\n]*/gi,
+      /procurador[^.,\n]*/gi,
+      /assistente[^.,\n]*/gi
+    ];
+
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0; // Reset regex
+      let match;
+      while ((match = pattern.exec(textoCompleto)) !== null) {
+        let cargo = match[1] || match[0];
+        cargo = cargo.trim().replace(/[.:,;]/g, '');
+        
+        if (cargo && cargo.length > 3 && cargo.length < 100) {
+          // Limpar e capitalizar
+          cargo = cargo.charAt(0).toUpperCase() + cargo.slice(1);
+          cargos.add(cargo);
+        }
+      }
+    }
+
+    const result = Array.from(cargos).slice(0, 5); // Max 5 cargos
+    console.log(`🎯 Cargos encontrados via análise simples:`, result);
+    
+    return result.length > 0 ? result : ['Cargo do Concurso'];
   }
 
   /**
