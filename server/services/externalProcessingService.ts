@@ -48,6 +48,13 @@ export class ExternalProcessingService {
     if (!this.baseUrl) {
       throw new Error('PROCESSING_SERVICE_URL environment variable is required');
     }
+
+    // Validar se é uma URL válida
+    try {
+      new URL(this.baseUrl);
+    } catch (error) {
+      throw new Error(`PROCESSING_SERVICE_URL deve ser uma URL válida. Atual: "${this.baseUrl}". Exemplo: https://sua-app.replit.dev`);
+    }
   }
 
   /**
