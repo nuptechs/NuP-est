@@ -132,7 +132,7 @@ export class NewEditalService {
           // Indexar no Pinecone para permitir busca semântica
           console.log(`🔄 Indexando ${chunks.length} chunks no Pinecone...`);
           await pineconeService.upsertDocument(edital.id, 
-            chunks.map(chunk => ({
+            chunks.map((chunk: any) => ({
               content: chunk.content,
               chunkIndex: chunk.chunkIndex
             })),
