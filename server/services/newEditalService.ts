@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileProcessorService } from './fileProcessor';
-import { deepseekService } from './deepseekService';
-import { pineconeService } from './pinecone';
+import { externalProcessingService } from './externalProcessingService';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
 
@@ -32,7 +31,7 @@ export class NewEditalService {
 
   /**
    * Processa um edital completamente de forma síncrona
-   * Nova arquitetura: arquivo → banco → DeepSeek R1 → Pinecone → análise
+   * Nova arquitetura: arquivo → banco → aplicação externa → análise
    */
   async processEdital(request: ProcessEditalRequest): Promise<ProcessedEditalResult> {
     let edital: Edital | null = null;
@@ -63,100 +62,94 @@ export class NewEditalService {
         status: 'processing'
       });
 
-      // 3. Extrair conteúdo do arquivo
-      console.log(`📖 Extraindo conteúdo do arquivo ${fileType.toUpperCase()}...`);
-      const extractedContent = await fileProcessorService.processFile(request.filePath, request.originalName);
-      console.log(`✅ Conteúdo extraído: ${extractedContent.text.length} caracteres`);
-
-      // 4. Salvar conteúdo raw no banco
-      await storage.updateEdital(edital.id, {
-        rawContent: extractedContent.text,
-        status: 'processing'
-      });
-
-      // 5. Gerar chunks com DeepSeek R1
-      console.log(`🧠 Gerando chunks inteligentes com DeepSeek R1...`);
-      const chunkResponse = await deepseekService.generateIntelligentChunks({
-        content: extractedContent.text,
-        fileName: request.originalName,
-        fileType,
-        concursoNome: request.concursoNome,
-        maxChunks: 15 // Reduzido para economizar tokens
-      });
-
-      console.log(`✅ DeepSeek R1 gerou ${chunkResponse.chunks.length} chunks`);
-
-      // 6. Salvar chunks no banco
-      await storage.updateEdital(edital.id, {
-        deepseekChunks: chunkResponse.chunks,
-        status: 'chunked'
-      });
-
-      // 7. Indexar no Pinecone
-      console.log(`🔍 Indexando chunks no Pinecone...`);
-      const editalId = `edital_${edital.id}`;
+      // 3. Enviar arquivo para aplicação externa de processamento
+      console.log(`🚀 Enviando arquivo para aplicação externa de processamento...`);
       
-      // Converter chunks do DeepSeek para formato do Pinecone
-      const pineconeChunks = chunkResponse.chunks.map(chunk => ({
-        content: chunk.content,
-        chunkIndex: chunk.chunkIndex
-      }));
-
-      await pineconeService.upsertDocument(
-        editalId,
-        pineconeChunks,
-        {
-          userId: request.userId,
-          title: `${request.concursoNome} - ${request.originalName}`,
-          category: 'edital'
-        }
-      );
-
-      console.log(`✅ Chunks indexados no Pinecone`);
-
-      // 8. Atualizar status no banco
-      await storage.updateEdital(edital.id, {
-        pineconeIndexed: true,
-        status: 'indexed'
-      });
-
-      // 9. Analisar cargos com DeepSeek R1
-      console.log(`🔍 Analisando cargos com DeepSeek R1...`);
-      const cargoAnalysis = await deepseekService.analyzeCargos({
-        content: extractedContent.text,
+      const processingResponse = await externalProcessingService.processDocument({
+        filePath: request.filePath,
         fileName: request.originalName,
-        concursoNome: request.concursoNome
+        concursoNome: request.concursoNome,
+        userId: request.userId,
+        metadata: {
+          editalId: edital.id,
+          fileType
+        }
       });
 
-      console.log(`✅ Análise de cargos concluída:`, cargoAnalysis);
-
-      // 10. Extrair conteúdo programático se for cargo único
-      let conteudoProgramatico = null;
-      if (cargoAnalysis.hasSingleCargo && cargoAnalysis.cargoName) {
-        console.log(`📚 Extraindo conteúdo programático para: ${cargoAnalysis.cargoName}`);
-        
-        try {
-          conteudoProgramatico = await deepseekService.extractConteudoProgramatico({
-            content: extractedContent.text,
-            cargoName: cargoAnalysis.cargoName,
-            concursoNome: request.concursoNome
-          });
-          console.log(`✅ Conteúdo programático extraído: ${conteudoProgramatico.disciplinas.length} disciplinas`);
-        } catch (error) {
-          console.error('⚠️ Erro ao extrair conteúdo programático:', error);
-          // Não falhar o processo todo por causa disso
-        }
+      if (!processingResponse.success) {
+        throw new Error(processingResponse.error || 'Erro no processamento externo');
       }
 
-      // 11. Salvar análise final no banco
-      const finalEdital = await storage.updateEdital(edital.id, {
-        hasSingleCargo: cargoAnalysis.hasSingleCargo,
-        cargoName: cargoAnalysis.cargoName,
-        cargos: cargoAnalysis.cargos || [],
-        conteudoProgramatico,
-        status: 'completed',
-        processedAt: new Date()
-      });
+      console.log(`✅ Processamento externo concluído com sucesso`);
+
+      // 4. Salvar resultados do processamento externo
+      let textLength = 0;
+      let chunksGenerated = 0;
+      let cargoAnalysis: any = null;
+      let conteudoProgramatico: any = null;
+
+      if (processingResponse.chunks) {
+        chunksGenerated = processingResponse.chunks.length;
+        
+        // Se processamento foi síncrono, salvar chunks
+        await storage.updateEdital(edital.id, {
+          deepseekChunks: processingResponse.chunks,
+          pineconeIndexed: true, // Assumindo que aplicação externa já indexou
+          status: 'completed'
+        });
+
+        // Estimar tamanho do texto original pelos chunks
+        textLength = processingResponse.chunks.reduce((total, chunk) => total + chunk.content.length, 0);
+        
+        console.log(`📊 Chunks recebidos: ${chunksGenerated}`);
+        console.log(`📝 Texto estimado: ${textLength} caracteres`);
+
+      } else if (processingResponse.jobId) {
+        // Se processamento é assíncrono, aguardar conclusão
+        console.log(`⏳ Processamento assíncrono iniciado. Job ID: ${processingResponse.jobId}`);
+        
+        const finalStatus = await externalProcessingService.waitForCompletion(processingResponse.jobId);
+        
+        if (finalStatus.status !== 'completed') {
+          throw new Error(finalStatus.error || 'Processamento externo falhou');
+        }
+
+        // Salvar resultados finais
+        if (finalStatus.result) {
+          await storage.updateEdital(edital.id, {
+            deepseekChunks: finalStatus.result.chunks || [],
+            pineconeIndexed: true,
+            status: 'completed'
+          });
+          
+          chunksGenerated = finalStatus.result.chunks?.length || 0;
+          textLength = finalStatus.result.textLength || 0;
+          cargoAnalysis = finalStatus.result.cargoAnalysis;
+          conteudoProgramatico = finalStatus.result.conteudoProgramatico;
+        }
+      } else {
+        // Processamento básico sem chunks específicos
+        await storage.updateEdital(edital.id, {
+          status: 'completed'
+        });
+      }
+
+      // 5. Salvar análise final no banco (se disponível)
+      if (cargoAnalysis) {
+        await storage.updateEdital(edital.id, {
+          hasSingleCargo: cargoAnalysis.hasSingleCargo,
+          cargoName: cargoAnalysis.cargoName,
+          cargos: cargoAnalysis.cargos || [],
+          conteudoProgramatico,
+          status: 'completed',
+          processedAt: new Date()
+        });
+      }
+
+      const finalEdital = await storage.getEdital(edital.id);
+      if (!finalEdital) {
+        throw new Error('Erro ao recuperar edital processado');
+      }
 
       console.log(`✅ Edital processado com sucesso: ${edital.id}`);
 
@@ -165,8 +158,8 @@ export class NewEditalService {
         success: true,
         message: 'Edital processado com sucesso',
         details: {
-          textLength: extractedContent.text.length,
-          chunksGenerated: chunkResponse.chunks.length,
+          textLength,
+          chunksGenerated,
           pineconeIndexed: true,
           cargoAnalysis,
           conteudoProgramatico
@@ -203,57 +196,44 @@ export class NewEditalService {
   }
 
   /**
-   * Busca informações de um edital processado usando Pinecone
+   * Busca informações de um edital processado usando dados armazenados
    */
   async searchEditalContent(userId: string, editalId: string, query: string): Promise<string> {
     try {
       console.log(`🔍 Buscando no edital ${editalId}: "${query}"`);
 
-      // Buscar no Pinecone usando o ID do edital
-      const searchResults = await pineconeService.searchSimilarContent(
-        query,
-        userId,
-        {
-          topK: 5,
-          category: 'edital',
-          minSimilarity: 0.3
-        }
-      );
+      // Buscar edital no banco de dados
+      const edital = await storage.getEdital(editalId);
+      if (!edital || !edital.deepseekChunks) {
+        return 'Edital não encontrado ou não processado.';
+      }
 
-      if (searchResults.length === 0) {
+      // Filtrar chunks relevantes por similaridade simples de texto
+      const relevantChunks = edital.deepseekChunks.filter(chunk => {
+        const queryLower = query.toLowerCase();
+        const contentLower = chunk.content.toLowerCase();
+        const titleLower = chunk.title?.toLowerCase() || '';
+        const summaryLower = chunk.summary?.toLowerCase() || '';
+        
+        return contentLower.includes(queryLower) || 
+               titleLower.includes(queryLower) || 
+               summaryLower.includes(queryLower) ||
+               (chunk.keywords && chunk.keywords.some(keyword => 
+                 keyword.toLowerCase().includes(queryLower)
+               ));
+      });
+
+      if (relevantChunks.length === 0) {
         return 'Nenhuma informação encontrada no edital para esta consulta.';
       }
 
-      // Criar contexto da busca
-      const context = searchResults.map(result => result.content).join('\n\n');
-      
-      // Usar DeepSeek R1 para gerar resposta contextual
-      const completion = await deepseekService['openai'].chat.completions.create({
-        model: "deepseek/deepseek-r1",
-        messages: [
-          {
-            role: "system",
-            content: "Você é um assistente especializado em editais de concursos públicos. Responda de forma clara e estruturada baseado apenas no contexto fornecido."
-          },
-          {
-            role: "user",
-            content: `
-Com base no seguinte contexto do edital, responda à pergunta de forma clara e organizada.
+      // Criar resposta baseada nos chunks relevantes
+      const context = relevantChunks
+        .slice(0, 3) // Limitar a 3 chunks mais relevantes
+        .map(chunk => `${chunk.title || 'Seção'}: ${chunk.content}`)
+        .join('\n\n');
 
-CONTEXTO DO EDITAL:
-${context}
-
-PERGUNTA: ${query}
-
-Responda de forma estruturada e completa, citando as informações relevantes do edital.
-`
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 1000,
-      });
-
-      return completion.choices[0].message.content || 'Não foi possível gerar resposta para esta consulta.';
+      return `Informações encontradas no edital:\n\n${context}`;
 
     } catch (error) {
       console.error('❌ Erro ao buscar conteúdo do edital:', error);
@@ -282,15 +262,6 @@ Responda de forma estruturada e completa, citando as informações relevantes do
     try {
       console.log(`🗑️ Removendo edital: ${editalId}`);
       
-      // Remover do Pinecone
-      const pineconeId = `edital_${editalId}`;
-      try {
-        await pineconeService.deleteDocument(pineconeId);
-        console.log(`✅ Dados removidos do Pinecone: ${pineconeId}`);
-      } catch (pineconeError) {
-        console.warn(`⚠️ Erro ao remover do Pinecone: ${pineconeError}`);
-      }
-
       // Remover do banco
       await storage.deleteEdital(editalId);
       console.log(`✅ Edital removido do banco: ${editalId}`);

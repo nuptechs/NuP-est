@@ -7,6 +7,7 @@ import { ragService } from "./services/rag";
 import { setupRAGRoutes } from "./routes/rag";
 import { cebraspeRouter } from "./routes/cebraspe";
 import { editalRouter } from "./routes/edital";
+import { externalProcessingRouter } from "./routes/externalProcessing";
 import { eq } from "drizzle-orm";
 import { 
   insertSubjectSchema, 
@@ -1543,6 +1544,9 @@ Responda em JSON no formato:
   
   // Setup Edital routes
   app.use("/api/edital", editalRouter);
+  
+  // Setup External Processing routes
+  app.use("/api/external-processing", externalProcessingRouter);
   
   // Setup Admin routes
   const adminRouter = (await import("./routes/admin")).default;
