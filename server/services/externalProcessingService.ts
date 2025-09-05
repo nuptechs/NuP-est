@@ -80,7 +80,10 @@ export class ExternalProcessingService {
 
       // Preparar FormData
       const formData = new FormData();
-      formData.append('file', fs.createReadStream(request.filePath));
+      formData.append('file', fs.createReadStream(request.filePath), {
+        filename: request.fileName,
+        contentType: 'application/pdf'
+      });
       formData.append('fileName', request.fileName);
       formData.append('concursoNome', request.concursoNome);
       formData.append('userId', request.userId);
@@ -91,7 +94,8 @@ export class ExternalProcessingService {
 
       // Preparar headers
       const headers: Record<string, string> = {
-        ...formData.getHeaders()
+        ...formData.getHeaders(),
+        'Accept': 'application/json'
       };
 
       if (this.apiKey) {
@@ -111,22 +115,55 @@ export class ExternalProcessingService {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro na aplicação externa: ${response.status} - ${errorText}`);
+      const responseText = await response.text();
+      console.log(`📋 Resposta bruta da aplicação externa (${response.status}):`, responseText.substring(0, 500));
+      
+      let parsedResponse: any;
+      try {
+        parsedResponse = JSON.parse(responseText);
+        console.log(`✅ Resposta parseada:`, parsedResponse);
+      } catch (parseError) {
+        console.error(`❌ Erro ao parsear resposta JSON:`, parseError);
+        return {
+          success: false,
+          error: `Resposta inválida da aplicação externa: ${responseText.substring(0, 200)}`
+        };
       }
 
-      const result = await response.json() as ProcessingResponse;
-      
-      console.log(`✅ Resposta recebida da aplicação externa:`, {
-        success: result.success,
-        jobId: result.job_id
-      });
+      // Verificar se é uma resposta de erro
+      if (parsedResponse.error) {
+        return {
+          success: false,
+          error: parsedResponse.error
+        };
+      }
 
-      return result;
+      // Verificar se tem job_id ou jobId (sucesso)
+      const jobId = parsedResponse.job_id || parsedResponse.jobId;
+      if (jobId) {
+        return {
+          success: true,
+          job_id: jobId
+        };
+      }
+
+      // Resposta inesperada
+      return {
+        success: false,
+        error: `Resposta inesperada da aplicação externa: ${responseText}`
+      };
 
     } catch (error) {
       console.error('❌ Erro na integração com aplicação externa:', error);
+      
+      // Verificar se é timeout
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Timeout: serviço externo não respondeu em 60 segundos'
+        };
+      }
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erro desconhecido na aplicação externa'
