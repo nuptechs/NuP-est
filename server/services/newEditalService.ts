@@ -98,8 +98,38 @@ export class NewEditalService {
       let cargoAnalysis: any = null;
       let conteudoProgramatico: any = null;
 
-      if (processingResponse.job_id) {
-        // Processamento assíncrono iniciado
+      // Verificar primeiro se já temos chunks (processamento síncrono)
+      if (processingResponse.chunks && processingResponse.chunks.length > 0) {
+          console.log(`✅ Processamento síncrono completado. ${processingResponse.chunks.length} chunks recebidos.`);
+          
+          // Converter os chunks da API externa para o formato interno
+          const chunks = processingResponse.chunks.map((chunk: any, index: number) => {
+            // Suportar tanto chunks como objetos quanto como strings
+            const content = typeof chunk === 'string' ? chunk : chunk.content;
+            const chunkId = typeof chunk === 'object' ? chunk.id : undefined;
+            
+            return {
+              id: chunkId || `chunk_${index}`,
+              content: content,
+              title: typeof chunk === 'object' ? chunk.title || `Chunk ${index + 1}` : `Chunk ${index + 1}`,
+              summary: typeof chunk === 'object' ? chunk.summary || content.substring(0, 100) + '...' : content.substring(0, 100) + '...',
+              keywords: typeof chunk === 'object' ? chunk.keywords || [] : [],
+              chunkIndex: typeof chunk === 'object' ? chunk.chunk_index || index : index
+            };
+          });
+          
+          chunksGenerated = chunks.length;
+          textLength = chunks.reduce((total: number, chunk: any) => total + chunk.content.length, 0);
+          
+          await storage.updateEdital(edital.id, {
+            deepseekChunks: chunks,
+            pineconeIndexed: true,
+            status: 'completed',
+            processedAt: new Date()
+          });
+      
+      } else if (processingResponse.job_id) {
+        // Processamento assíncrono - aguardar conclusão
         console.log(`⏳ Processamento assíncrono iniciado. Job ID: ${processingResponse.job_id}`);
         
         const finalStatus = await externalProcessingService.waitForCompletion(processingResponse.job_id);
@@ -124,21 +154,20 @@ export class NewEditalService {
             await storage.updateEdital(edital.id, {
               deepseekChunks: chunks,
               pineconeIndexed: true,
-              status: 'completed'
+              status: 'completed',
+              processedAt: new Date()
             });
           }
         } else {
           throw new Error(finalStatus.error || 'Processamento externo falhou');
         }
         
-        console.log(`📊 Chunks recebidos: ${chunksGenerated}`);
-        console.log(`📝 Texto estimado: ${textLength} caracteres`);
       } else {
-        // Processamento básico sem chunks específicos
-        await storage.updateEdital(edital.id, {
-          status: 'completed'
-        });
+        throw new Error('Resposta inválida da aplicação externa: sem job_id e sem chunks processados');
       }
+      
+      console.log(`📊 Chunks recebidos: ${chunksGenerated}`);
+      console.log(`📝 Texto estimado: ${textLength} caracteres`);
 
       // 5. Salvar análise final no banco (se disponível)
       if (cargoAnalysis) {

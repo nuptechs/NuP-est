@@ -14,6 +14,11 @@ export interface ProcessingResponse {
   success: boolean;
   job_id?: string;
   error?: string;
+  // Campos adicionais quando processamento é síncrono
+  chunks?: any[];
+  status?: string;
+  processed_chunks?: number;
+  total_chunks?: number;
 }
 
 export interface ProcessingResults {
@@ -138,7 +143,19 @@ export class ExternalProcessingService {
         };
       }
 
-      // Verificar se tem job_id ou jobId (sucesso)
+      // Verificar se tem chunks processados (sucesso síncrono)
+      if (parsedResponse.chunks && parsedResponse.chunks.length > 0) {
+        return {
+          success: true,
+          job_id: parsedResponse.job_id || parsedResponse.jobId,
+          chunks: parsedResponse.chunks,
+          status: parsedResponse.status,
+          processed_chunks: parsedResponse.processed_chunks,
+          total_chunks: parsedResponse.total_chunks
+        };
+      }
+
+      // Verificar se tem job_id sem chunks (sucesso assíncrono)
       const jobId = parsedResponse.job_id || parsedResponse.jobId;
       if (jobId) {
         return {
@@ -150,7 +167,7 @@ export class ExternalProcessingService {
       // Resposta inesperada
       return {
         success: false,
-        error: `Resposta inesperada da aplicação externa: ${responseText}`
+        error: `Resposta inesperada da aplicação externa: ${responseText.substring(0, 200)}`
       };
 
     } catch (error) {
