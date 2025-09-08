@@ -69,7 +69,7 @@ Se houver múltiplos cargos, inclua todos no array. Se não encontrar informaç�
       const cargoResult = await this.ragService.generateContextualResponse({
         userId,
         query: cargoQuery,
-        documentId,
+        // documentId, // REMOVIDO TEMPORARIAMENTE devido a IDs duplicados no serviço externo
         maxContextLength: 8000,
         minSimilarity: 0.2,
         enableReRanking: true,
@@ -88,23 +88,44 @@ Se houver múltiplos cargos, inclua todos no array. Se não encontrar informaç�
       let allKnowledgeContent = "";
       let bestContexts: any[] = [];
 
+      // SOLUÇÃO TEMPORÁRIA: Remover filtro por documento específico 
+      // (problema: serviço externo usa mesmo ID para documentos diferentes)
+      console.log(`⚠️ TEMPORÁRIO: Removendo filtro por documento devido a problema de IDs duplicados`);
+      
       // Executar múltiplas queries para encontrar seções de conhecimentos
       for (const searchQuery of conhecimentosQueries) {
         try {
           const result = await this.ragService.generateContextualResponse({
             userId,
             query: searchQuery,
-            documentId,
+            // documentId, // REMOVIDO TEMPORARIAMENTE
             maxContextLength: 4000,
-            minSimilarity: 0.1, // Reduzir threshold para captar mais conteúdo
+            minSimilarity: 0.1, // Reduzir threshold para captat mais conteúdo
             enableReRanking: true,
             initialTopK: 25,
             finalTopK: 12
           });
 
           if (result.hasContext && result.contextUsed.length > 0) {
-            allKnowledgeContent += result.contextUsed.map(ctx => ctx.content).join("\n\n") + "\n\n";
-            bestContexts.push(...result.contextUsed);
+            // Filtrar por conteúdo que pareça ser de edital/conhecimentos
+            const editalContent = result.contextUsed
+              .filter(ctx => 
+                ctx.content.toLowerCase().includes('conhecimento') ||
+                ctx.content.toLowerCase().includes('disciplina') ||
+                ctx.content.toLowerCase().includes('programa') ||
+                ctx.content.toLowerCase().includes('anexo') ||
+                ctx.content.toLowerCase().includes('matéria') ||
+                ctx.content.toLowerCase().includes('conteúdo programático')
+              );
+              
+            if (editalContent.length > 0) {
+              allKnowledgeContent += editalContent.map(ctx => ctx.content).join("\n\n") + "\n\n";
+              bestContexts.push(...editalContent);
+            } else {
+              // Se não achou conteúdo específico, usar os primeiros resultados
+              allKnowledgeContent += result.contextUsed.slice(0, 3).map(ctx => ctx.content).join("\n\n") + "\n\n";
+              bestContexts.push(...result.contextUsed.slice(0, 3));
+            }
           }
         } catch (error) {
           console.warn(`⚠️ Erro na query "${searchQuery}":`, error);
@@ -153,9 +174,9 @@ Se não encontrar conhecimentos específicos, retorne array vazio. Seja preciso 
           const fallbackResult = await this.ragService.generateContextualResponse({
             userId,
             query: "programa conteúdo conhecimentos anexo disciplinas",
-            documentId,
+            // documentId, // REMOVIDO TEMPORARIAMENTE
             maxContextLength: 8000,
-            minSimilarity: 0.05, // Threshold muito baixo para captar qualquer coisa
+            minSimilarity: 0.05, // Threshold muito baixo para captat qualquer coisa
             enableReRanking: true,
             initialTopK: 30,
             finalTopK: 15
