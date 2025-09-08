@@ -50,10 +50,10 @@ router.post('/buscar-cargos', isAuthenticated, async (req: any, res) => {
 });
 
 /**
- * POST /api/edital-rag/buscar-conteudo-programatico
+ * POST /api/edital-rag/buscar-conhecimentos
  * Busca e organiza conhecimentos dos editais processados
  */
-router.post('/buscar-conteudo-programatico', isAuthenticated, async (req: any, res) => {
+router.post('/buscar-conhecimentos', isAuthenticated, async (req: any, res) => {
   try {
     const { query, topK } = ragQuerySchema.parse(req.body);
     const userId = req.user?.claims?.sub;
@@ -67,7 +67,7 @@ router.post('/buscar-conteudo-programatico', isAuthenticated, async (req: any, r
 
     console.log(`📚 Iniciando busca por conhecimentos para usuário ${userId}`);
 
-    const resultado = await editalRAGService.buscarConteudoProgramatico(
+    const resultado = await editalRAGService.buscarConhecimentos(
       userId,
       query || "conhecimentos"
     );

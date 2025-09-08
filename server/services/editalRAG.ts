@@ -299,7 +299,7 @@ Responda em JSON no seguinte formato:
   /**
    * Busca e organiza conhecimentos
    */
-  async buscarConteudoProgramatico(userId: string, query: string = "conhecimentos"): Promise<{
+  async buscarConhecimentos(userId: string, query: string = "conhecimentos"): Promise<{
     disciplinas: ConteudoProgramaticoInfo[];
     resumoGeral: string;
     totalEncontrado: number;

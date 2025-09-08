@@ -113,9 +113,9 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
       details: result.details,
       instructions: [
         'Documento processado e analisado automaticamente via RAG',
-        'Cargos e conteúdo programático identificados pelos embeddings',
+        'Cargos e conhecimentos identificados pelos embeddings',
         'Use POST /api/edital-rag/buscar-cargos para detalhes das vagas',
-        'Use POST /api/edital-rag/buscar-conteudo-programatico para disciplinas organizadas',
+        'Use POST /api/edital-rag/buscar-conhecimentos para disciplinas organizadas',
         'Use POST /api/edital-rag/buscar-personalizada para consultas específicas'
       ]
     });

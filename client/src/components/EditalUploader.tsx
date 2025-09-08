@@ -191,7 +191,7 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
           <CardContent className="pt-6">
             <div className="text-center py-8 text-gray-500">
               <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Conteúdo programático será organizado em breve</p>
+              <p>Conhecimentos serão organizados em breve</p>
               <p className="text-xs mt-1">Use a busca RAG para consultas específicas</p>
             </div>
           </CardContent>
@@ -203,7 +203,7 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
       <Card className="border-l-4 border-l-blue-500">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            📚 Conteúdo Programático ({conteudoProgramatico.length} disciplinas)
+            📚 Conhecimentos ({conteudoProgramatico.length} disciplinas)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -238,7 +238,7 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
             Upload do Edital
           </CardTitle>
           <CardDescription>
-            Envie o arquivo PDF do edital para processamento automático e extração do conteúdo programático
+            Envie o arquivo PDF do edital para processamento automático e extração dos conhecimentos
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -296,7 +296,7 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                 <Alert className="bg-yellow-50 border-yellow-200">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <AlertDescription>
-                    <strong>Indexação concluída!</strong> Analisando cargos e conteúdo programático...
+                    <strong>Indexação concluída!</strong> Analisando cargos e conhecimentos...
                   </AlertDescription>
                 </Alert>
               )}
@@ -328,7 +328,7 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                 )}
               </div>
 
-              {/* Exibe cargos e conteúdo programático quando análise está completa */}
+              {/* Exibe cargos e conhecimentos quando análise está completa */}
               {result.status === 'completed' && result.cargos && result.cargos.length > 0 && (
                 <div className="mt-6 space-y-6">
                   <div>
@@ -357,7 +357,7 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                 <div className="mt-6 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-blue-500" />
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Analisando cargos e organizando conteúdo programático...
+                    Analisando cargos e organizando conhecimentos...
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Isso pode levar alguns segundos

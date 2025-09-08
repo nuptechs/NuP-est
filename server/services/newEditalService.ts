@@ -314,7 +314,7 @@ export class NewEditalService {
       }
     });
     
-    return estruturado.length > 0 ? estruturado : ['📝 Conteúdo programático identificado'];
+    return estruturado.length > 0 ? estruturado : ['📝 Conhecimentos identificados'];
   }
 
   /**
@@ -343,7 +343,7 @@ export class NewEditalService {
 
       // 3. Buscar conhecimentos usando RAG  
       console.log(`📚 Buscando conhecimentos para userId: ${userId}`);
-      const resultadoConteudo = await editalRAGService.buscarConteudoProgramatico(
+      const resultadoConteudo = await editalRAGService.buscarConhecimentos(
         userId,
         "conhecimentos"
       );
@@ -442,7 +442,7 @@ export class NewEditalService {
         throw new Error('Não foi possível extrair conhecimentos estruturados do documento');
       }
       
-      console.log(`✅ Conteúdo programático organizado: ${conteudo.length} itens para ${nomeCargo}`);
+      console.log(`✅ Conhecimentos organizados: ${conteudo.length} itens para ${nomeCargo}`);
       
     } catch (error) {
       console.error('❌ Erro ao organizar conhecimentos:', error);
