@@ -142,24 +142,20 @@ REGRAS CRÍTICAS:
         }
       }
 
-      // Prompt específico para extrair conhecimentos de editais
+      // Prompt específico para extrair conhecimentos de editais - MUITO MAIS RIGOROSO
       const conteudoQuery = `
+INSTRUÇÃO CRÍTICA: Você DEVE responder APENAS com JSON válido, sem qualquer texto adicional antes ou depois.
+
 Com base no seguinte conteúdo extraído do edital, identifique e organize APENAS os conhecimentos/disciplinas para a prova.
 
 CONTEXTO DO EDITAL:
 ${allKnowledgeContent.substring(0, 6000)}
 
-INSTRUÇÕES ESPECÍFICAS:
-1. Procure por seções como "CONHECIMENTOS", "CONTEÚDO PROGRAMÁTICO", "ANEXO", "DISCIPLINAS", "MATÉRIAS" 
-2. Ignore questões de exemplo, gabaritos, ou conteúdo de provas anteriores
-3. Foque apenas no programa/conteúdo que será cobrado na prova
-4. Organize as disciplinas de forma hierárquica com seus tópicos
-
-Retorne um JSON válido no seguinte formato:
+FORMATO OBRIGATÓRIO - COPIE EXATAMENTE:
 {
   "conteudoProgramatico": [
     {
-      "disciplina": "Nome exato da disciplina/matéria",
+      "disciplina": "Nome exato da disciplina encontrada no edital",
       "topicos": [
         "Tópico 1 específico da disciplina",
         "Tópico 2 específico da disciplina",
@@ -169,7 +165,14 @@ Retorne um JSON válido no seguinte formato:
   ]
 }
 
-Se não encontrar conhecimentos específicos, retorne array vazio. Seja preciso e organize apenas o que está claramente definido como conteúdo da prova.
+REGRAS CRÍTICAS:
+- Responda APENAS com o JSON, sem explicações
+- Procure por seções "CONHECIMENTOS", "CONTEÚDO PROGRAMÁTICO", "ANEXO", "DISCIPLINAS"
+- Ignore questões de exemplo, gabaritos ou provas anteriores
+- Foque APENAS no programa que será cobrado na prova
+- Use aspas duplas para strings
+- JSON deve ser válido e parseável
+- Se não encontrar conhecimentos, use array vazio: {"conteudoProgramatico": []}
 `.trim();
 
       // Log para debug do filtering
@@ -351,8 +354,8 @@ Se não encontrar conhecimentos específicos, retorne array vazio. Seja preciso 
     let cargosEncontrados: any[] = [];
     
     for (const pattern of cargoPatterns) {
-      const matches = response.matchAll(pattern);
-      for (const match of matches) {
+      let match;
+      while ((match = pattern.exec(response)) !== null) {
         const nome = match[1].trim();
         if (nome.length > 5) { // Filtrar matches muito curtos
           cargosEncontrados.push({
@@ -363,6 +366,7 @@ Se não encontrar conhecimentos específicos, retorne array vazio. Seja preciso 
           });
         }
       }
+      pattern.lastIndex = 0; // Reset regex
     }
     
     if (cargosEncontrados.length > 0) {
