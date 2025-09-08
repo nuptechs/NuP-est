@@ -48,22 +48,32 @@ export class EditalRAGService {
     try {
       console.log(`🔍 Iniciando análise completa para documento ${documentId}`);
       
-      // Query 1: Análise de cargos com prompt estruturado
+      // Query 1: Análise de cargos com prompt estruturado MUITO MAIS RIGOROSO
       const cargoQuery = `
+INSTRUÇÃO CRÍTICA: Você DEVE responder APENAS com JSON válido, sem qualquer texto adicional antes ou depois.
+
 Analise este edital e extraia informações sobre os cargos/vagas disponíveis.
-Retorne um JSON válido no seguinte formato:
+
+FORMATO OBRIGATÓRIO - COPIE EXATAMENTE:
 {
   "cargos": [
     {
-      "nome": "Nome do cargo",
+      "nome": "Nome exato do cargo encontrado no edital",
       "requisitos": "Requisitos de formação e experiência",
-      "atribuicoes": "Principais atribuições do cargo",
+      "atribuicoes": "Principais atribuições do cargo", 
       "salario": "Valor do salário ou vencimento",
       "vagas": 10
     }
   ]
 }
-Se houver múltiplos cargos, inclua todos no array. Se não encontrar informações específicas, omita o campo.
+
+REGRAS CRÍTICAS:
+- Responda APENAS com o JSON, sem explicações
+- Se encontrar múltiplos cargos, inclua todos no array
+- Se não encontrar alguma informação, use "Não especificado no edital"
+- Use aspas duplas para strings
+- Números sem aspas
+- JSON deve ser válido e parseável
 `.trim();
 
       const cargoResult = await this.ragService.generateContextualResponse({
@@ -243,30 +253,174 @@ Se não encontrar conhecimentos específicos, retorne array vazio. Seja preciso 
   }
 
   /**
-   * Parser seguro para respostas JSON da IA
+   * Parser seguro para respostas JSON da IA - VERSÃO MELHORADA
    */
   private parseJsonResponse(response: string, expectedField: string): any {
     try {
-      // Tentar extrair JSON da resposta
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.warn(`⚠️ Nenhum JSON encontrado na resposta para ${expectedField}`);
+      console.log(`🔍 DEBUG: Parsing resposta para ${expectedField}`);
+      console.log(`📝 RESPOSTA COMPLETA DA IA:\n${response}\n--- FIM DA RESPOSTA ---`);
+      
+      // Múltiplas tentativas de extração de JSON
+      let parsed: any = null;
+      
+      // Tentativa 1: JSON completo na resposta
+      try {
+        const fullJsonMatch = response.match(/\{[\s\S]*\}/);
+        if (fullJsonMatch) {
+          parsed = JSON.parse(fullJsonMatch[0]);
+          console.log(`✅ JSON parseado (método 1):`, parsed);
+        }
+      } catch (e) {
+        console.log(`⚠️ Método 1 falhou:`, e);
+      }
+      
+      // Tentativa 2: JSON dentro de código (```json)
+      if (!parsed) {
+        try {
+          const codeBlockMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
+          if (codeBlockMatch) {
+            parsed = JSON.parse(codeBlockMatch[1].trim());
+            console.log(`✅ JSON parseado (método 2):`, parsed);
+          }
+        } catch (e) {
+          console.log(`⚠️ Método 2 falhou:`, e);
+        }
+      }
+      
+      // Tentativa 3: Buscar apenas pelo campo esperado
+      if (!parsed) {
+        try {
+          const fieldRegex = new RegExp(`"${expectedField}"\\s*:\\s*\\[([\\s\\S]*?)\\]`, 'i');
+          const fieldMatch = response.match(fieldRegex);
+          if (fieldMatch) {
+            const fieldContent = `[${fieldMatch[1]}]`;
+            parsed = { [expectedField]: JSON.parse(fieldContent) };
+            console.log(`✅ JSON parseado (método 3):`, parsed);
+          }
+        } catch (e) {
+          console.log(`⚠️ Método 3 falhou:`, e);
+        }
+      }
+      
+      if (!parsed) {
+        console.warn(`❌ NENHUM JSON VÁLIDO ENCONTRADO na resposta para ${expectedField}`);
+        console.log(`📋 Tentando interpretação manual da resposta...`);
+        
+        // Interpretação manual se a IA respondeu em texto
+        if (response.toLowerCase().includes('cargo') && expectedField === 'cargos') {
+          return this.manualCargoExtraction(response);
+        }
+        
+        if (response.toLowerCase().includes('disciplina') && expectedField === 'conteudoProgramatico') {
+          return this.manualConteudoExtraction(response);
+        }
+        
         return { [expectedField]: [] };
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
-      
       if (!parsed[expectedField]) {
         console.warn(`⚠️ Campo ${expectedField} não encontrado no JSON parseado`);
+        console.log(`📋 Campos disponíveis:`, Object.keys(parsed));
         return { [expectedField]: [] };
       }
 
+      console.log(`✅ Extração bem-sucedida para ${expectedField}:`, parsed[expectedField]);
       return parsed;
+      
     } catch (error) {
-      console.error(`❌ Erro ao parsear JSON para ${expectedField}:`, error);
-      console.log(`📝 Resposta original: ${response.substring(0, 500)}...`);
+      console.error(`❌ Erro crítico no parsing para ${expectedField}:`, error);
+      console.log(`📝 Resposta que causou erro: ${response.substring(0, 1000)}...`);
       return { [expectedField]: [] };
     }
+  }
+
+  /**
+   * Extração manual de cargos quando JSON falha
+   */
+  private manualCargoExtraction(response: string): any {
+    console.log(`🔧 Tentando extração manual de cargos...`);
+    
+    // Buscar padrões típicos de nomes de cargos
+    const cargoPatterns = [
+      /cargo[:\s]*([^\n\r.]+)/gi,
+      /vaga[:\s]*([^\n\r.]+)/gi,
+      /função[:\s]*([^\n\r.]+)/gi,
+      /posição[:\s]*([^\n\r.]+)/gi
+    ];
+    
+    let cargosEncontrados: any[] = [];
+    
+    for (const pattern of cargoPatterns) {
+      const matches = response.matchAll(pattern);
+      for (const match of matches) {
+        const nome = match[1].trim();
+        if (nome.length > 5) { // Filtrar matches muito curtos
+          cargosEncontrados.push({
+            nome: nome,
+            requisitos: "Conforme edital",
+            atribuicoes: "Conforme edital",
+            salario: "A consultar no edital"
+          });
+        }
+      }
+    }
+    
+    if (cargosEncontrados.length > 0) {
+      console.log(`✅ Extração manual encontrou ${cargosEncontrados.length} cargos`);
+      return { cargos: cargosEncontrados.slice(0, 3) }; // Limitar a 3 para evitar duplicatas
+    }
+    
+    return { cargos: [] };
+  }
+
+  /**
+   * Extração manual de conteúdo programático quando JSON falha
+   */
+  private manualConteudoExtraction(response: string): any {
+    console.log(`🔧 Tentando extração manual de conteúdo programático...`);
+    
+    const lines = response.split('\n');
+    let disciplinas: any[] = [];
+    let currentDisciplina = '';
+    let currentTopicos: string[] = [];
+    
+    for (const line of lines) {
+      const cleanLine = line.trim();
+      
+      // Detectar disciplina (linha que parece ser título)
+      if (cleanLine.match(/^[A-Z][a-zA-Z\s]+:?$/) || cleanLine.includes('Disciplina') || cleanLine.includes('Matéria')) {
+        if (currentDisciplina && currentTopicos.length > 0) {
+          disciplinas.push({
+            disciplina: currentDisciplina,
+            topicos: [...currentTopicos]
+          });
+        }
+        currentDisciplina = cleanLine.replace(':', '');
+        currentTopicos = [];
+      }
+      // Detectar tópicos (linhas que começam com - ou número)
+      else if (cleanLine.match(/^[-•*]\s/) || cleanLine.match(/^\d+\.?\s/)) {
+        const topico = cleanLine.replace(/^[-•*\d\.]\s*/, '').trim();
+        if (topico.length > 5) {
+          currentTopicos.push(topico);
+        }
+      }
+    }
+    
+    // Adicionar última disciplina
+    if (currentDisciplina && currentTopicos.length > 0) {
+      disciplinas.push({
+        disciplina: currentDisciplina,
+        topicos: currentTopicos
+      });
+    }
+    
+    if (disciplinas.length > 0) {
+      console.log(`✅ Extração manual encontrou ${disciplinas.length} disciplinas`);
+      return { conteudoProgramatico: disciplinas };
+    }
+    
+    return { conteudoProgramatico: [] };
   }
 
   /**
