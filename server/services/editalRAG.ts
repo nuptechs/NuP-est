@@ -77,23 +77,68 @@ Se houver múltiplos cargos, inclua todos no array. Se não encontrar informaç�
         finalTopK: 10
       });
 
-      // Query 2: Análise de conhecimentos estruturado
+      // Query 2: Análise de conhecimentos - MÚLTIPLAS BUSCAS ESPECÍFICAS
+      const conhecimentosQueries = [
+        "conhecimentos necessários disciplinas matérias programa conteúdo programático",
+        "anexo conhecimentos programa matérias disciplinas tópicos assuntos",
+        "conteúdo programático detalhado disciplinas conhecimentos programa",
+        "matérias conhecimentos programa detalhado anexo disciplinas conteúdo"
+      ];
+
+      let allKnowledgeContent = "";
+      let bestContexts: any[] = [];
+
+      // Executar múltiplas queries para encontrar seções de conhecimentos
+      for (const searchQuery of conhecimentosQueries) {
+        try {
+          const result = await this.ragService.generateContextualResponse({
+            userId,
+            query: searchQuery,
+            documentId,
+            maxContextLength: 4000,
+            minSimilarity: 0.1, // Reduzir threshold para captar mais conteúdo
+            enableReRanking: true,
+            initialTopK: 25,
+            finalTopK: 12
+          });
+
+          if (result.hasContext && result.contextUsed.length > 0) {
+            allKnowledgeContent += result.contextUsed.map(ctx => ctx.content).join("\n\n") + "\n\n";
+            bestContexts.push(...result.contextUsed);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Erro na query "${searchQuery}":`, error);
+        }
+      }
+
+      // Prompt específico para extrair conhecimentos de editais
       const conteudoQuery = `
-Analise este edital e extraia os Conhecimentos.
+Com base no seguinte conteúdo extraído do edital, identifique e organize APENAS os conhecimentos/disciplinas para a prova.
+
+CONTEXTO DO EDITAL:
+${allKnowledgeContent.substring(0, 6000)}
+
+INSTRUÇÕES ESPECÍFICAS:
+1. Procure por seções como "CONHECIMENTOS", "CONTEÚDO PROGRAMÁTICO", "ANEXO", "DISCIPLINAS", "MATÉRIAS" 
+2. Ignore questões de exemplo, gabaritos, ou conteúdo de provas anteriores
+3. Foque apenas no programa/conteúdo que será cobrado na prova
+4. Organize as disciplinas de forma hierárquica com seus tópicos
+
 Retorne um JSON válido no seguinte formato:
 {
   "conteudoProgramatico": [
     {
-      "disciplina": "Nome da disciplina/matéria",
+      "disciplina": "Nome exato da disciplina/matéria",
       "topicos": [
-        "Tópico 1 da disciplina",
-        "Tópico 2 da disciplina",
-        "Tópico 3 da disciplina"
+        "Tópico 1 específico da disciplina",
+        "Tópico 2 específico da disciplina",
+        "Tópico 3 específico da disciplina"
       ]
     }
   ]
 }
-Organize por disciplinas e liste todos os tópicos/assuntos de cada uma.
+
+Se não encontrar conhecimentos específicos, retorne array vazio. Seja preciso e organize apenas o que está claramente definido como conteúdo da prova.
 `.trim();
 
       const conteudoResult = await this.ragService.generateContextualResponse({
