@@ -257,7 +257,7 @@ export class NewEditalService {
     // Extrair cargo da resposta
     const cargoNome = this.extrairCargoDoTexto(cargoResult.resposta);
     
-    // Estruturar conteúdo programático  
+    // Estruturar conhecimentos  
     const conteudoProgramatico = this.estruturarConteudoProgramatico(conteudoResult.resposta);
     
     cargos.push({
@@ -291,7 +291,7 @@ export class NewEditalService {
   }
 
   /**
-   * Estrutura conteúdo programático do texto da IA
+   * Estrutura conhecimentos do texto da IA
    */
   private estruturarConteudoProgramatico(texto: string): string[] {
     const linhas = texto.split('\n').filter(l => l.trim());
@@ -406,7 +406,7 @@ export class NewEditalService {
 
 
   /**
-   * Organiza conteúdo programático de forma estruturada
+   * Organiza conhecimentos de forma estruturada
    */
   private organizarConteudoProgramatico(resultadoConteudo: any, nomeCargo: string): string[] {
     const conteudo: string[] = [];
@@ -439,13 +439,13 @@ export class NewEditalService {
       
       // Se não há disciplinas estruturadas, falhar - SEM FALLBACK
       if (conteudo.length === 0) {
-        throw new Error('Não foi possível extrair conteúdo programático estruturado do documento');
+        throw new Error('Não foi possível extrair conhecimentos estruturados do documento');
       }
       
       console.log(`✅ Conteúdo programático organizado: ${conteudo.length} itens para ${nomeCargo}`);
       
     } catch (error) {
-      console.error('❌ Erro ao organizar conteúdo programático:', error);
+      console.error('❌ Erro ao organizar conhecimentos:', error);
       throw error; // Propagar erro - SEM FALLBACK
     }
     

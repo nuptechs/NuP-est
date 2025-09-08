@@ -77,7 +77,7 @@ Se houver múltiplos cargos, inclua todos no array. Se não encontrar informaç�
         finalTopK: 10
       });
 
-      // Query 2: Análise de conteúdo programático estruturado
+      // Query 2: Análise de conhecimentos estruturado
       const conteudoQuery = `
 Analise este edital e extraia os Conhecimentos.
 Retorne um JSON válido no seguinte formato:
@@ -297,7 +297,7 @@ Responda em JSON no seguinte formato:
   }
 
   /**
-   * Busca e organiza conteúdo programático
+   * Busca e organiza conhecimentos
    */
   async buscarConteudoProgramatico(userId: string, query: string = "conhecimentos"): Promise<{
     disciplinas: ConteudoProgramaticoInfo[];
@@ -373,11 +373,11 @@ Responda em JSON no seguinte formato:
       "detalhamento": "Detalhes específicos se houver"
     }
   ],
-  "resumoGeral": "Resumo geral sobre o conteúdo programático encontrado"
+  "resumoGeral": "Resumo geral sobre os conhecimentos encontrados"
 }`;
 
       const aiResponse = await aiChatWithContext(prompt,
-        "Você é um especialista em análise de conteúdo programático de concursos. Extraia e organize as disciplinas e seus tópicos de forma precisa e hierárquica. Responda SEMPRE em JSON válido.",
+        "Você é um especialista em análise de conhecimentos de concursos. Extraia e organize as disciplinas e seus tópicos de forma precisa e hierárquica. Responda SEMPRE em JSON válido.",
         {
           temperature: 0.1,
           maxTokens: 3000
@@ -391,7 +391,7 @@ Responda em JSON no seguinte formato:
         console.error('Erro ao fazer parse da resposta AI:', parseError);
         return {
           disciplinas: [],
-          resumoGeral: "Erro ao processar conteúdo programático.",
+          resumoGeral: "Erro ao processar conhecimentos.",
           totalEncontrado: 0
         };
       }
@@ -403,19 +403,19 @@ Responda em JSON no seguinte formato:
         fonte: resultadosUnicos[Math.min(index, resultadosUnicos.length - 1)]?.title || 'Documento processado'
       }));
 
-      console.log(`✅ Encontradas ${disciplinasEnriquecidas.length} disciplinas no conteúdo programático`);
+      console.log(`✅ Encontradas ${disciplinasEnriquecidas.length} disciplinas nos conhecimentos`);
 
       return {
         disciplinas: disciplinasEnriquecidas,
-        resumoGeral: parsedResponse.resumoGeral || `Encontradas ${disciplinasEnriquecidas.length} disciplinas no conteúdo programático.`,
+        resumoGeral: parsedResponse.resumoGeral || `Encontradas ${disciplinasEnriquecidas.length} disciplinas nos conhecimentos.`,
         totalEncontrado: disciplinasEnriquecidas.length
       };
 
     } catch (error) {
-      console.error('❌ Erro ao buscar conteúdo programático:', error);
+      console.error('❌ Erro ao buscar conhecimentos:', error);
       return {
         disciplinas: [],
-        resumoGeral: "Erro interno ao buscar conteúdo programático.",
+        resumoGeral: "Erro interno ao buscar conhecimentos.",
         totalEncontrado: 0
       };
     }

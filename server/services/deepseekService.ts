@@ -154,10 +154,10 @@ export class DeepSeekService {
   }
 
   /**
-   * Extrai conteúdo programático de um cargo específico
+   * Extrai conhecimentos de um cargo específico
    */
   async extractConteudoProgramatico(request: ConteudoProgramaticoRequest): Promise<ConteudoProgramaticoResponse> {
-    console.log(`📚 Extraindo conteúdo programático com DeepSeek R1 para cargo: ${request.cargoName}`);
+    console.log(`📚 Extraindo conhecimentos com DeepSeek R1 para cargo: ${request.cargoName}`);
 
     try {
       const prompt = this.buildConteudoProgramaticoPrompt(request);
@@ -167,7 +167,7 @@ export class DeepSeekService {
         messages: [
           {
             role: "system",
-            content: "Você é um especialista em extração de conteúdo programático de editais de concursos públicos. Sua tarefa é identificar e estruturar as disciplinas e tópicos de estudo de forma hierárquica e organizada."
+            content: "Você é um especialista em extração de conhecimentos de editais de concursos públicos. Sua tarefa é identificar e estruturar as disciplinas e tópicos de estudo de forma hierárquica e organizada."
           },
           {
             role: "user",
@@ -185,13 +185,13 @@ export class DeepSeekService {
       }
 
       const parsedResponse = this.parseConteudoProgramaticoResponse(response);
-      console.log(`✅ Conteúdo programático extraído: ${parsedResponse.disciplinas.length} disciplinas`);
+      console.log(`✅ Conhecimentos extraídos: ${parsedResponse.disciplinas.length} disciplinas`);
 
       return parsedResponse;
 
     } catch (error) {
-      console.error('❌ Erro no DeepSeek R1 para extração de conteúdo programático:', error);
-      throw new Error(`Falha na extração de conteúdo programático com DeepSeek R1: ${(error as Error).message}`);
+      console.error('❌ Erro no DeepSeek R1 para extração de conhecimentos:', error);
+      throw new Error(`Falha na extração de conhecimentos com DeepSeek R1: ${(error as Error).message}`);
     }
   }
 
@@ -213,11 +213,11 @@ CONTEÚDO:
 ${request.content.substring(0, 1500)} ${request.content.length > 1500 ? '...' : ''}
 
 INSTRUÇÕES:
-1. Analise o conteúdo e identifique seções importantes (cargos, requisitos, conteúdo programático, cronograma, etc.)
+1. Analise o conteúdo e identifique seções importantes (cargos, requisitos, conhecimentos, cronograma, etc.)
 2. Crie chunks semânticos que mantêm contexto completo
 3. Cada chunk deve ter entre 200-800 caracteres
 4. Gere no máximo ${maxChunks} chunks
-5. Priorize informações sobre cargos, requisitos e conteúdo programático
+5. Priorize informações sobre cargos, requisitos e conhecimentos
 6. Para cada chunk, forneça título, resumo e palavras-chave
 
 FORMATO DE RESPOSTA (JSON):
@@ -269,11 +269,11 @@ FORMATO DE RESPOSTA (JSON):
   }
 
   /**
-   * Constrói o prompt para extração de conteúdo programático
+   * Constrói o prompt para extração de conhecimentos
    */
   private buildConteudoProgramaticoPrompt(request: ConteudoProgramaticoRequest): string {
     return `
-TAREFA: Extraia o conteúdo programático para o cargo "${request.cargoName}" do seguinte edital.
+TAREFA: Extraia os conhecimentos para o cargo "${request.cargoName}" do seguinte edital.
 
 INFORMAÇÕES:
 - Cargo: ${request.cargoName}
@@ -283,7 +283,7 @@ CONTEÚDO DO EDITAL:
 ${request.content.substring(0, 3000)} ${request.content.length > 3000 ? '...' : ''}
 
 INSTRUÇÕES:
-1. Encontre a seção de conteúdo programático/disciplinas para o cargo específico
+1. Encontre a seção de conhecimentos/disciplinas para o cargo específico
 2. Organize as disciplinas e seus respectivos tópicos
 3. Mantenha a estrutura hierárquica original
 4. Seja preciso e completo na extração
@@ -364,7 +364,7 @@ FORMATO DE RESPOSTA (JSON):
   }
 
   /**
-   * Faz parse da resposta de conteúdo programático
+   * Faz parse da resposta de conhecimentos
    */
   private parseConteudoProgramaticoResponse(response: string): ConteudoProgramaticoResponse {
     try {
@@ -376,7 +376,7 @@ FORMATO DE RESPOSTA (JSON):
       const parsed = JSON.parse(jsonMatch[0]);
       
       if (!parsed.cargo || !parsed.disciplinas || !Array.isArray(parsed.disciplinas)) {
-        throw new Error('Resposta não contém estrutura válida de conteúdo programático');
+        throw new Error('Resposta não contém estrutura válida de conhecimentos');
       }
 
       return {
@@ -384,9 +384,9 @@ FORMATO DE RESPOSTA (JSON):
         disciplinas: parsed.disciplinas
       };
     } catch (error) {
-      console.error('❌ Erro ao fazer parse da resposta de conteúdo programático:', error);
+      console.error('❌ Erro ao fazer parse da resposta de conhecimentos:', error);
       console.error('❌ Resposta original:', response);
-      throw new Error('Falha ao interpretar resposta do DeepSeek R1 para conteúdo programático');
+      throw new Error('Falha ao interpretar resposta do DeepSeek R1 para conhecimentos');
     }
   }
 }
