@@ -299,17 +299,17 @@ Responda em JSON no seguinte formato:
   /**
    * Busca e organiza conteúdo programático
    */
-  async buscarConteudoProgramatico(userId: string, query: string = "conteúdo programático disciplinas matérias"): Promise<{
+  async buscarConteudoProgramatico(userId: string, query: string = "conhecimentos"): Promise<{
     disciplinas: ConteudoProgramaticoInfo[];
     resumoGeral: string;
     totalEncontrado: number;
   }> {
     try {
-      console.log(`📚 Buscando conteúdo programático para usuário ${userId}...`);
+      console.log(`📚 Buscando conhecimentos para usuário ${userId}...`);
 
-      // Buscar contexto relevante para conteúdo programático
+      // Buscar contexto relevante para conhecimentos
       const conteudoQueries = [
-        "conteúdo programático disciplinas",
+        "conhecimentos disciplinas",
         "matérias assuntos programa",
         "conhecimentos específicos gerais",
         "bibliografia livros referências",
@@ -339,18 +339,18 @@ Responda em JSON no seguinte formato:
       if (resultadosUnicos.length === 0) {
         return {
           disciplinas: [],
-          resumoGeral: "Nenhum conteúdo programático encontrado nos documentos processados.",
+          resumoGeral: "Nenhum conhecimento encontrado nos documentos processados.",
           totalEncontrado: 0
         };
       }
 
-      // Usar AI para extrair e organizar conteúdo programático
+      // Usar AI para extrair e organizar conhecimentos
       const contextText = resultadosUnicos
-        .slice(0, 20) // Mais contexto para conteúdo programático
+        .slice(0, 20) // Mais contexto para conhecimentos
         .map(r => `[${r.title}] ${r.content}`)
         .join('\n\n---\n\n');
 
-      const prompt = `Analise o contexto abaixo e extraia TODAS as informações sobre conteúdo programático de concurso.
+      const prompt = `Analise o contexto abaixo e extraia TODAS as informações sobre conhecimentos de concurso.
 
 CONTEXTO:
 ${contextText}

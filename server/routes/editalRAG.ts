@@ -51,7 +51,7 @@ router.post('/buscar-cargos', isAuthenticated, async (req: any, res) => {
 
 /**
  * POST /api/edital-rag/buscar-conteudo-programatico
- * Busca e organiza conteúdo programático dos editais processados
+ * Busca e organiza conhecimentos dos editais processados
  */
 router.post('/buscar-conteudo-programatico', isAuthenticated, async (req: any, res) => {
   try {
@@ -65,11 +65,11 @@ router.post('/buscar-conteudo-programatico', isAuthenticated, async (req: any, r
       });
     }
 
-    console.log(`📚 Iniciando busca por conteúdo programático para usuário ${userId}`);
+    console.log(`📚 Iniciando busca por conhecimentos para usuário ${userId}`);
 
     const resultado = await editalRAGService.buscarConteudoProgramatico(
       userId,
-      query || "conteúdo programático disciplinas matérias"
+      query || "conhecimentos"
     );
 
     res.json({
@@ -78,10 +78,10 @@ router.post('/buscar-conteudo-programatico', isAuthenticated, async (req: any, r
     });
 
   } catch (error: any) {
-    console.error('❌ Erro na busca por conteúdo programático:', error);
+    console.error('❌ Erro na busca por conhecimentos:', error);
     res.status(500).json({
       success: false,
-      error: 'Erro interno do servidor ao buscar conteúdo programático'
+      error: 'Erro interno do servidor ao buscar conhecimentos'
     });
   }
 });

@@ -341,11 +341,11 @@ export class NewEditalService {
         "cargo vaga função concurso público"
       );
 
-      // 3. Buscar conteúdo programático usando RAG  
-      console.log(`📚 Buscando conteúdo programático para userId: ${userId}`);
+      // 3. Buscar conhecimentos usando RAG  
+      console.log(`📚 Buscando conhecimentos para userId: ${userId}`);
       const resultadoConteudo = await editalRAGService.buscarConteudoProgramatico(
         userId,
-        "conteúdo programático disciplina matéria conhecimento"
+        "conhecimentos"
       );
 
       // 3. Processar resultados e extrair informações estruturadas
@@ -384,7 +384,7 @@ export class NewEditalService {
       console.log(`✅ IA identificou ${resultadoCargos.cargos.length} cargos estruturados`);
       
       for (const cargo of resultadoCargos.cargos) {
-        // Buscar conteúdo programático específico para este cargo
+        // Buscar conhecimentos específicos para este cargo
         const conteudoCargo = this.organizarConteudoProgramatico(resultadoConteudo, cargo.nome);
         
         cargos.push({
