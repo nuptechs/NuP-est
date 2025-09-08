@@ -141,16 +141,37 @@ Retorne um JSON válido no seguinte formato:
 Se não encontrar conhecimentos específicos, retorne array vazio. Seja preciso e organize apenas o que está claramente definido como conteúdo da prova.
 `.trim();
 
-      const conteudoResult = await this.ragService.generateContextualResponse({
-        userId,
-        query: conteudoQuery,
-        documentId,
-        maxContextLength: 8000,
-        minSimilarity: 0.2,
-        enableReRanking: true,
-        initialTopK: 20,
-        finalTopK: 10
-      });
+      // Log para debug do filtering
+      console.log(`🔍 Coletado ${allKnowledgeContent.length} caracteres de contexto de conhecimentos`);
+      console.log(`📚 Total de contextos únicos encontrados: ${bestContexts.length}`);
+      
+      // Se não encontrou contexto suficiente, fazer busca mais ampla
+      if (allKnowledgeContent.length < 500) {
+        console.log(`⚠️ Pouco contexto encontrado (${allKnowledgeContent.length} chars). Fazendo busca mais ampla...`);
+        
+        try {
+          const fallbackResult = await this.ragService.generateContextualResponse({
+            userId,
+            query: "programa conteúdo conhecimentos anexo disciplinas",
+            documentId,
+            maxContextLength: 8000,
+            minSimilarity: 0.05, // Threshold muito baixo para captar qualquer coisa
+            enableReRanking: true,
+            initialTopK: 30,
+            finalTopK: 15
+          });
+          
+          if (fallbackResult.hasContext) {
+            allKnowledgeContent = fallbackResult.contextUsed.map(ctx => ctx.content).join("\n\n");
+            console.log(`🔄 Fallback: coletado ${allKnowledgeContent.length} caracteres adicionais`);
+          }
+        } catch (error) {
+          console.warn('⚠️ Erro no fallback search:', error);
+        }
+      }
+
+      // Usar IA diretamente com o contexto coletado (não fazer nova query RAG)
+      const conteudoResult = await this.processKnowledgeWithAI(conteudoQuery);
 
       // Processar e validar respostas JSON
       const cargosData = this.parseJsonResponse(cargoResult.response, 'cargos');
@@ -172,6 +193,31 @@ Se não encontrar conhecimentos específicos, retorne array vazio. Seja preciso 
       console.error('❌ Erro na análise do edital:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       throw new Error(`Falha na análise do edital: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Processa conhecimentos usando IA diretamente com contexto coletado
+   */
+  private async processKnowledgeWithAI(prompt: string): Promise<{ response: string }> {
+    try {
+      const aiResponse = await aiChatWithContext(
+        prompt,
+        "Você é um especialista em análise de editais de concursos. Extraia e organize conhecimentos de forma precisa e hierárquica. Responda SEMPRE em JSON válido.",
+        {
+          temperature: 0.1,
+          maxTokens: 3000
+        }
+      );
+
+      return {
+        response: aiResponse.content || '{}'
+      };
+    } catch (error) {
+      console.error('❌ Erro no processamento de conhecimentos com IA:', error);
+      return {
+        response: '{"conteudoProgramatico": []}'
+      };
     }
   }
 
