@@ -79,7 +79,7 @@ Se houver múltiplos cargos, inclua todos no array. Se não encontrar informaç�
 
       // Query 2: Análise de conteúdo programático estruturado
       const conteudoQuery = `
-Analise este edital e extraia o conteúdo programático/matérias de estudo.
+Analise este edital e extraia os Conhecimentos.
 Retorne um JSON válido no seguinte formato:
 {
   "conteudoProgramatico": [
