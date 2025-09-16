@@ -21,6 +21,7 @@ import { Plus, BookOpen, Upload, Play, Edit, Trash2, Brain, FileText, Folder } f
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import ModernFlashcard from "@/components/flashcard/ModernFlashcard";
 
 const createDeckSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -331,7 +332,7 @@ export default function FlashcardsPage() {
           <div>
             <h1 className="text-2xl font-bold">{selectedDeck.title}</h1>
             <p className="text-muted-foreground">
-              Flashcard {currentFlashcardIndex + 1} de {flashcards.length}
+              {selectedDeck.description}
             </p>
           </div>
           <Button variant="outline" onClick={handleBackToDecks}>
@@ -339,150 +340,16 @@ export default function FlashcardsPage() {
           </Button>
         </div>
 
-        <div className="max-w-2xl mx-auto">
-          <Card className="min-h-[400px]">
-            <CardContent className="p-8 text-center flex flex-col justify-center">
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">
-                  {showAnswer ? "Resposta:" : "Pergunta:"}
-                </h2>
-                <div className="text-lg leading-relaxed prose prose-lg max-w-none" data-testid="flashcard-content">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      // Personalizar componentes para flashcards
-                      table: ({ children }) => (
-                        <table className="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden my-4 mx-auto">
-                          {children}
-                        </table>
-                      ),
-                      thead: ({ children }) => (
-                        <thead className="bg-blue-50">
-                          {children}
-                        </thead>
-                      ),
-                      th: ({ children }) => (
-                        <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-800 text-sm">
-                          {children}
-                        </th>
-                      ),
-                      td: ({ children }) => (
-                        <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm">
-                          {children}
-                        </td>
-                      ),
-                      h1: ({ children }) => (
-                        <h1 className="text-xl font-bold text-gray-900 mb-3 mt-4 first:mt-0">
-                          {children}
-                        </h1>
-                      ),
-                      h2: ({ children }) => (
-                        <h2 className="text-lg font-semibold text-gray-800 mb-2 mt-3">
-                          {children}
-                        </h2>
-                      ),
-                      h3: ({ children }) => (
-                        <h3 className="text-base font-medium text-gray-800 mb-2 mt-2">
-                          {children}
-                        </h3>
-                      ),
-                      p: ({ children }) => (
-                        <p className="mb-3 leading-relaxed text-gray-700 text-left">
-                          {children}
-                        </p>
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="list-disc pl-6 mb-3 space-y-1 text-left">
-                          {children}
-                        </ul>
-                      ),
-                      ol: ({ children }) => (
-                        <ol className="list-decimal pl-6 mb-3 space-y-1 text-left">
-                          {children}
-                        </ol>
-                      ),
-                      li: ({ children }) => (
-                        <li className="text-gray-700 text-left">
-                          {children}
-                        </li>
-                      ),
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-4 border-blue-500 pl-4 py-2 my-4 bg-blue-50 rounded-r">
-                          {children}
-                        </blockquote>
-                      ),
-                      code: ({ className, children }) => {
-                        const isInline = !className;
-                        return isInline ? (
-                          <code className="bg-gray-100 text-blue-700 px-1 py-0.5 rounded text-sm font-mono">
-                            {children}
-                          </code>
-                        ) : (
-                          <pre className="bg-gray-100 p-3 rounded-lg overflow-x-auto my-3">
-                            <code className="text-sm font-mono text-gray-800">
-                              {children}
-                            </code>
-                          </pre>
-                        );
-                      },
-                      strong: ({ children }) => (
-                        <strong className="font-bold text-gray-900">
-                          {children}
-                        </strong>
-                      ),
-                      em: ({ children }) => (
-                        <em className="italic text-gray-800">
-                          {children}
-                        </em>
-                      ),
-                      hr: () => (
-                        <hr className="border-t border-gray-300 my-4" />
-                      )
-                    }}
-                  >
-                    {decodeFlashcardContent(showAnswer ? currentCard.back : currentCard.front)}
-                  </ReactMarkdown>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {!showAnswer ? (
-                  <Button 
-                    onClick={() => setShowAnswer(true)}
-                    className="w-full"
-                    data-testid="button-show-answer"
-                  >
-                    Mostrar Resposta
-                  </Button>
-                ) : (
-                  <div className="flex gap-4 justify-center">
-                    <Button 
-                      variant="outline" 
-                      onClick={handlePrevCard}
-                      disabled={currentFlashcardIndex === 0}
-                      data-testid="button-prev-card"
-                    >
-                      ← Anterior
-                    </Button>
-                    <Button 
-                      onClick={handleNextCard}
-                      data-testid="button-next-card"
-                    >
-                      {currentFlashcardIndex === flashcards.length - 1 ? "Finalizar" : "Próximo →"}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="mt-6">
-            <Progress 
-              value={((currentFlashcardIndex + 1) / flashcards.length) * 100} 
-              className="h-2" 
-            />
-          </div>
-        </div>
+        <ModernFlashcard
+          flashcards={flashcards}
+          currentIndex={currentFlashcardIndex}
+          onNext={handleNextCard}
+          onPrevious={handlePrevCard}
+          onComplete={(flashcardId, difficulty) => {
+            // TODO: Implementar salvamento da dificuldade no backend
+            console.log(`Flashcard ${flashcardId} marcado com dificuldade ${difficulty}`);
+          }}
+        />
       </div>
     );
   }

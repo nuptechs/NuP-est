@@ -131,3 +131,51 @@
   border-radius: 9999px;
   transition: width 0.3s ease;
 }
+
+/* Flashcard 3D Animation System */
+.flashcard-container {
+  perspective: 1000px;
+  width: 100%;
+  height: 100%;
+}
+
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.flashcard-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.flashcard-front {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
+
+.flashcard-back {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--primary) / 0.4);
+  transform: rotateY(180deg);
+}
+
+/* Motion safe preference */
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-inner {
+    transition: none;
+  }
+}
