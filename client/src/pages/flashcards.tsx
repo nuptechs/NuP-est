@@ -48,6 +48,28 @@ type CreateDeckFormData = z.infer<typeof createDeckSchema>;
 type UploadFileFormData = z.infer<typeof uploadFileSchema>;
 type MaterialFlashcardFormData = z.infer<typeof materialFlashcardSchema>;
 
+// Função para decodificar conteúdo de flashcards (resolve problemas de escapes duplos)
+const decodeFlashcardContent = (content: string): string => {
+  if (!content) return '';
+  
+  try {
+    // Método 1: Tentativa segura usando JSON.parse para decodificação automática
+    const jsonString = `"${content.replace(/"/g, '\\"')}"`;
+    const decoded = JSON.parse(jsonString);
+    return decoded.trim();
+  } catch {
+    // Método 2: Fallback manual com ordem correta (barras primeiro)
+    return content
+      .replace(/\\\\/g, '\x00TEMP_BACKSLASH\x00')  // Preservar \\ temporariamente
+      .replace(/\\n/g, '\n')                       // \\n -> \n (quebras)
+      .replace(/\\t/g, '\t')                       // \\t -> \t (tabs)
+      .replace(/\\r/g, '\r')                       // \\r -> \r (carriage return)
+      .replace(/\\"/g, '"')                        // \\" -> " (aspas)
+      .replace(/\x00TEMP_BACKSLASH\x00/g, '\\')    // Restaurar \\ únicos
+      .trim();
+  }
+};
+
 export default function FlashcardsPage() {
   const [activeTab, setActiveTab] = useState("decks");
   const [selectedDeck, setSelectedDeck] = useState<FlashcardDeck | null>(null);
@@ -418,7 +440,7 @@ export default function FlashcardsPage() {
                       )
                     }}
                   >
-                    {showAnswer ? currentCard.back : currentCard.front}
+                    {decodeFlashcardContent(showAnswer ? currentCard.back : currentCard.front)}
                   </ReactMarkdown>
                 </div>
               </div>
