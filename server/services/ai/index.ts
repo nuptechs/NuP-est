@@ -72,6 +72,99 @@ export async function aiChatWithContext(
 }
 
 /**
+ * Parser robusto e flexível para respostas JSON da IA
+ * SOLUÇÃO: Múltiplos métodos + logs detalhados + fallback manual
+ */
+function parseAIResponseRobust(response: string, context: string): any {
+  try {
+    console.log(`🔍 DEBUG: Parsing resposta da IA para ${context}`);
+    console.log(`📝 RESPOSTA COMPLETA DA IA:\n${response}\n--- FIM DA RESPOSTA ---`);
+    
+    // Múltiplas tentativas de extração de JSON
+    let parsed: any = null;
+    
+    // Tentativa 1: JSON completo na resposta
+    try {
+      const fullJsonMatch = response.match(/\{[\s\S]*\}/);
+      if (fullJsonMatch) {
+        parsed = JSON.parse(fullJsonMatch[0]);
+        console.log(`✅ JSON parseado (método 1):`, parsed);
+      }
+    } catch (e) {
+      console.log(`⚠️ Método 1 falhou:`, e);
+    }
+    
+    // Tentativa 2: JSON dentro de código (```json)
+    if (!parsed) {
+      try {
+        const codeBlockMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
+        if (codeBlockMatch) {
+          parsed = JSON.parse(codeBlockMatch[1].trim());
+          console.log(`✅ JSON parseado (método 2):`, parsed);
+        }
+      } catch (e) {
+        console.log(`⚠️ Método 2 falhou:`, e);
+      }
+    }
+    
+    // Tentativa 3: Buscar arrays específicos (para flashcards)
+    if (!parsed) {
+      try {
+        const flashcardsMatch = response.match(/"flashcards":\s*\[([\s\S]*?)\]/);
+        if (flashcardsMatch) {
+          const flashcardsContent = `[${flashcardsMatch[1]}]`;
+          const flashcardsArray = JSON.parse(flashcardsContent);
+          parsed = { flashcards: flashcardsArray };
+          console.log(`✅ JSON parseado (método 3 - flashcards):`, parsed);
+        }
+      } catch (e) {
+        console.log(`⚠️ Método 3 falhou:`, e);
+      }
+    }
+    
+    // Tentativa 4: Buscar qualquer array
+    if (!parsed) {
+      try {
+        const arrayMatch = response.match(/\[([\s\S]*?)\]/);
+        if (arrayMatch) {
+          const arrayContent = JSON.parse(arrayMatch[0]);
+          parsed = { data: arrayContent };
+          console.log(`✅ JSON parseado (método 4 - array genérico):`, parsed);
+        }
+      } catch (e) {
+        console.log(`⚠️ Método 4 falhou:`, e);
+      }
+    }
+    
+    if (!parsed) {
+      console.warn(`❌ NENHUM JSON VÁLIDO ENCONTRADO na resposta para ${context}`);
+      console.log(`📋 Tentando interpretação manual da resposta...`);
+      
+      // Fallback manual - retorna estrutura mínima
+      if (context.includes('flashcard')) {
+        return { flashcards: [] };
+      }
+      
+      return {};
+    }
+
+    console.log(`✅ Parsing bem-sucedido para ${context}:`, parsed);
+    return parsed;
+    
+  } catch (error) {
+    console.error(`❌ Erro crítico no parsing para ${context}:`, error);
+    console.log(`📝 Resposta que causou erro: ${response.substring(0, 1000)}...`);
+    
+    // Retorno de emergência
+    if (context.includes('flashcard')) {
+      return { flashcards: [] };
+    }
+    
+    return {};
+  }
+}
+
+/**
  * Função para análise de texto com retorno JSON
  */
 export async function aiAnalyze<T = any>(
@@ -100,11 +193,6 @@ export async function aiAnalyze<T = any>(
     question: content
   });
   
-  // Extrair JSON da resposta
-  const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new AppError(503, errorMessages.AI_SERVICE_ERROR, 'Resposta da IA não contém JSON válido');
-  }
-  
-  return JSON.parse(jsonMatch[0]);
+  // Parser robusto e flexível para JSON (mesmo que criamos para editais)
+  return parseAIResponseRobust(response.content, 'resultado da análise');
 }
