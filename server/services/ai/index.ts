@@ -107,18 +107,73 @@ function parseAIResponseRobust(response: string, context: string): any {
       }
     }
     
-    // Tentativa 3: Buscar arrays específicos (para flashcards)
+    // Tentativa 3: Buscar arrays específicos (para flashcards) - MELHORADO
     if (!parsed) {
       try {
-        const flashcardsMatch = response.match(/"flashcards":\s*\[([\s\S]*?)\]/);
+        // Buscar início do array de flashcards, mesmo se incompleto
+        const flashcardsMatch = response.match(/"flashcards":\s*\[([\s\S]*)/);
         if (flashcardsMatch) {
-          const flashcardsContent = `[${flashcardsMatch[1]}]`;
-          const flashcardsArray = JSON.parse(flashcardsContent);
-          parsed = { flashcards: flashcardsArray };
-          console.log(`✅ JSON parseado (método 3 - flashcards):`, parsed);
+          let flashcardsContent = flashcardsMatch[1];
+          
+          // Tentar completar JSON incompleto
+          const openBraces = (flashcardsContent.match(/\{/g) || []).length;
+          const closeBraces = (flashcardsContent.match(/\}/g) || []).length;
+          const missingBraces = openBraces - closeBraces;
+          
+          // Se há flashcards no meio da resposta, vamos extrair o que conseguimos
+          if (missingBraces > 0) {
+            console.log(`🔧 Tentando reparar JSON incompleto (faltam ${missingBraces} '}' e possivelmente ']')`);
+            
+            // Adicionar closes faltantes
+            for (let i = 0; i < missingBraces; i++) {
+              flashcardsContent += '}';
+            }
+            
+            // Se não termina com ], adicionar
+            if (!flashcardsContent.trim().endsWith(']')) {
+              flashcardsContent += ']';
+            }
+          }
+          
+          // Tentar parsear o array reparado
+          const fullJson = `[${flashcardsContent}]`;
+          const flashcardsArray = JSON.parse(fullJson);
+          
+          // Filtrar apenas flashcards válidos (que têm front e back)
+          const validFlashcards = flashcardsArray.filter((card: any) => 
+            card && typeof card === 'object' && card.front && card.back
+          );
+          
+          parsed = { flashcards: validFlashcards };
+          console.log(`✅ JSON parseado e reparado (método 3 - flashcards):`, parsed);
+          console.log(`📊 Flashcards válidos extraídos: ${validFlashcards.length}`);
         }
       } catch (e) {
         console.log(`⚠️ Método 3 falhou:`, e);
+        
+        // Tentativa manual de extrair flashcards individuais
+        try {
+          console.log(`🔧 Tentativa de extração manual de flashcards...`);
+          const manualCards = [];
+          
+          // Buscar padrões de flashcards individuais usando exec
+          const cardRegex = /"front":\s*"([^"]*)",\s*"back":\s*"([^"]*)"/g;
+          let match;
+          
+          while ((match = cardRegex.exec(response)) !== null) {
+            manualCards.push({
+              front: match[1],
+              back: match[2]
+            });
+          }
+          
+          if (manualCards.length > 0) {
+            parsed = { flashcards: manualCards };
+            console.log(`✅ Extração manual bem-sucedida: ${manualCards.length} flashcards`);
+          }
+        } catch (manualError) {
+          console.log(`⚠️ Extração manual também falhou:`, manualError);
+        }
       }
     }
     
