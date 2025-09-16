@@ -4,9 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, RotateCcw, Eye, EyeOff, Lightbulb, CheckCircle, XCircle } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import type { Flashcard } from "@shared/schema";
+import FlashcardRenderer from "./FlashcardRenderer";
 
 interface ModernFlashcardProps {
   flashcards: Flashcard[];
@@ -163,53 +162,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
             <CardContent className="p-8 h-full min-h-[400px] flex flex-col justify-center">
               <div className="text-center space-y-6">
                 <div className="prose prose-lg max-w-none mx-auto">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      h1: ({ children }) => <h1 className="text-3xl font-bold text-primary mb-4">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-2xl font-semibold text-primary mb-3">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-xl font-semibold text-primary mb-2">{children}</h3>,
-                      p: ({ children }) => <p className="text-lg leading-relaxed mb-4 text-foreground">{children}</p>,
-                      strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-4 border-primary pl-4 italic bg-muted p-4 rounded-r-lg my-4">
-                          {children}
-                        </blockquote>
-                      ),
-                      ul: ({ children }) => <ul className="list-disc pl-6 space-y-2 text-left">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-6 space-y-2 text-left">{children}</ol>,
-                      li: ({ children }) => <li className="text-lg">{children}</li>,
-                      table: ({ children }) => (
-                        <div className="overflow-x-auto my-4">
-                          <table className="w-full border-collapse border border-gray-300 rounded-lg">
-                            {children}
-                          </table>
-                        </div>
-                      ),
-                      th: ({ children }) => (
-                        <th className="border border-gray-300 px-4 py-2 bg-muted font-semibold text-left">
-                          {children}
-                        </th>
-                      ),
-                      td: ({ children }) => (
-                        <td className="border border-gray-300 px-4 py-2">{children}</td>
-                      ),
-                      code: ({ children, className }) => {
-                        const isInline = !className;
-                        return isInline ? (
-                          <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
-                            {children}
-                          </code>
-                        ) : (
-                          <code className="block bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto">
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {decodeContent(currentCard.front)}
-                  </ReactMarkdown>
+                  <FlashcardRenderer content={decodeContent(currentCard.front)} />
                 </div>
 
                 <div className="flex items-center justify-center gap-2 text-muted-foreground animate-pulse">
@@ -225,53 +178,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
             <CardContent className="p-8 h-full min-h-[400px] flex flex-col justify-center">
               <div className="text-center space-y-6">
                 <div className="prose prose-lg max-w-none mx-auto">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      h1: ({ children }) => <h1 className="text-3xl font-bold text-primary mb-4">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-2xl font-semibold text-primary mb-3">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-xl font-semibold text-primary mb-2">{children}</h3>,
-                      p: ({ children }) => <p className="text-lg leading-relaxed mb-4 text-foreground">{children}</p>,
-                      strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-4 border-primary pl-4 italic bg-muted p-4 rounded-r-lg my-4">
-                          {children}
-                        </blockquote>
-                      ),
-                      ul: ({ children }) => <ul className="list-disc pl-6 space-y-2 text-left">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-6 space-y-2 text-left">{children}</ol>,
-                      li: ({ children }) => <li className="text-lg">{children}</li>,
-                      table: ({ children }) => (
-                        <div className="overflow-x-auto my-4">
-                          <table className="w-full border-collapse border border-gray-300 rounded-lg">
-                            {children}
-                          </table>
-                        </div>
-                      ),
-                      th: ({ children }) => (
-                        <th className="border border-gray-300 px-4 py-2 bg-muted font-semibold text-left">
-                          {children}
-                        </th>
-                      ),
-                      td: ({ children }) => (
-                        <td className="border border-gray-300 px-4 py-2">{children}</td>
-                      ),
-                      code: ({ children, className }) => {
-                        const isInline = !className;
-                        return isInline ? (
-                          <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
-                            {children}
-                          </code>
-                        ) : (
-                          <code className="block bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto">
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {decodeContent(currentCard.back)}
-                  </ReactMarkdown>
+                  <FlashcardRenderer content={decodeContent(currentCard.back)} />
                 </div>
               </div>
             </CardContent>
