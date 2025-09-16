@@ -1288,15 +1288,31 @@ FORMATO JSON (retorne APENAS o JSON válido, sem texto adicional):
 
 IMPORTANTE: Gere questões de qualidade acadêmica que realmente testem o conhecimento do estudante!`;
 
-      // Usar sistema de injeção de dependência para análise
-      const questions = await aiAnalyze<any[]>(
+      // Usar sistema de injeção de dependência para análise COM TOKENS ADEQUADOS
+      const result = await aiAnalyze<{ questions?: any[] } | any[]>(
         prompt,
         `Você é um gerador de questões educacionais especializado. Gere questões de múltipla escolha conforme especificado.`,
         {
           temperature: 0.7,
-          maxTokens: 4000
+          maxTokens: 8000  // ✅ AUMENTADO para garantir resposta completa
         }
       );
+
+      // Extrair questões do resultado (pode vir como {questions: []} ou [])
+      let questions: any[] = [];
+      if (Array.isArray(result)) {
+        questions = result;
+      } else if (result && Array.isArray(result.questions)) {
+        questions = result.questions;
+      } else {
+        console.error('❌ Formato inesperado da resposta:', result);
+        throw new Error('Formato de resposta inválido - questões não encontradas');
+      }
+
+      // Validar se temos questões
+      if (!questions || questions.length === 0) {
+        throw new Error('Nenhuma questão foi gerada pela IA');
+      }
 
       // Validar e enriquecer questões
       const validatedQuestions = questions.map((q: any, index: number) => ({
