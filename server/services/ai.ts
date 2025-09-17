@@ -695,7 +695,7 @@ Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
         `Você é um gerador de flashcards educacionais especializado. Crie flashcards de qualidade baseados no conteúdo fornecido.`,
         {
           temperature: 0.7,
-          maxTokens: 2000
+          maxTokens: 8000
         }
       );
       
