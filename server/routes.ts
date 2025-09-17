@@ -855,28 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count: flashcardCount
       });
 
-      // Validação: verificar se o número correto de flashcards foi gerado
-      console.log(`📊 Flashcards solicitados: ${flashcardCount}, gerados: ${generatedFlashcards.length}`);
-      
-      if (generatedFlashcards.length < flashcardCount) {
-        console.log(`⚠️ Número insuficiente de flashcards gerados. Tentando gerar os restantes...`);
-        // Se não gerou o suficiente, tentar uma segunda vez para completar
-        const remainingCount = flashcardCount - generatedFlashcards.length;
-        try {
-          const additionalFlashcards = await aiService.generateFlashcards({
-            content: fileContent,
-            studyProfile: user.studyProfile || "average", 
-            subject: subjectId,
-            count: remainingCount
-          });
-          generatedFlashcards.push(...additionalFlashcards);
-          console.log(`✅ Flashcards adicionais gerados: ${additionalFlashcards.length}`);
-        } catch (retryError) {
-          console.error(`❌ Erro ao gerar flashcards adicionais:`, retryError);
-        }
-      }
-
-      console.log(`🎯 Total final de flashcards gerados: ${generatedFlashcards.length}`);
+      console.log(`🎯 Flashcards gerados: ${generatedFlashcards.length}/${flashcardCount}`);
 
       // Create flashcard deck
       const deckData = insertFlashcardDeckSchema.parse({
@@ -967,28 +946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count: flashcardCount
       });
 
-      // Validação: verificar se o número correto de flashcards foi gerado
-      console.log(`📊 Flashcards solicitados: ${flashcardCount}, gerados: ${generatedFlashcards.length}`);
-      
-      if (generatedFlashcards.length < flashcardCount) {
-        console.log(`⚠️ Número insuficiente de flashcards gerados. Tentando gerar os restantes...`);
-        // Se não gerou o suficiente, tentar uma segunda vez para completar
-        const remainingCount = flashcardCount - generatedFlashcards.length;
-        try {
-          const additionalFlashcards = await aiService.generateFlashcards({
-            content,
-            studyProfile: user.studyProfile || "average",
-            subject: subjectId || material.subjectId,
-            count: remainingCount
-          });
-          generatedFlashcards.push(...additionalFlashcards);
-          console.log(`✅ Flashcards adicionais gerados: ${additionalFlashcards.length}`);
-        } catch (retryError) {
-          console.error(`❌ Erro ao gerar flashcards adicionais:`, retryError);
-        }
-      }
-
-      console.log(`🎯 Total final de flashcards gerados: ${generatedFlashcards.length}`);
+      console.log(`🎯 Flashcards gerados: ${generatedFlashcards.length}/${flashcardCount}`);
 
       // Create flashcard deck
       const deckData = insertFlashcardDeckSchema.parse({

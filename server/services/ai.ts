@@ -607,7 +607,31 @@ Respond with JSON in this format:
   }
 
   async generateFlashcards(request: FlashcardGenerationRequest): Promise<GeneratedFlashcard[]> {
+    return await this.generateFlashcardsWithRetry(request, [], 0);
+  }
+
+  private async generateFlashcardsWithRetry(
+    request: FlashcardGenerationRequest, 
+    existingFlashcards: GeneratedFlashcard[] = [],
+    attempt: number = 0
+  ): Promise<GeneratedFlashcard[]> {
     const { content, studyProfile, subject, count } = request;
+    const maxAttempts = 3;
+    
+    if (attempt >= maxAttempts) {
+      if (existingFlashcards.length < count) {
+        console.log(`❌ Máximo de tentativas atingido. Conseguimos apenas ${existingFlashcards.length}/${count} flashcards únicos`);
+        throw new AppError(503, errorMessages.AI_SERVICE_ERROR, `Não foi possível gerar ${count} flashcards únicos a partir do conteúdo fornecido. Conseguimos apenas ${existingFlashcards.length}. Tente com um número menor de flashcards ou forneça conteúdo mais extenso.`);
+      }
+      return existingFlashcards.slice(0, count); // Exatamente o número solicitado
+    }
+
+    const remainingCount = count - existingFlashcards.length;
+    if (remainingCount <= 0) {
+      return existingFlashcards.slice(0, count); // Exatamente o número solicitado
+    }
+
+    console.log(`🔄 Tentativa ${attempt + 1}/${maxAttempts}: Gerando ${remainingCount} flashcards restantes`);
 
     // Customize prompt based on study profile
     const profileStrategies = {
@@ -618,6 +642,11 @@ Respond with JSON in this format:
 
     const strategy = profileStrategies[studyProfile as keyof typeof profileStrategies] || profileStrategies.average;
 
+    // Construir lista de flashcards existentes para evitar duplicatas
+    const existingContent = existingFlashcards.length > 0 
+      ? `\n\nFLASHCARDS JÁ CRIADOS (NÃO REPITA ESTES):\n${existingFlashcards.map((fc, i) => `${i+1}. Front: "${fc.front}"`).join('\n')}\n\nCrie flashcards DIFERENTES dos listados acima.`
+      : '';
+
     const prompt = `Você é um especialista em educação criando flashcards personalizados e bem formatados em português.
 
 ${subject ? `Matéria: ${subject}` : ''}
@@ -627,7 +656,7 @@ Estratégia: ${strategy}
 CONTEÚDO DE ESTUDO QUE DEVE SER USADO PARA CRIAR OS FLASHCARDS:
 ---
 ${content.substring(0, 6000)}${content.length > 6000 ? '...\n[conteúdo continua]' : ''}
----
+---${existingContent}
 
 INSTRUÇÕES IMPORTANTES:
 - Os flashcards DEVEM ser baseados EXCLUSIVAMENTE no conteúdo fornecido acima
@@ -635,6 +664,7 @@ INSTRUÇÕES IMPORTANTES:
 - Extraia conceitos, definições, fatos e explicações diretamente do texto
 - Se o conteúdo contém exemplos, inclua-os nos flashcards
 - Identifique termos técnicos, nomes importantes, datas, processos explicados no texto
+- NÃO repita flashcards que já foram criados
 
 FORMATAÇÃO OBRIGATÓRIA (use Markdown):
 - Use **negrito** para destacar termos importantes
@@ -650,26 +680,7 @@ FORMATAÇÃO OBRIGATÓRIA (use Markdown):
 - Use quebras de linha duplas para separar parágrafos
 - Use --- para separadores visuais quando necessário
 
-EXEMPLOS DE FORMATAÇÃO:
-**Front:** O que é **Direito Constitucional**?
-
-**Back:** 
-### Definição
-O **Direito Constitucional** é o ramo do direito que estuda:
-
-1. **Constituição** - norma fundamental do Estado
-2. **Organização dos poderes** - estrutura governamental  
-3. **Direitos fundamentais** - garantias dos cidadãos
-
-> É considerado o *"direito dos direitos"* por ser hierarquicamente superior.
-
----
-**Características principais:**
-- Supremacia constitucional
-- Rigidez constitucional
-- Controle de constitucionalidade
-
-Crie exatamente ${count} flashcards baseados no conteúdo fornecido. Cada flashcard deve:
+Crie exatamente ${remainingCount} flashcards únicos baseados no conteúdo fornecido. Cada flashcard deve:
 1. Estar DIRETAMENTE relacionado ao conteúdo fornecido acima
 2. Ser adequado para um estudante com perfil ${studyProfile}
 3. Ter uma pergunta clara na frente (front) extraída do conteúdo
@@ -677,6 +688,7 @@ Crie exatamente ${count} flashcards baseados no conteúdo fornecido. Cada flashc
 5. Estar em português
 6. Usar formatação rica para melhor apresentação
 7. Referenciar informações específicas do material fornecido
+8. Ser DIFERENTE dos flashcards já criados
 
 Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
 {
@@ -692,18 +704,71 @@ Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
       // Usar sistema de injeção de dependência para análise
       const result = await aiAnalyze<{ flashcards: GeneratedFlashcard[] }>(
         prompt,
-        `Você é um gerador de flashcards educacionais especializado. Crie flashcards de qualidade baseados no conteúdo fornecido.`,
+        `Você é um gerador de flashcards educacionais especializado. Crie flashcards únicos de qualidade baseados no conteúdo fornecido.`,
         {
           temperature: 0.7,
           maxTokens: 8000
         }
       );
       
-      return result.flashcards || [];
+      let newFlashcards = result.flashcards || [];
+      console.log(`✅ Gerados ${newFlashcards.length} novos flashcards na tentativa ${attempt + 1}`);
+      
+      // Trim se gerou mais que o necessário nesta tentativa
+      if (newFlashcards.length > remainingCount) {
+        newFlashcards = newFlashcards.slice(0, remainingCount);
+        console.log(`✂️ Trimmed para ${newFlashcards.length} flashcards (máximo necessário)`);
+      }
+      
+      // Deduplica baseado no front (pergunta) normalizado
+      const allFlashcards = [...existingFlashcards];
+      const existingFronts = new Set(existingFlashcards.map(fc => this.normalizeFlashcardFront(fc.front)));
+      
+      for (const newCard of newFlashcards) {
+        const frontKey = this.normalizeFlashcardFront(newCard.front);
+        if (!existingFronts.has(frontKey)) {
+          allFlashcards.push(newCard);
+          existingFronts.add(frontKey);
+        } else {
+          console.log(`🔄 Flashcard duplicado ignorado: "${newCard.front.substring(0, 50)}..."`);
+        }
+      }
+      
+      console.log(`🔍 Total de flashcards únicos: ${allFlashcards.length}/${count}`);
+      
+      // Se ainda não temos o suficiente, tentar novamente
+      if (allFlashcards.length < count && attempt < maxAttempts - 1) {
+        return await this.generateFlashcardsWithRetry(request, allFlashcards, attempt + 1);
+      }
+      
+      // Retorna exatamente o número solicitado
+      return allFlashcards.slice(0, count);
+      
     } catch (error) {
-      console.error("Error generating flashcards:", error);
+      console.error(`❌ Erro na tentativa ${attempt + 1}:`, error);
+      
+      // Se ainda temos tentativas, tentar novamente
+      if (attempt < maxAttempts - 1) {
+        return await this.generateFlashcardsWithRetry(request, existingFlashcards, attempt + 1);
+      }
+      
+      // Se não temos mais tentativas e temos pelo menos alguns flashcards, retornar os que temos
+      if (existingFlashcards.length > 0) {
+        console.log(`⚠️ Retornando ${existingFlashcards.length} flashcards devido a erro na geração`);
+        return existingFlashcards.slice(0, count);
+      }
+      
       throw new AppError(503, errorMessages.AI_SERVICE_ERROR, "Failed to generate flashcards: " + (error as Error).message);
     }
+  }
+
+  private normalizeFlashcardFront(front: string): string {
+    // Remove markdown, normalize espaços e converte para lowercase para comparação
+    return front
+      .replace(/[*_`#>]/g, '') // Remove markdown básico
+      .replace(/\s+/g, ' ') // Normaliza espaços
+      .trim()
+      .toLowerCase();
   }
 }
 
