@@ -160,17 +160,19 @@
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: 0 !important;
   width: 100% !important;
-  height: 100% !important;
   min-height: 400px !important;
   backface-visibility: hidden !important;
   -webkit-backface-visibility: hidden !important;
   -moz-backface-visibility: hidden !important;
   border-radius: var(--radius);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  overflow-y: auto;
+  overflow: visible !important;
   transform-origin: center center;
+  /* Remove height and bottom constraints to allow content to display fully */
+  height: auto !important;
+  /* Ensure content doesn't get cut off at the top */
+  padding-top: 0.5rem;
 }
 
 .flashcard-front {

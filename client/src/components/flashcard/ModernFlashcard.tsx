@@ -159,13 +159,13 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
         >
           {/* Front Face - Question */}
           <div className={`flashcard-face flashcard-front ${!showAnswer ? 'cursor-pointer hover:shadow-lg' : ''}`}>
-            <CardContent className="p-8 h-full min-h-[400px] flex flex-col justify-center">
-              <div className="text-center space-y-6">
+            <CardContent className="p-8 min-h-[400px] flex flex-col justify-start">
+              <div className="text-center space-y-6 py-4">
                 <div className="prose prose-lg max-w-none mx-auto">
                   <FlashcardRenderer content={decodeContent(currentCard.front)} />
                 </div>
 
-                <div className="flex items-center justify-center gap-2 text-muted-foreground animate-pulse">
+                <div className="flex items-center justify-center gap-2 text-muted-foreground animate-pulse mt-8">
                   <Lightbulb className="w-5 h-5" />
                   <span>Clique para revelar a resposta ou pressione Espaço</span>
                 </div>
@@ -175,8 +175,8 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
 
           {/* Back Face - Answer */}
           <div className="flashcard-face flashcard-back">
-            <CardContent className="p-8 h-full min-h-[400px] flex flex-col justify-center">
-              <div className="text-center space-y-6">
+            <CardContent className="p-8 min-h-[400px] flex flex-col justify-start">
+              <div className="text-center space-y-6 py-4">
                 <div className="prose prose-lg max-w-none mx-auto">
                   <FlashcardRenderer content={decodeContent(currentCard.back)} />
                 </div>
