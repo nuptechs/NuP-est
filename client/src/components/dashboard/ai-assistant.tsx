@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Brain, Target, Send, X, Copy, Check, Database } from "lucide-react";
+import { Loader2, Brain, Target, Send, X, Copy, Check } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Subject, Goal } from "@shared/schema";
@@ -413,7 +413,6 @@ export default function AiAssistant() {
                             onClick={() => handleKnowledgeCategorySelection(category)}
                             className="w-full text-left justify-start h-auto p-3 bg-white hover:bg-blue-50 border-blue-200 rounded-lg"
                           >
-                            <Database className="w-4 h-4 mr-2 flex-shrink-0 text-blue-600" />
                             <span className="truncate text-sm text-gray-700">{category}</span>
                           </Button>
                         ))}

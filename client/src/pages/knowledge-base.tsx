@@ -17,7 +17,6 @@ import {
   BookOpen,
   Calendar,
   FileIcon,
-  Database,
   Filter,
   X,
   Edit,
@@ -301,7 +300,6 @@ export default function KnowledgeBasePage() {
             onClick={() => setSelectedCategory(null)}
             className="flex items-center gap-2"
           >
-            <Database className="w-3 h-3" />
             Todas ({categories.reduce((total, cat) => total + cat.count, 0)})
           </Button>
           {categories.map((cat, index) => (
@@ -312,7 +310,6 @@ export default function KnowledgeBasePage() {
               onClick={() => setSelectedCategory(cat.category)}
               className="flex items-center gap-2"
             >
-              <Database className="w-3 h-3" />
               {cat.category} ({cat.count})
             </Button>
           ))}
