@@ -154,7 +154,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
 
         {/* Floating Difficulty Buttons - Only show when answer is visible */}
         {showAnswer && (
-          <div className="absolute right-0 top-32 z-10 flex flex-col gap-2">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -209,7 +209,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
         )}
 
         {/* Main Flashcard with 3D Flip */}
-        <div className="flashcard-container min-h-[400px]">
+        <div className="flashcard-container min-h-[400px] pr-16">
           <div 
             className={`flashcard-inner ${showAnswer ? 'flipped' : ''}`}
             onClick={() => !showAnswer && handleFlip()}
