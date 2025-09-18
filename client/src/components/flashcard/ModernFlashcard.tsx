@@ -36,7 +36,6 @@ const decodeContent = (content: string): string => {
 
 export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPrevious, onComplete }: ModernFlashcardProps) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [isFlipping, setIsFlipping] = useState(false);
   const [cardHistory, setCardHistory] = useState<{[key: string]: 'easy' | 'medium' | 'hard'}>({});
   const [containerHeight, setContainerHeight] = useState<number>(400);
   
@@ -46,26 +45,36 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
   const currentCard = flashcards[currentIndex];
   const progress = ((currentIndex + 1) / flashcards.length) * 100;
 
-  // Measure content height to prevent overlaps
+  // Measure content height to prevent overlaps - improved robustness
   useEffect(() => {
     const updateContainerHeight = () => {
-      if (frontContentRef.current && backContentRef.current) {
-        const frontHeight = frontContentRef.current.scrollHeight;
-        const backHeight = backContentRef.current.scrollHeight;
-        const maxHeight = Math.max(frontHeight, backHeight, 400);
-        setContainerHeight(maxHeight);
+      let frontHeight = 400;
+      let backHeight = 400;
+      
+      if (frontContentRef.current) {
+        frontHeight = frontContentRef.current.scrollHeight;
       }
+      if (backContentRef.current) {
+        backHeight = backContentRef.current.scrollHeight;
+      }
+      
+      const maxHeight = Math.max(frontHeight, backHeight, 400);
+      setContainerHeight(maxHeight);
     };
 
-    // Update height when content changes
-    updateContainerHeight();
+    // Small delay to ensure content is rendered
+    const timer = setTimeout(updateContainerHeight, 50);
 
     // Use ResizeObserver for dynamic content
-    const resizeObserver = new ResizeObserver(updateContainerHeight);
+    const resizeObserver = new ResizeObserver(() => {
+      setTimeout(updateContainerHeight, 20);
+    });
+    
     if (frontContentRef.current) resizeObserver.observe(frontContentRef.current);
     if (backContentRef.current) resizeObserver.observe(backContentRef.current);
 
     return () => {
+      clearTimeout(timer);
       resizeObserver.disconnect();
     };
   }, [currentCard, showAnswer]);
@@ -120,11 +129,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
 
   const handleFlip = () => {
     if (!showAnswer) {
-      setIsFlipping(true);
-      setTimeout(() => {
-        setShowAnswer(true);
-        setIsFlipping(false);
-      }, 150);
+      setShowAnswer(true);
     }
   };
 
@@ -140,13 +145,6 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
     onNext();
   };
 
-  const getDifficultyColor = (level: 'easy' | 'medium' | 'hard') => {
-    return {
-      easy: 'bg-green-500 hover:bg-green-600',
-      medium: 'bg-yellow-500 hover:bg-yellow-600', 
-      hard: 'bg-red-500 hover:bg-red-600'
-    }[level];
-  };
 
   if (!currentCard) return null;
 
@@ -184,8 +182,8 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
           {/* Modern Card Layout */}
           <div className="relative">
             <div 
-              className="bg-card border rounded-2xl shadow-sm min-h-[500px] overflow-hidden"
-              style={{ minHeight: `${Math.max(containerHeight + 120, 500)}px` }}
+              className="bg-card border rounded-2xl shadow-sm min-h-[360px] md:min-h-[500px] overflow-hidden"
+              style={{ minHeight: `${Math.max(containerHeight + 120, 360)}px` }}
             >
               {/* Card Content */}
               <div className="p-8 md:p-12" style={{ minHeight: `${containerHeight}px` }}>
@@ -266,7 +264,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
                   <Button 
                     onClick={handleFlip}
                     size="lg"
-                    className="h-12 px-8 text-base font-semibold min-w-[200px]"
+                    className="h-12 px-6 md:px-8 text-base font-semibold min-w-[180px] md:min-w-[200px]"
                     data-testid="button-show-answer"
                   >
                     <Eye className="w-5 h-5 mr-2" />
