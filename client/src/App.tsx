@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
+import Library from "@/pages/library";
 import Subjects from "@/pages/subjects";
 import Materials from "@/pages/materials";
 import Study from "@/pages/study";
@@ -44,9 +45,15 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/onboarding" component={Onboarding} />
           <Route path="/ai-assistant" component={AiAssistant} />
-          <Route path="/subjects" component={Subjects} />
-          <Route path="/materials" component={Materials} />
-          <Route path="/knowledge-base" component={KnowledgeBasePage} />
+          
+          {/* Nova biblioteca unificada */}
+          <Route path="/library" component={Library} />
+          
+          {/* Rotas legadas - redirecionam para biblioteca usando SPA navigation */}
+          <Route path="/subjects" component={() => { window.history.replaceState({}, '', '/library?type=subjects'); return <Library />; }} />
+          <Route path="/materials" component={() => { window.history.replaceState({}, '', '/library?type=materials'); return <Library />; }} />
+          <Route path="/knowledge-base" component={() => { window.history.replaceState({}, '', '/library?type=knowledge-base'); return <Library />; }} />
+          
           <Route path="/study" component={Study} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/flashcards" component={Flashcards} />
