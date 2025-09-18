@@ -135,7 +135,7 @@ export interface IStorage {
 
   // Knowledge base operations
   getKnowledgeBase(userId: string, category?: string): Promise<KnowledgeBase[]>;
-  getKnowledgeCategories(userId: string): Promise<string[]>;
+  getKnowledgeCategories(userId: string): Promise<{category: string; count: number}[]>;
   getKnowledgeDocument(id: string): Promise<KnowledgeBase | undefined>;
   createKnowledgeDocument(document: InsertKnowledgeBase): Promise<KnowledgeBase>;
   updateKnowledgeDocument(id: string, updates: Partial<InsertKnowledgeBase>): Promise<KnowledgeBase>;
@@ -684,14 +684,18 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(knowledgeBase.createdAt));
   }
 
-  async getKnowledgeCategories(userId: string): Promise<string[]> {
+  async getKnowledgeCategories(userId: string): Promise<{category: string; count: number}[]> {
     const result = await db
-      .selectDistinct({ category: knowledgeBase.category })
+      .select({
+        category: knowledgeBase.category,
+        count: sql`count(*)`.mapWith(Number)
+      })
       .from(knowledgeBase)
       .where(and(eq(knowledgeBase.userId, userId), eq(knowledgeBase.isActive, true)))
+      .groupBy(knowledgeBase.category)
       .orderBy(knowledgeBase.category);
     
-    return result.map(r => r.category);
+    return result;
   }
 
   async getKnowledgeDocument(id: string): Promise<KnowledgeBase | undefined> {
