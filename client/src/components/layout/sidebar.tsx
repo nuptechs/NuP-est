@@ -1,4 +1,4 @@
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -81,9 +81,11 @@ export default function Sidebar() {
               </h3>
               <div className="space-y-1">
                 {section.items.map((item) => {
-                  const isActive = location === item.href || (item.href === "/library" && ["/subjects", "/materials", "/knowledge-base"].includes(location));
+                  const isActive = location === item.href || 
+                    (item.href === "/" && location === "/dashboard") ||
+                    (item.href === "/library" && ["/subjects", "/materials", "/knowledge-base"].includes(location));
                   return (
-                    <a
+                    <Link
                       key={item.name}
                       href={item.href}
                       className={cn(
@@ -93,10 +95,11 @@ export default function Sidebar() {
                           : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                       data-testid={`nav-${item.href.slice(1) || 'dashboard'}`}
+                      aria-current={isActive ? "page" : undefined}
                     >
                       <i className={`fas ${item.icon} w-5`}></i>
                       <span>{item.name}</span>
-                    </a>
+                    </Link>
                   );
                 })}
               </div>

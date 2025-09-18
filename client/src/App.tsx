@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,6 +23,17 @@ import AdminSearchConfig from "@/pages/admin-search-config";
 import IntegratedSearch from "@/pages/search-integrated";
 import AiAssistant from "@/components/dashboard/ai-assistant";
 
+// Componente para redirecionamento adequado usando wouter
+function Redirect({ to }: { to: string }) {
+  const [, navigate] = useLocation();
+  
+  useEffect(() => {
+    navigate(to, { replace: true });
+  }, [to, navigate]);
+  
+  return null;
+}
+
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -32,12 +44,7 @@ function Router() {
       ) : user && !user.studyProfile ? (
         <>
           <Route path="/onboarding" component={Onboarding} />
-          <Route path="/*" component={() => { 
-            if (window.location.pathname !== '/onboarding') {
-              window.location.replace('/onboarding'); 
-            }
-            return null; 
-          }} />
+          <Route path="/*" component={() => <Redirect to="/onboarding" />} />
         </>
       ) : (
         <>
@@ -50,9 +57,9 @@ function Router() {
           <Route path="/library" component={Library} />
           
           {/* Rotas legadas - redirecionam para biblioteca usando SPA navigation */}
-          <Route path="/subjects" component={() => { window.history.replaceState({}, '', '/library?type=subjects'); return <Library />; }} />
-          <Route path="/materials" component={() => { window.history.replaceState({}, '', '/library?type=materials'); return <Library />; }} />
-          <Route path="/knowledge-base" component={() => { window.history.replaceState({}, '', '/library?type=knowledge-base'); return <Library />; }} />
+          <Route path="/subjects" component={() => <Redirect to="/library?type=subjects" />} />
+          <Route path="/materials" component={() => <Redirect to="/library?type=materials" />} />
+          <Route path="/knowledge-base" component={() => <Redirect to="/library?type=knowledge-base" />} />
           
           <Route path="/study" component={Study} />
           <Route path="/analytics" component={Analytics} />
