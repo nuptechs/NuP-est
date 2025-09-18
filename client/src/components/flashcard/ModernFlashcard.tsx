@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +38,37 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
   const [showAnswer, setShowAnswer] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const [cardHistory, setCardHistory] = useState<{[key: string]: 'easy' | 'medium' | 'hard'}>({});
+  const [containerHeight, setContainerHeight] = useState<number>(400);
+  
+  const frontContentRef = useRef<HTMLDivElement>(null);
+  const backContentRef = useRef<HTMLDivElement>(null);
 
   const currentCard = flashcards[currentIndex];
   const progress = ((currentIndex + 1) / flashcards.length) * 100;
+
+  // Measure content height to prevent overlaps
+  useEffect(() => {
+    const updateContainerHeight = () => {
+      if (frontContentRef.current && backContentRef.current) {
+        const frontHeight = frontContentRef.current.scrollHeight;
+        const backHeight = backContentRef.current.scrollHeight;
+        const maxHeight = Math.max(frontHeight, backHeight, 400);
+        setContainerHeight(maxHeight);
+      }
+    };
+
+    // Update height when content changes
+    updateContainerHeight();
+
+    // Use ResizeObserver for dynamic content
+    const resizeObserver = new ResizeObserver(updateContainerHeight);
+    if (frontContentRef.current) resizeObserver.observe(frontContentRef.current);
+    if (backContentRef.current) resizeObserver.observe(backContentRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [currentCard, showAnswer]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -149,15 +177,16 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
         {/* Main Layout: Card + Difficulty Rail (Desktop) */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr,64px] gap-6">
           {/* Flashcard Area */}
-          <div className="flashcard-container min-h-[400px]">
+          <div className="flashcard-container" style={{ minHeight: `${containerHeight}px` }}>
             <div 
               className={`flashcard-inner ${showAnswer ? 'flipped' : ''}`}
               onClick={() => !showAnswer && handleFlip()}
               data-testid="flashcard-content"
+              style={{ height: `${containerHeight}px` }}
             >
               {/* Front Face - Question */}
               <div className={`flashcard-face flashcard-front ${!showAnswer ? 'cursor-pointer hover:border-primary/20' : ''}`}>
-                <CardContent className="p-8 min-h-[400px] flex flex-col justify-center">
+                <CardContent ref={frontContentRef} className="p-8 min-h-[400px] flex flex-col justify-center">
                   <div className="space-y-8">
                     <div className="prose prose-lg max-w-prose mx-auto text-center">
                       <FlashcardRenderer content={decodeContent(currentCard.front)} />
@@ -175,7 +204,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
 
               {/* Back Face - Answer */}
               <div className="flashcard-face flashcard-back">
-                <CardContent className="p-8 min-h-[400px] flex flex-col justify-center">
+                <CardContent ref={backContentRef} className="p-8 min-h-[400px] flex flex-col justify-center">
                   <div className="prose prose-lg max-w-prose mx-auto text-center">
                     <FlashcardRenderer content={decodeContent(currentCard.back)} />
                   </div>
@@ -255,6 +284,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
               variant="ghost"
               className="flex items-center gap-2 hover:bg-green-50 hover:text-green-600"
               data-testid="button-difficulty-easy-mobile"
+              aria-label="Marcar como fácil"
             >
               <ThumbsUp className="w-4 h-4" />
               <span className="text-xs">Fácil</span>
@@ -266,6 +296,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
               variant="ghost"
               className="flex items-center gap-2 hover:bg-yellow-50 hover:text-yellow-600"
               data-testid="button-difficulty-medium-mobile"
+              aria-label="Marcar como médio"
             >
               <Minus className="w-4 h-4" />
               <span className="text-xs">Médio</span>
@@ -277,6 +308,7 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
               variant="ghost"
               className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600"
               data-testid="button-difficulty-hard-mobile"
+              aria-label="Marcar como difícil"
             >
               <AlertTriangle className="w-4 h-4" />
               <span className="text-xs">Difícil</span>
