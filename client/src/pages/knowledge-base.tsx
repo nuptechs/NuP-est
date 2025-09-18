@@ -26,11 +26,13 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { KnowledgeBase } from "@shared/schema";
+import { InteractiveProgressUpload } from "@/components/upload/InteractiveProgressUpload";
 
 export default function KnowledgeBasePage() {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [editingDocument, setEditingDocument] = useState<string | null>(null);
+  const [showProgressUpload, setShowProgressUpload] = useState(false);
   const [uploadData, setUploadData] = useState({
     title: "",
     description: "",
@@ -68,14 +70,15 @@ export default function KnowledgeBasePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/knowledge-base"] });
-      setShowUploadForm(false);
-      setUploadData({ title: "", description: "", category: "", file: null });
+      handleUploadComplete();
       toast({
         title: "Sucesso",
         description: "Documento processado e adicionado à base de conhecimento!",
       });
     },
     onError: (error) => {
+      setShowProgressUpload(false);
+      setShowUploadForm(true);
       toast({
         title: "Erro no upload",
         description: error.message || "Falha ao processar o documento",
@@ -192,6 +195,21 @@ export default function KnowledgeBasePage() {
       return;
     }
 
+    // Verificar limite de 12MB
+    const fileSizeInMB = uploadData.file.size / (1024 * 1024);
+    if (fileSizeInMB > 12) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O arquivo deve ter no máximo 12MB. Arquivo atual: " + fileSizeInMB.toFixed(1) + "MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Mostrar interface de progresso e esconder formulário
+    setShowProgressUpload(true);
+    setShowUploadForm(false);
+
     const formData = new FormData();
     formData.append("file", uploadData.file);
     formData.append("title", uploadData.title);
@@ -201,6 +219,22 @@ export default function KnowledgeBasePage() {
     }
 
     uploadMutation.mutate(formData);
+  };
+
+  const handleUploadComplete = () => {
+    setShowProgressUpload(false);
+    setUploadData({ title: "", description: "", category: "", file: null });
+  };
+
+  const handleUploadCancel = () => {
+    setShowProgressUpload(false);
+    setShowUploadForm(true);
+    // Se estiver processando, também cancelar a mutation
+    if (uploadMutation.isPending) {
+      // Não há como cancelar uma mutation em andamento no React Query,
+      // mas podemos resetar o estado
+      uploadMutation.reset();
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -390,6 +424,19 @@ export default function KnowledgeBasePage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Interactive Progress Upload */}
+      {showProgressUpload && uploadData.file && (
+        <div className="mb-6">
+          <InteractiveProgressUpload
+            file={uploadData.file}
+            onComplete={handleUploadComplete}
+            onCancel={handleUploadCancel}
+            isProcessing={uploadMutation.isPending}
+            isComplete={!uploadMutation.isPending && !uploadMutation.isError}
+          />
+        </div>
       )}
 
       {/* Documents List */}

@@ -12,7 +12,7 @@ import Materials from "@/pages/materials";
 import Study from "@/pages/study";
 import Analytics from "@/pages/analytics";
 import Flashcards from "@/pages/flashcards";
-import KnowledgeBase from "@/pages/knowledge-base";
+import KnowledgeBasePage from "@/pages/knowledge-base";
 import Onboarding from "@/pages/onboarding";
 import Quiz from "@/pages/quiz";
 import Goals from "@/pages/goals";
@@ -46,7 +46,7 @@ function Router() {
           <Route path="/ai-assistant" component={AiAssistant} />
           <Route path="/subjects" component={Subjects} />
           <Route path="/materials" component={Materials} />
-          <Route path="/knowledge-base" component={KnowledgeBase} />
+          <Route path="/knowledge-base" component={KnowledgeBasePage} />
           <Route path="/study" component={Study} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/flashcards" component={Flashcards} />

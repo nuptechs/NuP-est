@@ -90,14 +90,16 @@ export class UploadConfig {
       }),
       fileFilter: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase();
-        if (ext === '.pdf') {
+        const allowedMimeTypes = ['application/pdf'];
+        
+        if (ext === '.pdf' && allowedMimeTypes.includes(file.mimetype)) {
           cb(null, true);
         } else {
-          cb(new Error('Apenas arquivos PDF são aceitos para a base de conhecimento'));
+          cb(new Error('Apenas arquivos PDF válidos são aceitos para a base de conhecimento'));
         }
       },
       limits: {
-        fileSize: 50 * 1024 * 1024 // 50MB padronizado
+        fileSize: 12 * 1024 * 1024 // 12MB - otimizado para base de conhecimento
       }
     });
   }
