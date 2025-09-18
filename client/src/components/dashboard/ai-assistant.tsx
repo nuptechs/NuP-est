@@ -347,7 +347,6 @@ export default function AiAssistant() {
             )}
             {selectedKnowledgeCategory && (
               <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                <Database className="w-3 h-3 mr-1" />
                 {selectedKnowledgeCategory}
               </Badge>
             )}
