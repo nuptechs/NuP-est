@@ -3,17 +3,35 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: "fa-home" },
-  { name: "AI Assistant", href: "/ai-assistant", icon: "fa-robot" },
-  { name: "Busca Integrada", href: "/search", icon: "fa-search" },
-  { name: "Matérias", href: "/subjects", icon: "fa-book" },
-  { name: "Materiais", href: "/materials", icon: "fa-file-alt" },
-  { name: "Base de Conhecimento", href: "/knowledge-base", icon: "fa-database" },
-  { name: "Estudar", href: "/study", icon: "fa-graduation-cap" },
-  { name: "Flashcards", href: "/flashcards", icon: "fa-layer-group" },
-  { name: "Objetivos", href: "/goals", icon: "fa-target" },
-  { name: "Progresso", href: "/analytics", icon: "fa-chart-line" },
+const navigationSections = [
+  {
+    title: "Principal",
+    items: [
+      { name: "Dashboard", href: "/", icon: "fa-home" },
+      { name: "AI Assistant", href: "/ai-assistant", icon: "fa-robot" },
+      { name: "Busca Integrada", href: "/search", icon: "fa-search" },
+    ]
+  },
+  {
+    title: "Preparar", 
+    items: [
+      { name: "Biblioteca", href: "/library", icon: "fa-books" },
+      { name: "Objetivos", href: "/goals", icon: "fa-target" },
+    ]
+  },
+  {
+    title: "Estudar",
+    items: [
+      { name: "Estudar", href: "/study", icon: "fa-graduation-cap" },
+      { name: "Flashcards", href: "/flashcards", icon: "fa-layer-group" },
+    ]
+  },
+  {
+    title: "Acompanhar",
+    items: [
+      { name: "Progresso", href: "/analytics", icon: "fa-chart-line" },
+    ]
+  }
 ];
 
 export default function Sidebar() {
@@ -55,26 +73,35 @@ export default function Sidebar() {
           <h1 className="text-xl font-bold text-sidebar-foreground">NuP-est</h1>
         </div>
         
-        <nav className="space-y-2">
-          {navigation.map((item) => {
-            const isActive = location === item.href;
-            return (
-              <a
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  "flex items-center space-x-3 px-3 py-2 rounded-md transition-all",
-                  isActive
-                    ? "text-sidebar-primary bg-sidebar-primary/10"
-                    : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                )}
-                data-testid={`nav-${item.href.slice(1) || 'dashboard'}`}
-              >
-                <i className={`fas ${item.icon} w-5`}></i>
-                <span className={isActive ? "font-medium" : ""}>{item.name}</span>
-              </a>
-            );
-          })}
+        <nav className="space-y-6">
+          {navigationSections.map((section) => (
+            <div key={section.title}>
+              <h3 className="mb-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {section.title}
+              </h3>
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive = location === item.href || (item.href === "/library" && ["/subjects", "/materials", "/knowledge-base"].includes(location));
+                  return (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center space-x-3 px-3 py-2 rounded-md transition-all",
+                        isActive
+                          ? "text-sidebar-primary bg-sidebar-primary/10 font-medium"
+                          : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      )}
+                      data-testid={`nav-${item.href.slice(1) || 'dashboard'}`}
+                    >
+                      <i className={`fas ${item.icon} w-5`}></i>
+                      <span>{item.name}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
         
         <div className="mt-8 p-4 bg-accent/10 rounded-lg border border-accent/20">
