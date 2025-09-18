@@ -132,73 +132,68 @@
   transition: width 0.3s ease;
 }
 
-/* Flashcard 3D Animation System - Enhanced */
+/* Flashcard 3D Animation System - Clean & Minimal */
 .flashcard-container {
-  position: relative !important;
-  perspective: 1000px !important;
-  width: 100% !important;
-  min-height: 400px !important;
-  overflow: visible !important;
+  position: relative;
+  perspective: 1000px;
+  width: 100%;
+  height: auto;
+  min-height: 400px;
 }
 
 .flashcard-inner {
-  position: relative !important;
-  width: 100% !important;
-  min-height: 400px !important;
+  position: relative;
+  width: 100%;
+  height: auto;
+  min-height: 400px;
   text-align: center;
-  transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
-  transform-style: preserve-3d !important;
-  will-change: transform;
+  transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform-style: preserve-3d;
 }
 
 .flashcard-inner.flipped {
-  transform: rotateY(180deg) !important;
+  transform: rotateY(180deg);
 }
 
 .flashcard-face {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  min-height: 400px !important;
-  backface-visibility: hidden !important;
-  -webkit-backface-visibility: hidden !important;
-  -moz-backface-visibility: hidden !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: auto;
+  min-height: 400px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
   border-radius: var(--radius);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  overflow: visible !important;
+  border: 1px solid hsl(var(--border) / 0.1);
+  background: hsl(var(--card));
   transform-origin: center center;
-  /* Remove height and bottom constraints to allow content to display fully */
-  height: auto !important;
-  /* Ensure content doesn't get cut off at the top */
-  padding-top: 0.5rem;
+  transition: border-color 0.2s ease;
 }
 
 .flashcard-front {
-  background: hsl(var(--card)) !important;
-  border: 1px solid hsl(var(--border));
-  transform: rotateY(0deg) !important;
-  z-index: 2;
+  transform: rotateY(0deg);
 }
 
 .flashcard-back {
-  background: hsl(var(--card)) !important;
-  border: 1px solid hsl(var(--primary) / 0.4);
-  transform: rotateY(180deg) !important;
-  z-index: 1;
+  transform: rotateY(180deg);
 }
 
-/* Força o escondimento da face de trás quando não está flipado */
+/* Clean hover effect for front face */
+.flashcard-face.flashcard-front:hover {
+  border-color: hsl(var(--primary) / 0.2);
+}
+
+/* Clean transitions without opacity forcing */
 .flashcard-inner:not(.flipped) .flashcard-back {
-  opacity: 0 !important;
-  pointer-events: none !important;
+  pointer-events: none;
 }
 
-/* Força o escondimento da face da frente quando está flipado */
 .flashcard-inner.flipped .flashcard-front {
-  opacity: 0 !important;
-  pointer-events: none !important;
+  pointer-events: none;
 }
 
 /* Motion safe preference */

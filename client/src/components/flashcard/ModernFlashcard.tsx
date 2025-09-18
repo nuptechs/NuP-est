@@ -124,182 +124,225 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
 
   return (
     <TooltipProvider>
-      <div className="w-full max-w-4xl mx-auto p-4 space-y-6 relative" data-testid="modern-flashcard-container">
-        {/* Progress and Info Bar */}
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <Badge variant="secondary" data-testid="card-progress">
-              {currentIndex + 1} de {flashcards.length}
+      <div className="w-full max-w-6xl mx-auto p-6 space-y-8" data-testid="modern-flashcard-container">
+        {/* Minimal Progress and Info Bar */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-xs font-medium" data-testid="card-progress">
+              {currentIndex + 1}/{flashcards.length}
             </Badge>
             {cardHistory[currentCard.id] && (
-              <Badge 
-                variant="secondary" 
-                className={`text-white ${getDifficultyColor(cardHistory[currentCard.id])}`}
-              >
-                {cardHistory[currentCard.id] === 'easy' ? 'Fácil' : 
-                 cardHistory[currentCard.id] === 'medium' ? 'Médio' : 'Difícil'}
-              </Badge>
+              <div className={`w-2 h-2 rounded-full ${
+                cardHistory[currentCard.id] === 'easy' ? 'bg-green-500' : 
+                cardHistory[currentCard.id] === 'medium' ? 'bg-yellow-500' : 'bg-red-500'
+              }`} />
             )}
           </div>
           
-          <div className="flex items-center gap-2">
-            <span data-testid="card-type">
-              {showAnswer ? 'Resposta' : 'Pergunta'}
-            </span>
-            {showAnswer ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          <div className="text-xs text-muted-foreground font-medium" data-testid="card-type">
+            {showAnswer ? 'Resposta' : 'Pergunta'}
           </div>
         </div>
 
-        <Progress value={progress} className="h-2" data-testid="flashcard-progress" />
+        <Progress value={progress} className="h-1" data-testid="flashcard-progress" />
 
-        {/* Floating Difficulty Buttons - Only show when answer is visible */}
+        {/* Main Layout: Card + Difficulty Rail (Desktop) */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr,64px] gap-6">
+          {/* Flashcard Area */}
+          <div className="flashcard-container min-h-[400px]">
+            <div 
+              className={`flashcard-inner ${showAnswer ? 'flipped' : ''}`}
+              onClick={() => !showAnswer && handleFlip()}
+              data-testid="flashcard-content"
+            >
+              {/* Front Face - Question */}
+              <div className={`flashcard-face flashcard-front ${!showAnswer ? 'cursor-pointer hover:border-primary/20' : ''}`}>
+                <CardContent className="p-8 min-h-[400px] flex flex-col justify-center">
+                  <div className="space-y-8">
+                    <div className="prose prose-lg max-w-prose mx-auto text-center">
+                      <FlashcardRenderer content={decodeContent(currentCard.front)} />
+                    </div>
+
+                    {!showAnswer && (
+                      <div className="flex items-center justify-center gap-3 text-muted-foreground/60 text-sm">
+                        <Lightbulb className="w-4 h-4" />
+                        <span>Clique para revelar a resposta</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </div>
+
+              {/* Back Face - Answer */}
+              <div className="flashcard-face flashcard-back">
+                <CardContent className="p-8 min-h-[400px] flex flex-col justify-center">
+                  <div className="prose prose-lg max-w-prose mx-auto text-center">
+                    <FlashcardRenderer content={decodeContent(currentCard.back)} />
+                  </div>
+                </CardContent>
+              </div>
+            </div>
+          </div>
+
+          {/* Difficulty Rail (Desktop Only) */}
+          <div className="hidden md:flex flex-col justify-center gap-3">
+            {showAnswer && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => handleDifficulty('easy')}
+                      size="sm"
+                      variant="ghost"
+                      className="w-12 h-12 p-0 hover:bg-green-50 hover:text-green-600 border border-transparent hover:border-green-200"
+                      data-testid="button-difficulty-easy"
+                      aria-label="Marcar como fácil"
+                    >
+                      <ThumbsUp className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" collisionPadding={8}>
+                    <p>Fácil (1)</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => handleDifficulty('medium')}
+                      size="sm"
+                      variant="ghost"
+                      className="w-12 h-12 p-0 hover:bg-yellow-50 hover:text-yellow-600 border border-transparent hover:border-yellow-200"
+                      data-testid="button-difficulty-medium"
+                      aria-label="Marcar como médio"
+                    >
+                      <Minus className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" collisionPadding={8}>
+                    <p>Médio (2)</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => handleDifficulty('hard')}
+                      size="sm"
+                      variant="ghost"
+                      className="w-12 h-12 p-0 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-200"
+                      data-testid="button-difficulty-hard"
+                      aria-label="Marcar como difícil"
+                    >
+                      <AlertTriangle className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" collisionPadding={8}>
+                    <p>Difícil (3)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Difficulty Buttons (Bottom Bar) */}
         {showAnswer && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => handleDifficulty('easy')}
-                  size="sm"
-                  variant="outline"
-                  className="w-10 h-10 p-0 bg-green-50 hover:bg-green-100 border-green-200 text-green-600 hover:text-green-700 shadow-md"
-                  data-testid="button-difficulty-easy"
-                >
-                  <ThumbsUp className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="bg-green-600 text-white border-green-600">
-                <p>Fácil (1)</p>
-              </TooltipContent>
-            </Tooltip>
+          <div className="md:hidden flex justify-center gap-4 pt-4 border-t">
+            <Button
+              onClick={() => handleDifficulty('easy')}
+              size="sm"
+              variant="ghost"
+              className="flex items-center gap-2 hover:bg-green-50 hover:text-green-600"
+              data-testid="button-difficulty-easy-mobile"
+            >
+              <ThumbsUp className="w-4 h-4" />
+              <span className="text-xs">Fácil</span>
+            </Button>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => handleDifficulty('medium')}
-                  size="sm"
-                  variant="outline"
-                  className="w-10 h-10 p-0 bg-yellow-50 hover:bg-yellow-100 border-yellow-200 text-yellow-600 hover:text-yellow-700 shadow-md"
-                  data-testid="button-difficulty-medium"
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="bg-yellow-600 text-white border-yellow-600">
-                <p>Médio (2)</p>
-              </TooltipContent>
-            </Tooltip>
+            <Button
+              onClick={() => handleDifficulty('medium')}
+              size="sm"
+              variant="ghost"
+              className="flex items-center gap-2 hover:bg-yellow-50 hover:text-yellow-600"
+              data-testid="button-difficulty-medium-mobile"
+            >
+              <Minus className="w-4 h-4" />
+              <span className="text-xs">Médio</span>
+            </Button>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => handleDifficulty('hard')}
-                  size="sm"
-                  variant="outline"
-                  className="w-10 h-10 p-0 bg-red-50 hover:bg-red-100 border-red-200 text-red-600 hover:text-red-700 shadow-md"
-                  data-testid="button-difficulty-hard"
-                >
-                  <AlertTriangle className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="bg-red-600 text-white border-red-600">
-                <p>Difícil (3)</p>
-              </TooltipContent>
-            </Tooltip>
+            <Button
+              onClick={() => handleDifficulty('hard')}
+              size="sm"
+              variant="ghost"
+              className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600"
+              data-testid="button-difficulty-hard-mobile"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              <span className="text-xs">Difícil</span>
+            </Button>
           </div>
         )}
 
-        {/* Main Flashcard with 3D Flip */}
-        <div className="flashcard-container min-h-[400px] pr-16">
-          <div 
-            className={`flashcard-inner ${showAnswer ? 'flipped' : ''}`}
-            onClick={() => !showAnswer && handleFlip()}
-            data-testid="flashcard-content"
+        {/* Primary Action - Show Answer */}
+        {!showAnswer && (
+          <div className="flex justify-center pt-4">
+            <Button 
+              onClick={handleFlip}
+              variant="outline"
+              className="min-w-[180px] h-11 text-sm font-medium"
+              data-testid="button-show-answer"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Mostrar Resposta
+            </Button>
+          </div>
+        )}
+
+        {/* Minimal Navigation */}
+        <div className="flex justify-between items-center pt-6 border-t">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onPrevious}
+            disabled={currentIndex === 0}
+            data-testid="button-previous"
+            className="text-xs"
           >
-            {/* Front Face - Question */}
-            <div className={`flashcard-face flashcard-front ${!showAnswer ? 'cursor-pointer hover:shadow-lg' : ''}`}>
-              <CardContent className="p-8 min-h-[400px] flex flex-col justify-start">
-                <div className="text-center space-y-6 py-4">
-                  <div className="prose prose-lg max-w-none mx-auto">
-                    <FlashcardRenderer content={decodeContent(currentCard.front)} />
-                  </div>
+            <ChevronLeft className="w-3 h-3 mr-1" />
+            Anterior
+          </Button>
 
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground animate-pulse mt-8">
-                    <Lightbulb className="w-5 h-5" />
-                    <span>Clique para revelar a resposta ou pressione Espaço</span>
-                  </div>
-                </div>
-              </CardContent>
-            </div>
-
-            {/* Back Face - Answer */}
-            <div className="flashcard-face flashcard-back">
-              <CardContent className="p-8 min-h-[400px] flex flex-col justify-start">
-                <div className="text-center space-y-6 py-4">
-                  <div className="prose prose-lg max-w-none mx-auto">
-                    <FlashcardRenderer content={decodeContent(currentCard.back)} />
-                  </div>
-                </div>
-              </CardContent>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation and Action Buttons */}
-        <div className="flex flex-col gap-4">
-          {/* Primary Actions */}
-          {!showAnswer && (
-            <div className="flex justify-center">
-              <Button 
-                onClick={handleFlip}
-                size="lg"
-                className="min-w-[200px] text-lg"
-                data-testid="button-show-answer"
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Mostrar Resposta
-              </Button>
-            </div>
-          )}
-
-          {/* Navigation */}
-          <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
             <Button
-              variant="outline"
-              onClick={onPrevious}
-              disabled={currentIndex === 0}
-              data-testid="button-previous"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAnswer(false)}
+              disabled={!showAnswer}
+              data-testid="button-reset-card"
+              className="text-xs"
             >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Anterior
-            </Button>
-
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => setShowAnswer(false)}
-                disabled={!showAnswer}
-                data-testid="button-reset-card"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Ver Pergunta (R)
-              </Button>
-            </div>
-
-            <Button
-              variant="outline"
-              onClick={onNext}
-              disabled={currentIndex === flashcards.length - 1 && !showAnswer}
-              data-testid="button-next"
-            >
-              {currentIndex === flashcards.length - 1 ? 'Finalizar' : 'Próximo'}
-              <ChevronRight className="w-4 h-4 ml-2" />
+              <RotateCcw className="w-3 h-3 mr-1" />
+              Ver Pergunta
             </Button>
           </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNext}
+            disabled={currentIndex === flashcards.length - 1 && !showAnswer}
+            data-testid="button-next"
+            className="text-xs"
+          >
+            {currentIndex === flashcards.length - 1 ? 'Finalizar' : 'Próximo'}
+            <ChevronRight className="w-3 h-3 ml-1" />
+          </Button>
         </div>
 
-        {/* Keyboard Shortcuts Help */}
-        <div className="text-xs text-muted-foreground text-center space-y-1 pt-4 border-t">
-          <p><strong>Atalhos:</strong> Espaço/Enter (revelar) | ← → (navegar) | 1,2,3 (dificuldade) | R (ver pergunta)</p>
+        {/* Minimal Keyboard Shortcuts */}
+        <div className="text-xs text-muted-foreground/50 text-center pt-4">
+          <p>Espaço/Enter: revelar • ←→: navegar • 1,2,3: dificuldade • R: ver pergunta</p>
         </div>
       </div>
     </TooltipProvider>
