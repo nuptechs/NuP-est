@@ -62,7 +62,21 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate general materials query
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      
+      // If we have a subjectId, also invalidate the specific subject's materials
+      if (subjectId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/materials", subjectId] });
+      }
+      
+      // Invalidate all materials queries with any subjectId
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && 
+          query.queryKey[0] === "/api/materials"
+      });
+      
       toast({
         title: "Sucesso",
         description: "Material adicionado com sucesso!",
