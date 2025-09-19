@@ -12,6 +12,7 @@ import { editalRouter } from "./routes/edital";
 import { externalProcessingRouter } from "./routes/externalProcessing";
 import { eq } from "drizzle-orm";
 import { 
+  insertKnowledgeAreaSchema,
   insertSubjectSchema, 
   insertTopicSchema, 
   insertMaterialSchema,
@@ -134,11 +135,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Knowledge Area routes
+  app.get('/api/areas', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const areas = await storage.getKnowledgeAreas(userId);
+      res.json(areas);
+    } catch (error) {
+      console.error("Error fetching knowledge areas:", error);
+      res.status(500).json({ message: "Failed to fetch knowledge areas" });
+    }
+  });
+
+  app.post('/api/areas', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertKnowledgeAreaSchema.parse({
+        ...req.body,
+        userId
+      });
+      
+      const area = await storage.createKnowledgeArea(validatedData);
+      res.json(area);
+    } catch (error) {
+      console.error("Error creating knowledge area:", error);
+      res.status(400).json({ message: "Failed to create knowledge area" });
+    }
+  });
+
+  app.patch('/api/areas/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Sanitize updates to exclude protected fields
+      const { userId: _, createdAt, updatedAt, id: __, ...allowedUpdates } = req.body;
+      
+      // Validate allowed fields only
+      const parseResult = insertKnowledgeAreaSchema.partial().safeParse({
+        ...allowedUpdates,
+        userId, // Add userId for validation but don't include in updates
+      });
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid input data",
+          errors: parseResult.error.issues
+        });
+      }
+      
+      // Remove userId from final updates
+      const { userId: ___, ...finalUpdates } = parseResult.data;
+      
+      const area = await storage.updateKnowledgeArea(id, userId, finalUpdates);
+      res.json(area);
+    } catch (error: any) {
+      console.error("Error updating knowledge area:", error);
+      if (error?.message === 'Knowledge area not found or access denied') {
+        res.status(404).json({ message: "Knowledge area not found" });
+      } else {
+        res.status(400).json({ message: "Failed to update knowledge area" });
+      }
+    }
+  });
+
+  app.delete('/api/areas/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      await storage.deleteKnowledgeArea(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting knowledge area:", error);
+      if (error?.message === 'Knowledge area not found or access denied') {
+        res.status(404).json({ message: "Knowledge area not found" });
+      } else {
+        res.status(500).json({ message: "Failed to delete knowledge area" });
+      }
+    }
+  });
+
   // Subject routes
   app.get('/api/subjects', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const subjects = await storage.getSubjects(userId);
+      const areaId = req.query.areaId as string | undefined;
+      const subjects = await storage.getSubjects(userId, areaId);
       res.json(subjects);
     } catch (error) {
       console.error("Error fetching subjects:", error);
@@ -153,6 +235,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         userId
       });
+      
+      // If areaId is provided, verify it belongs to the user
+      if (validatedData.areaId) {
+        const area = await storage.getKnowledgeArea(validatedData.areaId);
+        if (!area || area.userId !== userId) {
+          return res.status(400).json({ message: "Invalid knowledge area" });
+        }
+      }
       
       const subject = await storage.createSubject(validatedData);
       res.json(subject);

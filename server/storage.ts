@@ -70,8 +70,8 @@ export interface IStorage {
   getKnowledgeAreas(userId: string): Promise<KnowledgeArea[]>;
   getKnowledgeArea(id: string): Promise<KnowledgeArea | undefined>;
   createKnowledgeArea(area: InsertKnowledgeArea): Promise<KnowledgeArea>;
-  updateKnowledgeArea(id: string, updates: Partial<InsertKnowledgeArea>): Promise<KnowledgeArea>;
-  deleteKnowledgeArea(id: string): Promise<void>;
+  updateKnowledgeArea(id: string, userId: string, updates: Partial<InsertKnowledgeArea>): Promise<KnowledgeArea>;
+  deleteKnowledgeArea(id: string, userId: string): Promise<void>;
 
   // Subject operations
   getSubjects(userId: string, areaId?: string): Promise<Subject[]>;
@@ -221,17 +221,29 @@ export class DatabaseStorage implements IStorage {
     return newArea;
   }
 
-  async updateKnowledgeArea(id: string, updates: Partial<InsertKnowledgeArea>): Promise<KnowledgeArea> {
+  async updateKnowledgeArea(id: string, userId: string, updates: Partial<InsertKnowledgeArea>): Promise<KnowledgeArea> {
     const [updatedArea] = await db
       .update(knowledgeAreas)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(knowledgeAreas.id, id))
+      .where(and(eq(knowledgeAreas.id, id), eq(knowledgeAreas.userId, userId)))
       .returning();
+    
+    if (!updatedArea) {
+      throw new Error('Knowledge area not found or access denied');
+    }
+    
     return updatedArea;
   }
 
-  async deleteKnowledgeArea(id: string): Promise<void> {
-    await db.delete(knowledgeAreas).where(eq(knowledgeAreas.id, id));
+  async deleteKnowledgeArea(id: string, userId: string): Promise<void> {
+    const result = await db
+      .delete(knowledgeAreas)
+      .where(and(eq(knowledgeAreas.id, id), eq(knowledgeAreas.userId, userId)))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Knowledge area not found or access denied');
+    }
   }
 
   // Subject operations
