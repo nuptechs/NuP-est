@@ -183,27 +183,19 @@ export default function Dashboard() {
                   {expandedSection === 'preparar' && (
                     <div className="border-t border-gray-100 bg-gray-50 p-3 space-y-2">
                       <button
-                        onClick={() => window.location.href = '/knowledge-base'}
-                        className="w-full flex items-center gap-2 p-2 text-left hover:bg-white rounded transition-colors"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-700">Base de conhecimento</span>
-                      </button>
-                      
-                      <button
-                        onClick={() => window.location.href = '/subjects'}
+                        onClick={() => window.location.href = '/library'}
                         className="w-full flex items-center gap-2 p-2 text-left hover:bg-white rounded transition-colors"
                       >
                         <BookOpen className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-700">Matérias</span>
+                        <span className="text-sm text-gray-700">Biblioteca</span>
                       </button>
                       
                       <button
-                        onClick={() => window.location.href = '/materials'}
+                        onClick={() => window.location.href = '/goals'}
                         className="w-full flex items-center gap-2 p-2 text-left hover:bg-white rounded transition-colors"
                       >
-                        <Lightbulb className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-700">Materiais</span>
+                        <Target className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-700">Objetivos</span>
                       </button>
                     </div>
                   )}
