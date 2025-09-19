@@ -99,7 +99,7 @@
   --spacing-16: 4rem;      /* 64px */
   
   /* === ELEVATION SYSTEM (subtle shadows) === */
-  --radius: 0.5rem;        /* 8px - modern rounded corners */
+  --radius: 0.75rem;       /* 12px - Teams-inspired modern rounded corners */
   --radius-sm: 0.25rem;    /* 4px */
   --radius-lg: 0.75rem;    /* 12px */
   
