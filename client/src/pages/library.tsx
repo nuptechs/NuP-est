@@ -120,18 +120,12 @@ export default function Library() {
   });
 
   const { data: subjects = [] } = useQuery<Subject[]>({
-    queryKey: ["/api/subjects", navigation.selectedAreaId],
-    queryFn: () => fetch(`/api/subjects?areaId=${navigation.selectedAreaId}`, {
-      credentials: 'include'
-    }).then(res => res.json()),
+    queryKey: [`/api/subjects?areaId=${navigation.selectedAreaId}`],
     enabled: isAuthenticated && navigation.level === 'subjects' && !!navigation.selectedAreaId,
   });
 
   const { data: materials = [] } = useQuery<Material[]>({
-    queryKey: ["/api/materials", navigation.selectedSubjectId],
-    queryFn: () => fetch(`/api/materials?subjectId=${navigation.selectedSubjectId}`, {
-      credentials: 'include'
-    }).then(res => res.json()),
+    queryKey: [`/api/materials?subjectId=${navigation.selectedSubjectId}`],
     enabled: isAuthenticated && navigation.level === 'materials' && !!navigation.selectedSubjectId,
   });
 
@@ -167,9 +161,8 @@ export default function Library() {
       
       setNavigation({
         level: targetLevel,
-        selectedAreaId: targetLevel === 'areas' ? undefined : 
-                       targetLevel === 'subjects' ? targetItem.id : navigation.selectedAreaId,
-        selectedSubjectId: targetLevel === 'materials' ? targetItem.id : undefined,
+        selectedAreaId: targetLevel === 'areas' ? undefined : targetItem.id,
+        selectedSubjectId: undefined, // Always clear when going back
         breadcrumb: newBreadcrumb
       });
     }
@@ -309,9 +302,8 @@ export default function Library() {
   }
 
   return (
-    <div className="space-y-6">
-
-      <div className="space-y-6">
+    <div className="flex-1 p-6 bg-white dark:bg-gray-950">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 mb-6">
           {navigation.breadcrumb.map((item, index) => (
@@ -334,16 +326,11 @@ export default function Library() {
 
         {/* Header da Biblioteca */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-xl shadow-sm">
-              <DashboardIcon />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">{getTitle()}</h1>
-              <p className="text-gray-500">
-                {navigation.breadcrumb[navigation.breadcrumb.length - 1]?.name}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{getTitle()}</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              {navigation.breadcrumb[navigation.breadcrumb.length - 1]?.name}
+            </p>
           </div>
 
           {/* Botões de ação */}
@@ -372,14 +359,14 @@ export default function Library() {
         </div>
 
         {/* Barra de busca */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
               placeholder={`Buscar ${getTitle().toLowerCase()}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 border-gray-200 focus:border-gray-300"
+              className="pl-10 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
               data-testid="input-search-global"
             />
           </div>
@@ -388,13 +375,13 @@ export default function Library() {
         {/* Content Grid */}
         {filteredData.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               {searchQuery ? 'Nenhum resultado encontrado' : `Nenhum ${getTitle().toLowerCase()} ainda`}
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               {searchQuery 
                 ? 'Tente ajustar sua busca' 
                 : `Comece criando ${getTitle().toLowerCase()}`
