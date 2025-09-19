@@ -8,6 +8,9 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 // Legacy layout imports removed - using AppShell
 import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { CommandBar } from "@/components/ui/command-bar";
+import { DataList } from "@/components/ui/data-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -55,11 +58,14 @@ export default function Library() {
   });
   
   // State para filtros e busca
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [priorityFilter, setPriorityFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [createType, setCreateType] = useState<'area' | 'subject' | 'material'>('area');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<any>(null);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
 
   // Auth redirect
@@ -207,7 +213,7 @@ export default function Library() {
   };
 
   const handleEdit = (item: any) => {
-    setItemToDelete(item);
+    setItemToEdit(item);
     setIsEditDialogOpen(true);
   };
 
@@ -283,6 +289,15 @@ export default function Library() {
       case 'subjects': return 'Nova Matéria';
       case 'materials': return 'Novo Material';
       default: return 'Adicionar';
+    }
+  };
+
+  const getSubtitle = () => {
+    switch (navigation.level) {
+      case 'areas': return 'Organize seus estudos por áreas de conhecimento';
+      case 'subjects': return 'Gerencie as matérias desta área';
+      case 'materials': return 'Visualize e organize seus materiais de estudo';
+      default: return 'Sua biblioteca de conhecimento';
     }
   };
 
@@ -508,6 +523,47 @@ export default function Library() {
               <MaterialUpload 
                 subjectId={navigation.selectedSubjectId}
                 onSuccess={() => setIsCreateDialogOpen(false)} 
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog para edição */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {navigation.level === 'areas' && 'Editar Área de Conhecimento'}
+                {navigation.level === 'subjects' && 'Editar Matéria'}
+                {navigation.level === 'materials' && 'Editar Material'}
+              </DialogTitle>
+              <DialogDescription>
+                {navigation.level === 'areas' && 'Atualize as informações desta área de conhecimento'}
+                {navigation.level === 'subjects' && 'Modifique os dados desta matéria'}
+                {navigation.level === 'materials' && 'Altere as informações deste material de estudo'}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {navigation.level === 'areas' && itemToEdit && (
+              <AreaForm 
+                initialData={itemToEdit}
+                onSuccess={() => setIsEditDialogOpen(false)} 
+              />
+            )}
+            
+            {navigation.level === 'subjects' && itemToEdit && (
+              <SubjectForm 
+                areaId={navigation.selectedAreaId}
+                initialData={itemToEdit}
+                onSuccess={() => setIsEditDialogOpen(false)} 
+              />
+            )}
+            
+            {navigation.level === 'materials' && itemToEdit && (
+              <MaterialUpload 
+                subjectId={navigation.selectedSubjectId}
+                initialData={itemToEdit}
+                onSuccess={() => setIsEditDialogOpen(false)} 
               />
             )}
           </DialogContent>
