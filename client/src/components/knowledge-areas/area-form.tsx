@@ -68,7 +68,7 @@ export default function AreaForm({ area, onSuccess }: AreaFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -124,11 +124,21 @@ export default function AreaForm({ area, onSuccess }: AreaFormProps) {
           )}
         />
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex justify-end gap-3 pt-6 border-t border-border">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onSuccess}
+            data-testid="button-cancel-area"
+            className="px-4"
+          >
+            Cancelar
+          </Button>
           <Button 
             type="submit" 
             disabled={createMutation.isPending}
             data-testid="button-submit-area"
+            className="px-4"
           >
             {createMutation.isPending ? "Salvando..." : area ? "Atualizar" : "Criar Área"}
           </Button>

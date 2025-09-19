@@ -76,7 +76,7 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -188,7 +188,7 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
           )}
         />
 
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end space-x-3 pt-6 border-t border-border">
           <Button 
             type="button" 
             variant="outline" 
