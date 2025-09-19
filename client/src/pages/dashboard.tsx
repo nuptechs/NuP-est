@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import Header from "@/components/layout/header";
-import MobileNav from "@/components/layout/mobile-nav";
+// Legacy imports removed - now using AppShell layout
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -76,15 +75,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="overflow-auto">
-        <Header 
-          title="Dashboard" 
-          subtitle="Bem-vindo ao seu hub de estudos personalizado"
-        />
-
-        {/* Conteúdo principal */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* Conteúdo principal */}
         {/* Saudação */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-light text-gray-900 mb-2">
@@ -360,6 +352,7 @@ export default function Dashboard() {
           </div>
         )}
 
+        </div>
         {/* Ícone de engrenagem fixo no canto inferior direito */}
         <div className="fixed bottom-6 right-6 z-50">
           <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
@@ -408,10 +401,6 @@ export default function Dashboard() {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-        </div>
-      </main>
-      <MobileNav />
     </div>
   );
 }

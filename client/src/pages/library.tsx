@@ -5,8 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import Header from "@/components/layout/header";
-import MobileNav from "@/components/layout/mobile-nav";
+// Legacy layout imports removed - using AppShell
 import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +76,29 @@ export default function Library() {
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
+
+  // Handle URL query parameters for creation modals
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const createParam = urlParams.get('create');
+    
+    if (createParam === 'subject') {
+      setCreateType('subject');
+      setIsCreateDialogOpen(true);
+      // Clear the URL parameter
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (createParam === 'area') {
+      setCreateType('area');
+      setIsCreateDialogOpen(true);
+      // Clear the URL parameter
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (createParam === 'material') {
+      setCreateType('material');
+      setIsCreateDialogOpen(true);
+      // Clear the URL parameter
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {

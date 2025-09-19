@@ -5,9 +5,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import AppShell from "@/components/layout/app-shell";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
-import Dashboard from "@/pages/dashboard";
+import Dashboard from "@/pages/dashboard-simple";
 import Library from "@/pages/library";
 import Subjects from "@/pages/subjects";
 import Materials from "@/pages/materials";
@@ -47,31 +48,34 @@ function Router() {
           <Route path="/*" component={() => <Redirect to="/onboarding" />} />
         </>
       ) : (
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/onboarding" component={Onboarding} />
-          <Route path="/ai-assistant" component={AiAssistant} />
-          
-          {/* Nova biblioteca unificada */}
-          <Route path="/library" component={Library} />
-          
-          {/* Rotas legadas - redirecionam para biblioteca usando SPA navigation */}
-          <Route path="/subjects" component={() => <Redirect to="/library?type=subjects" />} />
-          <Route path="/materials" component={() => <Redirect to="/library?type=materials" />} />
-          <Route path="/knowledge-base" component={() => <Redirect to="/library?type=knowledge-base" />} />
-          
-          <Route path="/study" component={Study} />
-          <Route path="/analytics" component={Analytics} />
-          <Route path="/flashcards" component={Flashcards} />
-          <Route path="/quiz" component={Quiz} />
-          <Route path="/goals" component={Goals} />
-          <Route path="/goal-builder" component={GoalBuilder} />
-          <Route path="/admin/search-config" component={AdminSearchConfig} />
-          <Route path="/search" component={IntegratedSearch} />
-        </>
+        <AppShell>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/onboarding" component={Onboarding} />
+            <Route path="/ai-assistant" component={AiAssistant} />
+            
+            {/* Nova biblioteca unificada */}
+            <Route path="/library" component={Library} />
+            
+            {/* Rotas legadas - redirecionam para biblioteca usando SPA navigation */}
+            <Route path="/subjects" component={() => <Redirect to="/library?type=subjects" />} />
+            <Route path="/materials" component={() => <Redirect to="/library?type=materials" />} />
+            <Route path="/knowledge-base" component={() => <Redirect to="/library?type=knowledge-base" />} />
+            
+            <Route path="/study" component={Study} />
+            <Route path="/analytics" component={Analytics} />
+            <Route path="/flashcards" component={Flashcards} />
+            <Route path="/quiz" component={Quiz} />
+            <Route path="/goals" component={Goals} />
+            <Route path="/goal-builder" component={GoalBuilder} />
+            <Route path="/admin/search-config" component={AdminSearchConfig} />
+            <Route path="/search" component={IntegratedSearch} />
+            
+            <Route component={NotFound} />
+          </Switch>
+        </AppShell>
       )}
-      <Route component={NotFound} />
     </Switch>
   );
 }
