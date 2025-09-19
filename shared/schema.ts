@@ -156,10 +156,25 @@ export const assessmentResults = pgTable("assessment_results", {
   completedAt: timestamp("completed_at").defaultNow(),
 });
 
+// Knowledge Areas
+export const knowledgeAreas = pgTable("knowledge_areas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  color: varchar("color").default("#3b82f6"),
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_knowledge_areas_user_id").on(table.userId),
+]);
+
 // Study subjects
 export const subjects = pgTable("subjects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  areaId: varchar("area_id").references(() => knowledgeAreas.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
   category: varchar("category").notNull(), // exatas, humanas, biologicas
@@ -167,7 +182,9 @@ export const subjects = pgTable("subjects", {
   color: varchar("color").default("#3b82f6"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_subjects_user_area").on(table.userId, table.areaId),
+]);
 
 // Topics within subjects
 export const topics = pgTable("topics", {
@@ -451,6 +468,7 @@ export const editais = pgTable("editais", {
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
+  knowledgeAreas: many(knowledgeAreas),
   subjects: many(subjects),
   materials: many(materials),
   goals: many(goals),
@@ -470,10 +488,22 @@ export const usersRelations = relations(users, ({ many }) => ({
   editais: many(editais),
 }));
 
+export const knowledgeAreasRelations = relations(knowledgeAreas, ({ one, many }) => ({
+  user: one(users, {
+    fields: [knowledgeAreas.userId],
+    references: [users.id],
+  }),
+  subjects: many(subjects),
+}));
+
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
   user: one(users, {
     fields: [subjects.userId],
     references: [users.id],
+  }),
+  area: one(knowledgeAreas, {
+    fields: [subjects.areaId],
+    references: [knowledgeAreas.id],
   }),
   topics: many(topics),
   materials: many(materials),
@@ -683,6 +713,12 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
+export const insertKnowledgeAreaSchema = createInsertSchema(knowledgeAreas).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertSubjectSchema = createInsertSchema(subjects).omit({
   id: true,
   createdAt: true,
@@ -810,6 +846,8 @@ export const insertEditalSchema = createInsertSchema(editais).omit({
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type KnowledgeArea = typeof knowledgeAreas.$inferSelect;
+export type InsertKnowledgeArea = z.infer<typeof insertKnowledgeAreaSchema>;
 export type Subject = typeof subjects.$inferSelect;
 export type InsertSubject = z.infer<typeof insertSubjectSchema>;
 export type Topic = typeof topics.$inferSelect;
