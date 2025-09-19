@@ -102,11 +102,17 @@ export default function Library() {
 
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ["/api/subjects", navigation.selectedAreaId],
+    queryFn: () => fetch(`/api/subjects?areaId=${navigation.selectedAreaId}`, {
+      credentials: 'include'
+    }).then(res => res.json()),
     enabled: isAuthenticated && navigation.level === 'subjects' && !!navigation.selectedAreaId,
   });
 
   const { data: materials = [] } = useQuery<Material[]>({
     queryKey: ["/api/materials", navigation.selectedSubjectId],
+    queryFn: () => fetch(`/api/materials?subjectId=${navigation.selectedSubjectId}`, {
+      credentials: 'include'
+    }).then(res => res.json()),
     enabled: isAuthenticated && navigation.level === 'materials' && !!navigation.selectedSubjectId,
   });
 
