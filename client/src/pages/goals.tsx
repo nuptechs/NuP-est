@@ -8,7 +8,7 @@ import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
@@ -693,6 +693,11 @@ export default function Goals() {
             <DialogTitle>
               {selectedGoal ? "Editar Meta" : "Nova Meta"}
             </DialogTitle>
+            <DialogDescription>
+              {selectedGoal 
+                ? "Atualize os detalhes da sua meta de estudo" 
+                : "Crie uma nova meta para organizar seus estudos e acompanhar seu progresso"}
+            </DialogDescription>
           </DialogHeader>
           
           <Form {...goalForm}>
@@ -809,6 +814,11 @@ export default function Goals() {
             <DialogTitle>
               {selectedTarget ? "Editar Objetivo" : "Novo Objetivo"}
             </DialogTitle>
+            <DialogDescription>
+              {selectedTarget 
+                ? "Modifique os detalhes deste objetivo específico" 
+                : "Adicione um objetivo específico para ajudar a alcançar sua meta"}
+            </DialogDescription>
           </DialogHeader>
           
           <Form {...targetForm}>

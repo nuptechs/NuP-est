@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
@@ -484,6 +484,11 @@ export default function Library() {
                 {createType === 'subject' && 'Nova Matéria'}
                 {createType === 'material' && 'Novo Material'}
               </DialogTitle>
+              <DialogDescription>
+                {createType === 'area' && 'Crie uma nova área para organizar suas matérias de estudo'}
+                {createType === 'subject' && 'Adicione uma nova matéria à sua biblioteca de conhecimento'}
+                {createType === 'material' && 'Faça upload de um novo material de estudo para esta matéria'}
+              </DialogDescription>
             </DialogHeader>
             
             {createType === 'area' && (
