@@ -256,8 +256,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const updates = req.body;
+      const userId = req.user.claims.sub;
       
-      const subject = await storage.updateSubject(id, updates);
+      // Sanitize updates - remove protected fields
+      const sanitizedUpdates = { ...updates };
+      delete sanitizedUpdates.userId;
+      delete sanitizedUpdates.createdAt;
+      delete sanitizedUpdates.updatedAt;
+      delete sanitizedUpdates.id;
+      
+      // Validate FK ownership - if updating areaId, verify area belongs to user
+      if (sanitizedUpdates.areaId) {
+        const area = await storage.getKnowledgeArea(sanitizedUpdates.areaId);
+        if (!area || area.userId !== userId) {
+          return res.status(400).json({ message: "Invalid area reference" });
+        }
+      }
+      
+      const subject = await storage.updateSubject(id, userId, sanitizedUpdates);
       res.json(subject);
     } catch (error) {
       console.error("Error updating subject:", error);
@@ -268,7 +284,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/subjects/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      await storage.deleteSubject(id);
+      const userId = req.user.claims.sub;
+      await storage.deleteSubject(id, userId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting subject:", error);
@@ -361,17 +378,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/materials/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const userId = req.user.claims.sub;
+      
+      // Sanitize updates - remove protected fields
+      const sanitizedUpdates = { ...updates };
+      delete sanitizedUpdates.userId;
+      delete sanitizedUpdates.createdAt;
+      delete sanitizedUpdates.updatedAt;
+      delete sanitizedUpdates.id;
+      delete sanitizedUpdates.filePath; // Don't allow changing file path via API
+      
+      // Validate FK ownership - if updating subjectId, verify subject belongs to user
+      if (sanitizedUpdates.subjectId) {
+        const subject = await storage.getSubject(sanitizedUpdates.subjectId);
+        if (!subject || subject.userId !== userId) {
+          return res.status(400).json({ message: "Invalid subject reference" });
+        }
+      }
+      
+      const material = await storage.updateMaterial(id, userId, sanitizedUpdates);
+      res.json(material);
+    } catch (error) {
+      console.error("Error updating material:", error);
+      res.status(400).json({ message: "Failed to update material" });
+    }
+  });
+
   app.delete('/api/materials/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user.claims.sub;
       
-      // Get material to delete file if exists
+      // Get material and verify ownership before deleting file
       const material = await storage.getMaterial(id);
-      if (material?.filePath && fs.existsSync(material.filePath)) {
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+      
+      if (material.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Delete from database first
+      await storage.deleteMaterial(id, userId);
+      
+      // Only delete file after successful database deletion
+      if (material.filePath && fs.existsSync(material.filePath)) {
         fs.unlinkSync(material.filePath);
       }
       
-      await storage.deleteMaterial(id);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting material:", error);

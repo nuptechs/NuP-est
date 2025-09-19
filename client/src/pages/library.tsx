@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
+import AreaForm from "@/components/knowledge-areas/area-form";
 import { 
   Search, 
   Plus, 
@@ -476,17 +477,9 @@ export default function Library() {
             </DialogHeader>
             
             {createType === 'area' && (
-              <div className="p-4">
-                <p className="text-sm text-gray-600 mb-4">
-                  Funcionalidade de criação de área em desenvolvimento
-                </p>
-                <Button 
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  data-testid="button-close-area-create"
-                >
-                  Fechar
-                </Button>
-              </div>
+              <AreaForm 
+                onSuccess={() => setIsCreateDialogOpen(false)} 
+              />
             )}
             
             {createType === 'subject' && (

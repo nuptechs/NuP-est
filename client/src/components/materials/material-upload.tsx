@@ -82,7 +82,7 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
     if (!user) return;
     const formData = new FormData();
     
-    Object.entries({...data, userId: user.id}).forEach(([key, value]) => {
+    Object.entries(data).forEach(([key, value]) => {
       if (value) {
         formData.append(key, value);
       }

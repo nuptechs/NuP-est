@@ -77,8 +77,8 @@ export interface IStorage {
   getSubjects(userId: string, areaId?: string): Promise<Subject[]>;
   getSubject(id: string): Promise<Subject | undefined>;
   createSubject(subject: InsertSubject): Promise<Subject>;
-  updateSubject(id: string, updates: Partial<InsertSubject>): Promise<Subject>;
-  deleteSubject(id: string): Promise<void>;
+  updateSubject(id: string, userId: string, updates: Partial<InsertSubject>): Promise<Subject>;
+  deleteSubject(id: string, userId: string): Promise<void>;
 
   // Topic operations
   getTopics(subjectId: string): Promise<Topic[]>;
@@ -90,8 +90,8 @@ export interface IStorage {
   getMaterials(userId: string, subjectId?: string): Promise<Material[]>;
   getMaterial(id: string): Promise<Material | undefined>;
   createMaterial(material: InsertMaterial): Promise<Material>;
-  updateMaterial(id: string, updates: Partial<InsertMaterial>): Promise<Material>;
-  deleteMaterial(id: string): Promise<void>;
+  updateMaterial(id: string, userId: string, updates: Partial<InsertMaterial>): Promise<Material>;
+  deleteMaterial(id: string, userId: string): Promise<void>;
 
   // Goal operations
   getGoals(userId: string): Promise<Goal[]>;
@@ -270,17 +270,26 @@ export class DatabaseStorage implements IStorage {
     return newSubject;
   }
 
-  async updateSubject(id: string, updates: Partial<InsertSubject>): Promise<Subject> {
+  async updateSubject(id: string, userId: string, updates: Partial<InsertSubject>): Promise<Subject> {
     const [updatedSubject] = await db
       .update(subjects)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(subjects.id, id))
+      .where(and(eq(subjects.id, id), eq(subjects.userId, userId)))
       .returning();
+    if (!updatedSubject) {
+      throw new Error("Subject not found or access denied");
+    }
     return updatedSubject;
   }
 
-  async deleteSubject(id: string): Promise<void> {
-    await db.delete(subjects).where(eq(subjects.id, id));
+  async deleteSubject(id: string, userId: string): Promise<void> {
+    const result = await db
+      .delete(subjects)
+      .where(and(eq(subjects.id, id), eq(subjects.userId, userId)))
+      .returning({ id: subjects.id });
+    if (result.length === 0) {
+      throw new Error("Subject not found or access denied");
+    }
   }
 
   // Topic operations
@@ -340,17 +349,26 @@ export class DatabaseStorage implements IStorage {
     return newMaterial;
   }
 
-  async updateMaterial(id: string, updates: Partial<InsertMaterial>): Promise<Material> {
+  async updateMaterial(id: string, userId: string, updates: Partial<InsertMaterial>): Promise<Material> {
     const [updatedMaterial] = await db
       .update(materials)
       .set(updates)
-      .where(eq(materials.id, id))
+      .where(and(eq(materials.id, id), eq(materials.userId, userId)))
       .returning();
+    if (!updatedMaterial) {
+      throw new Error("Material not found or access denied");
+    }
     return updatedMaterial;
   }
 
-  async deleteMaterial(id: string): Promise<void> {
-    await db.delete(materials).where(eq(materials.id, id));
+  async deleteMaterial(id: string, userId: string): Promise<void> {
+    const result = await db
+      .delete(materials)
+      .where(and(eq(materials.id, id), eq(materials.userId, userId)))
+      .returning({ id: materials.id });
+    if (result.length === 0) {
+      throw new Error("Material not found or access denied");
+    }
   }
 
   // Goal operations
