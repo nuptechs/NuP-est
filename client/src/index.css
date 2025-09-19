@@ -50,8 +50,8 @@
   /* UI Elements - flatter, more Teams-like */
   --muted: 220 14% 96%;           /* Muted backgrounds */
   --muted-foreground: 222 14% 45%; /* Muted text */
-  --border: 220 14% 91%;          /* Subtle borders */
-  --border-strong: 220 10% 80%;   /* Stronger borders */
+  --border: 220 14% 95%;          /* Very subtle borders */
+  --border-strong: 220 14% 88%;   /* Softer borders */
   --input: 0 0% 100%;             /* Pure white inputs */
   --ring: 238 49% 57%;            /* Teams brand focus ring */
   

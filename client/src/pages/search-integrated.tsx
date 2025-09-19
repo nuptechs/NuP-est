@@ -227,33 +227,25 @@ export default function IntegratedSearch() {
       breadcrumbs={breadcrumbs}
       primaryActions={primaryActions}
     >
-      <div className="flex h-full gap-6">
+      <div className="flex h-full gap-4">
         {/* Painel Esquerdo - Filtros */}
-        <div className="w-80 flex-shrink-0">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Filter className="h-5 w-5" />
-                Filtros de Busca
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        <div className="w-72 flex-shrink-0">
+          <div className="bg-muted/30 rounded-lg p-4 space-y-4">
               {/* Campo de busca */}
               <div className="space-y-2">
-                <Label htmlFor="search-input">Termo de Busca</Label>
                 <div className="flex gap-2">
                   <Input
-                    id="search-input"
                     placeholder="Digite sua busca..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    className="flex-1"
+                    className="flex-1 border-0 bg-background"
                     data-testid="input-search"
                   />
                   <Button 
                     onClick={handleSearch} 
                     disabled={!query.trim() || searchMutation.isPending}
+                    size="sm"
                     data-testid="button-search"
                   >
                     <Search className="h-4 w-4" />
@@ -262,90 +254,80 @@ export default function IntegratedSearch() {
               </div>
 
               {/* Tipos de Busca */}
-              <div className="space-y-3">
-                <Label>Tipos de Busca</Label>
-                <div className="space-y-2">
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Categorias</h4>
+                <div className="grid grid-cols-2 gap-2">
                   {Object.entries(searchTypeLabels).map(([key, typeInfo]) => {
                     const Icon = typeInfo.icon;
+                    const isSelected = selectedTypes.includes(key);
                     return (
-                      <div key={key} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={key}
-                          checked={selectedTypes.includes(key)}
-                          onCheckedChange={(checked) => handleTypeChange(key, checked as boolean)}
-                          data-testid={`checkbox-${key}`}
-                        />
-                        <Label htmlFor={key} className="flex items-center gap-2 cursor-pointer">
-                          <Icon className="h-4 w-4" />
-                          <span className="text-sm">{typeInfo.label}</span>
-                        </Label>
-                      </div>
+                      <button
+                        key={key}
+                        onClick={() => handleTypeChange(key, !isSelected)}
+                        className={`p-2 rounded-md text-xs flex items-center gap-1.5 transition-colors ${
+                          isSelected 
+                            ? 'bg-primary/10 text-primary border border-primary/20' 
+                            : 'bg-background hover:bg-muted/50 border border-transparent'
+                        }`}
+                        data-testid={`button-${key}`}
+                      >
+                        <Icon className="h-3 w-3" />
+                        <span className="truncate">{typeInfo.label}</span>
+                      </button>
                     );
                   })}
                 </div>
               </div>
 
               {/* Configurações */}
-              <div className="space-y-3">
-                <Label>Configurações</Label>
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Opções</h4>
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="include-websites"
-                      checked={includeWebSites}
-                      onCheckedChange={(checked) => setIncludeWebSites(!!checked)}
-                      data-testid="checkbox-include-websites"
-                    />
-                    <Label htmlFor="include-websites" className="text-sm cursor-pointer">
-                      Incluir sites configurados
-                    </Label>
-                  </div>
+                  <button
+                    onClick={() => setIncludeWebSites(!includeWebSites)}
+                    className={`w-full p-2 rounded-md text-xs flex items-center gap-2 transition-colors ${
+                      includeWebSites 
+                        ? 'bg-primary/10 text-primary border border-primary/20' 
+                        : 'bg-background hover:bg-muted/50 border border-transparent'
+                    }`}
+                    data-testid="button-include-websites"
+                  >
+                    <Globe className="h-3 w-3" />
+                    Sites externos
+                  </button>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="max-results" className="text-sm">
-                      Max resultados: {maxResults}
-                    </Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground flex-1">Máx resultados</span>
                     <Input
-                      id="max-results"
                       type="number"
                       min="1"
                       max="50"
                       value={maxResults}
                       onChange={(e) => setMaxResults(parseInt(e.target.value) || 10)}
-                      className="w-20"
+                      className="w-16 h-7 text-xs border-0 bg-background"
                       data-testid="input-max-results"
                     />
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
           {/* Sites Configurados */}
           {configuredSites && (
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Globe className="h-5 w-5" />
-                  Sites Configurados ({configuredSites.totalTypes} tipos)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {Object.entries(configuredSites.sitesByType).map(([type, sites]) => {
-                    const typeLabel = searchTypeLabels[type as keyof typeof searchTypeLabels]?.label || type;
-                    return (
-                      <div key={type} className="p-2 rounded-lg border">
-                        <div className="font-medium text-sm">{typeLabel}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {sites.filter(s => s.isActive).length} de {sites.length} ativos
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="mt-3 bg-muted/20 rounded-lg p-3">
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Sites configurados</h4>
+              <div className="space-y-1">
+                {Object.entries(configuredSites.sitesByType).map(([type, sites]) => {
+                  const typeLabel = searchTypeLabels[type as keyof typeof searchTypeLabels]?.label || type;
+                  const activeCount = sites.filter(s => s.isActive).length;
+                  return (
+                    <div key={type} className="text-xs text-muted-foreground">
+                      {typeLabel}: {activeCount} ativo{activeCount !== 1 ? 's' : ''}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 
