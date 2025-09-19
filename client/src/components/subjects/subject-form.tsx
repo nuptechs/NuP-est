@@ -15,6 +15,7 @@ import type { Subject } from "@shared/schema";
 
 interface SubjectFormProps {
   subject?: Subject | null;
+  areaId?: string;
   onSuccess: () => void;
 }
 
@@ -23,7 +24,7 @@ const formSchema = insertSubjectSchema.omit({ userId: true }).extend({
   category: z.string().min(1, "Categoria é obrigatória"),
 });
 
-export default function SubjectForm({ subject, onSuccess }: SubjectFormProps) {
+export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -47,6 +48,9 @@ export default function SubjectForm({ subject, onSuccess }: SubjectFormProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      if (areaId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/subjects", areaId] });
+      }
       toast({
         title: "Sucesso",
         description: subject ? "Matéria atualizada com sucesso!" : "Matéria criada com sucesso!",
@@ -64,7 +68,10 @@ export default function SubjectForm({ subject, onSuccess }: SubjectFormProps) {
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     if (!user) return;
-    createMutation.mutate({ ...data, userId: user.id });
+    createMutation.mutate({ 
+      ...data,
+      areaId: areaId || null
+    });
   };
 
   return (

@@ -16,7 +16,7 @@ import type { Subject } from "@shared/schema";
 
 interface MaterialUploadProps {
   onSuccess: () => void;
-  preSelectedSubjectId?: string;
+  subjectId?: string;
 }
 
 const formSchema = insertMaterialSchema.omit({ userId: true }).extend({
@@ -24,7 +24,7 @@ const formSchema = insertMaterialSchema.omit({ userId: true }).extend({
   type: z.string().min(1, "Tipo é obrigatório"),
 });
 
-export default function MaterialUpload({ onSuccess, preSelectedSubjectId }: MaterialUploadProps) {
+export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -39,7 +39,7 @@ export default function MaterialUpload({ onSuccess, preSelectedSubjectId }: Mate
     defaultValues: {
       title: "",
       description: "",
-      subjectId: preSelectedSubjectId || "",
+      subjectId: subjectId || "",
       type: "",
       url: "",
       content: "",

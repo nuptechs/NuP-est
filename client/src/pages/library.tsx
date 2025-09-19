@@ -12,11 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { InteractiveProgressUpload } from "@/components/upload/InteractiveProgressUpload";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
 import { 
@@ -29,24 +26,21 @@ import {
   Edit,
   Eye,
   Upload,
-  Filter,
-  X
+  ChevronRight,
+  ArrowLeft,
+  Folder,
+  FolderOpen
 } from "lucide-react";
-import type { Subject, Material, KnowledgeBase } from "@shared/schema";
+import type { Subject, Material, KnowledgeArea } from "@shared/schema";
 
-// Resource view model para unificar os três tipos
-type ResourceType = 'subjects' | 'materials' | 'knowledge-base' | 'all';
+// Navigation state types
+type ViewLevel = 'areas' | 'subjects' | 'materials';
 
-interface Resource {
-  id: string;
-  type: ResourceType;
-  title: string;
-  description?: string;
-  category?: string;
-  subject?: string;
-  tags?: string[];
-  updatedAt?: string;
-  meta?: any;
+interface NavigationState {
+  level: ViewLevel;
+  selectedAreaId?: string;
+  selectedSubjectId?: string;
+  breadcrumb: { id?: string; name: string; level: ViewLevel }[];
 }
 
 export default function Library() {
@@ -54,17 +48,19 @@ export default function Library() {
   const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   
+  // Navigation state for hierarchical view
+  const [navigation, setNavigation] = useState<NavigationState>({
+    level: 'areas',
+    breadcrumb: [{ name: 'Biblioteca', level: 'areas' }]
+  });
+  
   // State para filtros e busca
-  const [activeTab, setActiveTab] = useState<ResourceType>('all');
-  const [location] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createType, setCreateType] = useState<'subject' | 'material' | 'kb'>('subject');
-  const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const [createType, setCreateType] = useState<'area' | 'subject' | 'material'>('area');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [resourceToDelete, setResourceToDelete] = useState<Resource | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<any>(null);
 
   // Auth redirect
   useEffect(() => {
@@ -80,15 +76,6 @@ export default function Library() {
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
-
-  // Handle deep links e query params
-  useEffect(() => {
-    const urlParams = new URLSearchParams(location.split('?')[1] || '');
-    const typeParam = urlParams.get('type') as ResourceType;
-    if (typeParam && ['subjects', 'materials', 'knowledge-base'].includes(typeParam)) {
-      setActiveTab(typeParam);
-    }
-  }, [location]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -106,146 +93,140 @@ export default function Library() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Queries para dados
-  const { data: subjects = [] } = useQuery<Subject[]>({
-    queryKey: ["/api/subjects"],
+  // Queries para dados hierárquicos
+  const { data: knowledgeAreas = [] } = useQuery<KnowledgeArea[]>({
+    queryKey: ["/api/areas"],
     enabled: isAuthenticated,
+  });
+
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects", navigation.selectedAreaId],
+    enabled: isAuthenticated && navigation.level === 'subjects' && !!navigation.selectedAreaId,
   });
 
   const { data: materials = [] } = useQuery<Material[]>({
-    queryKey: ["/api/materials"],
-    enabled: isAuthenticated,
+    queryKey: ["/api/materials", navigation.selectedSubjectId],
+    enabled: isAuthenticated && navigation.level === 'materials' && !!navigation.selectedSubjectId,
   });
 
-  const { data: knowledgeBase = [] } = useQuery<KnowledgeBase[]>({
-    queryKey: ["/api/knowledge-base"],
-    enabled: isAuthenticated,
-  });
+  // Navigation functions
+  const navigateToArea = (area: KnowledgeArea) => {
+    setNavigation({
+      level: 'subjects',
+      selectedAreaId: area.id,
+      breadcrumb: [
+        { name: 'Biblioteca', level: 'areas' },
+        { id: area.id, name: area.name, level: 'subjects' }
+      ]
+    });
+  };
 
-  // Mapear dados para Resource model
-  const mapSubjectsToResources = (subjects: Subject[]): Resource[] => 
-    subjects.map(subject => ({
-      id: subject.id,
-      type: 'subjects' as ResourceType,
-      title: subject.name,
-      description: subject.description || undefined,
-      category: subject.category,
-      updatedAt: typeof subject.createdAt === 'string' ? subject.createdAt : subject.createdAt?.toString(),
-      meta: { priority: subject.priority }
+  const navigateToSubject = (subject: Subject) => {
+    setNavigation(prev => ({
+      level: 'materials',
+      selectedAreaId: prev.selectedAreaId,
+      selectedSubjectId: subject.id,
+      breadcrumb: [
+        ...prev.breadcrumb,
+        { id: subject.id, name: subject.name, level: 'materials' }
+      ]
     }));
+  };
 
-  const mapMaterialsToResources = (materials: Material[]): Resource[] => 
-    materials.map(material => ({
-      id: material.id,
-      type: 'materials' as ResourceType,
-      title: material.title,
-      description: material.description || undefined,
-      subject: material.subjectId || undefined,
-      updatedAt: typeof material.createdAt === 'string' ? material.createdAt : material.createdAt?.toString(),
-      meta: { type: material.type, filePath: material.filePath }
-    }));
-
-  const mapKnowledgeBaseToResources = (kb: KnowledgeBase[]): Resource[] => 
-    kb.map(doc => ({
-      id: doc.id,
-      type: 'knowledge-base' as ResourceType,
-      title: doc.title,
-      description: doc.description || undefined,
-      category: doc.category,
-      updatedAt: typeof doc.createdAt === 'string' ? doc.createdAt : doc.createdAt?.toISOString(),
-      meta: { filename: doc.filename, content: doc.content }
-    }));
-
-  // Combinar todos os recursos
-  const allResources: Resource[] = [
-    ...mapSubjectsToResources(subjects),
-    ...mapMaterialsToResources(materials),
-    ...mapKnowledgeBaseToResources(knowledgeBase)
-  ];
-
-  // Filtrar recursos
-  const filteredResources = allResources.filter(resource => {
-    // Filtro por tab
-    if (activeTab !== 'all' && resource.type !== activeTab) return false;
-    
-    // Filtro por busca
-    if (searchQuery && !resource.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !resource.description?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    
-    // Filtro por categoria
-    if (selectedCategory !== 'all' && resource.category !== selectedCategory) return false;
-    
-    return true;
-  });
-
-  // Categorias únicas para filtro
-  const allCategories = Array.from(new Set(
-    allResources.map(r => r.category).filter(Boolean)
-  ));
-
-  const getResourceIcon = (type: ResourceType) => {
-    switch (type) {
-      case 'subjects': return BookOpen;
-      case 'materials': return FileText;
-      case 'knowledge-base': return Database;
-      default: return FileText;
+  const navigateBack = (targetLevel: ViewLevel) => {
+    const levelIndex = navigation.breadcrumb.findIndex(item => item.level === targetLevel);
+    if (levelIndex !== -1) {
+      const newBreadcrumb = navigation.breadcrumb.slice(0, levelIndex + 1);
+      const targetItem = newBreadcrumb[levelIndex];
+      
+      setNavigation({
+        level: targetLevel,
+        selectedAreaId: targetLevel === 'areas' ? undefined : 
+                       targetLevel === 'subjects' ? targetItem.id : navigation.selectedAreaId,
+        selectedSubjectId: targetLevel === 'materials' ? targetItem.id : undefined,
+        breadcrumb: newBreadcrumb
+      });
     }
   };
 
-  const getResourceTypeLabel = (type: ResourceType) => {
-    switch (type) {
-      case 'subjects': return 'Matéria';
-      case 'materials': return 'Material';
-      case 'knowledge-base': return 'Conhecimento';
-      default: return '';
+  // Get filtered data based on current view and search
+  const getFilteredData = () => {
+    switch (navigation.level) {
+      case 'areas':
+        return knowledgeAreas.filter(area => 
+          !searchQuery || area.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          area.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      case 'subjects':
+        return subjects.filter(subject => 
+          !searchQuery || subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          subject.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      case 'materials':
+        return materials.filter(material => 
+          !searchQuery || material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          material.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      default:
+        return [];
     }
   };
 
-  const handleCreateNew = (type: 'subject' | 'material' | 'kb') => {
+  const filteredData = getFilteredData();
+
+  const handleCreateNew = (type: 'area' | 'subject' | 'material') => {
     setCreateType(type);
     setIsCreateDialogOpen(true);
   };
 
-  const handleView = (resource: Resource) => {
-    setSelectedResource(resource);
-    // TODO: Implementar visualização de detalhes
+  const handleView = (item: any) => {
+    if (navigation.level === 'areas') {
+      navigateToArea(item);
+    } else if (navigation.level === 'subjects') {
+      navigateToSubject(item);
+    }
   };
 
-  const handleEdit = (resource: Resource) => {
-    setSelectedResource(resource);
+  const handleEdit = (item: any) => {
+    setItemToDelete(item);
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (resource: Resource) => {
-    setResourceToDelete(resource);
+  const handleDelete = (item: any) => {
+    setItemToDelete(item);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!resourceToDelete) return;
+    if (!itemToDelete) return;
     
     try {
       let endpoint = '';
-      switch (resourceToDelete.type) {
+      let queryKey = '';
+      
+      switch (navigation.level) {
+        case 'areas':
+          endpoint = `/api/areas/${itemToDelete.id}`;
+          queryKey = '/api/areas';
+          break;
         case 'subjects':
-          endpoint = `/api/subjects/${resourceToDelete.id}`;
+          endpoint = `/api/subjects/${itemToDelete.id}`;
+          queryKey = `/api/subjects/${navigation.selectedAreaId}`;
           break;
         case 'materials':
-          endpoint = `/api/materials/${resourceToDelete.id}`;
-          break;
-        case 'knowledge-base':
-          endpoint = `/api/knowledge-base/${resourceToDelete.id}`;
+          endpoint = `/api/materials/${itemToDelete.id}`;
+          queryKey = `/api/materials/${navigation.selectedSubjectId}`;
           break;
       }
       
       await apiRequest('DELETE', endpoint);
       
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: [`/api/${resourceToDelete.type}`] });
+      queryClient.invalidateQueries({ queryKey: [queryKey] });
       
       toast({
         title: "Sucesso",
-        description: `${getResourceTypeLabel(resourceToDelete.type)} excluído com sucesso!`,
+        description: "Item excluído com sucesso!",
       });
     } catch (error) {
       toast({
@@ -255,7 +236,34 @@ export default function Library() {
       });
     } finally {
       setIsDeleteDialogOpen(false);
-      setResourceToDelete(null);
+      setItemToDelete(null);
+    }
+  };
+
+  const getIcon = () => {
+    switch (navigation.level) {
+      case 'areas': return Folder;
+      case 'subjects': return BookOpen;
+      case 'materials': return FileText;
+      default: return Folder;
+    }
+  };
+
+  const getTitle = () => {
+    switch (navigation.level) {
+      case 'areas': return 'Áreas de Conhecimento';
+      case 'subjects': return 'Matérias';
+      case 'materials': return 'Materiais';
+      default: return 'Biblioteca';
+    }
+  };
+
+  const getCreateButtonText = () => {
+    switch (navigation.level) {
+      case 'areas': return 'Nova Área';
+      case 'subjects': return 'Nova Matéria';
+      case 'materials': return 'Novo Material';
+      default: return 'Adicionar';
     }
   };
 
@@ -280,6 +288,26 @@ export default function Library() {
       <MobileNav />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center gap-2 mb-6">
+          {navigation.breadcrumb.map((item, index) => (
+            <div key={index} className="flex items-center gap-2">
+              {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
+              <button
+                onClick={() => navigateBack(item.level)}
+                className={`text-sm font-medium hover:text-blue-600 transition-colors ${
+                  index === navigation.breadcrumb.length - 1 
+                    ? 'text-gray-900' 
+                    : 'text-gray-500'
+                }`}
+                data-testid={`breadcrumb-${item.level}`}
+              >
+                {item.name}
+              </button>
+            </div>
+          ))}
+        </div>
+
         {/* Header da Biblioteca */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -287,234 +315,192 @@ export default function Library() {
               <DashboardIcon />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Biblioteca</h1>
-              <p className="text-gray-500">Central de conteúdo unificada</p>
+              <h1 className="text-2xl font-semibold text-gray-900">{getTitle()}</h1>
+              <p className="text-gray-500">
+                {navigation.breadcrumb[navigation.breadcrumb.length - 1]?.name}
+              </p>
             </div>
           </div>
 
-          {/* Botões de ação rápida */}
+          {/* Botões de ação */}
           <div className="flex gap-2">
+            {navigation.level !== 'areas' && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigateBack(navigation.breadcrumb[navigation.breadcrumb.length - 2]?.level as ViewLevel)}
+                data-testid="button-back"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+            )}
             <Button 
-              variant="outline" 
+              variant="default" 
               size="sm"
-              onClick={() => handleCreateNew('subject')}
-              data-testid="button-create-subject"
-            >
-              <BookOpen className="w-4 h-4 mr-2" />
-              Nova Matéria
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleCreateNew('material')}
-              data-testid="button-create-material"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Material
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleCreateNew('kb')}
-              data-testid="button-create-knowledge"
+              onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
+              data-testid="button-create"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Adicionar Conhecimento
+              {getCreateButtonText()}
             </Button>
           </div>
         </div>
 
-        {/* Barra de busca e filtros */}
+        {/* Barra de busca */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Busca global */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                placeholder="Buscar em toda biblioteca..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 border-gray-200 focus:border-gray-300"
-                data-testid="input-search-global"
-              />
-            </div>
-
-            {/* Filtro de categoria */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas categorias</SelectItem>
-                {allCategories.map(category => (
-                  <SelectItem key={category} value={category || ''}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Input
+              placeholder={`Buscar ${getTitle().toLowerCase()}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 border-gray-200 focus:border-gray-300"
+              data-testid="input-search-global"
+            />
           </div>
         </div>
 
-        {/* Tabs de tipo de conteúdo */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ResourceType)} className="mb-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-fit">
-            <TabsTrigger value="all" data-testid="tab-all">
-              Tudo ({allResources.length})
-            </TabsTrigger>
-            <TabsTrigger value="subjects" data-testid="tab-subjects">
-              Matérias ({subjects.length})
-            </TabsTrigger>
-            <TabsTrigger value="materials" data-testid="tab-materials">
-              Materiais ({materials.length})
-            </TabsTrigger>
-            <TabsTrigger value="knowledge-base" data-testid="tab-knowledge">
-              Conhecimento ({knowledgeBase.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-6">
-            {/* Grid de recursos */}
-            {filteredResources.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {searchQuery ? 'Nenhum resultado encontrado' : 'Nenhum conteúdo ainda'}
-                </h3>
-                <p className="text-gray-500 mb-6">
-                  {searchQuery 
-                    ? 'Tente ajustar sua busca ou filtros' 
-                    : 'Comece criando suas primeiras matérias e materiais'
-                  }
-                </p>
-                {!searchQuery && (
-                  <div className="flex gap-2 justify-center">
-                    <Button onClick={() => handleCreateNew('subject')} data-testid="button-empty-create-subject">
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      Criar Matéria
-                    </Button>
-                    <Button variant="outline" onClick={() => handleCreateNew('material')} data-testid="button-empty-upload-material">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Material
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredResources.map((resource) => {
-                  const Icon = getResourceIcon(resource.type);
-                  return (
-                    <Card key={`${resource.type}-${resource.id}`} className="hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gray-50 rounded-lg">
-                              <Icon className="w-5 h-5 text-gray-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-base font-medium text-gray-900 truncate">
-                                {resource.title}
-                              </CardTitle>
-                              <Badge variant="secondary" className="text-xs mt-1">
-                                {getResourceTypeLabel(resource.type)}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent className="pt-0">
-                        {resource.description && (
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                            {resource.description}
-                          </p>
-                        )}
-
-                        {resource.category && (
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            <Badge variant="outline" className="text-xs">
-                              {resource.category}
-                            </Badge>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                          <span className="text-xs text-gray-500">
-                            {resource.updatedAt && new Date(resource.updatedAt).toLocaleDateString('pt-BR')}
-                          </span>
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleView(resource)}
-                              data-testid={`button-view-${resource.type}-${resource.id}`}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleEdit(resource)}
-                              data-testid={`button-edit-${resource.type}-${resource.id}`}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDelete(resource)}
-                              data-testid={`button-delete-${resource.type}-${resource.id}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+        {/* Content Grid */}
+        {filteredData.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {searchQuery ? 'Nenhum resultado encontrado' : `Nenhum ${getTitle().toLowerCase()} ainda`}
+            </h3>
+            <p className="text-gray-500 mb-6">
+              {searchQuery 
+                ? 'Tente ajustar sua busca' 
+                : `Comece criando ${getTitle().toLowerCase()}`
+              }
+            </p>
+            {!searchQuery && (
+              <Button 
+                onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')} 
+                data-testid="button-empty-create"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {getCreateButtonText()}
+              </Button>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredData.map((item: any) => {
+              const Icon = getIcon();
+              return (
+                <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleView(item)}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <Icon className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base font-medium text-gray-900 truncate">
+                            {item.name || item.title}
+                          </CardTitle>
+                          <Badge variant="secondary" className="text-xs mt-1">
+                            {navigation.level === 'areas' ? 'Área' : 
+                             navigation.level === 'subjects' ? 'Matéria' : 'Material'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="pt-0">
+                    {item.description && (
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+
+                    {item.category && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        <Badge variant="outline" className="text-xs">
+                          {item.category}
+                        </Badge>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-500">
+                        {item.updatedAt && new Date(item.updatedAt).toLocaleDateString('pt-BR')}
+                      </span>
+                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(item);
+                          }}
+                          data-testid={`button-edit-${item.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(item);
+                          }}
+                          data-testid={`button-delete-${item.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
         {/* Dialog para criação */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
+                {createType === 'area' && 'Nova Área de Conhecimento'}
                 {createType === 'subject' && 'Nova Matéria'}
-                {createType === 'material' && 'Upload de Material'}
-                {createType === 'kb' && 'Adicionar Conhecimento'}
+                {createType === 'material' && 'Novo Material'}
               </DialogTitle>
             </DialogHeader>
             
-            {createType === 'subject' && (
-              <SubjectForm onSuccess={() => setIsCreateDialogOpen(false)} />
-            )}
-            
-            {createType === 'material' && (
-              <MaterialUpload onSuccess={() => setIsCreateDialogOpen(false)} />
-            )}
-            
-            {createType === 'kb' && (
+            {createType === 'area' && (
               <div className="p-4">
                 <p className="text-sm text-gray-600 mb-4">
-                  Funcionalidade de upload de conhecimento em desenvolvimento
+                  Funcionalidade de criação de área em desenvolvimento
                 </p>
                 <Button 
                   onClick={() => setIsCreateDialogOpen(false)}
-                  data-testid="button-close-kb-upload"
+                  data-testid="button-close-area-create"
                 >
                   Fechar
                 </Button>
               </div>
+            )}
+            
+            {createType === 'subject' && (
+              <SubjectForm 
+                areaId={navigation.selectedAreaId}
+                onSuccess={() => setIsCreateDialogOpen(false)} 
+              />
+            )}
+            
+            {createType === 'material' && (
+              <MaterialUpload 
+                subjectId={navigation.selectedSubjectId}
+                onSuccess={() => setIsCreateDialogOpen(false)} 
+              />
             )}
           </DialogContent>
         </Dialog>
@@ -525,7 +511,7 @@ export default function Library() {
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir "{resourceToDelete?.title}"? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir "{itemToDelete?.name || itemToDelete?.title}"? Esta ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
