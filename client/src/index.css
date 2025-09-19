@@ -3,51 +3,57 @@
 @tailwind utilities;
 
 :root {
-  /* === MODERN NEUTRAL PALETTE (Slate-based) === */
-  /* Background layers */
-  --background: 210 40% 98%;      /* Crisp white with subtle cool undertone */
-  --surface: 210 40% 99%;         /* Elevated surfaces */
-  --surface-secondary: 210 30% 97%; /* Secondary surfaces */
+  /* === MICROSOFT TEAMS DESIGN TOKENS === */
+  /* Background layers - cleaner neutral palette */
+  --background: 210 20% 98%;      /* Clean white with minimal undertone */
+  --surface: 0 0% 100%;           /* Pure white elevated surfaces */
+  --surface-secondary: 210 20% 96%; /* Secondary surfaces */
   
-  /* Text hierarchy */
-  --foreground: 215 25% 27%;      /* Primary text - warm dark slate */
-  --foreground-secondary: 215 16% 47%; /* Secondary text */
-  --foreground-muted: 215 20% 65%; /* Muted text */
+  /* Text hierarchy - Teams-inspired */
+  --foreground: 222 24% 27%;      /* Primary text - sharp dark */
+  --foreground-secondary: 222 14% 45%; /* Secondary text */
+  --foreground-muted: 220 14% 65%; /* Muted text */
   
   /* Component backgrounds */
   --card: 0 0% 100%;
-  --card-foreground: 215 25% 27%;
+  --card-foreground: 222 24% 27%;
   --popover: 0 0% 100%;
-  --popover-foreground: 215 25% 27%;
+  --popover-foreground: 222 24% 27%;
   
-  /* === MODERN COLOR SYSTEM === */
-  /* Primary - Soft Blue (less saturated) */
-  --primary: 222 84% 56%;
-  --primary-foreground: 0 0% 98%;
-  --primary-hover: 222 84% 52%;
+  /* === MICROSOFT TEAMS COLOR SYSTEM === */
+  /* Primary - Teams brand purple */
+  --primary: 238 49% 57%;         /* #5B5FC7 - Teams brand */
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 238 49% 53%;
   
-  /* Secondary - Balanced Green */
-  --secondary: 160 60% 45%;
-  --secondary-foreground: 0 0% 98%;
+  /* Info - Communication Blue */
+  --info: 207 100% 41%;           /* #0078D4 - CommunicationBlue */
+  --info-foreground: 0 0% 100%;
+
+  /* Secondary - Neutral gray */
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 24% 27%;
   
-  /* Accent - Soft Violet */
-  --accent: 262 83% 66%;
-  --accent-foreground: 0 0% 98%;
-  --accent-hover: 262 83% 62%;
+  /* Accent - Subtle info variant */
+  --accent: 207 100% 45%;
+  --accent-foreground: 0 0% 100%;
+  --accent-hover: 207 100% 41%;
   
-  /* Status colors */
-  --success: 160 60% 45%;
-  --warning: 45 90% 60%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+  /* Status colors - Fluent Design tokens */
+  --success: 118 84% 34%;         /* #13A10E - Fluent green */
+  --success-foreground: 0 0% 100%;
+  --warning: 44 100% 50%;         /* #FFB900 - Office yellow */
+  --warning-foreground: 0 0% 15%;
+  --destructive: 358 63% 51%;     /* #D13438 - Fluent red */
+  --destructive-foreground: 0 0% 100%;
   
-  /* UI Elements */
-  --muted: 214 32% 91%;           /* Muted backgrounds */
-  --muted-foreground: 215 16% 47%; /* Muted text */
-  --border: 214 32% 91%;          /* Subtle borders */
-  --border-strong: 213 27% 84%;   /* Stronger borders */
-  --input: 210 40% 96%;           /* Input backgrounds */
-  --ring: 222 84% 56%;            /* Focus rings */
+  /* UI Elements - flatter, more Teams-like */
+  --muted: 220 14% 96%;           /* Muted backgrounds */
+  --muted-foreground: 222 14% 45%; /* Muted text */
+  --border: 220 14% 91%;          /* Subtle borders */
+  --border-strong: 220 10% 80%;   /* Stronger borders */
+  --input: 0 0% 100%;             /* Pure white inputs */
+  --ring: 238 49% 57%;            /* Teams brand focus ring */
   
   /* Chart colors */
   --chart-1: 222 84% 56%;
@@ -99,16 +105,17 @@
   --spacing-16: 4rem;      /* 64px */
   
   /* === ELEVATION SYSTEM (subtle shadows) === */
-  --radius: 0.75rem;       /* 12px - Teams-inspired modern rounded corners */
+  --radius: 0.5rem;        /* 8px - Teams standard radius */
   --radius-sm: 0.25rem;    /* 4px */
-  --radius-lg: 0.75rem;    /* 12px */
+  --radius-lg: 0.5rem;     /* 8px */
   
-  --shadow-xs: 0 1px 2px 0 hsl(215 25% 27% / 0.05);
-  --shadow-sm: 0 1px 3px 0 hsl(215 25% 27% / 0.08), 0 1px 2px -1px hsl(215 25% 27% / 0.08);
-  --shadow: 0 4px 6px -1px hsl(215 25% 27% / 0.08), 0 2px 4px -2px hsl(215 25% 27% / 0.08);
-  --shadow-md: 0 10px 15px -3px hsl(215 25% 27% / 0.08), 0 4px 6px -4px hsl(215 25% 27% / 0.08);
-  --shadow-lg: 0 20px 25px -5px hsl(215 25% 27% / 0.08), 0 8px 10px -6px hsl(215 25% 27% / 0.08);
-  --shadow-xl: 0 25px 50px -12px hsl(215 25% 27% / 0.12);
+  /* Minimal shadows - prefer borders over heavy shadows */
+  --shadow-xs: 0 1px 2px 0 hsl(220 14% 41% / 0.03);
+  --shadow-sm: 0 1px 3px 0 hsl(220 14% 41% / 0.05), 0 1px 2px -1px hsl(220 14% 41% / 0.03);
+  --shadow: 0 2px 4px 0 hsl(220 14% 41% / 0.06);
+  --shadow-md: 0 4px 8px 0 hsl(220 14% 41% / 0.08);
+  --shadow-lg: 0 8px 16px 0 hsl(220 14% 41% / 0.10);
+  --shadow-xl: 0 16px 32px 0 hsl(220 14% 41% / 0.12);
   
   /* === ANIMATION SYSTEM === */
   --duration-fast: 150ms;
@@ -120,7 +127,7 @@
 }
 
 .dark {
-  /* === DARK MODE PALETTE (Balanced & Modern) === */
+  /* === TEAMS DARK MODE PALETTE === */
   /* Background layers */
   --background: 240 6% 10%;       /* Deep charcoal background */
   --surface: 240 5% 11%;          /* Elevated surfaces */
@@ -138,22 +145,27 @@
   --popover-foreground: 210 40% 95%;
   
   /* Color system (slightly adjusted for dark) */
-  --primary: 222 84% 60%;         /* Brighter in dark mode */
-  --primary-foreground: 0 0% 98%;
-  --primary-hover: 222 84% 56%;
+  --primary: 238 49% 60%;         /* Teams brand - slightly brighter */
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 238 49% 56%;
   
-  --secondary: 160 60% 50%;       /* Slightly brighter green */
-  --secondary-foreground: 0 0% 98%;
+  --info: 207 100% 45%;           /* Communication blue - brighter */
+  --info-foreground: 0 0% 100%;
+
+  --secondary: 240 4% 16%;
+  --secondary-foreground: 210 40% 95%;
   
-  --accent: 262 83% 70%;          /* Brighter violet */
-  --accent-foreground: 0 0% 98%;
-  --accent-hover: 262 83% 66%;
+  --accent: 207 100% 50%;
+  --accent-foreground: 0 0% 100%;
+  --accent-hover: 207 100% 45%;
   
-  /* Status colors */
-  --success: 160 60% 50%;
-  --warning: 45 90% 65%;
-  --destructive: 0 84% 65%;
-  --destructive-foreground: 0 0% 98%;
+  /* Status colors - Fluent dark variants */
+  --success: 118 84% 38%;         /* Fluent green - brighter */
+  --success-foreground: 0 0% 100%;
+  --warning: 44 100% 55%;         /* Office yellow - brighter */
+  --warning-foreground: 0 0% 15%;
+  --destructive: 358 63% 55%;     /* Fluent red - brighter */
+  --destructive-foreground: 0 0% 100%;
   
   /* UI Elements */
   --muted: 240 4% 16%;            /* Muted backgrounds */
@@ -161,7 +173,7 @@
   --border: 240 4% 16%;           /* Subtle borders */
   --border-strong: 240 5% 20%;    /* Stronger borders */
   --input: 240 4% 14%;            /* Input backgrounds */
-  --ring: 222 84% 60%;            /* Focus rings */
+  --ring: 238 49% 60%;            /* Teams brand focus ring */
   
   /* Chart colors (adjusted for dark) */
   --chart-1: 222 84% 60%;
@@ -173,20 +185,20 @@
   /* Sidebar */
   --sidebar: 240 5% 11%;
   --sidebar-foreground: 210 40% 95%;
-  --sidebar-primary: 222 84% 60%;
-  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-primary: 238 49% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 240 4% 16%;
   --sidebar-accent-foreground: 210 40% 95%;
   --sidebar-border: 240 4% 16%;
-  --sidebar-ring: 222 84% 60%;
+  --sidebar-ring: 238 49% 60%;
   
-  /* Elevation system (darker shadows) */
-  --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
-  --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.4);
-  --shadow: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
-  --shadow-md: 0 10px 15px -3px hsl(0 0% 0% / 0.4), 0 4px 6px -4px hsl(0 0% 0% / 0.4);
-  --shadow-lg: 0 20px 25px -5px hsl(0 0% 0% / 0.4), 0 8px 10px -6px hsl(0 0% 0% / 0.4);
-  --shadow-xl: 0 25px 50px -12px hsl(0 0% 0% / 0.5);
+  /* Minimal shadows for dark mode */
+  --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.15);
+  --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.20), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
+  --shadow: 0 2px 4px 0 hsl(0 0% 0% / 0.25);
+  --shadow-md: 0 4px 8px 0 hsl(0 0% 0% / 0.30);
+  --shadow-lg: 0 8px 16px 0 hsl(0 0% 0% / 0.35);
+  --shadow-xl: 0 16px 32px 0 hsl(0 0% 0% / 0.40);
 }
 
 @layer base {
@@ -212,10 +224,11 @@
   h3 { font-size: var(--text-base); }
   h4 { font-size: var(--text-sm); }
 
-  /* Focus styles */
+  /* Focus styles - Teams style with 2px brand ring */
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+    border-radius: var(--radius-sm);
   }
 
   /* Scrollbars */
