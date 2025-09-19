@@ -1,5 +1,6 @@
 import {
   users,
+  knowledgeAreas,
   subjects,
   topics,
   materials,
@@ -17,6 +18,8 @@ import {
   learningHistory,
   type User,
   type UpsertUser,
+  type KnowledgeArea,
+  type InsertKnowledgeArea,
   type Subject,
   type InsertSubject,
   type Topic,
@@ -63,8 +66,15 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
 
+  // Knowledge Area operations
+  getKnowledgeAreas(userId: string): Promise<KnowledgeArea[]>;
+  getKnowledgeArea(id: string): Promise<KnowledgeArea | undefined>;
+  createKnowledgeArea(area: InsertKnowledgeArea): Promise<KnowledgeArea>;
+  updateKnowledgeArea(id: string, updates: Partial<InsertKnowledgeArea>): Promise<KnowledgeArea>;
+  deleteKnowledgeArea(id: string): Promise<void>;
+
   // Subject operations
-  getSubjects(userId: string): Promise<Subject[]>;
+  getSubjects(userId: string, areaId?: string): Promise<Subject[]>;
   getSubject(id: string): Promise<Subject | undefined>;
   createSubject(subject: InsertSubject): Promise<Subject>;
   updateSubject(id: string, updates: Partial<InsertSubject>): Promise<Subject>;
@@ -192,12 +202,49 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  // Knowledge Area operations
+  async getKnowledgeAreas(userId: string): Promise<KnowledgeArea[]> {
+    return await db
+      .select()
+      .from(knowledgeAreas)
+      .where(eq(knowledgeAreas.userId, userId))
+      .orderBy(knowledgeAreas.displayOrder, desc(knowledgeAreas.updatedAt));
+  }
+
+  async getKnowledgeArea(id: string): Promise<KnowledgeArea | undefined> {
+    const [area] = await db.select().from(knowledgeAreas).where(eq(knowledgeAreas.id, id));
+    return area;
+  }
+
+  async createKnowledgeArea(area: InsertKnowledgeArea): Promise<KnowledgeArea> {
+    const [newArea] = await db.insert(knowledgeAreas).values(area).returning();
+    return newArea;
+  }
+
+  async updateKnowledgeArea(id: string, updates: Partial<InsertKnowledgeArea>): Promise<KnowledgeArea> {
+    const [updatedArea] = await db
+      .update(knowledgeAreas)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(knowledgeAreas.id, id))
+      .returning();
+    return updatedArea;
+  }
+
+  async deleteKnowledgeArea(id: string): Promise<void> {
+    await db.delete(knowledgeAreas).where(eq(knowledgeAreas.id, id));
+  }
+
   // Subject operations
-  async getSubjects(userId: string): Promise<Subject[]> {
+  async getSubjects(userId: string, areaId?: string): Promise<Subject[]> {
+    const whereConditions = [eq(subjects.userId, userId)];
+    if (areaId) {
+      whereConditions.push(eq(subjects.areaId, areaId));
+    }
+    
     return await db
       .select()
       .from(subjects)
-      .where(eq(subjects.userId, userId))
+      .where(and(...whereConditions))
       .orderBy(desc(subjects.updatedAt));
   }
 
