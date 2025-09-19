@@ -353,75 +353,108 @@ export default function Goals() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="w-full">
-        <div className="border-b bg-card px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.location.href = "/dashboard"}
-                className="flex items-center gap-2 hover:bg-muted"
-                data-testid="button-back-dashboard"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Dashboard
-              </Button>
-              <div className="border-l h-6"></div>
-              <div>
-                <h1 className="text-2xl font-semibold text-foreground">Metas e Objetivos</h1>
-                <p className="text-sm text-muted-foreground mt-1">Gerencie suas metas de estudo e objetivos específicos</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => window.location.href = '/api/logout'}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-              data-testid="button-logout"
-            >
-              <LogOut className="h-4 w-4" />
-              Sair
-            </Button>
-          </div>
+    <div className="flex-1 p-6 bg-white dark:bg-gray-950">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Page Header */}
+        <div className="space-y-1 mb-8">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            Metas e Objetivos
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Gerencie suas metas de estudo e acompanhe seu progresso
+          </p>
         </div>
-        
-        <div className="container mx-auto px-4 py-6">
-          {/* Header Actions */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
                 <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Suas Metas</h1>
-                <p className="text-sm text-muted-foreground">
-                  {goals?.length || 0} metas • {targets?.length || 0} objetivos
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total de Metas</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  {goals?.length || 0}
                 </p>
               </div>
             </div>
-            
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => window.location.href = '/goal-builder'}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-lg"
-                data-testid="button-goal-builder"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Construir Meta
-              </Button>
-              <Button 
-                onClick={() => openGoalDialog()}
-                variant="outline"
-                className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950"
-                data-testid="button-create-goal"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Meta
-              </Button>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Metas Concluídas</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  {goals?.filter(g => g.completed).length || 0}
+                </p>
+              </div>
             </div>
           </div>
+          
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950">
+                <ListTodo className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total de Objetivos</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  {targets?.length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950">
+                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Progresso Médio</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  {goals?.length > 0 
+                    ? Math.round(goals.reduce((acc, goal) => acc + getCompletionPercentage(goal), 0) / goals.length)
+                    : 0}%
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Suas Metas</h2>
+            <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+              {goals?.length || 0}
+            </Badge>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => window.location.href = '/goal-builder'}
+              className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-sm"
+              data-testid="button-goal-builder"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Construir Meta
+            </Button>
+            <Button 
+              onClick={() => openGoalDialog()}
+              variant="outline"
+              className="border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+              data-testid="button-create-goal"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Meta
+            </Button>
+          </div>
+        </div>
 
           {/* Goals List */}
           {goalsLoading ? (
@@ -457,47 +490,49 @@ export default function Goals() {
                 const isExpanded = isGoalExpanded(goal.id);
                 
                 return (
-                  <Card key={goal.id} className="overflow-hidden">
-                    <CardHeader 
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  <div key={goal.id} className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
+                    <div 
+                      className="cursor-pointer p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                       onClick={() => toggleGoalExpanded(goal.id)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3 mb-3">
                             <div className={cn(
-                              "p-1.5 rounded-lg",
+                              "p-2 rounded-lg",
                               goal.completed 
-                                ? "bg-green-100 dark:bg-green-900" 
-                                : "bg-blue-100 dark:bg-blue-900"
+                                ? "bg-green-50 dark:bg-green-950" 
+                                : "bg-blue-50 dark:bg-blue-950"
                             )}>
                               {goal.completed ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                               ) : (
-                                <Flag className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <Flag className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                               )}
                             </div>
                             <div className="flex-1">
                               <h3 className={cn(
-                                "font-medium text-foreground truncate",
-                                goal.completed && "line-through text-muted-foreground"
+                                "text-lg font-semibold text-gray-900 dark:text-gray-100",
+                                goal.completed && "line-through text-gray-500 dark:text-gray-400"
                               )}>
                                 {goal.title}
                               </h3>
-                              <div className="flex items-center gap-4 mt-1">
-                                <Badge variant="outline" className="text-xs">
+                              <div className="flex items-center gap-3 mt-2">
+                                <Badge className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs">
                                   {goalTargets.length} objetivos
                                 </Badge>
                                 {completionPercentage > 0 && (
-                                  <Badge 
-                                    variant={completionPercentage === 100 ? "default" : "secondary"}
-                                    className="text-xs"
-                                  >
+                                  <Badge className={cn(
+                                    "text-xs",
+                                    completionPercentage === 100 
+                                      ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" 
+                                      : "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                                  )}>
                                     {completionPercentage}% concluído
                                   </Badge>
                                 )}
                                 {goal.targetDate && (
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge className="bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 text-xs">
                                     <Clock className="h-3 w-3 mr-1" />
                                     {format(new Date(goal.targetDate), "dd/MM/yyyy", { locale: ptBR })}
                                   </Badge>
@@ -507,7 +542,7 @@ export default function Goals() {
                           </div>
                           
                           {goal.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">
+                            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
                               {goal.description}
                             </p>
                           )}
@@ -521,6 +556,7 @@ export default function Goals() {
                               e.stopPropagation();
                               openGoalDialog(goal);
                             }}
+                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                             data-testid={`button-edit-goal-${goal.id}`}
                           >
                             <Edit className="h-4 w-4" />
@@ -532,68 +568,68 @@ export default function Goals() {
                               e.stopPropagation();
                               deleteGoalMutation.mutate(goal.id);
                             }}
-                            className="text-destructive hover:text-destructive"
+                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                             data-testid={`button-delete-goal-${goal.id}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
-                    </CardHeader>
+                    </div>
 
                     {isExpanded && (
-                      <CardContent>
-                        <div className="border-t pt-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-medium text-foreground flex items-center gap-2">
-                              <ListTodo className="h-4 w-4" />
-                              Objetivos ({goalTargets.length})
-                            </h4>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openTargetDialog(goal.id)}
-                              data-testid={`button-add-target-${goal.id}`}
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              Adicionar
-                            </Button>
-                          </div>
+                      <div className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <ListTodo className="h-4 w-4" />
+                            Objetivos ({goalTargets.length})
+                          </h4>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openTargetDialog(goal.id)}
+                            className="border-gray-300 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-900"
+                            data-testid={`button-add-target-${goal.id}`}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Adicionar
+                          </Button>
+                        </div>
 
-                          {goalTargets.length === 0 ? (
-                            <div className="text-center py-6 border border-dashed rounded-lg">
-                              <ListTodo className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                              <p className="text-sm text-muted-foreground">
-                                Nenhum objetivo criado para esta meta
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {goalTargets.map((target) => (
-                                <div
-                                  key={target.id}
-                                  className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                        {goalTargets.length === 0 ? (
+                          <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900">
+                            <ListTodo className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Nenhum objetivo criado para esta meta
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {goalTargets.map((target) => (
+                              <div
+                                key={target.id}
+                                className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-0 h-auto hover:bg-transparent"
+                                  onClick={() => toggleTargetCompleted.mutate({
+                                    id: target.id,
+                                    completed: !target.completed
+                                  })}
+                                  data-testid={`button-toggle-target-${target.id}`}
                                 >
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="p-0 h-auto"
-                                    onClick={() => toggleTargetCompleted.mutate({
-                                      id: target.id,
-                                      completed: !target.completed
-                                    })}
-                                    data-testid={`button-toggle-target-${target.id}`}
-                                  >
-                                    {target.completed ? (
-                                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                    ) : (
-                                      <div className="h-4 w-4 border-2 border-muted-foreground rounded-full" />
-                                    )}
-                                  </Button>
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <p className={cn(
-                                      "text-sm font-medium",
+                                  {target.completed ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                  ) : (
+                                    <div className="h-5 w-5 border-2 border-gray-400 dark:border-gray-500 rounded-full hover:border-blue-500 transition-colors" />
+                                  )}
+                                </Button>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <p className={cn(
+                                    "text-sm font-medium text-gray-900 dark:text-gray-100",
                                       target.completed && "line-through text-muted-foreground"
                                     )}>
                                       {target.title}
@@ -642,18 +678,14 @@ export default function Goals() {
                             </div>
                           )}
                         </div>
-                      </CardContent>
-                    )}
-                  </Card>
+                      )}
+                    </div>
                 );
               })}
             </div>
           )}
-        </div>
-      </main>
-
-      <DashboardIcon />
-
+      </div>
+      
       {/* Goal Dialog */}
       <Dialog open={isGoalDialogOpen} onOpenChange={setIsGoalDialogOpen}>
         <DialogContent className="sm:max-w-md">
