@@ -1,10 +1,10 @@
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Home", href: "/", icon: "fa-home" },
   { name: "Busca", href: "/search", icon: "fa-search" },
-  { name: "Matérias", href: "/subjects", icon: "fa-book" },
+  { name: "Biblioteca", href: "/library", icon: "fa-books" },
   { name: "Estudar", href: "/study", icon: "fa-graduation-cap" },
   { name: "Cards", href: "/flashcards", icon: "fa-layer-group" },
   { name: "Perfil", href: "/goals", icon: "fa-user" },
@@ -17,9 +17,10 @@ export default function MobileNav() {
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
       <div className="flex items-center justify-around py-2">
         {navigation.map((item) => {
-          const isActive = location === item.href;
+          const isActive = location === item.href || 
+            (item.href === "/library" && ["/subjects", "/materials", "/knowledge-base"].includes(location));
           return (
-            <a
+            <Link
               key={item.name}
               href={item.href}
               className={cn(
@@ -30,7 +31,7 @@ export default function MobileNav() {
             >
               <i className={`fas ${item.icon} text-xl`}></i>
               <span className="text-xs mt-1">{item.name}</span>
-            </a>
+            </Link>
           );
         })}
       </div>
