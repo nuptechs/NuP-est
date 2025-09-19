@@ -1,3 +1,4 @@
+import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Card } from "./card"
 
@@ -40,7 +41,7 @@ export function DataList({
     )
   }
 
-  if (!children && emptyState) {
+  if (React.Children.count(children) === 0 && emptyState) {
     return <div className={className}>{emptyState}</div>
   }
 

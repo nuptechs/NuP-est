@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Search, Filter } from "lucide-react"
 import { Input } from "./input"
-import { Button } from "./button"
 
 interface CommandBarProps {
   searchValue?: string

@@ -546,7 +546,7 @@ export default function Library() {
             
             {navigation.level === 'areas' && itemToEdit && (
               <AreaForm 
-                initialData={itemToEdit}
+                area={itemToEdit}
                 onSuccess={() => setIsEditDialogOpen(false)} 
               />
             )}
@@ -554,7 +554,7 @@ export default function Library() {
             {navigation.level === 'subjects' && itemToEdit && (
               <SubjectForm 
                 areaId={navigation.selectedAreaId}
-                initialData={itemToEdit}
+                subject={itemToEdit}
                 onSuccess={() => setIsEditDialogOpen(false)} 
               />
             )}
@@ -562,7 +562,6 @@ export default function Library() {
             {navigation.level === 'materials' && itemToEdit && (
               <MaterialUpload 
                 subjectId={navigation.selectedSubjectId}
-                initialData={itemToEdit}
                 onSuccess={() => setIsEditDialogOpen(false)} 
               />
             )}
