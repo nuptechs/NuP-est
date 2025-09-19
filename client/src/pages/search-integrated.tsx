@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import Header from '@/components/layout/header';
-import MobileNav from '@/components/layout/mobile-nav';
-import { Search, Globe, Database, ExternalLink, Filter, Users, BookOpen, Briefcase, GraduationCap, Building } from 'lucide-react';
+import TeamsShell from '@/components/layout/teams-shell';
+import { Search, Globe, Database, ExternalLink, Filter, Users, BookOpen, Briefcase, GraduationCap, Building, Settings, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,12 +51,12 @@ interface ConfiguredSitesResponse {
 }
 
 const searchTypeLabels = {
-  'concurso_publico': { label: 'Concurso Público', icon: Building, color: 'bg-blue-100 text-blue-800' },
-  'vestibular': { label: 'Vestibular', icon: GraduationCap, color: 'bg-purple-100 text-purple-800' },
-  'escola': { label: 'Escola', icon: BookOpen, color: 'bg-green-100 text-green-800' },
-  'faculdade': { label: 'Faculdade', icon: Users, color: 'bg-orange-100 text-orange-800' },
-  'desenvolvimento_profissional': { label: 'Desenvolvimento Profissional', icon: Briefcase, color: 'bg-teal-100 text-teal-800' },
-  'outras': { label: 'Outras', icon: Search, color: 'bg-gray-100 text-gray-800' }
+  'concurso_publico': { label: 'Concurso Público', icon: Building, color: 'bg-primary/10 text-primary' },
+  'vestibular': { label: 'Vestibular', icon: GraduationCap, color: 'bg-purple-500/10 text-purple-600' },
+  'escola': { label: 'Escola', icon: BookOpen, color: 'bg-green-500/10 text-green-600' },
+  'faculdade': { label: 'Faculdade', icon: Users, color: 'bg-orange-500/10 text-orange-600' },
+  'desenvolvimento_profissional': { label: 'Desenvolvimento Profissional', icon: Briefcase, color: 'bg-blue-500/10 text-blue-600' },
+  'outras': { label: 'Outras', icon: Search, color: 'bg-muted text-muted-foreground' }
 };
 
 export default function IntegratedSearch() {
@@ -65,6 +64,7 @@ export default function IntegratedSearch() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['concurso_publico']);
   const [includeWebSites, setIncludeWebSites] = useState(true);
   const [maxResults, setMaxResults] = useState(10);
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
 
   const searchMutation = useMutation({
     mutationFn: async (searchData: {
@@ -108,7 +108,12 @@ export default function IntegratedSearch() {
     const TypeIcon = isFromCebraspe ? Database : Globe;
 
     return (
-      <Card key={`${result.source}-${result.id}-${index}`} className="transition-all hover:shadow-md">
+      <Card 
+        key={`${result.source}-${result.id}-${index}`} 
+        className={`transition-all cursor-pointer hover:bg-muted/30 ${selectedResult?.id === result.id ? 'ring-2 ring-primary' : ''}`}
+        onClick={() => setSelectedResult(result)}
+        data-testid={`card-search-result-${result.id}`}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
@@ -183,6 +188,7 @@ export default function IntegratedSearch() {
                 size="sm" 
                 onClick={() => window.open(result.url, '_blank')}
                 className="w-full"
+                data-testid={`button-view-details-${result.id}`}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Ver Detalhes
@@ -196,232 +202,283 @@ export default function IntegratedSearch() {
 
   const searchData = searchMutation.data as SearchResponse | undefined;
 
+  const breadcrumbs = [
+    { label: "Home", href: "/" },
+    { label: "Busca Integrada" }
+  ];
+
+  const primaryActions = (
+    <div className="flex items-center gap-3">
+      <Button variant="outline" size="sm" data-testid="button-settings">
+        <Settings className="h-4 w-4 mr-2" />
+        Configurar Sites
+      </Button>
+      <Button size="sm" data-testid="button-new-search">
+        <Plus className="h-4 w-4 mr-2" />
+        Nova Busca
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
-      <main className="overflow-auto">
-        <Header 
-          title="Busca Integrada" 
-          subtitle="Pesquise em concursos do Cebraspe e sites configurados simultaneamente"
-        />
-        <div className="container mx-auto p-6 max-w-7xl">
-
-      {/* Formulário de Busca */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Nova Busca
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Campo de busca */}
-          <div className="flex gap-3">
-            <Input
-              placeholder="Digite sua busca (ex: polícia federal, vestibular medicina, concurso auditor...)"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleSearch}
-              disabled={!query.trim() || searchMutation.isPending}
-            >
-              {searchMutation.isPending ? 'Buscando...' : 'Buscar'}
-            </Button>
-          </div>
-
-          {/* Filtros */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Tipos de busca */}
-            <div>
-              <Label className="text-sm font-medium mb-3 block">Tipos de Busca</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(searchTypeLabels).map(([type, config]) => {
-                  const IconComponent = config.icon;
-                  return (
-                    <div key={type} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={type}
-                        checked={selectedTypes.includes(type)}
-                        onCheckedChange={(checked) => handleTypeChange(type, checked === true)}
-                      />
-                      <Label htmlFor={type} className="text-xs flex items-center gap-1 cursor-pointer">
-                        <IconComponent className="h-3 w-3" />
-                        {config.label}
-                      </Label>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Opções avançadas */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Configurações</Label>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="includeWebSites"
-                    checked={includeWebSites}
-                    onCheckedChange={(checked) => setIncludeWebSites(checked === true)}
-                  />
-                  <Label htmlFor="includeWebSites" className="text-sm">
-                    Incluir sites configurados
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="maxResults" className="text-sm">Max resultados:</Label>
-                  <Input
-                    id="maxResults"
-                    type="number"
-                    min="5"
-                    max="50"
-                    value={maxResults}
-                    onChange={(e) => setMaxResults(parseInt(e.target.value) || 10)}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Sites Configurados */}
-      {configuredSites && configuredSites.sitesByType && Object.keys(configuredSites.sitesByType).length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Sites Configurados ({configuredSites.totalTypes || 0} tipos)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(configuredSites.sitesByType).map(([type, sites]) => {
-                const config = searchTypeLabels[type as keyof typeof searchTypeLabels];
-                if (!config) return null;
-                
-                const IconComponent = config.icon;
-                return (
-                  <div key={type} className="space-y-2">
-                    <Badge className={config.color} variant="secondary">
-                      <IconComponent className="h-3 w-3 mr-1" />
-                      {config.label}
-                    </Badge>
-                    <div className="text-sm text-muted-foreground">
-                      {sites.length} site{sites.length !== 1 ? 's' : ''} configurado{sites.length !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Resultados da Busca */}
-      {searchMutation.isPending && (
-        <div className="text-center py-8">
-          <div className="inline-flex items-center gap-2">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-            <span>Buscando em múltiplas fontes...</span>
-          </div>
-        </div>
-      )}
-
-      {searchData && (
-        <div className="space-y-6">
-          {/* Estatísticas */}
+    <TeamsShell
+      title="Busca Integrada"
+      subtitle="Pesquise em concursos do Cebraspe e sites configurados simultaneamente"
+      breadcrumbs={breadcrumbs}
+      primaryActions={primaryActions}
+    >
+      <div className="flex h-full gap-6">
+        {/* Painel Esquerdo - Filtros */}
+        <div className="w-80 flex-shrink-0">
           <Card>
             <CardHeader>
-              <CardTitle>Resultados da Busca: "{searchData.query}"</CardTitle>
-              <CardDescription>
-                Encontrados {searchData.breakdown.total} resultados • 
-                {searchData.breakdown.cebraspe} do Cebraspe • 
-                {searchData.breakdown.websites} de sites externos
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Filter className="h-5 w-5" />
+                Filtros de Busca
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {searchData.searchTypes.map(type => {
-                  const config = searchTypeLabels[type as keyof typeof searchTypeLabels];
-                  if (!config) return null;
-                  const IconComponent = config.icon;
-                  return (
-                    <Badge key={type} className={config.color} variant="secondary">
-                      <IconComponent className="h-3 w-3 mr-1" />
-                      {config.label}
-                    </Badge>
-                  );
-                })}
+            <CardContent className="space-y-6">
+              {/* Campo de busca */}
+              <div className="space-y-2">
+                <Label htmlFor="search-input">Termo de Busca</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="search-input"
+                    placeholder="Digite sua busca..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    className="flex-1"
+                    data-testid="input-search"
+                  />
+                  <Button 
+                    onClick={handleSearch} 
+                    disabled={!query.trim() || searchMutation.isPending}
+                    data-testid="button-search"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tipos de Busca */}
+              <div className="space-y-3">
+                <Label>Tipos de Busca</Label>
+                <div className="space-y-2">
+                  {Object.entries(searchTypeLabels).map(([key, typeInfo]) => {
+                    const Icon = typeInfo.icon;
+                    return (
+                      <div key={key} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={key}
+                          checked={selectedTypes.includes(key)}
+                          onCheckedChange={(checked) => handleTypeChange(key, checked as boolean)}
+                          data-testid={`checkbox-${key}`}
+                        />
+                        <Label htmlFor={key} className="flex items-center gap-2 cursor-pointer">
+                          <Icon className="h-4 w-4" />
+                          <span className="text-sm">{typeInfo.label}</span>
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Configurações */}
+              <div className="space-y-3">
+                <Label>Configurações</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="include-websites"
+                      checked={includeWebSites}
+                      onCheckedChange={(checked) => setIncludeWebSites(!!checked)}
+                      data-testid="checkbox-include-websites"
+                    />
+                    <Label htmlFor="include-websites" className="text-sm cursor-pointer">
+                      Incluir sites configurados
+                    </Label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="max-results" className="text-sm">
+                      Max resultados: {maxResults}
+                    </Label>
+                    <Input
+                      id="max-results"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={maxResults}
+                      onChange={(e) => setMaxResults(parseInt(e.target.value) || 10)}
+                      className="w-20"
+                      data-testid="input-max-results"
+                    />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Resultados organizados por fonte */}
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all">
-                Todos ({searchData.results.length})
-              </TabsTrigger>
-              <TabsTrigger value="cebraspe">
-                Cebraspe ({searchData.breakdown.cebraspe})
-              </TabsTrigger>
-              <TabsTrigger value="websites">
-                Sites ({searchData.breakdown.websites})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all" className="space-y-4">
-              {searchData.results.length === 0 ? (
-                <Card>
-                  <CardContent className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      Nenhum resultado encontrado para sua busca.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {searchData.results.map((result, index) => renderSearchResult(result, index))}
+          {/* Sites Configurados */}
+          {configuredSites && (
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Globe className="h-5 w-5" />
+                  Sites Configurados ({configuredSites.totalTypes} tipos)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {Object.entries(configuredSites.sitesByType).map(([type, sites]) => {
+                    const typeLabel = searchTypeLabels[type as keyof typeof searchTypeLabels]?.label || type;
+                    return (
+                      <div key={type} className="p-2 rounded-lg border">
+                        <div className="font-medium text-sm">{typeLabel}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {sites.filter(s => s.isActive).length} de {sites.length} ativos
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="cebraspe" className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {searchData.results
-                  .filter(r => r.source === 'cebraspe')
-                  .map((result, index) => renderSearchResult(result, index))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="websites" className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {searchData.results
-                  .filter(r => r.source === 'website')
-                  .map((result, index) => renderSearchResult(result, index))}
-              </div>
-            </TabsContent>
-          </Tabs>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      )}
 
-      {/* Erro */}
-      {searchMutation.error && (
-        <Card className="border-red-200">
-          <CardContent className="text-center py-8">
-            <p className="text-red-600">
-              Erro ao realizar a busca. Tente novamente.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+        {/* Painel Central - Resultados */}
+        <div className="flex-1">
+          {searchMutation.isPending ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Buscando...</p>
+                </div>
+              </div>
+            </div>
+          ) : searchData?.results ? (
+            <div className="space-y-4">
+              {/* Cabeçalho dos resultados */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {searchData.breakdown.total} resultados encontrados
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {searchData.breakdown.cebraspe} do Cebraspe • {searchData.breakdown.websites} de sites externos
+                  </p>
+                </div>
+                {searchData.searchTypes.length > 0 && (
+                  <div className="flex gap-2">
+                    {searchData.searchTypes.map((type) => {
+                      const typeInfo = searchTypeLabels[type as keyof typeof searchTypeLabels];
+                      if (!typeInfo) return null;
+                      const Icon = typeInfo.icon;
+                      return (
+                        <Badge key={type} variant="outline" className={typeInfo.color}>
+                          <Icon className="h-3 w-3 mr-1" />
+                          {typeInfo.label}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Lista de resultados */}
+              <div className="space-y-3">
+                {searchData.results.map(renderSearchResult)}
+              </div>
+            </div>
+          ) : searchMutation.isError ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-destructive">Erro ao realizar a busca. Tente novamente.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Busca Integrada</h3>
+                <p className="text-muted-foreground mb-4">
+                  Pesquise simultaneamente em concursos do Cebraspe e sites configurados
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Digite um termo de busca e configure os filtros para começar
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      </main>
-      <MobileNav />
-    </div>
+
+        {/* Painel Direito - Preview (opcional) */}
+        {selectedResult && (
+          <div className="w-96 flex-shrink-0">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {selectedResult.source === 'cebraspe' ? <Database className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
+                  Preview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold">{selectedResult.name}</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {selectedResult.description || selectedResult.fullContent}
+                    </p>
+                  </div>
+
+                  {selectedResult.orgao && (
+                    <div>
+                      <strong className="text-sm">Órgão:</strong>
+                      <p className="text-sm">{selectedResult.orgao}</p>
+                    </div>
+                  )}
+
+                  {selectedResult.cargo && (
+                    <div>
+                      <strong className="text-sm">Cargo:</strong>
+                      <p className="text-sm">{selectedResult.cargo}</p>
+                    </div>
+                  )}
+
+                  {selectedResult.vagas && (
+                    <div>
+                      <strong className="text-sm">Vagas:</strong>
+                      <p className="text-sm">{selectedResult.vagas}</p>
+                    </div>
+                  )}
+
+                  {selectedResult.salario && (
+                    <div>
+                      <strong className="text-sm">Salário:</strong>
+                      <p className="text-sm text-green-600 font-medium">{selectedResult.salario}</p>
+                    </div>
+                  )}
+
+                  {selectedResult.url && (
+                    <Button 
+                      onClick={() => window.open(selectedResult.url, '_blank')}
+                      className="w-full"
+                      data-testid="button-preview-open"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Abrir no Site
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </TeamsShell>
   );
 }
