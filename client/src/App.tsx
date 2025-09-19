@@ -64,7 +64,7 @@ function Router() {
             <Route path="/knowledge-base" component={() => <Redirect to="/library?type=knowledge-base" />} />
             
             <Route path="/study" component={Study} />
-            <Route path="/analytics" component={Analytics} />
+            {/* <Route path="/analytics" component={Analytics} /> */}
             <Route path="/flashcards" component={Flashcards} />
             <Route path="/quiz" component={Quiz} />
             <Route path="/goals" component={Goals} />

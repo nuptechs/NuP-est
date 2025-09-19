@@ -2,13 +2,22 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/layout/header";
-import MobileNav from "@/components/layout/mobile-nav";
-import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { 
+  TrendingUp, 
+  Clock, 
+  Brain, 
+  Trophy, 
+  Target as TargetIcon,
+  Flame,
+  BookOpen,
+  BarChart3,
+  Calendar,
+  ChevronDown
+} from "lucide-react";
 import type { Subject, StudySession, Target } from "@shared/schema";
 
 export default function Analytics() {
@@ -155,84 +164,73 @@ export default function Analytics() {
   const weeklyStudyTime = Math.round(calculateWeeklyStudyTime() / 60 * 100) / 100; // Convert to hours
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="overflow-auto">
-        <Header 
-          title="Progresso e Analytics" 
-          subtitle="Acompanhe seu desempenho e evolução nos estudos"
-        />
-        
-        <div className="p-6 space-y-6">
-          {/* Overview Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="hover-lift transition-all">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-fire text-primary text-xl"></i>
-                  </div>
-                  <span className="text-sm text-muted-foreground">Sequência</span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-foreground" data-testid="stat-study-streak">
-                    {studyStreak} dias
-                  </p>
-                  <p className="text-sm text-muted-foreground">Estudando</p>
-                </div>
-              </CardContent>
-            </Card>
+    <div className="p-6 space-y-6">
+      {/* Analytics Content */}
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Analytics</h1>
+        <p className="text-sm text-gray-500">
+          Acompanhe seu desempenho e evolução nos estudos
+        </p>
+      </div>
 
-            <Card className="hover-lift transition-all">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-clock text-secondary text-xl"></i>
-                  </div>
-                  <span className="text-sm text-muted-foreground">Semana</span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-foreground" data-testid="stat-weekly-hours">
-                    {weeklyStudyTime}h
-                  </p>
-                  <p className="text-sm text-muted-foreground">Estudadas</p>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-0 bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-950 dark:to-red-900">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300" data-testid="stat-study-streak">
+                  {studyStreak}
+                </p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">Dias consecutivos</p>
+              </div>
+              <Flame className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="hover-lift transition-all">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-question-circle text-accent text-xl"></i>
-                  </div>
-                  <span className="text-sm text-muted-foreground">IA</span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-foreground" data-testid="stat-ai-questions">
-                    {(stats as any)?.questionsGenerated || 0}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Questões geradas</p>
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="border-0 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300" data-testid="stat-weekly-hours">
+                  {weeklyStudyTime}h
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400 font-medium">Esta semana</p>
+              </div>
+              <Clock className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="hover-lift transition-all">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-chart-4/10 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-trophy text-yellow-600 text-xl"></i>
-                  </div>
-                  <span className="text-sm text-muted-foreground">Metas</span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-foreground" data-testid="stat-goal-completion">
-                    {(stats as any)?.goalProgress || 0}%
-                  </p>
-                  <p className="text-sm text-muted-foreground">Concluídas</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <Card className="border-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300" data-testid="stat-ai-questions">
+                  {(stats as any)?.questionsGenerated || 0}
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Questões IA</p>
+              </div>
+              <Brain className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-amber-700 dark:text-amber-300" data-testid="stat-goal-completion">
+                  {(stats as any)?.goalProgress || 0}%
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Metas concluídas</p>
+              </div>
+              <Trophy className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
           {/* Subject Progress and Weekly Goals */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -365,156 +363,16 @@ export default function Analytics() {
             </div>
           </div>
 
-          {/* Recent Activity */}
+          {/* Simplified Analytics */}
           <Card>
             <CardHeader>
-              <CardTitle>Atividade Recente</CardTitle>
+              <CardTitle>Analytics em desenvolvimento</CardTitle>
             </CardHeader>
             <CardContent>
-              {sessionsLoading ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="animate-pulse flex items-center p-3 bg-muted/30 rounded-lg">
-                      <div className="w-10 h-10 bg-muted rounded-lg mr-4"></div>
-                      <div className="flex-1">
-                        <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
-                        <div className="h-3 bg-muted rounded w-3/4"></div>
-                      </div>
-                      <div className="h-4 bg-muted rounded w-16"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : !Array.isArray(recentSessions) || !recentSessions?.length ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i className="fas fa-history text-muted-foreground text-2xl"></i>
-                  </div>
-                  <p className="text-muted-foreground">Nenhuma atividade recente</p>
-                  <p className="text-sm text-muted-foreground">Comece estudando para ver seu histórico</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {Array.isArray(recentSessions) && recentSessions?.slice(0, 10).map((session: StudySession) => {
-                    const subject = Array.isArray(subjects) ? subjects?.find((s: Subject) => s.id === session.subjectId) : null;
-                    return (
-                      <div key={session.id} className="flex items-center p-3 bg-muted/30 rounded-lg border border-border">
-                        <div className={`w-10 h-10 ${session.completed ? 'bg-secondary' : 'bg-muted'}/10 rounded-lg flex items-center justify-center mr-4`}>
-                          <i className={`fas ${session.completed ? 'fa-check' : 'fa-clock'} text-${session.completed ? 'secondary' : 'muted-foreground'}`}></i>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-foreground" data-testid={`session-subject-${session.id}`}>
-                              {subject?.name || "Matéria não encontrada"}
-                            </h4>
-                            <span className="text-sm text-muted-foreground" data-testid={`session-duration-${session.id}`}>
-                              {session.duration} min
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between mt-1">
-                            <div className="flex items-center space-x-2">
-                              <Badge className={getSessionTypeColor(session.type)}>
-                                {getSessionTypeLabel(session.type)}
-                              </Badge>
-                              {session.completed && session.score && (
-                                <span className="text-xs text-muted-foreground">
-                                  {session.score}% de acerto
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground" data-testid={`session-date-${session.id}`}>
-                              {new Date(session.startedAt!).toLocaleDateString('pt-BR')}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <p>Interface de analytics atualizada em breve...</p>
             </CardContent>
           </Card>
-
-          {/* Performance Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Resumo de Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg">
-                    <div className="flex items-center">
-                      <i className="fas fa-trophy text-primary mr-3"></i>
-                      <span className="text-sm font-medium text-foreground">Melhor sequência</span>
-                    </div>
-                    <span className="text-sm font-bold text-primary" data-testid="text-best-streak">
-                      {studyStreak} dias
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg">
-                    <div className="flex items-center">
-                      <i className="fas fa-clock text-secondary mr-3"></i>
-                      <span className="text-sm font-medium text-foreground">Média semanal</span>
-                    </div>
-                    <span className="text-sm font-bold text-secondary" data-testid="text-weekly-average">
-                      {weeklyStudyTime}h
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-accent/5 rounded-lg">
-                    <div className="flex items-center">
-                      <i className="fas fa-book text-accent mr-3"></i>
-                      <span className="text-sm font-medium text-foreground">Matérias ativas</span>
-                    </div>
-                    <span className="text-sm font-bold text-accent" data-testid="text-active-subjects">
-                      {(stats as any)?.subjects || 0}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Próximos Passos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="p-3 bg-muted/30 rounded-lg border border-border">
-                    <div className="flex items-start">
-                      <i className="fas fa-lightbulb text-primary mr-3 mt-0.5"></i>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Sugestão do sistema</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Continue mantendo sua consistência de estudos! 
-                          {weeklyStudyTime < 10 && " Tente aumentar gradualmente suas horas de estudo."}
-                          {studyStreak >= 7 && " Você está em uma ótima sequência!"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="p-3 bg-muted/30 rounded-lg border border-border">
-                    <div className="flex items-start">
-                      <i className="fas fa-target text-accent mr-3 mt-0.5"></i>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Meta recomendada</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Defina uma meta de estudar pelo menos {Math.max(weeklyStudyTime + 2, 10)}h na próxima semana
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
-      </main>
-      
-      <MobileNav />
-      <DashboardIcon />
     </div>
   );
 }
