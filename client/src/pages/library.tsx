@@ -103,10 +103,7 @@ export default function Library() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        document.querySelector<HTMLInputElement>('[data-testid="input-search-global"]')?.focus();
-      }
+      // ⌘K is handled by ClickUp Shell - removed conflict
       if ((e.metaKey || e.ctrlKey) && e.key === 'u') {
         e.preventDefault();
         handleCreateNew('material');
@@ -312,11 +309,9 @@ export default function Library() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/30">
-      <Header title="Biblioteca" subtitle="Central de conteúdo unificada" />
-      <MobileNav />
+    <div className="space-y-6">
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="space-y-6">
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 mb-6">
           {navigation.breadcrumb.map((item, index) => (
@@ -543,7 +538,7 @@ export default function Library() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </main>
+      </div>
     </div>
   );
 }
