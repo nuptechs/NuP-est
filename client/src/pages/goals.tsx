@@ -43,6 +43,12 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-row";
 import FloatingSettings from "@/components/FloatingSettings";
+import { 
+  ResponsiveHeader, 
+  ResponsiveButton, 
+  ResponsiveGrid 
+} from "@/components/ui/responsive-components";
+import { useResponsiveText, responsiveTexts } from "@/hooks/useResponsiveText";
 import type { Goal, Target as TargetType } from "@shared/schema";
 
 // Form schemas
@@ -387,32 +393,27 @@ export default function Goals() {
       <Container>
         {/* Header Section */}
         <div className="mb-xl">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-lg)' }}>
-            <div>
-              <Header as="h1" style={{ fontSize: '32px', fontWeight: '600', color: 'var(--nup-gray-800)', marginBottom: 'var(--spacing-xs)' }}>
-                Metas e Objetivos
-              </Header>
-              <p style={{ color: 'var(--nup-gray-600)', fontSize: '16px' }}>
-                Gerencie suas metas de estudo e acompanhe seu progresso
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-              <Button 
-                primary
-                icon="magic"
-                content="Construir Meta"
-                onClick={() => window.location.href = '/goal-builder'}
-                data-testid="button-goal-builder"
-              />
-              <Button 
-                secondary
-                icon="plus"
-                content="Nova Meta"
-                onClick={() => openGoalModal()}
-                data-testid="button-create-goal"
-              />
-            </div>
-          </div>
+          <ResponsiveHeader 
+            page="goals"
+            rightActions={
+              <>
+                <ResponsiveButton 
+                  textKey={{ desktop: 'Construir Meta', tablet: 'Construir', mobile: '🎯' }}
+                  icon="magic"
+                  primary
+                  onClick={() => window.location.href = '/goal-builder'}
+                  testId="button-goal-builder"
+                />
+                <ResponsiveButton 
+                  textKey={{ desktop: 'Nova Meta', tablet: 'Nova', mobile: '+' }}
+                  icon="plus"
+                  secondary
+                  onClick={() => openGoalModal()}
+                  testId="button-create-goal"
+                />
+              </>
+            }
+          />
         </div>
 
         {/* Stats Overview */}
@@ -423,7 +424,7 @@ export default function Goals() {
             data-testid="stats-header"
           />
           
-          <Grid columns={4} stackable style={{ marginTop: 'var(--spacing-md)' }}>
+          <ResponsiveGrid columns={4} stackable>
             {goalsLoading ? (
               <>
                 <Grid.Column><SkeletonCard /></Grid.Column>
@@ -471,7 +472,7 @@ export default function Goals() {
                 </Grid.Column>
               </>
             )}
-          </Grid>
+          </ResponsiveGrid>
         </div>
 
         {/* Goals List */}
