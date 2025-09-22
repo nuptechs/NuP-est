@@ -279,13 +279,15 @@ body {
 }
 
 .ui.blue.label {
-  background-color: var(--nup-secondary) !important;
-  color: white !important;
+  background-color: rgba(0, 120, 212, 0.1) !important;
+  color: var(--nup-secondary) !important;
+  border: 1px solid var(--nup-secondary) !important;
 }
 
 .ui.green.label {
-  background-color: var(--nup-success) !important;
-  color: white !important;
+  background-color: rgba(19, 161, 14, 0.1) !important;
+  color: var(--nup-success) !important;
+  border: 1px solid var(--nup-success) !important;
 }
 
 .ui.yellow.label {
