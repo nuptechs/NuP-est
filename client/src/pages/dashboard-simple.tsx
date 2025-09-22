@@ -27,6 +27,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-row";
+import { ResponsiveGrid } from "@/components/ui/responsive-components";
 import FloatingSettings from "@/components/FloatingSettings";
 import type { Subject, Goal } from "@shared/schema";
 
@@ -116,7 +117,7 @@ export default function Dashboard() {
             data-testid="stats-header"
           />
           
-          <Grid columns={4} stackable style={{ marginTop: 'var(--spacing-md)' }}>
+          <ResponsiveGrid columns={4}>
             {statsLoading ? (
               <>
                 <Grid.Column><SkeletonCard /></Grid.Column>
@@ -164,7 +165,7 @@ export default function Dashboard() {
                 </Grid.Column>
               </>
             )}
-          </Grid>
+          </ResponsiveGrid>
         </div>
 
         {/* Quick Actions */}
@@ -175,8 +176,8 @@ export default function Dashboard() {
             data-testid="quick-actions-header"
           />
           
-          <Grid columns={3} stackable style={{ marginTop: 'var(--spacing-md)' }}>
-            <Grid.Column width={10}>
+          <ResponsiveGrid columns={3}>
+            <Grid.Column>
               <Card 
                 className="transition-smooth hover-lift" 
                 style={{ cursor: 'pointer', height: '100%' }}
@@ -202,7 +203,7 @@ export default function Dashboard() {
               </Card>
             </Grid.Column>
 
-            <Grid.Column width={6}>
+            <Grid.Column>
               <Card style={{ height: '100%' }}>
                 <Card.Content>
                   <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
@@ -251,11 +252,11 @@ export default function Dashboard() {
                 </Card.Content>
               </Card>
             </Grid.Column>
-          </Grid>
+          </ResponsiveGrid>
         </div>
 
         {/* Content Overview */}
-        <Grid columns={2} stackable>
+        <ResponsiveGrid columns={2}>
           {/* Recent Subjects */}
           <Grid.Column>
             <Card style={{ height: '100%' }}>
@@ -379,7 +380,7 @@ export default function Dashboard() {
               </Card.Content>
             </Card>
           </Grid.Column>
-        </Grid>
+        </ResponsiveGrid>
       </Container>
       <FloatingSettings />
     </div>
