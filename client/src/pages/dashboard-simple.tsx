@@ -300,7 +300,7 @@ export default function Dashboard() {
               <Card 
                 className="transition-smooth hover-lift" 
                 style={{ cursor: 'pointer', height: '100%' }}
-                onClick={() => navigate('/study')}
+                onClick={() => navigate('/flashcards')}
                 data-testid="card-flashcards"
               >
                 <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
