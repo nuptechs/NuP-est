@@ -1,485 +1,64 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ======= MINIMAL BASE STYLES ======= */
 
-:root {
-  /* === MICROSOFT TEAMS DESIGN TOKENS === */
-  /* Background layers - cleaner neutral palette */
-  --background: 210 20% 98%;      /* Clean white with minimal undertone */
-  --surface: 0 0% 100%;           /* Pure white elevated surfaces */
-  --surface-secondary: 210 20% 96%; /* Secondary surfaces */
-  
-  /* Text hierarchy - Teams-inspired */
-  --foreground: 222 24% 27%;      /* Primary text - sharp dark */
-  --foreground-secondary: 222 14% 45%; /* Secondary text */
-  --foreground-muted: 220 14% 65%; /* Muted text */
-  
-  /* Component backgrounds */
-  --card: 0 0% 100%;
-  --card-foreground: 222 24% 27%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 24% 27%;
-  
-  /* === MICROSOFT TEAMS COLOR SYSTEM === */
-  /* Primary - Teams brand purple */
-  --primary: 238 49% 57%;         /* #5B5FC7 - Teams brand */
-  --primary-foreground: 0 0% 100%;
-  --primary-hover: 238 49% 53%;
-  
-  /* Info - Communication Blue */
-  --info: 207 100% 41%;           /* #0078D4 - CommunicationBlue */
-  --info-foreground: 0 0% 100%;
+/* Reset and base styles only - all component styles moved to dedicated files */
 
-  /* Secondary - Neutral gray */
-  --secondary: 220 14% 96%;
-  --secondary-foreground: 222 24% 27%;
-  
-  /* Accent - Subtle info variant */
-  --accent: 207 100% 45%;
-  --accent-foreground: 0 0% 100%;
-  --accent-hover: 207 100% 41%;
-  
-  /* Status colors - Fluent Design tokens */
-  --success: 118 84% 34%;         /* #13A10E - Fluent green */
-  --success-foreground: 0 0% 100%;
-  --warning: 44 100% 50%;         /* #FFB900 - Office yellow */
-  --warning-foreground: 0 0% 15%;
-  --destructive: 358 63% 51%;     /* #D13438 - Fluent red */
-  --destructive-foreground: 0 0% 100%;
-  
-  /* UI Elements - flatter, more Teams-like */
-  --muted: 220 14% 96%;           /* Muted backgrounds */
-  --muted-foreground: 222 14% 45%; /* Muted text */
-  --border: 220 14% 95%;          /* Very subtle borders */
-  --border-strong: 220 14% 88%;   /* Softer borders */
-  --input: 0 0% 100%;             /* Pure white inputs */
-  --ring: 238 49% 57%;            /* Teams brand focus ring */
-  
-  /* Chart colors */
-  --chart-1: 222 84% 56%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 262 83% 66%;
-  --chart-4: 45 90% 60%;
-  --chart-5: 340 75% 65%;
-  
-  /* Sidebar */
-  --sidebar: 210 40% 99%;
-  --sidebar-foreground: 215 25% 27%;
-  --sidebar-primary: 222 84% 56%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 214 32% 91%;
-  --sidebar-accent-foreground: 215 25% 27%;
-  --sidebar-border: 214 32% 91%;
-  --sidebar-ring: 222 84% 56%;
-  
-  /* === TYPOGRAPHY SYSTEM === */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-serif: ui-serif, Georgia, 'Times New Roman', serif;
-  --font-mono: ui-monospace, 'JetBrains Mono', 'Fira Code', Consolas, monospace;
-  
-  /* Font sizes - consistent scale */
-  --text-xs: 0.75rem;      /* 12px */
-  --text-sm: 0.875rem;     /* 14px */
-  --text-base: 1rem;       /* 16px */
-  --text-lg: 1.25rem;      /* 20px */
-  --text-xl: 1.5rem;       /* 24px */
-  
-  /* Line heights */
-  --leading-tight: 1.25;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.625;
-  
-  /* Letter spacing */
-  --tracking-tight: -0.025em;
-  --tracking-normal: 0em;
-  --tracking-wide: 0.025em;
-  
-  /* === SPATIAL SYSTEM (8pt grid) === */
-  --spacing-1: 0.25rem;    /* 4px */
-  --spacing-2: 0.5rem;     /* 8px */
-  --spacing-3: 0.75rem;    /* 12px */
-  --spacing-4: 1rem;       /* 16px */
-  --spacing-6: 1.5rem;     /* 24px */
-  --spacing-8: 2rem;       /* 32px */
-  --spacing-12: 3rem;      /* 48px */
-  --spacing-16: 4rem;      /* 64px */
-  
-  /* === ELEVATION SYSTEM (subtle shadows) === */
-  --radius: 0.5rem;        /* 8px - Teams standard radius */
-  --radius-sm: 0.25rem;    /* 4px */
-  --radius-lg: 0.5rem;     /* 8px */
-  
-  /* Minimal shadows - prefer borders over heavy shadows */
-  --shadow-xs: 0 1px 2px 0 hsl(220 14% 41% / 0.03);
-  --shadow-sm: 0 1px 3px 0 hsl(220 14% 41% / 0.05), 0 1px 2px -1px hsl(220 14% 41% / 0.03);
-  --shadow: 0 2px 4px 0 hsl(220 14% 41% / 0.06);
-  --shadow-md: 0 4px 8px 0 hsl(220 14% 41% / 0.08);
-  --shadow-lg: 0 8px 16px 0 hsl(220 14% 41% / 0.10);
-  --shadow-xl: 0 16px 32px 0 hsl(220 14% 41% / 0.12);
-  
-  /* === ANIMATION SYSTEM === */
-  --duration-fast: 150ms;
-  --duration-normal: 200ms;
-  --duration-slow: 300ms;
-  --ease-out: cubic-bezier(0.4, 0.0, 0.2, 1);
-  --ease-in: cubic-bezier(0.4, 0.0, 1, 1);
-  --ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.dark {
-  /* === TEAMS DARK MODE PALETTE === */
-  /* Background layers */
-  --background: 240 6% 10%;       /* Deep charcoal background */
-  --surface: 240 5% 11%;          /* Elevated surfaces */
-  --surface-secondary: 240 4% 12%; /* Secondary surfaces */
-  
-  /* Text hierarchy */
-  --foreground: 210 40% 95%;      /* Primary text - soft white */
-  --foreground-secondary: 215 20% 75%; /* Secondary text */
-  --foreground-muted: 215 16% 55%; /* Muted text */
-  
-  /* Component backgrounds */
-  --card: 240 5% 11%;
-  --card-foreground: 210 40% 95%;
-  --popover: 240 5% 11%;
-  --popover-foreground: 210 40% 95%;
-  
-  /* Color system (slightly adjusted for dark) */
-  --primary: 238 49% 60%;         /* Teams brand - slightly brighter */
-  --primary-foreground: 0 0% 100%;
-  --primary-hover: 238 49% 56%;
-  
-  --info: 207 100% 45%;           /* Communication blue - brighter */
-  --info-foreground: 0 0% 100%;
-
-  --secondary: 240 4% 16%;
-  --secondary-foreground: 210 40% 95%;
-  
-  --accent: 207 100% 50%;
-  --accent-foreground: 0 0% 100%;
-  --accent-hover: 207 100% 45%;
-  
-  /* Status colors - Fluent dark variants */
-  --success: 118 84% 38%;         /* Fluent green - brighter */
-  --success-foreground: 0 0% 100%;
-  --warning: 44 100% 55%;         /* Office yellow - brighter */
-  --warning-foreground: 0 0% 15%;
-  --destructive: 358 63% 55%;     /* Fluent red - brighter */
-  --destructive-foreground: 0 0% 100%;
-  
-  /* UI Elements */
-  --muted: 240 4% 16%;            /* Muted backgrounds */
-  --muted-foreground: 215 16% 55%; /* Muted text */
-  --border: 240 4% 16%;           /* Subtle borders */
-  --border-strong: 240 5% 20%;    /* Stronger borders */
-  --input: 240 4% 14%;            /* Input backgrounds */
-  --ring: 238 49% 60%;            /* Teams brand focus ring */
-  
-  /* Chart colors (adjusted for dark) */
-  --chart-1: 222 84% 60%;
-  --chart-2: 160 60% 50%;
-  --chart-3: 262 83% 70%;
-  --chart-4: 45 90% 65%;
-  --chart-5: 340 75% 70%;
-  
-  /* Sidebar */
-  --sidebar: 240 5% 11%;
-  --sidebar-foreground: 210 40% 95%;
-  --sidebar-primary: 238 49% 60%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 4% 16%;
-  --sidebar-accent-foreground: 210 40% 95%;
-  --sidebar-border: 240 4% 16%;
-  --sidebar-ring: 238 49% 60%;
-  
-  /* Minimal shadows for dark mode */
-  --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.15);
-  --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.20), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
-  --shadow: 0 2px 4px 0 hsl(0 0% 0% / 0.25);
-  --shadow-md: 0 4px 8px 0 hsl(0 0% 0% / 0.30);
-  --shadow-lg: 0 8px 16px 0 hsl(0 0% 0% / 0.35);
-  --shadow-xl: 0 16px 32px 0 hsl(0 0% 0% / 0.40);
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
 }
 
-@layer base {
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/* Accessibility */
+*:focus {
+  outline: 2px solid #5B5FC7;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for all elements */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f3f4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bdc1c6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9aa0a6;
+}
+
+/* Print styles */
+@media print {
   * {
-    @apply border-border;
-  }
-
-  body {
-    @apply font-sans antialiased bg-background text-foreground;
-    font-size: var(--text-base);
-    line-height: var(--leading-normal);
-    letter-spacing: var(--tracking-normal);
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-medium;
-    letter-spacing: var(--tracking-tight);
-    line-height: var(--leading-tight);
-  }
-
-  h1 { font-size: var(--text-xl); }
-  h2 { font-size: var(--text-lg); }
-  h3 { font-size: var(--text-base); }
-  h4 { font-size: var(--text-sm); }
-
-  /* Focus styles - Teams style with 2px brand ring */
-  :focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
-    border-radius: var(--radius-sm);
-  }
-
-  /* Scrollbars */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
-}
-
-/* === MODERN UTILITY CLASSES === */
-
-/* Animation & Transitions */
-.transition-fast {
-  transition: all var(--duration-fast) var(--ease-out);
-}
-
-.transition-normal {
-  transition: all var(--duration-normal) var(--ease-out);
-}
-
-.transition-slow {
-  transition: all var(--duration-slow) var(--ease-out);
-}
-
-/* Modern hover effects */
-.hover-lift {
-  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
-}
-
-.hover-lift:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-/* Surface elevations */
-.surface {
-  background: hsl(var(--surface));
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-xs);
-}
-
-.surface-elevated {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-}
-
-/* Modern gradients */
-.gradient-primary {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-hover)) 100%);
-}
-
-.gradient-accent {
-  background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%);
-}
-
-.gradient-subtle {
-  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface)) 100%);
-}
-
-/* Status indicators */
-.status-success {
-  color: hsl(var(--success));
-}
-
-.status-warning {
-  color: hsl(var(--warning));
-}
-
-.status-error {
-  color: hsl(var(--destructive));
-}
-
-/* Glass morphism effect */
-.glass {
-  background: hsl(var(--background) / 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid hsl(var(--border) / 0.5);
-}
-
-/* Modern loading skeleton */
-.skeleton {
-  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted) / 0.5) 50%, hsl(var(--muted)) 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
-}
-
-@keyframes skeleton-loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* Modern badges */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  line-height: 1;
-  padding: var(--spacing-1) var(--spacing-2);
-}
-
-.badge-primary {
-  background: hsl(var(--primary) / 0.1);
-  color: hsl(var(--primary));
-  border: 1px solid hsl(var(--primary) / 0.2);
-}
-
-.badge-secondary {
-  background: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  border: 1px solid hsl(var(--border));
-}
-
-/* Interactive states */
-.interactive {
-  transition: all var(--duration-fast) var(--ease-out);
-  cursor: pointer;
-}
-
-.interactive:hover {
-  background: hsl(var(--muted) / 0.5);
-}
-
-.interactive:active {
-  transform: scale(0.98);
-}
-
-/* Text utilities */
-.text-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* === MODERN PROGRESS BAR === */
-.progress-modern {
-  background: hsl(var(--muted));
-  border-radius: var(--radius);
-  overflow: hidden;
-  position: relative;
-}
-
-.progress-fill {
-  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
-  height: 100%;
-  border-radius: var(--radius);
-  transition: width var(--duration-slow) var(--ease-out);
-  position: relative;
-}
-
-.progress-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, hsl(var(--background) / 0.3) 50%, transparent 100%);
-  animation: progress-shine 2s infinite;
-}
-
-@keyframes progress-shine {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-/* Flashcard 3D Animation System - Clean & Minimal */
-.flashcard-container {
-  position: relative;
-  perspective: 1000px;
-  width: 100%;
-  height: auto;
-  min-height: 400px;
-}
-
-.flashcard-inner {
-  position: relative;
-  width: 100%;
-  height: auto;
-  min-height: 400px;
-  text-align: center;
-  transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-  transform-style: preserve-3d;
-}
-
-.flashcard-inner.flipped {
-  transform: rotateY(180deg);
-}
-
-.flashcard-face {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: auto;
-  min-height: 400px;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  -moz-backface-visibility: hidden;
-  border-radius: var(--radius);
-  border: 1px solid hsl(var(--border) / 0.1);
-  background: hsl(var(--card));
-  transform-origin: center center;
-  transition: border-color 0.2s ease;
-}
-
-.flashcard-front {
-  transform: rotateY(0deg);
-}
-
-.flashcard-back {
-  transform: rotateY(180deg);
-}
-
-/* Clean hover effect for front face */
-.flashcard-face.flashcard-front:hover {
-  border-color: hsl(var(--primary) / 0.2);
-}
-
-/* Clean transitions without opacity forcing */
-.flashcard-inner:not(.flipped) .flashcard-back {
-  pointer-events: none;
-}
-
-.flashcard-inner.flipped .flashcard-front {
-  pointer-events: none;
-}
-
-/* Motion safe preference */
-@media (prefers-reduced-motion: reduce) {
-  .flashcard-inner {
-    transition: none;
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 }

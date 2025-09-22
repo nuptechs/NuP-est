@@ -1,0 +1,425 @@
+/* ======= SEMANTIC UI CUSTOMIZATION - NuP-est ======= */
+
+/* === DESIGN TOKENS === */
+:root {
+  /* Primary brand colors */
+  --nup-primary: #5B5FC7;        /* Teams brand purple */
+  --nup-primary-dark: #4B4FB7;    
+  --nup-secondary: #0078D4;       /* Communication blue */
+  
+  /* Status colors */
+  --nup-success: #13A10E;         /* Fluent green */
+  --nup-warning: #FFB900;         /* Office yellow */
+  --nup-error: #D13438;           /* Fluent red */
+  
+  /* Neutral palette */
+  --nup-gray-50: #F8F9FA;
+  --nup-gray-100: #F1F3F4;
+  --nup-gray-200: #E8EAED;
+  --nup-gray-300: #DADCE0;
+  --nup-gray-400: #BDC1C6;
+  --nup-gray-500: #9AA0A6;
+  --nup-gray-600: #80868B;
+  --nup-gray-700: #5F6368;
+  --nup-gray-800: #3C4043;
+  --nup-gray-900: #202124;
+  
+  /* Spacing scale (8pt grid) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px 0 rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 16px 0 rgba(0, 0, 0, 0.10);
+}
+
+/* === GLOBAL OVERRIDES === */
+
+/* Body adjustments */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  color: var(--nup-gray-800) !important;
+  background-color: var(--nup-gray-50) !important;
+}
+
+/* === SEMANTIC UI COMPONENT OVERRIDES === */
+
+/* Buttons */
+.ui.button {
+  border-radius: var(--radius-md) !important;
+  font-weight: 500 !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid transparent !important;
+}
+
+.ui.primary.button {
+  background-color: var(--nup-primary) !important;
+  color: white !important;
+}
+
+.ui.primary.button:hover {
+  background-color: var(--nup-primary-dark) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.ui.secondary.button {
+  background-color: white !important;
+  color: var(--nup-gray-700) !important;
+  border-color: var(--nup-gray-300) !important;
+}
+
+.ui.secondary.button:hover {
+  border-color: var(--nup-gray-400) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Cards */
+.ui.card {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid var(--nup-gray-200) !important;
+  transition: all 0.2s ease !important;
+}
+
+.ui.card:hover {
+  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-2px) !important;
+}
+
+.ui.card > .content {
+  padding: var(--spacing-lg) !important;
+}
+
+.ui.card > .content > .header {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--nup-gray-800) !important;
+  margin-bottom: var(--spacing-sm) !important;
+}
+
+.ui.card > .content > .description {
+  color: var(--nup-gray-600) !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+/* Headers */
+.ui.header {
+  font-weight: 600 !important;
+  color: var(--nup-gray-800) !important;
+  margin-bottom: var(--spacing-md) !important;
+}
+
+.ui.huge.header {
+  font-size: 28px !important;
+}
+
+.ui.large.header {
+  font-size: 24px !important;
+}
+
+.ui.medium.header {
+  font-size: 20px !important;
+}
+
+.ui.small.header {
+  font-size: 16px !important;
+}
+
+/* Forms */
+.ui.form .field > label {
+  color: var(--nup-gray-700) !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  margin-bottom: var(--spacing-xs) !important;
+}
+
+.ui.form .field input[type="text"],
+.ui.form .field input[type="email"],
+.ui.form .field input[type="password"],
+.ui.form .field textarea {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--nup-gray-300) !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  font-size: 14px !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.ui.form .field input:focus,
+.ui.form .field textarea:focus {
+  border-color: var(--nup-primary) !important;
+  box-shadow: 0 0 0 2px rgba(91, 95, 199, 0.2) !important;
+}
+
+/* Grid */
+.ui.grid > .column {
+  padding-left: var(--spacing-md) !important;
+  padding-right: var(--spacing-md) !important;
+}
+
+.ui.grid > .row {
+  padding-top: var(--spacing-md) !important;
+  padding-bottom: var(--spacing-md) !important;
+}
+
+/* Containers */
+.ui.container {
+  max-width: 1200px !important;
+  padding: 0 var(--spacing-lg) !important;
+}
+
+/* Messages */
+.ui.message {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid !important;
+  padding: var(--spacing-md) !important;
+}
+
+.ui.positive.message {
+  background-color: rgba(19, 161, 14, 0.1) !important;
+  border-color: var(--nup-success) !important;
+  color: var(--nup-success) !important;
+}
+
+.ui.negative.message {
+  background-color: rgba(209, 52, 56, 0.1) !important;
+  border-color: var(--nup-error) !important;
+  color: var(--nup-error) !important;
+}
+
+.ui.warning.message {
+  background-color: rgba(255, 185, 0, 0.1) !important;
+  border-color: var(--nup-warning) !important;
+  color: #B8860B !important;
+}
+
+.ui.info.message {
+  background-color: rgba(0, 120, 212, 0.1) !important;
+  border-color: var(--nup-secondary) !important;
+  color: var(--nup-secondary) !important;
+}
+
+/* Modals */
+.ui.modal {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--nup-gray-200) !important;
+}
+
+.ui.modal > .header {
+  background-color: white !important;
+  border-bottom: 1px solid var(--nup-gray-200) !important;
+  padding: var(--spacing-lg) !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: var(--nup-gray-800) !important;
+}
+
+.ui.modal > .content {
+  padding: var(--spacing-lg) !important;
+}
+
+.ui.modal > .actions {
+  background-color: var(--nup-gray-50) !important;
+  border-top: 1px solid var(--nup-gray-200) !important;
+  padding: var(--spacing-md) var(--spacing-lg) !important;
+}
+
+/* Menus */
+.ui.menu {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--nup-gray-200) !important;
+  background-color: white !important;
+}
+
+.ui.menu .item {
+  color: var(--nup-gray-700) !important;
+  font-weight: 500 !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  transition: all 0.2s ease !important;
+}
+
+.ui.menu .item:hover {
+  background-color: var(--nup-gray-100) !important;
+  color: var(--nup-gray-800) !important;
+}
+
+.ui.menu .active.item {
+  background-color: var(--nup-primary) !important;
+  color: white !important;
+}
+
+/* Segments */
+.ui.segment {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--nup-gray-200) !important;
+  padding: var(--spacing-lg) !important;
+  background-color: white !important;
+}
+
+/* Labels */
+.ui.label {
+  border-radius: var(--radius-sm) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: var(--spacing-xs) var(--spacing-sm) !important;
+}
+
+.ui.blue.label {
+  background-color: var(--nup-secondary) !important;
+  color: white !important;
+}
+
+.ui.green.label {
+  background-color: var(--nup-success) !important;
+  color: white !important;
+}
+
+.ui.yellow.label {
+  background-color: var(--nup-warning) !important;
+  color: var(--nup-gray-800) !important;
+}
+
+.ui.red.label {
+  background-color: var(--nup-error) !important;
+  color: white !important;
+}
+
+/* Progress bars */
+.ui.progress {
+  border-radius: var(--radius-md) !important;
+  background-color: var(--nup-gray-200) !important;
+  border: none !important;
+}
+
+.ui.progress .bar {
+  border-radius: var(--radius-md) !important;
+  background-color: var(--nup-primary) !important;
+  transition: width 0.3s ease !important;
+}
+
+/* === CUSTOM UTILITY CLASSES === */
+
+/* Spacing utilities */
+.p-xs { padding: var(--spacing-xs) !important; }
+.p-sm { padding: var(--spacing-sm) !important; }
+.p-md { padding: var(--spacing-md) !important; }
+.p-lg { padding: var(--spacing-lg) !important; }
+.p-xl { padding: var(--spacing-xl) !important; }
+
+.m-xs { margin: var(--spacing-xs) !important; }
+.m-sm { margin: var(--spacing-sm) !important; }
+.m-md { margin: var(--spacing-md) !important; }
+.m-lg { margin: var(--spacing-lg) !important; }
+.m-xl { margin: var(--spacing-xl) !important; }
+
+.mb-xs { margin-bottom: var(--spacing-xs) !important; }
+.mb-sm { margin-bottom: var(--spacing-sm) !important; }
+.mb-md { margin-bottom: var(--spacing-md) !important; }
+.mb-lg { margin-bottom: var(--spacing-lg) !important; }
+.mb-xl { margin-bottom: var(--spacing-xl) !important; }
+
+.mt-xs { margin-top: var(--spacing-xs) !important; }
+.mt-sm { margin-top: var(--spacing-sm) !important; }
+.mt-md { margin-top: var(--spacing-md) !important; }
+.mt-lg { margin-top: var(--spacing-lg) !important; }
+.mt-xl { margin-top: var(--spacing-xl) !important; }
+
+/* Text utilities */
+.text-muted {
+  color: var(--nup-gray-600) !important;
+}
+
+.text-subtle {
+  color: var(--nup-gray-500) !important;
+}
+
+.text-strong {
+  color: var(--nup-gray-800) !important;
+  font-weight: 600 !important;
+}
+
+/* Background utilities */
+.bg-subtle {
+  background-color: var(--nup-gray-50) !important;
+}
+
+.bg-light {
+  background-color: var(--nup-gray-100) !important;
+}
+
+/* Border utilities */
+.border-subtle {
+  border: 1px solid var(--nup-gray-200) !important;
+}
+
+.border-light {
+  border: 1px solid var(--nup-gray-300) !important;
+}
+
+/* Animation utilities */
+.transition-smooth {
+  transition: all 0.2s ease !important;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px) !important;
+}
+
+/* === RESPONSIVE ADJUSTMENTS === */
+
+@media (max-width: 768px) {
+  .ui.container {
+    padding: 0 var(--spacing-md) !important;
+  }
+  
+  .ui.card > .content {
+    padding: var(--spacing-md) !important;
+  }
+  
+  .ui.modal > .content,
+  .ui.modal > .header,
+  .ui.modal > .actions {
+    padding: var(--spacing-md) !important;
+  }
+  
+  .ui.grid > .column {
+    padding-left: var(--spacing-sm) !important;
+    padding-right: var(--spacing-sm) !important;
+  }
+}
+
+/* === DARK MODE SUPPORT === */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --nup-gray-50: #202124;
+    --nup-gray-100: #303134;
+    --nup-gray-200: #3C4043;
+    --nup-gray-300: #5F6368;
+    --nup-gray-400: #80868B;
+    --nup-gray-500: #9AA0A6;
+    --nup-gray-600: #BDC1C6;
+    --nup-gray-700: #DADCE0;
+    --nup-gray-800: #E8EAED;
+    --nup-gray-900: #F8F9FA;
+  }
+  
+  body {
+    background-color: var(--nup-gray-50) !important;
+    color: var(--nup-gray-800) !important;
+  }
+}
