@@ -6,11 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertSubjectSchema } from "@shared/schema";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { Form, Button, Dropdown, Grid } from "semantic-ui-react";
 import type { Subject } from "@shared/schema";
 
 interface SubjectFormProps {
@@ -74,141 +70,178 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
     });
   };
 
+  const { errors } = form.formState;
+  
+  const categoryOptions = [
+    { key: 'exatas', value: 'exatas', text: 'Exatas' },
+    { key: 'humanas', value: 'humanas', text: 'Humanas' },
+    { key: 'biologicas', value: 'biologicas', text: 'Biológicas' }
+  ];
+
+  const priorityOptions = [
+    { key: 'high', value: 'high', text: 'Alta' },
+    { key: 'medium', value: 'medium', text: 'Média' },
+    { key: 'low', value: 'low', text: 'Baixa' }
+  ];
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome da Matéria</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Ex: Cálculo I" 
-                  {...field} 
-                  data-testid="input-subject-name"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+    <Form onSubmit={form.handleSubmit(onSubmit)} error={Object.keys(errors).length > 0}>
+      <Form.Field error={!!errors.name}>
+        <label>Nome da Matéria</label>
+        <input 
+          placeholder="Ex: Cálculo I" 
+          {...form.register("name")}
+          data-testid="input-subject-name"
+          style={{ 
+            backgroundColor: 'var(--nup-surface)',
+            border: '1px solid var(--nup-border)',
+            color: 'var(--nup-text)'
+          }}
         />
+        {errors.name && (
+          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+            {errors.name.message}
+          </div>
+        )}
+      </Form.Field>
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Breve descrição da matéria..."
-                  className="resize-none"
-                  {...field}
-                  data-testid="input-subject-description"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      <Form.Field error={!!errors.description}>
+        <label>Descrição</label>
+        <textarea 
+          placeholder="Breve descrição da matéria..." 
+          {...form.register("description")}
+          data-testid="input-subject-description"
+          rows={3}
+          style={{ 
+            backgroundColor: 'var(--nup-surface)',
+            border: '1px solid var(--nup-border)',
+            color: 'var(--nup-text)',
+            resize: 'vertical'
+          }}
         />
+        {errors.description && (
+          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+            {errors.description.message}
+          </div>
+        )}
+      </Form.Field>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Categoria</FormLabel>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger data-testid="select-subject-category">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="exatas">Exatas</SelectItem>
-                      <SelectItem value="humanas">Humanas</SelectItem>
-                      <SelectItem value="biologicas">Biológicas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+      <Grid columns={2} stackable>
+        <Grid.Column>
+          <Form.Field error={!!errors.category}>
+            <label>Categoria</label>
+            <Dropdown
+              selection
+              placeholder="Selecione"
+              options={categoryOptions}
+              value={form.watch("category")}
+              onChange={(e, { value }) => form.setValue("category", value as string)}
+              data-testid="select-subject-category"
+              style={{ 
+                backgroundColor: 'var(--nup-surface)',
+                border: '1px solid var(--nup-border)'
+              }}
+            />
+            {errors.category && (
+              <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+                {errors.category.message}
+              </div>
             )}
+          </Form.Field>
+        </Grid.Column>
+        
+        <Grid.Column>
+          <Form.Field error={!!errors.priority}>
+            <label>Prioridade</label>
+            <Dropdown
+              selection
+              placeholder="Selecione"
+              options={priorityOptions}
+              value={form.watch("priority")}
+              onChange={(e, { value }) => form.setValue("priority", value as string)}
+              data-testid="select-subject-priority"
+              style={{ 
+                backgroundColor: 'var(--nup-surface)',
+                border: '1px solid var(--nup-border)'
+              }}
+            />
+            {errors.priority && (
+              <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+                {errors.priority.message}
+              </div>
+            )}
+          </Form.Field>
+        </Grid.Column>
+      </Grid>
+
+      <Form.Field error={!!errors.color}>
+        <label>Cor</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input 
+            type="color" 
+            {...form.register("color")}
+            data-testid="input-subject-color"
+            style={{ 
+              backgroundColor: 'var(--nup-surface)',
+              border: '1px solid var(--nup-border)',
+              height: '40px',
+              width: '50px',
+              cursor: 'pointer'
+            }}
           />
-
-          <FormField
-            control={form.control}
-            name="priority"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Prioridade</FormLabel>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger data-testid="select-subject-priority">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high">Alta</SelectItem>
-                      <SelectItem value="medium">Média</SelectItem>
-                      <SelectItem value="low">Baixa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+          <input 
+            placeholder="#3b82f6" 
+            {...form.register("color")}
+            style={{ 
+              flex: 1,
+              backgroundColor: 'var(--nup-surface)',
+              border: '1px solid var(--nup-border)',
+              color: 'var(--nup-text)',
+              padding: '8px 12px'
+            }}
           />
         </div>
+        {errors.color && (
+          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+            {errors.color.message}
+          </div>
+        )}
+      </Form.Field>
 
-        <FormField
-          control={form.control}
-          name="color"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cor</FormLabel>
-              <FormControl>
-                <div className="flex items-center space-x-2">
-                  <Input 
-                    type="color" 
-                    {...field}
-                    className="w-12 h-10 p-1 border border-border rounded"
-                    data-testid="input-subject-color"
-                  />
-                  <Input 
-                    placeholder="#3b82f6" 
-                    {...field}
-                    className="flex-1"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end space-x-3 pt-6 border-t border-border">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onSuccess}
-            data-testid="button-cancel-subject"
-          >
-            Cancelar
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={createMutation.isPending}
-            data-testid="button-save-subject"
-          >
-            {createMutation.isPending 
-              ? "Salvando..." 
-              : subject ? "Atualizar" : "Criar Matéria"
-            }
-          </Button>
-        </div>
-      </form>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        gap: '12px', 
+        paddingTop: '24px',
+        borderTop: '1px solid var(--nup-border)',
+        marginTop: '24px'
+      }}>
+        <Button 
+          type="button" 
+          basic
+          onClick={onSuccess}
+          data-testid="button-cancel-subject"
+          style={{ 
+            color: 'var(--nup-text)',
+            borderColor: 'var(--nup-border)'
+          }}
+        >
+          Cancelar
+        </Button>
+        <Button 
+          type="submit" 
+          primary
+          loading={createMutation.isPending}
+          disabled={createMutation.isPending}
+          data-testid="button-save-subject"
+          style={{ 
+            backgroundColor: 'var(--nup-primary)',
+            color: 'white'
+          }}
+        >
+          {subject ? "Atualizar" : "Criar Matéria"}
+        </Button>
+      </div>
     </Form>
   );
 }
