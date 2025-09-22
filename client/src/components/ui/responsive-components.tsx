@@ -1,5 +1,8 @@
-import { Button, Header, Grid, Card, Statistic, Modal } from 'semantic-ui-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useResponsiveText, responsiveTexts, type ScreenText } from '@/hooks/useResponsiveText';
+import { cn } from '@/lib/utils';
 
 // Componente de Header Responsivo
 interface ResponsiveHeaderProps {
@@ -16,45 +19,31 @@ export const ResponsiveHeader = ({ page, subtitle, rightActions }: ResponsiveHea
   const subtitleText = subtitle || (pageTexts.subtitle ? getResponsiveText(pageTexts.subtitle) : '');
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: isMobile ? 'column' : 'row',
-      justifyContent: 'space-between', 
-      alignItems: isMobile ? 'flex-start' : 'flex-start',
-      gap: isMobile ? 'var(--spacing-sm)' : '0',
-      marginBottom: 'var(--spacing-lg)' 
-    }}>
-      <div style={{ flex: 1 }}>
-        <Header 
-          as="h1" 
-          style={{ 
-            fontSize: isMobile ? '24px' : '32px', 
-            fontWeight: '600', 
-            color: 'var(--nup-gray-800)', 
-            marginBottom: 'var(--spacing-xs)',
-            margin: 0
-          }}
-        >
+    <div className={cn(
+      "flex justify-between mb-8 gap-4",
+      isMobile ? "flex-col" : "flex-row"
+    )}>
+      <div className="flex-1">
+        <h1 className={cn(
+          "main-title font-semibold text-foreground mb-2",
+          isMobile ? "text-2xl" : "text-3xl"
+        )}>
           {title}
-        </Header>
+        </h1>
         {subtitleText && (
-          <p style={{ 
-            color: 'var(--nup-gray-600)', 
-            fontSize: isMobile ? '14px' : '16px',
-            margin: '4px 0 0 0'
-          }}>
+          <p className={cn(
+            "card-description text-muted-foreground mt-1",
+            isMobile ? "text-sm" : "text-base"
+          )}>
             {subtitleText}
           </p>
         )}
       </div>
       {rightActions && (
-        <div style={{ 
-          display: 'flex', 
-          gap: 'var(--spacing-sm)',
-          flexDirection: isMobile ? 'row' : 'row',
-          width: isMobile ? '100%' : 'auto',
-          justifyContent: isMobile ? 'stretch' : 'flex-end'
-        }}>
+        <div className={cn(
+          "flex gap-2",
+          isMobile ? "w-full" : "items-start"
+        )}>
           {rightActions}
         </div>
       )}
@@ -79,15 +68,15 @@ export const ResponsiveButton = ({ textKey, icon, primary, secondary, onClick, t
   
   return (
     <Button
-      primary={primary}
-      secondary={secondary}
-      icon={icon}
-      content={text}
+      variant={primary ? "default" : secondary ? "secondary" : "outline"}
+      size={isMobile ? "sm" : "default"}
       onClick={onClick}
       data-testid={testId}
-      size={isMobile ? 'small' : 'medium'}
-      style={{ flex: isMobile ? 1 : 'none' }}
-    />
+      className={cn(isMobile && "flex-1")}
+    >
+      {icon && <span className="mr-2">{icon}</span>}
+      {text}
+    </Button>
   );
 };
 
@@ -102,21 +91,29 @@ export const ResponsiveGrid = ({ children, columns = 4, stackable = true }: Resp
   const { screenSize } = useResponsiveText();
   
   // Ajustar número de colunas baseado no tamanho da tela
-  let responsiveColumns: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | "equal" = columns as any;
+  let responsiveColumns = columns;
   if (screenSize === 'mobile') {
     responsiveColumns = 1; // 1 coluna no mobile para melhor responsividade
   } else if (screenSize === 'tablet') {
-    responsiveColumns = Math.min(2, columns) as any; // Máximo 2 colunas no tablet
+    responsiveColumns = Math.min(2, columns); // Máximo 2 colunas no tablet
   }
 
+  const gridClasses = cn(
+    "grid gap-4 mt-4",
+    {
+      "grid-cols-1": responsiveColumns === 1,
+      "grid-cols-2": responsiveColumns === 2,
+      "grid-cols-3": responsiveColumns === 3,
+      "grid-cols-4": responsiveColumns === 4,
+      "grid-cols-5": responsiveColumns === 5,
+      "grid-cols-6": responsiveColumns === 6,
+    }
+  );
+
   return (
-    <Grid 
-      columns={responsiveColumns} 
-      stackable={stackable}
-      style={{ marginTop: 'var(--spacing-md)' }}
-    >
+    <div className={gridClasses}>
       {children}
-    </Grid>
+    </div>
   );
 };
 
@@ -134,50 +131,36 @@ export const ResponsiveStatCard = ({ icon, value, labelKey, variant, testId }: R
   
   const label = getResponsiveText(labelKey);
   
-  const variantColors = {
-    info: 'var(--nup-secondary)',
-    success: 'var(--nup-success)',
-    warning: 'var(--nup-warning)',
-    primary: 'var(--nup-primary)'
+  const variantClasses = {
+    info: 'text-blue-600 dark:text-blue-400',
+    success: 'text-green-600 dark:text-green-400',
+    warning: 'text-yellow-600 dark:text-yellow-400',
+    primary: 'text-purple-600 dark:text-purple-400'
   };
 
   return (
-    <Card 
-      fluid 
-      style={{ 
-        backgroundColor: 'var(--nup-white)',
-        border: '1px solid var(--nup-gray-200)',
-        borderRadius: '12px',
-        padding: isMobile ? 'var(--spacing-sm)' : 'var(--spacing-md)',
-        boxShadow: 'var(--shadow-sm)'
-      }}
-      data-testid={testId}
-    >
-      <Card.Content style={{ padding: 0 }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: isMobile ? 'var(--spacing-xs)' : 'var(--spacing-sm)' 
-        }}>
-          <div style={{ 
-            color: variantColors[variant],
-            display: 'flex',
-            alignItems: 'center'
-          }}>
+    <Card className="hover:shadow-md transition-shadow" data-testid={testId}>
+      <CardContent className={cn("p-4", isMobile && "p-3")}>
+        <div className={cn("flex items-center", isMobile ? "gap-2" : "gap-4")}>
+          <div className={cn("flex items-center", variantClasses[variant])}>
             {icon}
           </div>
-          <div>
-            <Statistic size={isMobile ? 'mini' : undefined}>
-              <Statistic.Value style={{ color: 'var(--nup-gray-800)', fontSize: isMobile ? '18px' : '24px' }}>
-                {value}
-              </Statistic.Value>
-              <Statistic.Label style={{ color: 'var(--nup-gray-600)', fontSize: isMobile ? '12px' : '14px' }}>
-                {label}
-              </Statistic.Label>
-            </Statistic>
+          <div className="flex flex-col">
+            <div className={cn(
+              "font-semibold text-foreground",
+              isMobile ? "text-lg" : "text-2xl"
+            )}>
+              {value}
+            </div>
+            <div className={cn(
+              "card-meta text-muted-foreground",
+              isMobile ? "text-xs" : "text-sm"
+            )}>
+              {label}
+            </div>
           </div>
         </div>
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 };
@@ -194,40 +177,17 @@ export const ResponsiveSearch = ({ placeholder, value, onChange, testId }: Respo
   const { getResponsiveText } = useResponsiveText();
   
   return (
-    <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-      <div style={{ position: 'relative' }}>
+    <div className="mb-6">
+      <div className="relative">
         <input
           type="text"
           placeholder={getResponsiveText(placeholder)}
           value={value}
           onChange={onChange}
           data-testid={testId}
-          style={{
-            width: '100%',
-            padding: '12px 16px 12px 40px',
-            border: '1px solid var(--nup-gray-300)',
-            borderRadius: '8px',
-            fontSize: '14px',
-            backgroundColor: 'var(--nup-white)',
-            color: 'var(--nup-gray-800)',
-            outline: 'none',
-            transition: 'border-color 0.2s ease'
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'var(--nup-primary)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--nup-gray-300)';
-          }}
+          className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
         />
-        <div style={{
-          position: 'absolute',
-          left: '12px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          color: 'var(--nup-gray-500)',
-          pointerEvents: 'none'
-        }}>
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
           🔍
         </div>
       </div>
@@ -255,36 +215,42 @@ export const ResponsiveModal = ({
 }: ResponsiveModalProps) => {
   const { isMobile } = useResponsiveText();
   
+  const sizeClasses = {
+    mini: "max-w-sm",
+    tiny: "max-w-md",
+    small: "max-w-lg",
+    large: "max-w-2xl",
+    fullscreen: "max-w-none w-full h-full"
+  };
+  
+  const modalSize = isMobile ? "fullscreen" : size;
+  
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      size={isMobile ? "fullscreen" : size}
-      closeIcon
-      data-testid={testId}
-      style={isMobile ? {
-        width: '100vw',
-        height: '100vh',
-        margin: 0,
-        maxWidth: '100%',
-        borderRadius: 0
-      } : {}}
-    >
-      <Modal.Header style={{ 
-        padding: isMobile ? '1rem' : '1.5rem 2rem',
-        backgroundColor: 'var(--nup-surface)',
-        borderBottom: '1px solid var(--nup-border)'
-      }}>
-        {title}
-      </Modal.Header>
-      <Modal.Content style={{ 
-        padding: isMobile ? '1rem' : '2rem',
-        backgroundColor: 'var(--nup-bg)',
-        height: isMobile ? 'calc(100vh - 60px)' : 'auto',
-        overflowY: 'auto'
-      }}>
-        {children}
-      </Modal.Content>
-    </Modal>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent 
+        className={cn(
+          "p-0 gap-0 overflow-hidden",
+          sizeClasses[modalSize],
+          isMobile && "fixed inset-0 m-0 max-w-none w-screen h-screen rounded-none border-none"
+        )}
+        data-testid={testId}
+      >
+        <DialogHeader className={cn(
+          "p-4 border-b bg-muted/30",
+          isMobile ? "p-4" : "p-6"
+        )}>
+          <DialogTitle className="card-title text-foreground">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <div className={cn(
+          "overflow-y-auto",
+          isMobile ? "p-4 flex-1" : "p-6",
+          isMobile && "h-full"
+        )}>
+          {children}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
