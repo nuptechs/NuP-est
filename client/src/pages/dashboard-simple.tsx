@@ -38,6 +38,7 @@ export default function Dashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
   const [isStatsExpanded, setIsStatsExpanded] = useState(false);
+  const [isActionsExpanded, setIsActionsExpanded] = useState(false);
 
   const { data: subjects, isLoading: subjectsLoading } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -117,23 +118,21 @@ export default function Dashboard() {
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'space-between',
-              padding: 'var(--spacing-md)',
-              backgroundColor: 'var(--nup-surface)',
-              border: '1px solid var(--nup-border)',
-              borderRadius: 'var(--border-radius)',
+              padding: 'var(--spacing-md) 0',
+              borderBottom: isStatsExpanded ? '1px solid var(--nup-gray-200)' : 'none',
               marginBottom: 'var(--spacing-md)',
               transition: 'all 0.2s ease'
             }}
             onClick={() => setIsStatsExpanded(!isStatsExpanded)}
             data-testid="stats-toggle"
           >
-            <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)' }}>
+            <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)', fontSize: '18px', fontWeight: '500' }}>
               Acompanhe seu progresso diário
             </Header>
             {isStatsExpanded ? (
-              <ChevronUp style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
+              <ChevronUp style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
             ) : (
-              <ChevronDown style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
+              <ChevronDown style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
             )}
           </div>
           
@@ -192,13 +191,32 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="mb-xl">
-          <SectionHeader 
-            title="Ações Rápidas"
-            description="Acesse suas ferramentas principais"
-            data-testid="quick-actions-header"
-          />
+          <div 
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              padding: 'var(--spacing-md) 0',
+              borderBottom: isActionsExpanded ? '1px solid var(--nup-gray-200)' : 'none',
+              marginBottom: 'var(--spacing-md)',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setIsActionsExpanded(!isActionsExpanded)}
+            data-testid="actions-toggle"
+          >
+            <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)', fontSize: '18px', fontWeight: '500' }}>
+              Ações Rápidas
+            </Header>
+            {isActionsExpanded ? (
+              <ChevronUp style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
+            ) : (
+              <ChevronDown style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
+            )}
+          </div>
           
-          <ResponsiveGrid columns={3}>
+          {isActionsExpanded && (
+            <ResponsiveGrid columns={3}>
             <Grid.Column>
               <Card 
                 className="transition-smooth hover-lift" 
@@ -274,7 +292,8 @@ export default function Dashboard() {
                 </Card.Content>
               </Card>
             </Grid.Column>
-          </ResponsiveGrid>
+            </ResponsiveGrid>
+          )}
         </div>
 
         {/* Content Overview */}
