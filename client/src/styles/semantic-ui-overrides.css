@@ -233,29 +233,45 @@ body {
 
 /* Card text color fixes for theme compliance */
 
-/* Primary card content text */
+/* Subject cards - specific class-based styling */
+.ui.card .content .subject-name {
+  color: var(--nup-text-primary) !important;
+  font-weight: 500 !important;
+}
+
+.ui.card .content .subject-category {
+  color: var(--nup-text-secondary) !important;
+  font-size: 14px !important;
+  text-transform: capitalize !important;
+}
+
+.ui.card .content .subject-priority {
+  color: var(--nup-text-primary) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+/* General card text fallback */
 .ui.card .content p {
   color: var(--nup-text-primary) !important;
 }
 
-/* Secondary/descriptive text in cards (categories, descriptions) */
-.ui.card .content p[style*="fontSize: '14px'"],
-.ui.card .content p[style*="fontSize: '12px'"],
-.ui.card .content p[style*="textTransform: 'capitalize'"] {
+/* Ensure proper contrast in both themes */
+.dark .ui.card .content .subject-name,
+.dark .ui.card .content .subject-priority {
+  color: var(--nup-text-primary) !important;
+}
+
+.dark .ui.card .content .subject-category {
   color: var(--nup-text-secondary) !important;
 }
 
-/* Subject name and important card titles should be primary text */
-.ui.card .content p[style*="fontWeight: '500'"] {
+.light .ui.card .content .subject-name,
+.light .ui.card .content .subject-priority {
   color: var(--nup-text-primary) !important;
 }
 
-/* Specific fix for recent subjects cards */
-.ui.card[style*="cursor: 'pointer'"] .content p {
-  color: var(--nup-text-primary) !important;
-}
-
-.ui.card[style*="cursor: 'pointer'"] .content p[style*="fontSize: '14px'"] {
+.light .ui.card .content .subject-category {
   color: var(--nup-text-secondary) !important;
 }
 
