@@ -1,5 +1,5 @@
 import { Button, Header, Grid, Card, Statistic } from 'semantic-ui-react';
-import { useResponsiveText, responsiveTexts } from '@/hooks/useResponsiveText';
+import { useResponsiveText, responsiveTexts, type ScreenText } from '@/hooks/useResponsiveText';
 
 // Componente de Header Responsivo
 interface ResponsiveHeaderProps {
