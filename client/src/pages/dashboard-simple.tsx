@@ -139,7 +139,7 @@ export default function Dashboard() {
               onClick={() => setIsStatsExpanded(!isStatsExpanded)}
               data-testid="stats-toggle"
             >
-              <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)', fontSize: '18px', fontWeight: '500' }}>
+              <Header as="h3" className="nup-section-title" style={{ margin: 0 }}>
                 Acompanhe seu progresso diário
               </Header>
               <div style={{ transition: 'transform 0.2s ease' }}>
@@ -252,7 +252,7 @@ export default function Dashboard() {
               onClick={() => setIsActionsExpanded(!isActionsExpanded)}
               data-testid="actions-toggle"
             >
-              <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)', fontSize: '18px', fontWeight: '500' }}>
+              <Header as="h3" className="nup-section-title" style={{ margin: 0 }}>
                 Ações Rápidas
               </Header>
               <div style={{ transition: 'transform 0.2s ease' }}>
@@ -286,10 +286,10 @@ export default function Dashboard() {
                 <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <Header as="h3" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                      <Header as="h3" className="nup-card-title">
                         Biblioteca
                       </Header>
-                      <p style={{ color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)', fontSize: '14px' }}>
+                      <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
                         Organize materiais, crie áreas de conhecimento e gerencie conteúdo
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
@@ -313,10 +313,10 @@ export default function Dashboard() {
                 <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <Header as="h3" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                      <Header as="h3" className="nup-card-title">
                         Criar Flashcards
                       </Header>
-                      <p style={{ color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)', fontSize: '14px' }}>
+                      <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
                         Crie e estude com flashcards personalizados
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
@@ -340,10 +340,10 @@ export default function Dashboard() {
                 <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <Header as="h3" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                      <Header as="h3" className="nup-card-title">
                         Questões com IA
                       </Header>
-                      <p style={{ color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)', fontSize: '14px' }}>
+                      <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
                         Pratique com questões geradas por inteligência artificial
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
@@ -370,10 +370,10 @@ export default function Dashboard() {
                           <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div>
-                                <Header as="h3" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                                <Header as="h3" className="nup-card-title">
                                   Chat com IA
                                 </Header>
-                                <p style={{ color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)', fontSize: '14px' }}>
+                                <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
                                   Converse com a IA para esclarecer dúvidas e estudar
                                 </p>
                                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
