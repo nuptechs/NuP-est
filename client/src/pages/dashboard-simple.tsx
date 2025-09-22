@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +21,9 @@ import {
   Brain, 
   Plus,
   ArrowRight,
-  Trophy
+  Trophy,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -35,6 +37,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
+  const [isStatsExpanded, setIsStatsExpanded] = useState(false);
 
   const { data: subjects, isLoading: subjectsLoading } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -95,9 +98,6 @@ export default function Dashboard() {
               <Header as="h1" style={{ fontSize: '32px', fontWeight: '600', color: 'var(--nup-gray-800)', marginBottom: 'var(--spacing-xs)' }}>
                 Dashboard
               </Header>
-              <p style={{ color: 'var(--nup-gray-600)', fontSize: '16px' }}>
-                Visão geral dos seus estudos e progresso
-              </p>
             </div>
             <Button 
               primary
@@ -111,13 +111,34 @@ export default function Dashboard() {
 
         {/* Stats Overview */}
         <div className="mb-xl">
-          <SectionHeader 
-            title="Estatísticas de Hoje"
-            description="Acompanhe seu progresso diário"
-            data-testid="stats-header"
-          />
+          <div 
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              padding: 'var(--spacing-md)',
+              backgroundColor: 'var(--nup-surface)',
+              border: '1px solid var(--nup-border)',
+              borderRadius: 'var(--border-radius)',
+              marginBottom: 'var(--spacing-md)',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+            data-testid="stats-toggle"
+          >
+            <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)' }}>
+              Acompanhe seu progresso diário
+            </Header>
+            {isStatsExpanded ? (
+              <ChevronUp style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
+            ) : (
+              <ChevronDown style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
+            )}
+          </div>
           
-          <ResponsiveGrid columns={4}>
+          {isStatsExpanded && (
+            <ResponsiveGrid columns={4}>
             {statsLoading ? (
               <>
                 <Grid.Column><SkeletonCard /></Grid.Column>
@@ -165,7 +186,8 @@ export default function Dashboard() {
                 </Grid.Column>
               </>
             )}
-          </ResponsiveGrid>
+            </ResponsiveGrid>
+          )}
         </div>
 
         {/* Quick Actions */}
