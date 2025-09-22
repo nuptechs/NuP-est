@@ -201,6 +201,7 @@ body {
 .ui.card > .content {
   padding: var(--spacing-lg) !important;
   background-color: var(--nup-surface) !important;
+  color: var(--nup-text-primary) !important;
 }
 
 .ui.card > .content > .header {
@@ -214,6 +215,48 @@ body {
   color: var(--nup-text-secondary) !important;
   font-size: 14px !important;
   line-height: 1.4 !important;
+}
+
+/* Card Headers - specific override for Card.Header components */
+.ui.card .header,
+.ui.card > .content .header {
+  color: var(--nup-text-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* Card content text - ensure proper theme colors */
+.ui.card p,
+.ui.card span,
+.ui.card div {
+  color: inherit !important;
+}
+
+/* Card text color fixes for theme compliance */
+
+/* Primary card content text */
+.ui.card .content p {
+  color: var(--nup-text-primary) !important;
+}
+
+/* Secondary/descriptive text in cards (categories, descriptions) */
+.ui.card .content p[style*="fontSize: '14px'"],
+.ui.card .content p[style*="fontSize: '12px'"],
+.ui.card .content p[style*="textTransform: 'capitalize'"] {
+  color: var(--nup-text-secondary) !important;
+}
+
+/* Subject name and important card titles should be primary text */
+.ui.card .content p[style*="fontWeight: '500'"] {
+  color: var(--nup-text-primary) !important;
+}
+
+/* Specific fix for recent subjects cards */
+.ui.card[style*="cursor: 'pointer'"] .content p {
+  color: var(--nup-text-primary) !important;
+}
+
+.ui.card[style*="cursor: 'pointer'"] .content p[style*="fontSize: '14px'"] {
+  color: var(--nup-text-secondary) !important;
 }
 
 /* Headers */
