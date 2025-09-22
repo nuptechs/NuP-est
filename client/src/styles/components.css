@@ -421,3 +421,9 @@
     font-size: 12px;
   }
 }
+
+/* === DASHBOARD ICON BUTTON === */
+.dashboard-icon-button:hover {
+  transform: scale(1.05) !important;
+  box-shadow: var(--shadow-xl) !important;
+}

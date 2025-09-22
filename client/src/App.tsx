@@ -2,15 +2,13 @@ import { Switch, Route, useLocation } from "wouter";
 import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+// Toast notifications handled by Semantic UI Message components
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard-simple";
 import Library from "@/pages/library";
-import Subjects from "@/pages/subjects";
-import Materials from "@/pages/materials";
+// Subjects and Materials pages removed - now handled by unified Library page
 import Study from "@/pages/study";
 import Analytics from "@/pages/analytics";
 import Flashcards from "@/pages/flashcards";
@@ -80,10 +78,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <Router />
     </QueryClientProvider>
   );
 }

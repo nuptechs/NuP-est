@@ -336,7 +336,7 @@ export default function Goals() {
     const data = {
       title: goalFormData.title,
       description: goalFormData.description || undefined,
-      targetDate: goalFormData.targetDate ? goalFormData.targetDate.toISOString() : undefined
+      targetDate: goalFormData.targetDate || undefined
     };
 
     if (selectedGoal) {
@@ -354,7 +354,7 @@ export default function Goals() {
       description: targetFormData.description || undefined,
       targetValue: targetFormData.targetValue || undefined,
       unit: targetFormData.unit || undefined,
-      deadline: targetFormData.deadline ? targetFormData.deadline.toISOString() : undefined,
+      deadline: targetFormData.deadline || undefined,
       goalId: targetFormData.goalId
     };
 
@@ -434,7 +434,7 @@ export default function Goals() {
               <>
                 <Grid.Column>
                   <StatCard
-                    icon={<Target className="w-8 h-8" />}
+                    icon={<Target style={{ width: '32px', height: '32px' }} />}
                     value={goals.length}
                     label="Total de Metas"
                     variant="info"
@@ -443,7 +443,7 @@ export default function Goals() {
                 </Grid.Column>
                 <Grid.Column>
                   <StatCard
-                    icon={<CheckCircle2 className="w-8 h-8" />}
+                    icon={<CheckCircle2 style={{ width: '32px', height: '32px' }} />}
                     value={completedGoals}
                     label="Metas Concluídas"
                     variant="success"
@@ -452,7 +452,7 @@ export default function Goals() {
                 </Grid.Column>
                 <Grid.Column>
                   <StatCard
-                    icon={<ListTodo className="w-8 h-8" />}
+                    icon={<ListTodo style={{ width: '32px', height: '32px' }} />}
                     value={targets.length}
                     label="Total de Objetivos"
                     variant="warning"
@@ -461,7 +461,7 @@ export default function Goals() {
                 </Grid.Column>
                 <Grid.Column>
                   <StatCard
-                    icon={<TrendingUp className="w-8 h-8" />}
+                    icon={<TrendingUp style={{ width: '32px', height: '32px' }} />}
                     value={`${averageProgress}%`}
                     label="Progresso Médio"
                     variant="primary"
@@ -490,7 +490,7 @@ export default function Goals() {
               </div>
             ) : goals.length === 0 ? (
               <EmptyState
-                icon={<Target className="w-12 h-12" />}
+                icon={<Target style={{ width: '48px', height: '48px' }} />}
                 title="Nenhuma meta encontrada"
                 description="Comece criando sua primeira meta de estudo. Organize seus objetivos e acompanhe seu progresso."
                 action={{

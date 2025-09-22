@@ -127,7 +127,7 @@ export default function Dashboard() {
               <>
                 <Grid.Column>
                   <StatCard
-                    icon={<BookOpen className="w-8 h-8" />}
+                    icon={<BookOpen style={{ width: '32px', height: '32px' }} />}
                     value={stats.subjects}
                     label="Matérias"
                     variant="info"
@@ -136,7 +136,7 @@ export default function Dashboard() {
                 </Grid.Column>
                 <Grid.Column>
                   <StatCard
-                    icon={<Clock className="w-8 h-8" />}
+                    icon={<Clock style={{ width: '32px', height: '32px' }} />}
                     value={`${stats.todayHours}h`}
                     label="Hoje"
                     variant="success"
@@ -145,7 +145,7 @@ export default function Dashboard() {
                 </Grid.Column>
                 <Grid.Column>
                   <StatCard
-                    icon={<Brain className="w-8 h-8" />}
+                    icon={<Brain style={{ width: '32px', height: '32px' }} />}
                     value={stats.questionsGenerated}
                     label="Questões IA"
                     variant="primary"
@@ -154,7 +154,7 @@ export default function Dashboard() {
                 </Grid.Column>
                 <Grid.Column>
                   <StatCard
-                    icon={<Trophy className="w-8 h-8" />}
+                    icon={<Trophy style={{ width: '32px', height: '32px' }} />}
                     value={`${stats.goalProgress}%`}
                     label="Progresso"
                     variant="warning"
@@ -192,7 +192,7 @@ export default function Dashboard() {
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
                         <span>Ver biblioteca</span>
-                        <ArrowRight className="w-4 h-4 ml-2" />
+                        <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
                       </div>
                     </div>
                     <BookOpen style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
@@ -306,7 +306,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <EmptyState
-                    icon={<BookOpen className="w-12 h-12" />}
+                    icon={<BookOpen style={{ width: '48px', height: '48px' }} />}
                     title="Nenhuma matéria"
                     description="Adicione sua primeira matéria para começar a organizar seus estudos"
                     action={{
@@ -365,7 +365,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <EmptyState
-                    icon={<Target className="w-12 h-12" />}
+                    icon={<Target style={{ width: '48px', height: '48px' }} />}
                     title="Nenhuma meta"
                     description="Defina metas de estudo para manter o foco e acompanhar seu progresso"
                     action={{

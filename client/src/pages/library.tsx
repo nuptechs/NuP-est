@@ -395,7 +395,7 @@ export default function Library() {
                 <>
                   <Grid.Column>
                     <StatCard
-                      icon={<Folder className="w-8 h-8" />}
+                      icon={<Folder style={{ width: '32px', height: '32px' }} />}
                       value={knowledgeAreas.length}
                       label="Áreas"
                       variant="info"
@@ -404,7 +404,7 @@ export default function Library() {
                   </Grid.Column>
                   <Grid.Column>
                     <StatCard
-                      icon={<BookOpen className="w-8 h-8" />}
+                      icon={<BookOpen style={{ width: '32px', height: '32px' }} />}
                       value={subjects.length}
                       label="Matérias"
                       variant="success"
@@ -413,7 +413,7 @@ export default function Library() {
                   </Grid.Column>
                   <Grid.Column>
                     <StatCard
-                      icon={<FileText className="w-8 h-8" />}
+                      icon={<FileText style={{ width: '32px', height: '32px' }} />}
                       value="0"
                       label="Materiais"
                       variant="warning"
@@ -422,7 +422,7 @@ export default function Library() {
                   </Grid.Column>
                   <Grid.Column>
                     <StatCard
-                      icon={<Database className="w-8 h-8" />}
+                      icon={<Database style={{ width: '32px', height: '32px' }} />}
                       value="100%"
                       label="Organização"
                       variant="primary"
@@ -455,7 +455,7 @@ export default function Library() {
               </Grid>
             ) : currentData.length === 0 ? (
               <EmptyState
-                icon={React.createElement(getIcon(), { className: "w-12 h-12" })}
+                icon={React.createElement(getIcon(), { style: { width: '48px', height: '48px' } })}
                 title={`Nenhuma ${navigation.level === 'areas' ? 'área' : navigation.level === 'subjects' ? 'matéria' : 'material'} encontrada`}
                 description={`Comece criando sua primeira ${navigation.level === 'areas' ? 'área de conhecimento' : navigation.level === 'subjects' ? 'matéria' : 'material de estudo'}.`}
                 action={{
