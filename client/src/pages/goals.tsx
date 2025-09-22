@@ -3,15 +3,24 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { 
+  Container,
+  Grid, 
+  Card,
+  Header,
+  Button,
+  Form,
+  Input,
+  TextArea,
+  Modal,
+  Message,
+  Progress,
+  Loader,
+  Dimmer,
+  Label,
+  Icon,
+  Segment
+} from 'semantic-ui-react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,12 +38,10 @@ import {
   TrendingUp,
   Sparkles
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-row";
-import TeamsShell from "@/components/layout/teams-shell";
 import type { Goal, Target as TargetType } from "@shared/schema";
 
 // Form schemas
@@ -62,9 +69,25 @@ export default function Goals() {
   const queryClient = useQueryClient();
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<TargetType | null>(null);
-  const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
-  const [isTargetDialogOpen, setIsTargetDialogOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
+
+  // Form data states
+  const [goalFormData, setGoalFormData] = useState({
+    title: '',
+    description: '',
+    targetDate: null as Date | null
+  });
+  
+  const [targetFormData, setTargetFormData] = useState({
+    title: '',
+    description: '',
+    targetValue: '',
+    unit: '',
+    deadline: null as Date | null,
+    goalId: ''
+  });
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -93,26 +116,6 @@ export default function Goals() {
     enabled: isAuthenticated,
   });
 
-  // Goal form
-  const goalForm = useForm<GoalFormData>({
-    resolver: zodResolver(goalSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-    },
-  });
-
-  // Target form
-  const targetForm = useForm<TargetFormData>({
-    resolver: zodResolver(targetSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      targetValue: "",
-      unit: "",
-    },
-  });
-
   // Goal mutations
   const createGoalMutation = useMutation({
     mutationFn: async (data: GoalFormData) => {
@@ -124,8 +127,8 @@ export default function Goals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
-      setIsGoalDialogOpen(false);
-      goalForm.reset();
+      setIsGoalModalOpen(false);
+      resetGoalForm();
       toast({
         title: "Meta criada",
         description: "Meta criada com sucesso!",
@@ -154,9 +157,9 @@ export default function Goals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
-      setIsGoalDialogOpen(false);
+      setIsGoalModalOpen(false);
       setSelectedGoal(null);
-      goalForm.reset();
+      resetGoalForm();
       toast({
         title: "Meta atualizada",
         description: "Meta atualizada com sucesso!",
@@ -211,8 +214,8 @@ export default function Goals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/targets"] });
-      setIsTargetDialogOpen(false);
-      targetForm.reset();
+      setIsTargetModalOpen(false);
+      resetTargetForm();
       toast({
         title: "Objetivo criado",
         description: "Objetivo criado com sucesso!",
@@ -231,61 +234,6 @@ export default function Goals() {
     },
   });
 
-  const updateTargetMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: TargetFormData }) => {
-      const payload = {
-        ...data,
-        deadline: data.deadline ? data.deadline.toISOString() : null,
-      };
-      return apiRequest("PATCH", `/api/targets/${id}`, payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/targets"] });
-      setIsTargetDialogOpen(false);
-      setSelectedTarget(null);
-      targetForm.reset();
-      toast({
-        title: "Objetivo atualizado",
-        description: "Objetivo atualizado com sucesso!",
-      });
-    },
-    onError: (error: any) => {
-      if (error.status === 401) {
-        window.location.href = "/api/login";
-        return;
-      }
-      toast({
-        title: "Erro",
-        description: "Falha ao atualizar objetivo",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteTargetMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/targets/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/targets"] });
-      toast({
-        title: "Objetivo removido",
-        description: "Objetivo removido com sucesso!",
-      });
-    },
-    onError: (error: any) => {
-      if (error.status === 401) {
-        window.location.href = "/api/login";
-        return;
-      }
-      toast({
-        title: "Erro",
-        description: "Falha ao remover objetivo",
-        variant: "destructive",
-      });
-    },
-  });
-
   const toggleTargetMutation = useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
       return apiRequest("PATCH", `/api/targets/${id}`, { completed });
@@ -296,57 +244,77 @@ export default function Goals() {
   });
 
   // Helper functions
-  const openGoalDialog = (goal?: Goal) => {
+  const resetGoalForm = () => {
+    setGoalFormData({
+      title: '',
+      description: '',
+      targetDate: null
+    });
+  };
+
+  const resetTargetForm = () => {
+    setTargetFormData({
+      title: '',
+      description: '',
+      targetValue: '',
+      unit: '',
+      deadline: null,
+      goalId: ''
+    });
+  };
+
+  const openGoalModal = (goal?: Goal) => {
     if (goal) {
       setSelectedGoal(goal);
-      goalForm.setValue("title", goal.title);
-      goalForm.setValue("description", goal.description || "");
-      if (goal.targetDate) {
-        goalForm.setValue("targetDate", new Date(goal.targetDate));
-      }
+      setGoalFormData({
+        title: goal.title,
+        description: goal.description || '',
+        targetDate: goal.targetDate ? new Date(goal.targetDate) : null
+      });
     } else {
       setSelectedGoal(null);
-      goalForm.reset();
+      resetGoalForm();
     }
-    setIsGoalDialogOpen(true);
+    setIsGoalModalOpen(true);
   };
 
-  const openTargetDialog = (target?: TargetType, goalId?: string) => {
+  const openTargetModal = (goalId: string, target?: TargetType) => {
     if (target) {
       setSelectedTarget(target);
-      targetForm.setValue("title", target.title);
-      targetForm.setValue("description", target.description || "");
-      targetForm.setValue("targetValue", target.targetValue || "");
-      targetForm.setValue("unit", target.unit || "");
-      targetForm.setValue("goalId", target.goalId || "");
-      if (target.deadline) {
-        targetForm.setValue("deadline", new Date(target.deadline));
-      }
+      setTargetFormData({
+        title: target.title,
+        description: target.description || '',
+        targetValue: target.targetValue || '',
+        unit: target.unit || '',
+        deadline: target.deadline ? new Date(target.deadline) : null,
+        goalId: target.goalId || goalId
+      });
     } else {
       setSelectedTarget(null);
-      targetForm.reset({
-        title: "",
-        description: "",
-        targetValue: "",
-        unit: "",
-        goalId: goalId || "",
+      setTargetFormData({
+        ...targetFormData,
+        goalId,
+        title: '',
+        description: '',
+        targetValue: '',
+        unit: '',
+        deadline: null
       });
     }
-    setIsTargetDialogOpen(true);
+    setIsTargetModalOpen(true);
   };
 
-  const getTargetsForGoal = (goalId: string): TargetType[] => {
+  const getTargetsForGoal = (goalId: string) => {
     return targets.filter(target => target.goalId === goalId);
   };
 
-  const getCompletionPercentage = (goal: Goal): number => {
+  const getCompletionPercentage = (goal: Goal) => {
     const goalTargets = getTargetsForGoal(goal.id);
-    if (goalTargets.length === 0) return 0;
-    const completedTargets = goalTargets.filter(target => target.completed).length;
+    if (goalTargets.length === 0) return goal.completed ? 100 : 0;
+    
+    const completedTargets = goalTargets.filter(t => t.completed).length;
     return Math.round((completedTargets / goalTargets.length) * 100);
   };
-
-  const isGoalExpanded = (goalId: string) => expandedGoals.has(goalId);
 
   const toggleGoalExpanded = (goalId: string) => {
     const newExpanded = new Set(expandedGoals);
@@ -358,14 +326,47 @@ export default function Goals() {
     setExpandedGoals(newExpanded);
   };
 
-  // Loading state
+  const isGoalExpanded = (goalId: string) => {
+    return expandedGoals.has(goalId);
+  };
+
+  const handleGoalSubmit = () => {
+    if (!goalFormData.title.trim()) return;
+
+    const data = {
+      title: goalFormData.title,
+      description: goalFormData.description,
+      targetDate: goalFormData.targetDate || undefined
+    };
+
+    if (selectedGoal) {
+      updateGoalMutation.mutate({ id: selectedGoal.id, data });
+    } else {
+      createGoalMutation.mutate(data);
+    }
+  };
+
+  const handleTargetSubmit = () => {
+    if (!targetFormData.title.trim()) return;
+
+    const data = {
+      title: targetFormData.title,
+      description: targetFormData.description,
+      targetValue: targetFormData.targetValue,
+      unit: targetFormData.unit,
+      deadline: targetFormData.deadline || undefined,
+      goalId: targetFormData.goalId
+    };
+
+    createTargetMutation.mutate(data);
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-6 h-6 border-2 border-muted-foreground border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-sm">Carregando...</p>
-        </div>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-gray-50)' }}>
+        <Dimmer active>
+          <Loader size="large">Carregando...</Loader>
+        </Dimmer>
       </div>
     );
   }
@@ -380,89 +381,96 @@ export default function Goals() {
     ? Math.round(goals.reduce((acc, goal) => acc + getCompletionPercentage(goal), 0) / goals.length)
     : 0;
 
-  const breadcrumbs = [
-    { label: "Metas e Objetivos" }
-  ];
-
-  const primaryActions = (
-    <div className="flex gap-2">
-      <Button 
-        onClick={() => window.location.href = '/goal-builder'}
-        size="sm"
-        data-testid="button-goal-builder"
-      >
-        <Sparkles className="w-4 h-4 mr-2" />
-        Construir Meta
-      </Button>
-      <Button 
-        onClick={() => openGoalDialog()}
-        variant="outline"
-        size="sm"
-        data-testid="button-create-goal"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Nova Meta
-      </Button>
-    </div>
-  );
-
   return (
-    <TeamsShell 
-      title="Metas e Objetivos" 
-      subtitle="Gerencie suas metas de estudo e acompanhe seu progresso"
-      breadcrumbs={breadcrumbs}
-      primaryActions={primaryActions}
-    >
-      <div className="max-w-screen-2xl mx-auto space-y-6">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-gray-50)', padding: 'var(--spacing-lg)' }}>
+      <Container>
+        {/* Header Section */}
+        <div className="mb-xl">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-lg)' }}>
+            <div>
+              <Header as="h1" style={{ fontSize: '32px', fontWeight: '600', color: 'var(--nup-gray-800)', marginBottom: 'var(--spacing-xs)' }}>
+                Metas e Objetivos
+              </Header>
+              <p style={{ color: 'var(--nup-gray-600)', fontSize: '16px' }}>
+                Gerencie suas metas de estudo e acompanhe seu progresso
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+              <Button 
+                primary
+                icon="sparkles"
+                content="Construir Meta"
+                onClick={() => window.location.href = '/goal-builder'}
+                data-testid="button-goal-builder"
+              />
+              <Button 
+                secondary
+                icon="plus"
+                content="Nova Meta"
+                onClick={() => openGoalModal()}
+                data-testid="button-create-goal"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Stats Overview */}
-        <div>
+        <div className="mb-xl">
           <SectionHeader 
             title="Estatísticas"
             description="Acompanhe o progresso das suas metas"
             data-testid="stats-header"
           />
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <Grid columns={4} stackable style={{ marginTop: 'var(--spacing-md)' }}>
             {goalsLoading ? (
               <>
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
               </>
             ) : (
               <>
-                <StatCard
-                  icon={<Target className="w-8 h-8" />}
-                  value={goals.length}
-                  label="Total de Metas"
-                  variant="info"
-                  data-testid="stat-total-goals"
-                />
-                <StatCard
-                  icon={<CheckCircle2 className="w-8 h-8" />}
-                  value={completedGoals}
-                  label="Metas Concluídas"
-                  variant="success"
-                  data-testid="stat-completed-goals"
-                />
-                <StatCard
-                  icon={<ListTodo className="w-8 h-8" />}
-                  value={targets.length}
-                  label="Total de Objetivos"
-                  variant="warning"
-                  data-testid="stat-total-targets"
-                />
-                <StatCard
-                  icon={<TrendingUp className="w-8 h-8" />}
-                  value={`${averageProgress}%`}
-                  label="Progresso Médio"
-                  variant="primary"
-                  data-testid="stat-average-progress"
-                />
+                <Grid.Column>
+                  <StatCard
+                    icon={<Target className="w-8 h-8" />}
+                    value={goals.length}
+                    label="Total de Metas"
+                    variant="info"
+                    data-testid="stat-total-goals"
+                  />
+                </Grid.Column>
+                <Grid.Column>
+                  <StatCard
+                    icon={<CheckCircle2 className="w-8 h-8" />}
+                    value={completedGoals}
+                    label="Metas Concluídas"
+                    variant="success"
+                    data-testid="stat-completed-goals"
+                  />
+                </Grid.Column>
+                <Grid.Column>
+                  <StatCard
+                    icon={<ListTodo className="w-8 h-8" />}
+                    value={targets.length}
+                    label="Total de Objetivos"
+                    variant="warning"
+                    data-testid="stat-total-targets"
+                  />
+                </Grid.Column>
+                <Grid.Column>
+                  <StatCard
+                    icon={<TrendingUp className="w-8 h-8" />}
+                    value={`${averageProgress}%`}
+                    label="Progresso Médio"
+                    variant="primary"
+                    data-testid="stat-average-progress"
+                  />
+                </Grid.Column>
               </>
             )}
-          </div>
+          </Grid>
         </div>
 
         {/* Goals List */}
@@ -473,9 +481,9 @@ export default function Goals() {
             data-testid="goals-header"
           />
           
-          <div className="mt-4">
+          <div style={{ marginTop: 'var(--spacing-md)' }}>
             {goalsLoading ? (
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                 <SkeletonCard />
                 <SkeletonCard />
                 <SkeletonCard />
@@ -487,190 +495,161 @@ export default function Goals() {
                 description="Comece criando sua primeira meta de estudo. Organize seus objetivos e acompanhe seu progresso."
                 action={{
                   label: "Criar Primeira Meta",
-                  onClick: () => openGoalDialog()
+                  onClick: () => openGoalModal()
                 }}
                 data-testid="empty-goals"
               />
             ) : (
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                 {goals.map((goal) => {
                   const goalTargets = getTargetsForGoal(goal.id);
                   const completionPercentage = getCompletionPercentage(goal);
                   const isExpanded = isGoalExpanded(goal.id);
                   
                   return (
-                    <Card key={goal.id} className="surface-elevated hover-lift transition-fast">
-                      <CardContent className="p-6">
+                    <Card key={goal.id} className="transition-smooth hover-lift">
+                      <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
                         <div 
-                          className="cursor-pointer"
+                          style={{ cursor: 'pointer' }}
                           onClick={() => toggleGoalExpanded(goal.id)}
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className={cn(
-                                  "p-2 rounded-lg",
-                                  goal.completed 
-                                    ? "bg-success/10 text-success" 
-                                    : "bg-info/10 text-info"
-                                )}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
+                                <div style={{
+                                  padding: 'var(--spacing-sm)',
+                                  borderRadius: 'var(--radius-md)',
+                                  backgroundColor: goal.completed ? 'rgba(19, 161, 14, 0.1)' : 'rgba(0, 120, 212, 0.1)',
+                                  color: goal.completed ? 'var(--nup-success)' : 'var(--nup-secondary)'
+                                }}>
                                   {goal.completed ? (
-                                    <CheckCircle2 className="h-5 w-5" />
+                                    <CheckCircle2 style={{ width: '20px', height: '20px' }} />
                                   ) : (
-                                    <Flag className="h-5 w-5" />
+                                    <Flag style={{ width: '20px', height: '20px' }} />
                                   )}
                                 </div>
-                                <div className="flex-1">
-                                  <h3 className={cn(
-                                    "text-lg font-semibold text-foreground truncate",
-                                    goal.completed && "line-through text-muted-foreground"
-                                  )}>
+                                <div style={{ flex: 1 }}>
+                                  <Header as="h3" style={{ 
+                                    marginBottom: 'var(--spacing-xs)',
+                                    textDecoration: goal.completed ? 'line-through' : 'none',
+                                    color: goal.completed ? 'var(--nup-gray-500)' : 'var(--nup-gray-800)'
+                                  }}>
                                     {goal.title}
-                                  </h3>
+                                  </Header>
                                   {goal.description && (
-                                    <p className="text-sm text-muted-foreground mt-1">
+                                    <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)' }}>
                                       {goal.description}
                                     </p>
                                   )}
                                 </div>
                               </div>
                               
-                              <div className="flex items-center gap-4">
-                                <div className="text-sm text-muted-foreground">
-                                  {goalTargets.length} objetivo{goalTargets.length !== 1 ? 's' : ''}
+                              <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: 'var(--spacing-xs)' }}>
+                                  <span style={{ color: 'var(--nup-gray-600)' }}>Progresso</span>
+                                  <span style={{ fontWeight: '500' }}>{completionPercentage}%</span>
                                 </div>
-                                <div className="text-sm font-medium text-foreground">
-                                  {completionPercentage}% completo
-                                </div>
-                                {goal.targetDate && (
-                                  <div className="text-sm text-muted-foreground">
-                                    Prazo: {format(new Date(goal.targetDate), "dd/MM/yyyy", { locale: ptBR })}
-                                  </div>
-                                )}
+                                <Progress 
+                                  percent={completionPercentage} 
+                                  color={goal.completed ? "green" : "blue"}
+                                  size="small"
+                                />
                               </div>
                             </div>
                             
-                            <div className="flex items-center gap-2 ml-4">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginLeft: 'var(--spacing-md)' }}>
                               <Button
-                                variant="ghost"
-                                size="sm"
+                                basic
+                                icon="edit"
+                                size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  openGoalDialog(goal);
+                                  openGoalModal(goal);
                                 }}
                                 data-testid={`button-edit-goal-${goal.id}`}
-                                aria-label={`Editar meta ${goal.title}`}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
+                                title={`Editar meta ${goal.title}`}
+                              />
                               <Button
-                                variant="ghost"
-                                size="sm"
+                                basic
+                                icon="trash"
+                                size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   deleteGoalMutation.mutate(goal.id);
                                 }}
                                 data-testid={`button-delete-goal-${goal.id}`}
-                                aria-label={`Excluir meta ${goal.title}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                title={`Excluir meta ${goal.title}`}
+                              />
                             </div>
                           </div>
                         </div>
                         
-                        {/* Expanded content with targets */}
-                        {isExpanded && goalTargets.length > 0 && (
-                          <div className="mt-6 pt-4 border-t border-border">
-                            <div className="flex items-center justify-between mb-4">
-                              <h4 className="text-sm font-semibold text-foreground">Objetivos</h4>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openTargetDialog(undefined, goal.id);
-                                }}
-                                data-testid={`button-add-target-${goal.id}`}
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Adicionar
-                              </Button>
+                        {/* Expanded Content */}
+                        {isExpanded && (
+                          <div style={{ marginTop: 'var(--spacing-lg)', paddingTop: 'var(--spacing-lg)', borderTop: '1px solid var(--nup-gray-200)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+                              <Header as="h4">Objetivos ({goalTargets.length})</Header>
+                              <Button 
+                                primary
+                                size="small"
+                                icon="plus"
+                                content="Adicionar Objetivo"
+                                onClick={() => openTargetModal(goal.id)}
+                              />
                             </div>
                             
-                            <div className="space-y-2">
-                              {goalTargets.map((target) => (
-                                <div
-                                  key={target.id}
-                                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
-                                >
-                                  <div className="flex items-center gap-3 flex-1">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleTargetMutation.mutate({
-                                          id: target.id,
-                                          completed: !target.completed
-                                        });
-                                      }}
-                                      className={cn(
-                                        "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
-                                        target.completed
-                                          ? "bg-success border-success text-white"
-                                          : "border-border hover:border-primary"
-                                      )}
-                                      data-testid={`button-toggle-target-${target.id}`}
-                                    >
-                                      {target.completed && (
-                                        <CheckCircle2 className="w-3 h-3" />
-                                      )}
-                                    </button>
-                                    
-                                    <div className="flex-1">
-                                      <p className={cn(
-                                        "text-sm font-medium text-foreground",
-                                        target.completed && "line-through text-muted-foreground"
-                                      )}>
-                                        {target.title}
-                                      </p>
+                            {goalTargets.length === 0 ? (
+                              <Message info>
+                                <p>Nenhum objetivo definido para esta meta.</p>
+                              </Message>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                                {goalTargets.map((target) => (
+                                  <Segment key={target.id} style={{ padding: 'var(--spacing-md)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                                          <Button
+                                            basic
+                                            circular
+                                            icon={target.completed ? "check circle" : "circle outline"}
+                                            size="small"
+                                            color={target.completed ? "green" : undefined}
+                                            onClick={() => toggleTargetMutation.mutate({ 
+                                              id: target.id, 
+                                              completed: !target.completed 
+                                            })}
+                                          />
+                                          <div>
+                                            <p style={{ 
+                                              fontWeight: '500',
+                                              textDecoration: target.completed ? 'line-through' : 'none',
+                                              color: target.completed ? 'var(--nup-gray-500)' : 'var(--nup-gray-800)'
+                                            }}>
+                                              {target.title}
+                                            </p>
+                                            {target.description && (
+                                              <p style={{ fontSize: '12px', color: 'var(--nup-gray-600)' }}>
+                                                {target.description}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      
                                       {(target.targetValue || target.unit) && (
-                                        <p className="text-xs text-muted-foreground">
-                                          Meta: {target.targetValue} {target.unit}
-                                        </p>
+                                        <Label color="blue" size="small">
+                                          {target.targetValue} {target.unit}
+                                        </Label>
                                       )}
                                     </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openTargetDialog(target);
-                                      }}
-                                      data-testid={`button-edit-target-${target.id}`}
-                                    >
-                                      <Edit className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteTargetMutation.mutate(target.id);
-                                      }}
-                                      data-testid={`button-delete-target-${target.id}`}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                                  </Segment>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
-                      </CardContent>
+                      </Card.Content>
                     </Card>
                   );
                 })}
@@ -678,271 +657,125 @@ export default function Goals() {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Goal Dialog */}
-      <Dialog open={isGoalDialogOpen} onOpenChange={setIsGoalDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedGoal ? "Editar Meta" : "Nova Meta"}</DialogTitle>
-            <DialogDescription>
-              {selectedGoal ? "Edite os detalhes da sua meta" : "Crie uma nova meta para organizar seus estudos e acompanhar seu progresso"}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...goalForm}>
-            <form onSubmit={goalForm.handleSubmit(data => {
-              if (selectedGoal) {
-                updateGoalMutation.mutate({ id: selectedGoal.id, data });
-              } else {
-                createGoalMutation.mutate(data);
-              }
-            })} className="space-y-4">
-              <FormField
-                control={goalForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título da Meta</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Passar no ENEM 2024" {...field} data-testid="input-goal-title" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={goalForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição (Opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Descreva sua meta em detalhes..."
-                        className="resize-none"
-                        {...field}
-                        data-testid="input-goal-description"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={goalForm.control}
-                name="targetDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data Alvo (Opcional)</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            data-testid="button-goal-target-date"
-                          >
-                            {field.value ? (
-                              format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                            ) : (
-                              <span>Selecione uma data</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsGoalDialogOpen(false)}
-                  data-testid="button-cancel-goal"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createGoalMutation.isPending || updateGoalMutation.isPending}
-                  data-testid="button-save-goal"
-                >
-                  {createGoalMutation.isPending || updateGoalMutation.isPending
-                    ? "Salvando..."
-                    : selectedGoal ? "Atualizar Meta" : "Criar Meta"
-                  }
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Target Dialog */}
-      <Dialog open={isTargetDialogOpen} onOpenChange={setIsTargetDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedTarget ? "Editar Objetivo" : "Novo Objetivo"}</DialogTitle>
-            <DialogDescription>
-              {selectedTarget ? "Edite os detalhes do seu objetivo" : "Crie um objetivo específico para esta meta"}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...targetForm}>
-            <form onSubmit={targetForm.handleSubmit(data => {
-              if (selectedTarget) {
-                updateTargetMutation.mutate({ id: selectedTarget.id, data });
-              } else {
-                createTargetMutation.mutate(data);
-              }
-            })} className="space-y-4">
-              <FormField
-                control={targetForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título do Objetivo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Estudar 2 horas de matemática por dia" {...field} data-testid="input-target-title" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={targetForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição (Opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Descreva seu objetivo..."
-                        className="resize-none"
-                        {...field}
-                        data-testid="input-target-description"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={targetForm.control}
-                  name="targetValue"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Meta Numérica</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: 100" {...field} data-testid="input-target-value" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+        {/* Goal Modal */}
+        <Modal 
+          open={isGoalModalOpen} 
+          onClose={() => setIsGoalModalOpen(false)}
+          size="small"
+        >
+          <Modal.Header>
+            {selectedGoal ? "Editar Meta" : "Nova Meta"}
+          </Modal.Header>
+          <Modal.Content>
+            <Form>
+              <Form.Field required>
+                <label>Título da Meta</label>
+                <Input
+                  placeholder="Ex: Passar no concurso SEFAZ-DF"
+                  value={goalFormData.title}
+                  onChange={(e) => setGoalFormData({ ...goalFormData, title: e.target.value })}
+                  data-testid="input-goal-title"
                 />
-
-                <FormField
-                  control={targetForm.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unidade</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: horas" {...field} data-testid="input-target-unit" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              </Form.Field>
+              
+              <Form.Field>
+                <label>Descrição (Opcional)</label>
+                <TextArea
+                  placeholder="Descreva sua meta..."
+                  value={goalFormData.description}
+                  onChange={(e) => setGoalFormData({ ...goalFormData, description: e.target.value })}
+                  data-testid="input-goal-description"
                 />
-              </div>
+              </Form.Field>
+            </Form>
+          </Modal.Content>
+          <Modal.Actions>
+            <Button 
+              content="Cancelar"
+              onClick={() => setIsGoalModalOpen(false)}
+              data-testid="button-cancel-goal"
+            />
+            <Button
+              primary
+              content={selectedGoal ? "Atualizar Meta" : "Criar Meta"}
+              loading={createGoalMutation.isPending || updateGoalMutation.isPending}
+              onClick={handleGoalSubmit}
+              data-testid="button-save-goal"
+            />
+          </Modal.Actions>
+        </Modal>
 
-              <FormField
-                control={targetForm.control}
-                name="deadline"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prazo (Opcional)</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            data-testid="button-target-deadline"
-                          >
-                            {field.value ? (
-                              format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                            ) : (
-                              <span>Selecione uma data</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsTargetDialogOpen(false)}
-                  data-testid="button-cancel-target"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createTargetMutation.isPending || updateTargetMutation.isPending}
-                  data-testid="button-save-target"
-                >
-                  {createTargetMutation.isPending || updateTargetMutation.isPending
-                    ? "Salvando..."
-                    : selectedTarget ? "Atualizar" : "Criar Objetivo"
-                  }
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </TeamsShell>
+        {/* Target Modal */}
+        <Modal 
+          open={isTargetModalOpen} 
+          onClose={() => setIsTargetModalOpen(false)}
+          size="small"
+        >
+          <Modal.Header>
+            {selectedTarget ? "Editar Objetivo" : "Novo Objetivo"}
+          </Modal.Header>
+          <Modal.Content>
+            <Form>
+              <Form.Field required>
+                <label>Título do Objetivo</label>
+                <Input
+                  placeholder="Ex: Estudar 2 horas de matemática por dia"
+                  value={targetFormData.title}
+                  onChange={(e) => setTargetFormData({ ...targetFormData, title: e.target.value })}
+                  data-testid="input-target-title"
+                />
+              </Form.Field>
+              
+              <Form.Field>
+                <label>Descrição (Opcional)</label>
+                <TextArea
+                  placeholder="Descreva seu objetivo..."
+                  value={targetFormData.description}
+                  onChange={(e) => setTargetFormData({ ...targetFormData, description: e.target.value })}
+                  data-testid="input-target-description"
+                />
+              </Form.Field>
+              
+              <Form.Group widths="equal">
+                <Form.Field>
+                  <label>Meta Numérica</label>
+                  <Input
+                    placeholder="Ex: 100"
+                    value={targetFormData.targetValue}
+                    onChange={(e) => setTargetFormData({ ...targetFormData, targetValue: e.target.value })}
+                    data-testid="input-target-value"
+                  />
+                </Form.Field>
+                
+                <Form.Field>
+                  <label>Unidade</label>
+                  <Input
+                    placeholder="Ex: horas"
+                    value={targetFormData.unit}
+                    onChange={(e) => setTargetFormData({ ...targetFormData, unit: e.target.value })}
+                    data-testid="input-target-unit"
+                  />
+                </Form.Field>
+              </Form.Group>
+            </Form>
+          </Modal.Content>
+          <Modal.Actions>
+            <Button 
+              content="Cancelar"
+              onClick={() => setIsTargetModalOpen(false)}
+              data-testid="button-cancel-target"
+            />
+            <Button
+              primary
+              content={selectedTarget ? "Atualizar Objetivo" : "Criar Objetivo"}
+              loading={createTargetMutation.isPending}
+              onClick={handleTargetSubmit}
+              data-testid="button-save-target"
+            />
+          </Modal.Actions>
+        </Modal>
+      </Container>
+    </div>
   );
 }
