@@ -799,6 +799,201 @@ a:hover {
 
 /* === DARK MODE SUPPORT === */
 
+/* === SOFT COLOR GRADIENTS === */
+
+/* Light mode soft gradients */
+:root,
+.light {
+  /* Soft gradient variants for cards */
+  --soft-primary-start: #f0f7ff;
+  --soft-primary-end: #e6f2ff;
+  --soft-primary-border: #d1e9ff;
+  
+  --soft-success-start: #f0fdf4;
+  --soft-success-end: #e6fdf0;
+  --soft-success-border: #d1fae5;
+  
+  --soft-warning-start: #fffbeb;
+  --soft-warning-end: #fef3c7;
+  --soft-warning-border: #fed7aa;
+  
+  --soft-info-start: #f0fdff;
+  --soft-info-end: #e6fcff;
+  --soft-info-border: #cffafe;
+  
+  /* Enhanced shadows for elevation */
+  --card-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.06);
+  --card-shadow-hover: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
+  --card-shadow-soft: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode soft gradients */
+.dark {
+  /* Soft gradient variants for dark mode */
+  --soft-primary-start: #1e293b;
+  --soft-primary-end: #334155;
+  --soft-primary-border: #475569;
+  
+  --soft-success-start: #0f172a;
+  --soft-success-end: #1e293b;
+  --soft-success-border: #334155;
+  
+  --soft-warning-start: #1e1b13;
+  --soft-warning-end: #2d2617;
+  --soft-warning-border: #3d321a;
+  
+  --soft-info-start: #0c1920;
+  --soft-info-end: #1e2832;
+  --soft-info-border: #2d3748;
+  
+  /* Enhanced shadows for dark mode */
+  --card-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.4);
+  --card-shadow-hover: 0 4px 16px 0 rgba(0, 0, 0, 0.6);
+  --card-shadow-soft: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* === BEAUTIFUL CARD VARIANTS === */
+
+/* Base beautiful card styling */
+.nup-card {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--nup-border) !important;
+  background-color: var(--nup-surface) !important;
+  box-shadow: var(--card-shadow) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.nup-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%);
+  z-index: 1;
+}
+
+.nup-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: var(--card-shadow-hover) !important;
+}
+
+/* Soft gradient card variants */
+.nup-card--soft.nup-card--primary {
+  background: linear-gradient(135deg, var(--soft-primary-start) 0%, var(--soft-primary-end) 100%) !important;
+  border-color: var(--soft-primary-border) !important;
+}
+
+.nup-card--soft.nup-card--success {
+  background: linear-gradient(135deg, var(--soft-success-start) 0%, var(--soft-success-end) 100%) !important;
+  border-color: var(--soft-success-border) !important;
+}
+
+.nup-card--soft.nup-card--warning {
+  background: linear-gradient(135deg, var(--soft-warning-start) 0%, var(--soft-warning-end) 100%) !important;
+  border-color: var(--soft-warning-border) !important;
+}
+
+.nup-card--soft.nup-card--info {
+  background: linear-gradient(135deg, var(--soft-info-start) 0%, var(--soft-info-end) 100%) !important;
+  border-color: var(--soft-info-border) !important;
+}
+
+/* === BEAUTIFUL KPI STYLING === */
+
+.nup-kpi {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  padding: var(--spacing-lg) !important;
+}
+
+.nup-kpi__icon {
+  margin-bottom: var(--spacing-md) !important;
+  opacity: 0.8 !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1)) !important;
+}
+
+.nup-kpi__value {
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  color: var(--nup-text-primary) !important;
+  margin-bottom: var(--spacing-xs) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.nup-kpi__label {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: var(--nup-text-secondary) !important;
+  opacity: 0.9 !important;
+  letter-spacing: 0.025em !important;
+}
+
+/* === ENHANCED HOVER EFFECTS === */
+
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px) !important;
+}
+
+/* Smooth focus and active states */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* === REFINED TYPOGRAPHY === */
+
+.nup-section-title {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  color: var(--nup-text-primary) !important;
+  margin-bottom: var(--spacing-lg) !important;
+  letter-spacing: -0.025em !important;
+}
+
+.nup-card-title {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  color: var(--nup-text-primary) !important;
+  margin-bottom: var(--spacing-sm) !important;
+  letter-spacing: -0.025em !important;
+}
+
+.nup-card-description {
+  font-size: 0.875rem !important;
+  color: var(--nup-text-secondary) !important;
+  line-height: 1.5 !important;
+  opacity: 0.9 !important;
+}
+
+/* === SEMANTIC UI CARD ENHANCEMENTS === */
+
+/* Override default Semantic UI card styling for beautiful variants */
+.ui.card.nup-card > .content {
+  background: transparent !important;
+  border: none !important;
+  padding: var(--spacing-lg) !important;
+}
+
+.ui.card.nup-card > .content > .header {
+  color: var(--nup-text-primary) !important;
+  font-weight: 600 !important;
+  margin-bottom: var(--spacing-sm) !important;
+}
+
+.ui.card.nup-card > .content > .description {
+  color: var(--nup-text-secondary) !important;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --nup-gray-50: #202124;
