@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Button, Modal, Header, Segment, Grid, Card, Icon, Popup, Label } from 'semantic-ui-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useResponsiveText } from '@/hooks/useResponsiveText';
+import { ResponsiveGrid } from '@/components/ui/responsive-components';
 import type { MouseEvent } from 'react';
 
 const FloatingSettings = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('themes');
   const { currentTheme, currentMode, setTheme, setMode, availableThemes } = useTheme();
+  const { isMobile, isTablet } = useResponsiveText();
 
   const handleThemeChange = (themeName: any) => {
     setTheme(themeName);
@@ -56,8 +59,8 @@ const FloatingSettings = () => {
           <Icon name="eye" />
           Modo de Exibição
         </Header>
-        <Grid stackable>
-          <Grid.Column width={8}>
+        <ResponsiveGrid columns={2}>
+          <Grid.Column>
             <Card 
               fluid
               style={{
@@ -87,7 +90,7 @@ const FloatingSettings = () => {
               </Card.Content>
             </Card>
           </Grid.Column>
-          <Grid.Column width={8}>
+          <Grid.Column>
             <Card 
               fluid
               style={{
@@ -117,7 +120,7 @@ const FloatingSettings = () => {
               </Card.Content>
             </Card>
           </Grid.Column>
-        </Grid>
+        </ResponsiveGrid>
       </div>
 
       {/* Theme Color Selection */}
@@ -128,9 +131,9 @@ const FloatingSettings = () => {
       <p style={{ marginBottom: '2rem', color: 'var(--nup-text-secondary)' }}>
         Selecione uma paleta de cores para personalizar o sistema
       </p>
-      <Grid stackable>
+      <ResponsiveGrid columns={2}>
         {availableThemes.map((theme) => (
-          <Grid.Column key={theme.name} width={8} style={{ marginBottom: '1rem' }}>
+          <Grid.Column key={theme.name} style={{ marginBottom: '1rem' }}>
             <Card 
               fluid
               style={{
@@ -203,7 +206,7 @@ const FloatingSettings = () => {
             </Card>
           </Grid.Column>
         ))}
-      </Grid>
+      </ResponsiveGrid>
     </div>
   );
 
@@ -270,68 +273,115 @@ const FloatingSettings = () => {
       <Modal
         open={isOpen}
         onClose={() => setIsOpen(false)}
-        size="large"
+        size={isMobile ? "fullscreen" : "large"}
         closeIcon
         data-testid="settings-modal"
+        style={isMobile ? {
+          width: '100vw',
+          height: '100vh',
+          margin: 0,
+          maxWidth: '100%',
+          borderRadius: 0
+        } : {}}
       >
-        <Modal.Header style={{ backgroundColor: 'var(--nup-primary)', color: 'white' }}>
+        <Modal.Header style={{ 
+          backgroundColor: 'var(--nup-primary)', 
+          color: 'white',
+          padding: isMobile ? '1rem' : '1.5rem 2rem'
+        }}>
           <Icon name="setting" />
           Configurações do Sistema
         </Modal.Header>
-        <Modal.Content>
-          <Grid>
-            {/* Sidebar com opções */}
-            <Grid.Column width={4} style={{ borderRight: '1px solid #e0e0e0' }}>
-              <div style={{ padding: '1rem 0' }}>
+        <Modal.Content style={{ padding: 0 }}>
+          {isMobile ? (
+            // Layout Mobile: Só conteúdo, sem sidebar
+            <div style={{ padding: '1rem' }}>
+              {/* Navegação horizontal no mobile */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '0.5rem', 
+                marginBottom: '1.5rem',
+                overflowX: 'auto',
+                padding: '0.5rem 0'
+              }}>
                 {settingsOptions.map((option) => (
-                  <Segment
+                  <Button
                     key={option.key}
-                    basic
+                    size="small"
                     style={{
-                      cursor: 'pointer',
-                      padding: '1rem',
-                      margin: '0.5rem 0',
-                      backgroundColor: activeTab === option.key ? 'var(--nup-primary-light)' : 'transparent',
-                      borderLeft: activeTab === option.key ? `4px solid var(--nup-primary)` : '4px solid transparent',
-                      borderRadius: '0 8px 8px 0',
-                      transition: 'all 0.3s ease'
+                      backgroundColor: activeTab === option.key ? 'var(--nup-primary)' : 'var(--nup-surface)',
+                      color: activeTab === option.key ? 'white' : 'var(--nup-text-primary)',
+                      border: `1px solid ${activeTab === option.key ? 'var(--nup-primary)' : 'var(--nup-border)'}`,
+                      borderRadius: '20px',
+                      whiteSpace: 'nowrap',
+                      minWidth: 'auto'
                     }}
                     onClick={() => setActiveTab(option.key)}
-                    onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
-                      if (activeTab !== option.key) {
-                        e.currentTarget.style.backgroundColor = '#f8f9fa';
-                      }
-                    }}
-                    onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
-                      if (activeTab !== option.key) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }
-                    }}
-                    data-testid={`settings-tab-${option.key}`}
+                    data-testid={`settings-tab-${option.key}-mobile`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <Icon name={option.icon as any} size="large" color={option.color as any} />
-                      <div>
-                        <div style={{ fontWeight: 'bold', color: 'var(--nup-text-primary)' }}>
-                          {option.title}
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--nup-text-secondary)' }}>
-                          {option.description}
-                        </div>
-                      </div>
-                    </div>
-                  </Segment>
+                    <Icon name={option.icon as any} />
+                    {option.title}
+                  </Button>
                 ))}
               </div>
-            </Grid.Column>
+              {renderTabContent()}
+            </div>
+          ) : (
+            // Layout Desktop: Com sidebar
+            <Grid>
+              {/* Sidebar com opções */}
+              <Grid.Column width={4} style={{ borderRight: '1px solid #e0e0e0' }}>
+                <div style={{ padding: '1rem 0' }}>
+                  {settingsOptions.map((option) => (
+                    <Segment
+                      key={option.key}
+                      basic
+                      style={{
+                        cursor: 'pointer',
+                        padding: '1rem',
+                        margin: '0.5rem 0',
+                        backgroundColor: activeTab === option.key ? 'var(--nup-primary-light)' : 'transparent',
+                        borderLeft: activeTab === option.key ? `4px solid var(--nup-primary)` : '4px solid transparent',
+                        borderRadius: '0 8px 8px 0',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onClick={() => setActiveTab(option.key)}
+                      onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
+                        if (activeTab !== option.key) {
+                          e.currentTarget.style.backgroundColor = '#f8f9fa';
+                        }
+                      }}
+                      onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
+                        if (activeTab !== option.key) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
+                      data-testid={`settings-tab-${option.key}`}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Icon name={option.icon as any} size="large" color={option.color as any} />
+                        <div>
+                          <div style={{ fontWeight: 'bold', color: 'var(--nup-text-primary)' }}>
+                            {option.title}
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--nup-text-secondary)' }}>
+                            {option.description}
+                          </div>
+                        </div>
+                      </div>
+                    </Segment>
+                  ))}
+                </div>
+              </Grid.Column>
 
-            {/* Conteúdo principal */}
-            <Grid.Column width={12}>
-              <div style={{ padding: '1rem 2rem' }}>
-                {renderTabContent()}
-              </div>
-            </Grid.Column>
-          </Grid>
+              {/* Conteúdo principal */}
+              <Grid.Column width={12}>
+                <div style={{ padding: '1rem 2rem' }}>
+                  {renderTabContent()}
+                </div>
+              </Grid.Column>
+            </Grid>
+          )}
         </Modal.Content>
       </Modal>
     </>
