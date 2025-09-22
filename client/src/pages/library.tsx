@@ -1,20 +1,13 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-// Legacy layout imports removed - using AppShell
-import { DashboardIcon } from "@/components/ui/dashboard-icon";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
-import { CommandBar } from "@/components/ui/command-bar";
-import { DataList } from "@/components/ui/data-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
@@ -29,11 +22,15 @@ import {
   Edit,
   Eye,
   Upload,
-  ChevronRight,
   ArrowLeft,
   Folder,
   FolderOpen
 } from "lucide-react";
+import { StatCard } from "@/components/ui/stat-card";
+import { SectionHeader } from "@/components/ui/section-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonCard } from "@/components/ui/skeleton-row";
+import TeamsShell from "@/components/layout/teams-shell";
 import type { Subject, Material, KnowledgeArea } from "@shared/schema";
 
 // Navigation state types
@@ -58,8 +55,6 @@ export default function Library() {
   });
   
   // State para filtros e busca
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [createType, setCreateType] = useState<'area' | 'subject' | 'material'>('area');
@@ -91,17 +86,14 @@ export default function Library() {
     if (createParam === 'subject') {
       setCreateType('subject');
       setIsCreateDialogOpen(true);
-      // Clear the URL parameter
       window.history.replaceState({}, '', window.location.pathname);
     } else if (createParam === 'area') {
       setCreateType('area');
       setIsCreateDialogOpen(true);
-      // Clear the URL parameter
       window.history.replaceState({}, '', window.location.pathname);
     } else if (createParam === 'material') {
       setCreateType('material');
       setIsCreateDialogOpen(true);
-      // Clear the URL parameter
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -109,7 +101,6 @@ export default function Library() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // ⌘K is handled by ClickUp Shell - removed conflict
       if ((e.metaKey || e.ctrlKey) && e.key === 'u') {
         e.preventDefault();
         handleCreateNew('material');
@@ -120,96 +111,65 @@ export default function Library() {
   }, []);
 
   // Queries para dados hierárquicos
-  const { data: knowledgeAreas = [] } = useQuery<KnowledgeArea[]>({
+  const { data: knowledgeAreas = [], isLoading: areasLoading } = useQuery<KnowledgeArea[]>({
     queryKey: ["/api/areas"],
     enabled: isAuthenticated,
   });
 
-  const { data: subjects = [] } = useQuery<Subject[]>({
-    queryKey: [`/api/subjects?areaId=${navigation.selectedAreaId}`],
+  const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects", navigation.selectedAreaId],
     enabled: isAuthenticated && navigation.level === 'subjects' && !!navigation.selectedAreaId,
   });
 
-  const { data: materials = [] } = useQuery<Material[]>({
-    queryKey: [`/api/materials?subjectId=${navigation.selectedSubjectId}`],
+  const { data: materials = [], isLoading: materialsLoading } = useQuery<Material[]>({
+    queryKey: ["/api/materials", navigation.selectedSubjectId],
     enabled: isAuthenticated && navigation.level === 'materials' && !!navigation.selectedSubjectId,
   });
 
-  // Navigation functions
-  const navigateToArea = (area: KnowledgeArea) => {
-    setNavigation({
-      level: 'subjects',
-      selectedAreaId: area.id,
-      breadcrumb: [
-        { name: 'Biblioteca', level: 'areas' },
-        { id: area.id, name: area.name, level: 'subjects' }
-      ]
-    });
-  };
-
-  const navigateToSubject = (subject: Subject) => {
-    setNavigation(prev => ({
-      level: 'materials',
-      selectedAreaId: prev.selectedAreaId,
-      selectedSubjectId: subject.id,
-      breadcrumb: [
-        ...prev.breadcrumb,
-        { id: subject.id, name: subject.name, level: 'materials' }
-      ]
-    }));
+  // Helper functions
+  const navigateToLevel = (level: ViewLevel, id?: string, name?: string) => {
+    const newBreadcrumb = [...navigation.breadcrumb];
+    
+    if (level === 'subjects' && id && name) {
+      setNavigation({
+        level: 'subjects',
+        selectedAreaId: id,
+        breadcrumb: [...newBreadcrumb, { id, name, level: 'subjects' }]
+      });
+    } else if (level === 'materials' && id && name) {
+      setNavigation({
+        ...navigation,
+        level: 'materials',
+        selectedSubjectId: id,
+        breadcrumb: [...newBreadcrumb, { id, name, level: 'materials' }]
+      });
+    } else {
+      setNavigation({
+        level: 'areas',
+        breadcrumb: [{ name: 'Biblioteca', level: 'areas' }]
+      });
+    }
   };
 
   const navigateBack = (targetLevel: ViewLevel) => {
-    const levelIndex = navigation.breadcrumb.findIndex(item => item.level === targetLevel);
-    if (levelIndex !== -1) {
-      const newBreadcrumb = navigation.breadcrumb.slice(0, levelIndex + 1);
-      const targetItem = newBreadcrumb[levelIndex];
+    const breadcrumbIndex = navigation.breadcrumb.findIndex(item => item.level === targetLevel);
+    
+    if (breadcrumbIndex !== -1) {
+      const newBreadcrumb = navigation.breadcrumb.slice(0, breadcrumbIndex + 1);
+      const targetItem = navigation.breadcrumb[breadcrumbIndex];
       
       setNavigation({
         level: targetLevel,
-        selectedAreaId: targetLevel === 'areas' ? undefined : targetItem.id,
-        selectedSubjectId: undefined, // Always clear when going back
+        selectedAreaId: targetLevel === 'subjects' ? targetItem.id : undefined,
+        selectedSubjectId: targetLevel === 'materials' ? targetItem.id : navigation.selectedSubjectId,
         breadcrumb: newBreadcrumb
       });
     }
   };
 
-  // Get filtered data based on current view and search
-  const getFilteredData = () => {
-    switch (navigation.level) {
-      case 'areas':
-        return knowledgeAreas.filter(area => 
-          !searchQuery || area.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          area.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      case 'subjects':
-        return subjects.filter(subject => 
-          !searchQuery || subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          subject.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      case 'materials':
-        return materials.filter(material => 
-          !searchQuery || material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          material.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      default:
-        return [];
-    }
-  };
-
-  const filteredData = getFilteredData();
-
   const handleCreateNew = (type: 'area' | 'subject' | 'material') => {
     setCreateType(type);
     setIsCreateDialogOpen(true);
-  };
-
-  const handleView = (item: any) => {
-    if (navigation.level === 'areas') {
-      navigateToArea(item);
-    } else if (navigation.level === 'subjects') {
-      navigateToSubject(item);
-    }
   };
 
   const handleEdit = (item: any) => {
@@ -224,30 +184,32 @@ export default function Library() {
 
   const confirmDelete = async () => {
     if (!itemToDelete) return;
-    
+
     try {
       let endpoint = '';
       let queryKey = '';
-      
-      switch (navigation.level) {
-        case 'areas':
-          endpoint = `/api/areas/${itemToDelete.id}`;
-          queryKey = '/api/areas';
-          break;
-        case 'subjects':
-          endpoint = `/api/subjects/${itemToDelete.id}`;
-          queryKey = `/api/subjects/${navigation.selectedAreaId}`;
-          break;
-        case 'materials':
-          endpoint = `/api/materials/${itemToDelete.id}`;
-          queryKey = `/api/materials/${navigation.selectedSubjectId}`;
-          break;
+
+      if (navigation.level === 'areas') {
+        endpoint = `/api/areas/${itemToDelete.id}`;
+        queryKey = '/api/areas';
+      } else if (navigation.level === 'subjects') {
+        endpoint = `/api/subjects/${itemToDelete.id}`;
+        queryKey = `/api/subjects`;
+      } else {
+        endpoint = `/api/materials/${itemToDelete.id}`;
+        queryKey = `/api/materials`;
       }
-      
+
       await apiRequest('DELETE', endpoint);
       
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: [queryKey] });
+      if (navigation.selectedAreaId) {
+        queryClient.invalidateQueries({ queryKey: [queryKey, navigation.selectedAreaId] });
+      }
+      if (navigation.selectedSubjectId) {
+        queryClient.invalidateQueries({ queryKey: [queryKey, navigation.selectedSubjectId] });
+      }
       
       toast({
         title: "Sucesso",
@@ -301,12 +263,31 @@ export default function Library() {
     }
   };
 
+  const getCurrentData = () => {
+    switch (navigation.level) {
+      case 'areas': return knowledgeAreas;
+      case 'subjects': return subjects;
+      case 'materials': return materials;
+      default: return [];
+    }
+  };
+
+  const getCurrentLoading = () => {
+    switch (navigation.level) {
+      case 'areas': return areasLoading;
+      case 'subjects': return subjectsLoading;
+      case 'materials': return materialsLoading;
+      default: return false;
+    }
+  };
+
+  // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-6"></div>
-          <p className="text-gray-500 text-lg font-light">Carregando...</p>
+          <div className="w-6 h-6 border-2 border-muted-foreground border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground text-sm">Carregando...</p>
         </div>
       </div>
     );
@@ -316,276 +297,366 @@ export default function Library() {
     return null;
   }
 
+  // Dynamic TeamsShell props
+  const breadcrumbs = navigation.breadcrumb.map((item, index) => ({
+    label: item.name,
+    onClick: index < navigation.breadcrumb.length - 1 ? () => navigateBack(item.level) : undefined
+  }));
+
+  const primaryActions = (
+    <div className="flex gap-2">
+      {navigation.level !== 'areas' && (
+        <Button 
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (navigation.level === 'subjects') {
+              navigateBack('areas');
+            } else if (navigation.level === 'materials') {
+              navigateBack('subjects');
+            }
+          }}
+          data-testid="button-back"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
+      )}
+      <Button 
+        onClick={() => handleCreateNew(createType)}
+        size="sm"
+        disabled={
+          (navigation.level === 'subjects' && !navigation.selectedAreaId) ||
+          (navigation.level === 'materials' && !navigation.selectedSubjectId)
+        }
+        data-testid={`button-create-${createType}`}
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        {getCreateButtonText()}
+      </Button>
+    </div>
+  );
+
+  const currentData = getCurrentData();
+  const isCurrentLoading = getCurrentLoading();
+
   return (
-    <div className="flex-1 p-6 bg-white dark:bg-gray-950">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Breadcrumb Navigation */}
-        <div className="flex items-center gap-2 mb-6">
-          {navigation.breadcrumb.map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
-              {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
-              <button
-                onClick={() => navigateBack(item.level)}
-                className={`text-sm font-medium hover:text-blue-600 transition-colors ${
-                  index === navigation.breadcrumb.length - 1 
-                    ? 'text-gray-900' 
-                    : 'text-gray-500'
-                }`}
-                data-testid={`breadcrumb-${item.level}`}
-              >
-                {item.name}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Header da Biblioteca */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{getTitle()}</h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {navigation.breadcrumb[navigation.breadcrumb.length - 1]?.name}
-            </p>
-          </div>
-
-          {/* Botões de ação */}
-          <div className="flex gap-2">
-            {navigation.level !== 'areas' && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigateBack(navigation.breadcrumb[navigation.breadcrumb.length - 2]?.level as ViewLevel)}
-                data-testid="button-back"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
-              </Button>
-            )}
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
-              data-testid="button-create"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {getCreateButtonText()}
-            </Button>
-          </div>
-        </div>
-
-        {/* Barra de busca */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+    <TeamsShell 
+      title={getTitle()} 
+      subtitle={getSubtitle()}
+      breadcrumbs={breadcrumbs}
+      primaryActions={primaryActions}
+    >
+      <div className="max-w-screen-2xl mx-auto space-y-6">
+        {/* Search */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder={`Buscar ${getTitle().toLowerCase()}...`}
+              placeholder={`Buscar ${navigation.level === 'areas' ? 'áreas' : navigation.level === 'subjects' ? 'matérias' : 'materiais'}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
-              data-testid="input-search-global"
+              className="pl-10"
+              data-testid="input-search"
             />
           </div>
         </div>
 
-        {/* Content Grid */}
-        {filteredData.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-gray-400" />
+        {/* Stats Overview */}
+        {navigation.level === 'areas' && (
+          <div>
+            <SectionHeader 
+              title="Estatísticas"
+              description="Visão geral da sua biblioteca"
+              data-testid="stats-header"
+            />
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              {areasLoading ? (
+                <>
+                  <SkeletonCard />
+                  <SkeletonCard />
+                  <SkeletonCard />
+                  <SkeletonCard />
+                </>
+              ) : (
+                <>
+                  <StatCard
+                    icon={<Folder className="w-8 h-8" />}
+                    value={knowledgeAreas.length}
+                    label="Áreas"
+                    variant="info"
+                    data-testid="stat-areas"
+                  />
+                  <StatCard
+                    icon={<BookOpen className="w-8 h-8" />}
+                    value={subjects.length}
+                    label="Matérias"
+                    variant="success"
+                    data-testid="stat-subjects"
+                  />
+                  <StatCard
+                    icon={<FileText className="w-8 h-8" />}
+                    value="0"
+                    label="Materiais"
+                    variant="warning"
+                    data-testid="stat-materials"
+                  />
+                  <StatCard
+                    icon={<Database className="w-8 h-8" />}
+                    value="100%"
+                    label="Organização"
+                    variant="primary"
+                    data-testid="stat-organization"
+                  />
+                </>
+              )}
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-              {searchQuery ? 'Nenhum resultado encontrado' : `Nenhum ${getTitle().toLowerCase()} ainda`}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {searchQuery 
-                ? 'Tente ajustar sua busca' 
-                : `Comece criando ${getTitle().toLowerCase()}`
-              }
-            </p>
-            {!searchQuery && (
-              <Button 
-                onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')} 
-                data-testid="button-empty-create"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {getCreateButtonText()}
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredData.map((item: any) => {
-              const Icon = getIcon();
-              return (
-                <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleView(item)}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                          <Icon className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base font-medium text-gray-900 truncate">
-                            {item.name || item.title}
-                          </CardTitle>
-                          <Badge variant="secondary" className="text-xs mt-1">
-                            {navigation.level === 'areas' ? 'Área' : 
-                             navigation.level === 'subjects' ? 'Matéria' : 'Material'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="pt-0">
-                    {item.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {item.description}
-                      </p>
-                    )}
-
-                    {item.category && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        <Badge variant="outline" className="text-xs">
-                          {item.category}
-                        </Badge>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-500">
-                        {item.updatedAt && new Date(item.updatedAt).toLocaleDateString('pt-BR')}
-                      </span>
-                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(item);
-                          }}
-                          data-testid={`button-edit-${item.id}`}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(item);
-                          }}
-                          data-testid={`button-delete-${item.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
           </div>
         )}
 
-        {/* Dialog para criação */}
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {createType === 'area' && 'Nova Área de Conhecimento'}
-                {createType === 'subject' && 'Nova Matéria'}
-                {createType === 'material' && 'Novo Material'}
-              </DialogTitle>
-              <DialogDescription>
-                {createType === 'area' && 'Crie uma nova área para organizar suas matérias de estudo'}
-                {createType === 'subject' && 'Adicione uma nova matéria à sua biblioteca de conhecimento'}
-                {createType === 'material' && 'Faça upload de um novo material de estudo para esta matéria'}
-              </DialogDescription>
-            </DialogHeader>
-            
-            {createType === 'area' && (
-              <AreaForm 
-                onSuccess={() => setIsCreateDialogOpen(false)} 
+        {/* Content Grid */}
+        <div>
+          <SectionHeader 
+            title={getTitle()}
+            description={`${currentData.length} ${navigation.level === 'areas' ? 'áreas' : navigation.level === 'subjects' ? 'matérias' : 'materiais'} encontrada${currentData.length !== 1 ? 's' : ''}`}
+            data-testid="content-header"
+          />
+          
+          <div className="mt-4">
+            {isCurrentLoading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+            ) : currentData.length === 0 ? (
+              <EmptyState
+                icon={React.createElement(getIcon(), { className: "w-12 h-12" })}
+                title={`Nenhuma ${navigation.level === 'areas' ? 'área' : navigation.level === 'subjects' ? 'matéria' : 'material'} encontrada`}
+                description={`Comece criando sua primeira ${navigation.level === 'areas' ? 'área de conhecimento' : navigation.level === 'subjects' ? 'matéria' : 'material de estudo'}.`}
+                action={{
+                  label: getCreateButtonText(),
+                  onClick: () => handleCreateNew(createType)
+                }}
+                data-testid={`empty-${navigation.level}`}
               />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {currentData
+                  .filter((item: any) => 
+                    searchQuery === '' || 
+                    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    item.title?.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((item: any) => (
+                    <Card key={item.id} className="surface-elevated hover-lift transition-fast">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                              {React.createElement(getIcon(), { className: "h-5 w-5" })}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">
+                                {item.name || item.title}
+                              </h3>
+                              {item.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(item)}
+                              data-testid={`button-edit-${item.id}`}
+                              aria-label={`Editar ${item.name || item.title}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(item)}
+                              data-testid={`button-delete-${item.id}`}
+                              aria-label={`Excluir ${item.name || item.title}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {/* Item specific info */}
+                        <div className="space-y-2">
+                          {navigation.level === 'subjects' && (
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="capitalize">{item.category}</span>
+                              <span>Prioridade {item.priority}</span>
+                            </div>
+                          )}
+                          
+                          {navigation.level === 'materials' && (
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="capitalize">{item.type}</span>
+                              {item.uploadDate && (
+                                <span>
+                                  {new Date(item.uploadDate).toLocaleDateString('pt-BR')}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Navigation action */}
+                        {(navigation.level === 'areas' || navigation.level === 'subjects') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-4"
+                            onClick={() => {
+                              if (navigation.level === 'areas') {
+                                navigateToLevel('subjects', item.id, item.name);
+                                setCreateType('subject');
+                              } else if (navigation.level === 'subjects') {
+                                navigateToLevel('materials', item.id, item.name);
+                                setCreateType('material');
+                              }
+                            }}
+                            data-testid={`button-open-${item.id}`}
+                          >
+                            {navigation.level === 'areas' ? 'Ver Matérias' : 'Ver Materiais'}
+                          </Button>
+                        )}
+                        
+                        {navigation.level === 'materials' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-4"
+                            onClick={() => {
+                              // Open material for viewing
+                              if (item.filePath) {
+                                window.open(`/api/materials/${item.id}/view`, '_blank');
+                              }
+                            }}
+                            data-testid={`button-view-${item.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Visualizar
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
             )}
-            
-            {createType === 'subject' && (
-              <SubjectForm 
-                areaId={navigation.selectedAreaId}
-                onSuccess={() => setIsCreateDialogOpen(false)} 
-              />
-            )}
-            
-            {createType === 'material' && (
-              <MaterialUpload 
-                subjectId={navigation.selectedSubjectId}
-                onSuccess={() => setIsCreateDialogOpen(false)} 
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog para edição */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {navigation.level === 'areas' && 'Editar Área de Conhecimento'}
-                {navigation.level === 'subjects' && 'Editar Matéria'}
-                {navigation.level === 'materials' && 'Editar Material'}
-              </DialogTitle>
-              <DialogDescription>
-                {navigation.level === 'areas' && 'Atualize as informações desta área de conhecimento'}
-                {navigation.level === 'subjects' && 'Modifique os dados desta matéria'}
-                {navigation.level === 'materials' && 'Altere as informações deste material de estudo'}
-              </DialogDescription>
-            </DialogHeader>
-            
-            {navigation.level === 'areas' && itemToEdit && (
-              <AreaForm 
-                area={itemToEdit}
-                onSuccess={() => setIsEditDialogOpen(false)} 
-              />
-            )}
-            
-            {navigation.level === 'subjects' && itemToEdit && (
-              <SubjectForm 
-                areaId={navigation.selectedAreaId}
-                subject={itemToEdit}
-                onSuccess={() => setIsEditDialogOpen(false)} 
-              />
-            )}
-            
-            {navigation.level === 'materials' && itemToEdit && (
-              <MaterialUpload 
-                subjectId={navigation.selectedSubjectId}
-                onSuccess={() => setIsEditDialogOpen(false)} 
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog de confirmação de exclusão */}
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir "{itemToDelete?.name || itemToDelete?.title}"? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} data-testid="button-confirm-delete">
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* Create Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {navigation.level === 'areas' && 'Nova Área de Conhecimento'}
+              {navigation.level === 'subjects' && 'Nova Matéria'}
+              {navigation.level === 'materials' && 'Novo Material'}
+            </DialogTitle>
+            <DialogDescription>
+              {navigation.level === 'areas' && 'Crie uma nova área para organizar suas matérias'}
+              {navigation.level === 'subjects' && 'Adicione uma nova matéria nesta área'}
+              {navigation.level === 'materials' && 'Faça upload de um novo material de estudo'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {navigation.level === 'areas' && (
+            <AreaForm 
+              onSuccess={() => setIsCreateDialogOpen(false)} 
+            />
+          )}
+          
+          {navigation.level === 'subjects' && (
+            <SubjectForm 
+              areaId={navigation.selectedAreaId}
+              onSuccess={() => setIsCreateDialogOpen(false)} 
+            />
+          )}
+          
+          {navigation.level === 'materials' && (
+            <MaterialUpload 
+              subjectId={navigation.selectedSubjectId}
+              onSuccess={() => setIsCreateDialogOpen(false)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {navigation.level === 'areas' && 'Editar Área de Conhecimento'}
+              {navigation.level === 'subjects' && 'Editar Matéria'}
+              {navigation.level === 'materials' && 'Editar Material'}
+            </DialogTitle>
+            <DialogDescription>
+              {navigation.level === 'areas' && 'Atualize as informações desta área de conhecimento'}
+              {navigation.level === 'subjects' && 'Modifique os dados desta matéria'}
+              {navigation.level === 'materials' && 'Altere as informações deste material de estudo'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {navigation.level === 'areas' && itemToEdit && (
+            <AreaForm 
+              area={itemToEdit}
+              onSuccess={() => setIsEditDialogOpen(false)} 
+            />
+          )}
+          
+          {navigation.level === 'subjects' && itemToEdit && (
+            <SubjectForm 
+              areaId={navigation.selectedAreaId}
+              subject={itemToEdit}
+              onSuccess={() => setIsEditDialogOpen(false)} 
+            />
+          )}
+          
+          {navigation.level === 'materials' && itemToEdit && (
+            <MaterialUpload 
+              subjectId={navigation.selectedSubjectId}
+              onSuccess={() => setIsEditDialogOpen(false)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir "{itemToDelete?.name || itemToDelete?.title}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} data-testid="button-confirm-delete">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </TeamsShell>
   );
 }
