@@ -23,7 +23,10 @@ import {
   ArrowRight,
   Trophy,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  CreditCard,
+  MessageCircle,
+  Settings
 } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -271,6 +274,7 @@ export default function Dashboard() {
                 className="transition-smooth hover-lift" 
                 style={{ cursor: 'pointer', height: '100%' }}
                 onClick={() => navigate('/library')}
+                data-testid="card-library"
               >
                 <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -293,55 +297,155 @@ export default function Dashboard() {
             </Grid.Column>
 
             <Grid.Column>
-              <Card style={{ height: '100%' }}>
-                <Card.Content>
-                  <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
-                    <User style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
-                    Seu Perfil
-                  </Card.Header>
-                  
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                      width: '64px', 
-                      height: '64px', 
-                      backgroundColor: 'var(--nup-primary)', 
-                      borderRadius: '50%', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      margin: '0 auto var(--spacing-md)' 
-                    }}>
-                      <User style={{ width: '32px', height: '32px', color: 'white' }} />
-                    </div>
-                    <Header as="h4" style={{ marginBottom: 'var(--spacing-xs)' }}>
-                      {user?.firstName || 'Estudante'}
-                    </Header>
-                    <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)' }}>
-                      {user?.studyProfile === 'disciplined' && 'Disciplinado'}
-                      {user?.studyProfile === 'undisciplined' && 'Flexível'}
-                      {user?.studyProfile === 'average' && 'Balanceado'}
-                      {!user?.studyProfile && 'Perfil não definido'}
-                    </p>
-                  </div>
-                  
-                  {stats && (
-                    <div style={{ marginTop: 'var(--spacing-md)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: 'var(--spacing-xs)' }}>
-                        <span style={{ color: 'var(--nup-gray-600)' }}>Progresso das Metas</span>
-                        <span style={{ fontWeight: '500' }}>{stats.goalProgress}%</span>
+              <Card 
+                className="transition-smooth hover-lift" 
+                style={{ cursor: 'pointer', height: '100%' }}
+                onClick={() => navigate('/study')}
+                data-testid="card-flashcards"
+              >
+                <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Header as="h3" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                        Criar Flashcards
+                      </Header>
+                      <p style={{ color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)', fontSize: '14px' }}>
+                        Crie e estude com flashcards personalizados
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
+                        <span>Criar flashcards</span>
+                        <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
                       </div>
-                      <Progress 
-                        percent={parseInt(stats.goalProgress)} 
-                        color="blue"
-                        size="small"
-                        style={{ marginBottom: '0' }}
-                      />
                     </div>
-                  )}
+                    <CreditCard style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
+                  </div>
+                </Card.Content>
+              </Card>
+            </Grid.Column>
+
+            <Grid.Column>
+              <Card 
+                className="transition-smooth hover-lift" 
+                style={{ cursor: 'pointer', height: '100%' }}
+                onClick={() => navigate('/study')}
+                data-testid="card-ai-questions"
+              >
+                <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Header as="h3" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                        Questões com IA
+                      </Header>
+                      <p style={{ color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)', fontSize: '14px' }}>
+                        Pratique com questões geradas por inteligência artificial
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
+                        <span>Gerar questões</span>
+                        <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
+                      </div>
+                    </div>
+                    <Brain style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
+                  </div>
                 </Card.Content>
               </Card>
             </Grid.Column>
                   </ResponsiveGrid>
+
+                  <div style={{ marginTop: 'var(--spacing-lg)' }}>
+                    <ResponsiveGrid columns={2}>
+                      <Grid.Column>
+                        <Card 
+                          className="transition-smooth hover-lift" 
+                          style={{ cursor: 'pointer', height: '100%' }}
+                          onClick={() => navigate('/study')}
+                          data-testid="card-ai-chat"
+                        >
+                          <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <Header as="h3" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                                  Chat com IA
+                                </Header>
+                                <p style={{ color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)', fontSize: '14px' }}>
+                                  Converse com a IA para esclarecer dúvidas e estudar
+                                </p>
+                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
+                                  <span>Iniciar chat</span>
+                                  <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
+                                </div>
+                              </div>
+                              <MessageCircle style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
+                            </div>
+                          </Card.Content>
+                        </Card>
+                      </Grid.Column>
+
+                      <Grid.Column>
+                        <Card style={{ height: '100%' }}>
+                          <Card.Content>
+                            <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
+                              <User style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
+                              Seu Perfil
+                            </Card.Header>
+                            
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ 
+                                width: '64px', 
+                                height: '64px', 
+                                backgroundColor: 'var(--nup-primary)', 
+                                borderRadius: '50%', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                margin: '0 auto var(--spacing-md)' 
+                              }}>
+                                <User style={{ width: '32px', height: '32px', color: 'white' }} />
+                              </div>
+                              <Header as="h4" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                                {user?.firstName || 'Estudante'}
+                              </Header>
+                              <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)' }}>
+                                {user?.studyProfile === 'disciplined' && 'Disciplinado'}
+                                {user?.studyProfile === 'undisciplined' && 'Flexível'}
+                                {user?.studyProfile === 'average' && 'Balanceado'}
+                                {!user?.studyProfile && 'Perfil não definido'}
+                              </p>
+                            </div>
+                            
+                            {stats && (
+                              <div style={{ marginTop: 'var(--spacing-md)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: 'var(--spacing-xs)' }}>
+                                  <span style={{ color: 'var(--nup-gray-600)' }}>Progresso das Metas</span>
+                                  <span style={{ fontWeight: '500' }}>{stats.goalProgress}%</span>
+                                </div>
+                                <Progress 
+                                  percent={parseInt(stats.goalProgress)} 
+                                  color="blue"
+                                  size="small"
+                                  style={{ marginBottom: 'var(--spacing-md)' }}
+                                />
+                              </div>
+                            )}
+                            
+                            <Button 
+                              fluid 
+                              size="small"
+                              style={{ 
+                                backgroundColor: 'var(--nup-primary)', 
+                                color: 'white',
+                                border: 'none'
+                              }}
+                              onClick={() => navigate('/setup')}
+                              data-testid="button-update-profile"
+                            >
+                              <Settings style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                              Atualizar Perfil
+                            </Button>
+                          </Card.Content>
+                        </Card>
+                      </Grid.Column>
+                    </ResponsiveGrid>
+                  </div>
                 </div>
               )}
             </div>
