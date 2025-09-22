@@ -1,4 +1,4 @@
-import { Button, Header, Grid, Card, Statistic } from 'semantic-ui-react';
+import { Button, Header, Grid, Card, Statistic, Modal } from 'semantic-ui-react';
 import { useResponsiveText, responsiveTexts, type ScreenText } from '@/hooks/useResponsiveText';
 
 // Componente de Header Responsivo
@@ -232,5 +232,59 @@ export const ResponsiveSearch = ({ placeholder, value, onChange, testId }: Respo
         </div>
       </div>
     </div>
+  );
+};
+
+// Componente de Modal Responsivo
+interface ResponsiveModalProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  size?: 'mini' | 'tiny' | 'small' | 'large' | 'fullscreen';
+  testId?: string;
+}
+
+export const ResponsiveModal = ({ 
+  open, 
+  onClose, 
+  title, 
+  children, 
+  size = 'large',
+  testId 
+}: ResponsiveModalProps) => {
+  const { isMobile } = useResponsiveText();
+  
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      size={isMobile ? "fullscreen" : size}
+      closeIcon
+      data-testid={testId}
+      style={isMobile ? {
+        width: '100vw',
+        height: '100vh',
+        margin: 0,
+        maxWidth: '100%',
+        borderRadius: 0
+      } : {}}
+    >
+      <Modal.Header style={{ 
+        padding: isMobile ? '1rem' : '1.5rem 2rem',
+        backgroundColor: 'var(--nup-surface)',
+        borderBottom: '1px solid var(--nup-border)'
+      }}>
+        {title}
+      </Modal.Header>
+      <Modal.Content style={{ 
+        padding: isMobile ? '1rem' : '2rem',
+        backgroundColor: 'var(--nup-bg)',
+        height: isMobile ? 'calc(100vh - 60px)' : 'auto',
+        overflowY: 'auto'
+      }}>
+        {children}
+      </Modal.Content>
+    </Modal>
   );
 };
