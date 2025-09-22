@@ -247,10 +247,17 @@ body {
   margin-bottom: var(--spacing-xs) !important;
 }
 
+/* All input types - comprehensive coverage */
+.ui.form .field input,
 .ui.form .field input[type="text"],
 .ui.form .field input[type="email"],
 .ui.form .field input[type="password"],
-.ui.form .field textarea {
+.ui.form .field input[type="number"],
+.ui.form .field input[type="file"],
+.ui.form .field textarea,
+.ui.form input,
+.ui.input > input,
+.ui.form .ui.input > input {
   border-radius: var(--radius-md) !important;
   border: 1px solid var(--nup-border) !important;
   background-color: var(--nup-surface) !important;
@@ -260,10 +267,25 @@ body {
   transition: border-color 0.2s ease !important;
 }
 
+/* Input focus states */
 .ui.form .field input:focus,
-.ui.form .field textarea:focus {
+.ui.form .field textarea:focus,
+.ui.form input:focus,
+.ui.input > input:focus,
+.ui.form .ui.input > input:focus {
   border-color: var(--nup-primary) !important;
   box-shadow: 0 0 0 2px var(--nup-primary-light) !important;
+  background-color: var(--nup-surface) !important;
+  outline: none !important;
+}
+
+/* Input placeholder text */
+.ui.form .field input::placeholder,
+.ui.form .field textarea::placeholder,
+.ui.form input::placeholder,
+.ui.input > input::placeholder {
+  color: var(--nup-text-tertiary) !important;
+  opacity: 1 !important;
 }
 
 /* Grid */
@@ -345,6 +367,19 @@ body {
   padding: var(--spacing-md) var(--spacing-lg) !important;
 }
 
+/* Modal form overrides */
+.ui.modal .ui.form .field > label {
+  color: var(--nup-text-secondary) !important;
+}
+
+.ui.modal .ui.form .field input,
+.ui.modal .ui.form .field textarea,
+.ui.modal .ui.input > input {
+  background-color: var(--nup-surface) !important;
+  color: var(--nup-text-primary) !important;
+  border: 1px solid var(--nup-border) !important;
+}
+
 /* Menus */
 .ui.menu {
   border-radius: var(--radius-md) !important;
@@ -367,6 +402,37 @@ body {
 .ui.menu .active.item {
   background-color: var(--nup-primary) !important;
   color: white !important;
+}
+
+/* Tabs - specific overrides */
+.ui.tabular.menu {
+  background-color: transparent !important;
+  border-bottom: 1px solid var(--nup-border) !important;
+}
+
+.ui.tabular.menu .item {
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  color: var(--nup-text-secondary) !important;
+}
+
+.ui.tabular.menu .item:hover {
+  background-color: var(--nup-surface-hover) !important;
+  color: var(--nup-text-primary) !important;
+}
+
+.ui.tabular.menu .active.item {
+  background-color: var(--nup-surface) !important;
+  border-bottom-color: var(--nup-primary) !important;
+  color: var(--nup-primary) !important;
+}
+
+/* Tab panes */
+.ui.tab.segment {
+  background-color: var(--nup-surface) !important;
+  border: 1px solid var(--nup-border) !important;
+  color: var(--nup-text-primary) !important;
 }
 
 /* Segments */
@@ -410,10 +476,59 @@ body {
   border: 1px solid var(--nup-error) !important;
 }
 
+/* Dropdowns */
+.ui.dropdown {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--nup-border) !important;
+  background-color: var(--nup-surface) !important;
+  color: var(--nup-text-primary) !important;
+}
+
+.ui.dropdown > .text,
+.ui.dropdown > .default.text {
+  color: var(--nup-text-primary) !important;
+}
+
+.ui.dropdown > .dropdown.icon {
+  color: var(--nup-text-secondary) !important;
+}
+
+.ui.dropdown .menu {
+  border: 1px solid var(--nup-border) !important;
+  background-color: var(--nup-surface) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.ui.dropdown .menu > .item {
+  color: var(--nup-text-primary) !important;
+  background-color: var(--nup-surface) !important;
+  border-top: none !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+}
+
+.ui.dropdown .menu > .item:hover {
+  background-color: var(--nup-surface-hover) !important;
+  color: var(--nup-text-primary) !important;
+}
+
+.ui.dropdown .menu > .item.selected {
+  background-color: var(--nup-primary-light) !important;
+  color: var(--nup-primary) !important;
+}
+
+/* Dropdown within forms and modals */
+.ui.form .field .ui.dropdown,
+.ui.modal .ui.dropdown {
+  background-color: var(--nup-surface) !important;
+  border: 1px solid var(--nup-border) !important;
+  color: var(--nup-text-primary) !important;
+}
+
 /* Progress bars */
 .ui.progress {
   border-radius: var(--radius-md) !important;
-  background-color: var(--nup-gray-200) !important;
+  background-color: var(--nup-surface-2) !important;
   border: none !important;
 }
 
@@ -421,6 +536,15 @@ body {
   border-radius: var(--radius-md) !important;
   background-color: var(--nup-primary) !important;
   transition: width 0.3s ease !important;
+}
+
+/* Progress bars in dark mode */
+.dark .ui.progress {
+  background-color: var(--nup-surface-2) !important;
+}
+
+.dark .ui.progress .bar {
+  background-color: var(--nup-primary) !important;
 }
 
 /* === CUSTOM UTILITY CLASSES === */
