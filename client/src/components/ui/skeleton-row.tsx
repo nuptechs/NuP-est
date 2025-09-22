@@ -1,37 +1,55 @@
-import { cn } from "@/lib/utils";
+import { Card, Placeholder } from 'semantic-ui-react';
+
+interface SkeletonCardProps {
+  className?: string;
+  'data-testid'?: string;
+}
+
+export function SkeletonCard({ 
+  className = '',
+  'data-testid': testId 
+}: SkeletonCardProps) {
+  return (
+    <Card className={`skeleton-card ${className}`} data-testid={testId}>
+      <Card.Content>
+        <Placeholder>
+          <Placeholder.Header image>
+            <Placeholder.Line />
+            <Placeholder.Line />
+          </Placeholder.Header>
+          <Placeholder.Paragraph>
+            <Placeholder.Line length="medium" />
+            <Placeholder.Line length="short" />
+          </Placeholder.Paragraph>
+        </Placeholder>
+      </Card.Content>
+    </Card>
+  );
+}
 
 interface SkeletonRowProps {
   lines?: number;
   className?: string;
-  "data-testid"?: string;
+  'data-testid'?: string;
 }
 
 export function SkeletonRow({ 
-  lines = 3, 
-  className,
-  "data-testid": testId 
+  lines = 3,
+  className = '',
+  'data-testid': testId 
 }: SkeletonRowProps) {
   return (
-    <div className={cn("space-y-3", className)} data-testid={testId}>
-      {Array.from({ length: lines }).map((_, i) => (
-        <div key={i} className="space-y-2">
-          <div className="skeleton h-4 w-full rounded" />
-          <div className="skeleton h-3 w-3/4 rounded" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function SkeletonCard({ className }: { className?: string }) {
-  return (
-    <div className={cn("surface p-4", className)}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="skeleton h-5 w-24 rounded" />
-        <div className="skeleton h-8 w-8 rounded-full" />
-      </div>
-      <div className="skeleton h-8 w-16 rounded mb-2" />
-      <div className="skeleton h-3 w-20 rounded" />
+    <div className={`skeleton-row ${className}`} data-testid={testId}>
+      <Placeholder>
+        <Placeholder.Paragraph>
+          {Array.from({ length: lines }, (_, i) => (
+            <Placeholder.Line 
+              key={i} 
+              length={i === lines - 1 ? 'short' : 'medium'} 
+            />
+          ))}
+        </Placeholder.Paragraph>
+      </Placeholder>
     </div>
   );
 }

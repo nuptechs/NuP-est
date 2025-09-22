@@ -1,38 +1,39 @@
-import { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { Header } from 'semantic-ui-react';
 
 interface SectionHeaderProps {
   title: string;
   description?: string;
-  actions?: ReactNode;
+  action?: React.ReactNode;
   className?: string;
-  "data-testid"?: string;
+  'data-testid'?: string;
 }
 
 export function SectionHeader({ 
   title, 
   description, 
-  actions, 
-  className,
-  "data-testid": testId 
+  action,
+  className = '',
+  'data-testid': testId 
 }: SectionHeaderProps) {
   return (
-    <div className={cn("flex items-center justify-between", className)} data-testid={testId}>
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">
-          {title}
-        </h2>
-        {description && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {description}
-          </p>
+    <div className={`section-header ${className}`} data-testid={testId}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <Header as="h2" className="title">
+            {title}
+          </Header>
+          {description && (
+            <p className="description text-muted">
+              {description}
+            </p>
+          )}
+        </div>
+        {action && (
+          <div style={{ flexShrink: 0, marginLeft: '16px' }}>
+            {action}
+          </div>
         )}
       </div>
-      {actions && (
-        <div className="flex items-center gap-2">
-          {actions}
-        </div>
-      )}
     </div>
   );
 }
