@@ -1,7 +1,8 @@
 /* ======= SEMANTIC UI CUSTOMIZATION - NuP-est ======= */
 
 /* === DESIGN TOKENS === */
-:root {
+:root,
+.light {
   /* Theme colors - These will be overridden by ThemeContext */
   --nup-primary: #0078d4;
   --nup-primary-hover: #106ebe;

@@ -178,8 +178,25 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const [currentMode, setCurrentMode] = useState<ThemeMode>(() => {
     // Recuperar modo salvo do localStorage ou usar padrão
     const savedMode = localStorage.getItem('nup-mode') as ThemeMode;
+    console.log(`[Theme] Inicializando com modo: ${savedMode || 'light'}`);
     return savedMode || 'light';
   });
+
+  // Aplicar modo inicial imediatamente na primeira renderização
+  useEffect(() => {
+    const root = document.documentElement;
+    
+    // Aplicar modo inicial
+    if (currentMode === 'dark') {
+      root.classList.remove('light');
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    }
+    
+    console.log(`[Theme] Modo inicial aplicado: ${currentMode}`);
+  }, []); // Executar apenas uma vez na inicialização
 
   const currentTheme = themes[currentThemeName];
   const availableThemes = Object.values(themes);
@@ -223,7 +240,18 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   // Aplicar o modo dark/light ao documento
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle('dark', currentMode === 'dark');
+    
+    // Forçar remoção/adição da classe para garantir aplicação correta
+    if (currentMode === 'dark') {
+      root.classList.remove('light');
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    }
+    
+    // Debug: log para confirmar aplicação
+    console.log(`[Theme] Aplicando modo: ${currentMode}, classes: ${root.className}`);
   }, [currentMode]);
 
   const setTheme = (themeName: ThemeName) => {
