@@ -1,4 +1,6 @@
-import { Segment, Header, Button } from 'semantic-ui-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
   icon: React.ReactNode;
@@ -21,25 +23,28 @@ export function EmptyState({
   'data-testid': testId 
 }: EmptyStateProps) {
   return (
-    <Segment textAlign="center" className={`empty-state ${className}`} data-testid={testId}>
-      <div className="icon mb-lg">
-        {icon}
-      </div>
-      <Header as="h3" className="title mb-sm">
-        {title}
-      </Header>
-      <p className="description text-muted mb-lg">
-        {description}
-      </p>
-      {action && (
-        <Button 
-          primary 
-          onClick={action.onClick}
-          data-testid="empty-state-action"
-        >
-          {action.label}
-        </Button>
-      )}
-    </Segment>
+    <Card className={cn("text-center py-12", className)} data-testid={testId}>
+      <CardContent className="space-y-4">
+        <div className="flex justify-center text-6xl text-muted-foreground/50 mb-4">
+          {icon}
+        </div>
+        <h3 className="card-title text-xl font-semibold text-foreground">
+          {title}
+        </h3>
+        <p className="card-description text-muted-foreground max-w-sm mx-auto">
+          {description}
+        </p>
+        {action && (
+          <div className="pt-4">
+            <Button 
+              onClick={action.onClick}
+              data-testid="empty-state-action"
+            >
+              {action.label}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
