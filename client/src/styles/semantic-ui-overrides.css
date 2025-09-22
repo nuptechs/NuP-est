@@ -2,17 +2,35 @@
 
 /* === DESIGN TOKENS === */
 :root {
-  /* Primary brand colors */
-  --nup-primary: #5B5FC7;        /* Teams brand purple */
-  --nup-primary-dark: #4B4FB7;    
-  --nup-secondary: #0078D4;       /* Communication blue */
+  /* Theme colors - These will be overridden by ThemeContext */
+  --nup-primary: #0078d4;
+  --nup-primary-hover: #106ebe;
+  --nup-primary-light: #deecf9;
+  --nup-primary-dark: #004578;
   
-  /* Status colors */
-  --nup-success: #13A10E;         /* Fluent green */
-  --nup-warning: #FFB900;         /* Office yellow */
-  --nup-error: #D13438;           /* Fluent red */
+  --nup-secondary: #5c2d91;
+  --nup-secondary-hover: #6b2d9c;
+  --nup-secondary-light: #eae4f0;
+  --nup-secondary-dark: #3d1d5c;
   
-  /* Neutral palette */
+  /* Status colors - These will be overridden by ThemeContext */
+  --nup-success: #13a10e;
+  --nup-success-hover: #107c0a;
+  --nup-success-light: #dff6dd;
+  
+  --nup-warning: #ff8c00;
+  --nup-warning-hover: #e67e00;
+  --nup-warning-light: #fff4e6;
+  
+  --nup-error: #d13438;
+  --nup-error-hover: #b22a2e;
+  --nup-error-light: #fde7e8;
+  
+  --nup-info: #00b4d8;
+  --nup-info-hover: #0096c7;
+  --nup-info-light: #e6f7fb;
+  
+  /* Neutral palette - Static colors */
   --nup-gray-50: #F8F9FA;
   --nup-gray-100: #F1F3F4;
   --nup-gray-200: #E8EAED;
@@ -23,6 +41,11 @@
   --nup-gray-700: #5F6368;
   --nup-gray-800: #3C4043;
   --nup-gray-900: #202124;
+  
+  /* Text colors */
+  --nup-text-primary: var(--nup-gray-900);
+  --nup-text-secondary: var(--nup-gray-600);
+  --nup-text-tertiary: var(--nup-gray-500);
   
   /* Spacing scale (8pt grid) */
   --spacing-xs: 4px;
@@ -71,7 +94,7 @@ body {
 }
 
 .ui.primary.button:hover {
-  background-color: var(--nup-primary-dark) !important;
+  background-color: var(--nup-primary-hover) !important;
   transform: translateY(-1px) !important;
   box-shadow: var(--shadow-md) !important;
 }
@@ -85,6 +108,49 @@ body {
 .ui.secondary.button:hover {
   border-color: var(--nup-gray-400) !important;
   transform: translateY(-1px) !important;
+}
+
+/* Theme-specific colored buttons */
+.ui.positive.button,
+.ui.green.button {
+  background-color: var(--nup-success) !important;
+  color: white !important;
+}
+
+.ui.positive.button:hover,
+.ui.green.button:hover {
+  background-color: var(--nup-success-hover) !important;
+}
+
+.ui.warning.button,
+.ui.yellow.button {
+  background-color: var(--nup-warning) !important;
+  color: white !important;
+}
+
+.ui.warning.button:hover,
+.ui.yellow.button:hover {
+  background-color: var(--nup-warning-hover) !important;
+}
+
+.ui.negative.button,
+.ui.red.button {
+  background-color: var(--nup-error) !important;
+  color: white !important;
+}
+
+.ui.negative.button:hover,
+.ui.red.button:hover {
+  background-color: var(--nup-error-hover) !important;
+}
+
+.ui.blue.button {
+  background-color: var(--nup-info) !important;
+  color: white !important;
+}
+
+.ui.blue.button:hover {
+  background-color: var(--nup-info-hover) !important;
 }
 
 /* Cards */

@@ -42,6 +42,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-row";
+import FloatingSettings from "@/components/FloatingSettings";
 import type { Goal, Target as TargetType } from "@shared/schema";
 
 // Form schemas
@@ -776,6 +777,7 @@ export default function Goals() {
           </Modal.Actions>
         </Modal>
       </Container>
+      <FloatingSettings />
     </div>
   );
 }

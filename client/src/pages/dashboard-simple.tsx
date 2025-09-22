@@ -27,6 +27,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-row";
+import FloatingSettings from "@/components/FloatingSettings";
 import type { Subject, Goal } from "@shared/schema";
 
 export default function Dashboard() {
@@ -380,6 +381,7 @@ export default function Dashboard() {
           </Grid.Column>
         </Grid>
       </Container>
+      <FloatingSettings />
     </div>
   );
 }
