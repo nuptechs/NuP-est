@@ -3,9 +3,16 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { 
+  Container,
+  Grid, 
+  Card,
+  Header,
+  Button,
+  Progress,
+  Loader,
+  Dimmer
+} from 'semantic-ui-react';
 import { 
   User, 
   BookOpen, 
@@ -20,7 +27,6 @@ import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-row";
-import TeamsShell from "@/components/layout/teams-shell";
 import type { Subject, Goal } from "@shared/schema";
 
 export default function Dashboard() {
@@ -65,11 +71,10 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-6 h-6 border-2 border-muted-foreground border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-sm">Carregando...</p>
-        </div>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-gray-50)' }}>
+        <Dimmer active>
+          <Loader size="large">Carregando...</Loader>
+        </Dimmer>
       </div>
     );
   }
@@ -78,253 +83,303 @@ export default function Dashboard() {
     return null;
   }
 
-  const breadcrumbs = [
-    { label: "Dashboard" }
-  ];
-
-  const primaryActions = (
-    <Button 
-      onClick={() => navigate('/library?create=material')}
-      size="sm"
-      data-testid="button-upload-material"
-    >
-      <Plus className="w-4 h-4 mr-2" />
-      Novo Material
-    </Button>
-  );
-
   return (
-    <TeamsShell 
-      title="Dashboard" 
-      subtitle="Visão geral dos seus estudos e progresso"
-      breadcrumbs={breadcrumbs}
-      primaryActions={primaryActions}
-    >
-      <div className="max-w-screen-2xl mx-auto space-y-6">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-gray-50)', padding: 'var(--spacing-lg)' }}>
+      <Container>
+        {/* Header Section */}
+        <div className="mb-xl">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-lg)' }}>
+            <div>
+              <Header as="h1" style={{ fontSize: '32px', fontWeight: '600', color: 'var(--nup-gray-800)', marginBottom: 'var(--spacing-xs)' }}>
+                Dashboard
+              </Header>
+              <p style={{ color: 'var(--nup-gray-600)', fontSize: '16px' }}>
+                Visão geral dos seus estudos e progresso
+              </p>
+            </div>
+            <Button 
+              primary
+              icon="plus"
+              content="Novo Material"
+              onClick={() => navigate('/library?create=material')}
+              data-testid="button-upload-material"
+            />
+          </div>
+        </div>
+
         {/* Stats Overview */}
-        <div>
+        <div className="mb-xl">
           <SectionHeader 
             title="Estatísticas de Hoje"
             description="Acompanhe seu progresso diário"
             data-testid="stats-header"
           />
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <Grid columns={4} stackable style={{ marginTop: 'var(--spacing-md)' }}>
             {statsLoading ? (
               <>
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
               </>
             ) : stats && (
               <>
-                <StatCard
-                  icon={<BookOpen className="w-8 h-8" />}
-                  value={stats.subjects}
-                  label="Matérias"
-                  variant="info"
-                  data-testid="stat-subjects"
-                />
-                <StatCard
-                  icon={<Clock className="w-8 h-8" />}
-                  value={`${stats.todayHours}h`}
-                  label="Hoje"
-                  variant="success"
-                  data-testid="stat-today-hours"
-                />
-                <StatCard
-                  icon={<Brain className="w-8 h-8" />}
-                  value={stats.questionsGenerated}
-                  label="Questões IA"
-                  variant="primary"
-                  data-testid="stat-ai-questions"
-                />
-                <StatCard
-                  icon={<Trophy className="w-8 h-8" />}
-                  value={`${stats.goalProgress}%`}
-                  label="Progresso"
-                  variant="warning"
-                  data-testid="stat-goal-progress"
-                />
+                <Grid.Column>
+                  <StatCard
+                    icon={<BookOpen className="w-8 h-8" />}
+                    value={stats.subjects}
+                    label="Matérias"
+                    variant="info"
+                    data-testid="stat-subjects"
+                  />
+                </Grid.Column>
+                <Grid.Column>
+                  <StatCard
+                    icon={<Clock className="w-8 h-8" />}
+                    value={`${stats.todayHours}h`}
+                    label="Hoje"
+                    variant="success"
+                    data-testid="stat-today-hours"
+                  />
+                </Grid.Column>
+                <Grid.Column>
+                  <StatCard
+                    icon={<Brain className="w-8 h-8" />}
+                    value={stats.questionsGenerated}
+                    label="Questões IA"
+                    variant="primary"
+                    data-testid="stat-ai-questions"
+                  />
+                </Grid.Column>
+                <Grid.Column>
+                  <StatCard
+                    icon={<Trophy className="w-8 h-8" />}
+                    value={`${stats.goalProgress}%`}
+                    label="Progresso"
+                    variant="warning"
+                    data-testid="stat-goal-progress"
+                  />
+                </Grid.Column>
               </>
             )}
-          </div>
+          </Grid>
         </div>
 
         {/* Quick Actions */}
-        <div>
+        <div className="mb-xl">
           <SectionHeader 
             title="Ações Rápidas"
             description="Acesse suas ferramentas principais"
             data-testid="quick-actions-header"
           />
           
-          <div className="grid md:grid-cols-3 gap-4 mt-4">
-            <Card className="md:col-span-2 surface-elevated hover-lift transition-fast cursor-pointer" onClick={() => navigate('/library')}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">Biblioteca</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Organize materiais, crie áreas de conhecimento e gerencie conteúdo
-                    </p>
-                    <div className="flex items-center text-primary text-sm font-medium">
-                      <span>Ver biblioteca</span>
-                      <ArrowRight className="w-4 h-4 ml-1" />
-                    </div>
-                  </div>
-                  <BookOpen className="w-12 h-12 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="surface-elevated">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <User className="w-5 h-5 text-muted-foreground" />
-                  Seu Perfil
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-3">
-                    <User className="w-8 h-8 text-primary-foreground" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">{user?.firstName || 'Estudante'}</h3>
-                  <p className="text-sm text-muted-foreground capitalize">
-                    {user?.studyProfile === 'disciplined' && 'Disciplinado'}
-                    {user?.studyProfile === 'undisciplined' && 'Flexível'}
-                    {user?.studyProfile === 'average' && 'Balanceado'}
-                    {!user?.studyProfile && 'Perfil não definido'}
-                  </p>
-                </div>
-                
-                {stats && (
-                  <div className="space-y-3">
+          <Grid columns={3} stackable style={{ marginTop: 'var(--spacing-md)' }}>
+            <Grid.Column width={10}>
+              <Card 
+                className="transition-smooth hover-lift" 
+                style={{ cursor: 'pointer', height: '100%' }}
+                onClick={() => navigate('/library')}
+              >
+                <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">Progresso das Metas</span>
-                        <span className="text-foreground font-medium">{stats.goalProgress}%</span>
+                      <Header as="h3" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                        Biblioteca
+                      </Header>
+                      <p style={{ color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)', fontSize: '14px' }}>
+                        Organize materiais, crie áreas de conhecimento e gerencie conteúdo
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
+                        <span>Ver biblioteca</span>
+                        <ArrowRight className="w-4 h-4 ml-2" />
                       </div>
-                      <Progress value={parseInt(stats.goalProgress)} className="h-2" />
                     </div>
+                    <BookOpen style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </Card.Content>
+              </Card>
+            </Grid.Column>
+
+            <Grid.Column width={6}>
+              <Card style={{ height: '100%' }}>
+                <Card.Content>
+                  <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
+                    <User style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
+                    Seu Perfil
+                  </Card.Header>
+                  
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ 
+                      width: '64px', 
+                      height: '64px', 
+                      backgroundColor: 'var(--nup-primary)', 
+                      borderRadius: '50%', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      margin: '0 auto var(--spacing-md)' 
+                    }}>
+                      <User style={{ width: '32px', height: '32px', color: 'white' }} />
+                    </div>
+                    <Header as="h4" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                      {user?.firstName || 'Estudante'}
+                    </Header>
+                    <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)' }}>
+                      {user?.studyProfile === 'disciplined' && 'Disciplinado'}
+                      {user?.studyProfile === 'undisciplined' && 'Flexível'}
+                      {user?.studyProfile === 'average' && 'Balanceado'}
+                      {!user?.studyProfile && 'Perfil não definido'}
+                    </p>
+                  </div>
+                  
+                  {stats && (
+                    <div style={{ marginTop: 'var(--spacing-md)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: 'var(--spacing-xs)' }}>
+                        <span style={{ color: 'var(--nup-gray-600)' }}>Progresso das Metas</span>
+                        <span style={{ fontWeight: '500' }}>{stats.goalProgress}%</span>
+                      </div>
+                      <Progress 
+                        percent={parseInt(stats.goalProgress)} 
+                        color="blue"
+                        size="small"
+                        style={{ marginBottom: '0' }}
+                      />
+                    </div>
+                  )}
+                </Card.Content>
+              </Card>
+            </Grid.Column>
+          </Grid>
         </div>
 
         {/* Content Overview */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <Grid columns={2} stackable>
           {/* Recent Subjects */}
-          <Card className="surface-elevated">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold">Matérias Recentes</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/library')}>
-                  Ver todas
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {subjectsLoading ? (
-                <div className="space-y-3">
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
+          <Grid.Column>
+            <Card style={{ height: '100%' }}>
+              <Card.Content>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+                  <Card.Header>Matérias Recentes</Card.Header>
+                  <Button 
+                    basic 
+                    size="small" 
+                    content="Ver todas"
+                    onClick={() => navigate('/library')}
+                  />
                 </div>
-              ) : subjects && subjects.length > 0 ? (
-                <div className="space-y-3">
-                  {subjects.slice(0, 3).map((subject) => (
-                    <div
-                      key={subject.id}
-                      className="interactive surface p-3 rounded-lg cursor-pointer"
-                      onClick={() => navigate(`/library?subject=${subject.id}`)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-foreground">{subject.name}</p>
-                          <p className="text-sm text-muted-foreground capitalize">{subject.category}</p>
+                
+                {subjectsLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </div>
+                ) : subjects && subjects.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                    {subjects.slice(0, 3).map((subject) => (
+                      <Card 
+                        key={subject.id}
+                        className="transition-smooth"
+                        style={{ 
+                          cursor: 'pointer',
+                          border: '1px solid var(--nup-gray-200)',
+                          padding: 'var(--spacing-md)'
+                        }}
+                        onClick={() => navigate(`/library?subject=${subject.id}`)}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <p style={{ fontWeight: '500', marginBottom: 'var(--spacing-xs)' }}>{subject.name}</p>
+                            <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)', textTransform: 'capitalize' }}>
+                              {subject.category}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <p style={{ fontSize: '14px', fontWeight: '500' }}>
+                              Prioridade {subject.priority}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-foreground">
-                            Prioridade {subject.priority}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={<BookOpen className="w-12 h-12" />}
-                  title="Nenhuma matéria"
-                  description="Adicione sua primeira matéria para começar a organizar seus estudos"
-                  action={{
-                    label: "Adicionar matéria",
-                    onClick: () => navigate('/library')
-                  }}
-                  data-testid="empty-subjects"
-                />
-              )}
-            </CardContent>
-          </Card>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={<BookOpen className="w-12 h-12" />}
+                    title="Nenhuma matéria"
+                    description="Adicione sua primeira matéria para começar a organizar seus estudos"
+                    action={{
+                      label: "Adicionar matéria",
+                      onClick: () => navigate('/library')
+                    }}
+                    data-testid="empty-subjects"
+                  />
+                )}
+              </Card.Content>
+            </Card>
+          </Grid.Column>
 
           {/* Recent Goals */}
-          <Card className="surface-elevated">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold">Metas Ativas</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/goals')}>
-                  Ver todas
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {goalsLoading ? (
-                <div className="space-y-3">
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
+          <Grid.Column>
+            <Card style={{ height: '100%' }}>
+              <Card.Content>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+                  <Card.Header>Metas Ativas</Card.Header>
+                  <Button 
+                    basic 
+                    size="small" 
+                    content="Ver todas"
+                    onClick={() => navigate('/goals')}
+                  />
                 </div>
-              ) : goals && goals.length > 0 ? (
-                <div className="space-y-3">
-                  {goals.slice(0, 3).map((goal) => (
-                    <div
-                      key={goal.id}
-                      className="interactive surface p-3 rounded-lg cursor-pointer"
-                      onClick={() => navigate('/goals')}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium text-foreground line-clamp-1">{goal.title}</p>
-                        <Target className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-xs text-muted-foreground">
+                
+                {goalsLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </div>
+                ) : goals && goals.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                    {goals.slice(0, 3).map((goal) => (
+                      <Card 
+                        key={goal.id}
+                        className="transition-smooth"
+                        style={{ 
+                          cursor: 'pointer',
+                          border: '1px solid var(--nup-gray-200)',
+                          padding: 'var(--spacing-md)'
+                        }}
+                        onClick={() => navigate('/goals')}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-sm)' }}>
+                          <p style={{ fontWeight: '500', flex: 1 }}>{goal.title}</p>
+                          <Target style={{ width: '16px', height: '16px', color: 'var(--nup-gray-400)' }} />
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--nup-gray-600)' }}>
                           {goal.description || 'Meta sem descrição'}
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={<Target className="w-12 h-12" />}
-                  title="Nenhuma meta"
-                  description="Defina metas de estudo para manter o foco e acompanhar seu progresso"
-                  action={{
-                    label: "Criar meta",
-                    onClick: () => navigate('/goals')
-                  }}
-                  data-testid="empty-goals"
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </TeamsShell>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={<Target className="w-12 h-12" />}
+                    title="Nenhuma meta"
+                    description="Defina metas de estudo para manter o foco e acompanhar seu progresso"
+                    action={{
+                      label: "Criar meta",
+                      onClick: () => navigate('/goals')
+                    }}
+                    data-testid="empty-goals"
+                  />
+                )}
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+        </Grid>
+      </Container>
+    </div>
   );
 }
