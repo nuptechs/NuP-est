@@ -173,40 +173,48 @@ export default function Dashboard() {
                   ) : stats && (
                     <>
                       <Grid.Column>
-                        <StatCard
-                          icon={<BookOpen style={{ width: '32px', height: '32px' }} />}
-                          value={stats.subjects}
-                          label="Matérias"
-                          variant="info"
-                          data-testid="stat-subjects"
-                        />
+                        <Card className="nup-card nup-card--soft nup-card--info hover-lift" data-testid="stat-subjects">
+                          <Card.Content className="nup-kpi">
+                            <div className="nup-kpi__icon">
+                              <BookOpen style={{ width: '32px', height: '32px', color: 'var(--nup-info)' }} />
+                            </div>
+                            <div className="nup-kpi__value">{stats.subjects}</div>
+                            <div className="nup-kpi__label">Matérias</div>
+                          </Card.Content>
+                        </Card>
                       </Grid.Column>
                       <Grid.Column>
-                        <StatCard
-                          icon={<Clock style={{ width: '32px', height: '32px' }} />}
-                          value={`${stats.todayHours}h`}
-                          label="Hoje"
-                          variant="success"
-                          data-testid="stat-today-hours"
-                        />
+                        <Card className="nup-card nup-card--soft nup-card--success hover-lift" data-testid="stat-today-hours">
+                          <Card.Content className="nup-kpi">
+                            <div className="nup-kpi__icon">
+                              <Clock style={{ width: '32px', height: '32px', color: 'var(--nup-success)' }} />
+                            </div>
+                            <div className="nup-kpi__value">{stats.todayHours}h</div>
+                            <div className="nup-kpi__label">Hoje</div>
+                          </Card.Content>
+                        </Card>
                       </Grid.Column>
                       <Grid.Column>
-                        <StatCard
-                          icon={<Brain style={{ width: '32px', height: '32px' }} />}
-                          value={stats.questionsGenerated}
-                          label="Questões IA"
-                          variant="primary"
-                          data-testid="stat-ai-questions"
-                        />
+                        <Card className="nup-card nup-card--soft nup-card--primary hover-lift" data-testid="stat-ai-questions">
+                          <Card.Content className="nup-kpi">
+                            <div className="nup-kpi__icon">
+                              <Brain style={{ width: '32px', height: '32px', color: 'var(--nup-primary)' }} />
+                            </div>
+                            <div className="nup-kpi__value">{stats.questionsGenerated}</div>
+                            <div className="nup-kpi__label">Questões IA</div>
+                          </Card.Content>
+                        </Card>
                       </Grid.Column>
                       <Grid.Column>
-                        <StatCard
-                          icon={<Trophy style={{ width: '32px', height: '32px' }} />}
-                          value={`${stats.goalProgress}%`}
-                          label="Progresso"
-                          variant="warning"
-                          data-testid="stat-goal-progress"
-                        />
+                        <Card className="nup-card nup-card--soft nup-card--warning hover-lift" data-testid="stat-goal-progress">
+                          <Card.Content className="nup-kpi">
+                            <div className="nup-kpi__icon">
+                              <Trophy style={{ width: '32px', height: '32px', color: 'var(--nup-warning)' }} />
+                            </div>
+                            <div className="nup-kpi__value">{stats.goalProgress}%</div>
+                            <div className="nup-kpi__label">Progresso</div>
+                          </Card.Content>
+                        </Card>
                       </Grid.Column>
                     </>
                   )}
@@ -270,7 +278,7 @@ export default function Dashboard() {
                   <Grid columns={3} stackable>
             <Grid.Column>
               <Card 
-                className="transition-smooth hover-lift" 
+                className="nup-card nup-card--soft nup-card--primary transition-smooth hover-lift" 
                 style={{ cursor: 'pointer', height: '100%' }}
                 onClick={() => navigate('/library')}
                 data-testid="card-library"
@@ -297,7 +305,7 @@ export default function Dashboard() {
 
             <Grid.Column>
               <Card 
-                className="transition-smooth hover-lift" 
+                className="nup-card nup-card--soft nup-card--success transition-smooth hover-lift" 
                 style={{ cursor: 'pointer', height: '100%' }}
                 onClick={() => navigate('/flashcards')}
                 data-testid="card-flashcards"
@@ -324,7 +332,7 @@ export default function Dashboard() {
 
             <Grid.Column>
               <Card 
-                className="transition-smooth hover-lift" 
+                className="nup-card nup-card--soft nup-card--info transition-smooth hover-lift" 
                 style={{ cursor: 'pointer', height: '100%' }}
                 onClick={() => navigate('/study')}
                 data-testid="card-ai-questions"
@@ -354,7 +362,7 @@ export default function Dashboard() {
                     <Grid columns={2} stackable>
                       <Grid.Column>
                         <Card 
-                          className="transition-smooth hover-lift" 
+                          className="nup-card nup-card--soft nup-card--warning transition-smooth hover-lift" 
                           style={{ cursor: 'pointer', height: '100%' }}
                           onClick={() => navigate('/study')}
                           data-testid="card-ai-chat"
@@ -380,7 +388,7 @@ export default function Dashboard() {
                       </Grid.Column>
 
                       <Grid.Column>
-                        <Card style={{ height: '100%' }}>
+                        <Card className="nup-card nup-card--soft nup-card--primary" style={{ height: '100%' }}>
                           <Card.Content>
                             <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
                               <User style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
