@@ -335,8 +335,8 @@ export default function Goals() {
 
     const data = {
       title: goalFormData.title,
-      description: goalFormData.description,
-      targetDate: goalFormData.targetDate || undefined
+      description: goalFormData.description || undefined,
+      targetDate: goalFormData.targetDate ? goalFormData.targetDate.toISOString() : undefined
     };
 
     if (selectedGoal) {
@@ -351,10 +351,10 @@ export default function Goals() {
 
     const data = {
       title: targetFormData.title,
-      description: targetFormData.description,
-      targetValue: targetFormData.targetValue,
-      unit: targetFormData.unit,
-      deadline: targetFormData.deadline || undefined,
+      description: targetFormData.description || undefined,
+      targetValue: targetFormData.targetValue || undefined,
+      unit: targetFormData.unit || undefined,
+      deadline: targetFormData.deadline ? targetFormData.deadline.toISOString() : undefined,
       goalId: targetFormData.goalId
     };
 
@@ -398,7 +398,7 @@ export default function Goals() {
             <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
               <Button 
                 primary
-                icon="sparkles"
+                icon="magic"
                 content="Construir Meta"
                 onClick={() => window.location.href = '/goal-builder'}
                 data-testid="button-goal-builder"

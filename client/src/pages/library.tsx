@@ -3,17 +3,29 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { 
+  Container,
+  Grid, 
+  Card,
+  Header,
+  Button,
+  Form,
+  Input,
+  Modal,
+  Message,
+  Breadcrumb,
+  Icon,
+  Loader,
+  Dimmer,
+  Label,
+  Segment,
+  Search
+} from 'semantic-ui-react';
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
 import AreaForm from "@/components/knowledge-areas/area-form";
 import { 
-  Search, 
+  Search as SearchIcon, 
   Plus, 
   BookOpen, 
   FileText, 
@@ -30,7 +42,6 @@ import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-row";
-import TeamsShell from "@/components/layout/teams-shell";
 import type { Subject, Material, KnowledgeArea } from "@shared/schema";
 
 // Navigation state types
@@ -56,10 +67,10 @@ export default function Library() {
   
   // State para filtros e busca
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createType, setCreateType] = useState<'area' | 'subject' | 'material'>('area');
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<any>(null);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
 
@@ -85,15 +96,15 @@ export default function Library() {
     
     if (createParam === 'subject') {
       setCreateType('subject');
-      setIsCreateDialogOpen(true);
+      setIsCreateModalOpen(true);
       window.history.replaceState({}, '', window.location.pathname);
     } else if (createParam === 'area') {
       setCreateType('area');
-      setIsCreateDialogOpen(true);
+      setIsCreateModalOpen(true);
       window.history.replaceState({}, '', window.location.pathname);
     } else if (createParam === 'material') {
       setCreateType('material');
-      setIsCreateDialogOpen(true);
+      setIsCreateModalOpen(true);
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -169,17 +180,17 @@ export default function Library() {
 
   const handleCreateNew = (type: 'area' | 'subject' | 'material') => {
     setCreateType(type);
-    setIsCreateDialogOpen(true);
+    setIsCreateModalOpen(true);
   };
 
   const handleEdit = (item: any) => {
     setItemToEdit(item);
-    setIsEditDialogOpen(true);
+    setIsEditModalOpen(true);
   };
 
   const handleDelete = (item: any) => {
     setItemToDelete(item);
-    setIsDeleteDialogOpen(true);
+    setIsDeleteModalOpen(true);
   };
 
   const confirmDelete = async () => {
@@ -222,7 +233,7 @@ export default function Library() {
         variant: "destructive",
       });
     } finally {
-      setIsDeleteDialogOpen(false);
+      setIsDeleteModalOpen(false);
       setItemToDelete(null);
     }
   };
@@ -272,7 +283,7 @@ export default function Library() {
     }
   };
 
-  const getCurrentLoading = () => {
+  const isCurrentLoading = () => {
     switch (navigation.level) {
       case 'areas': return areasLoading;
       case 'subjects': return subjectsLoading;
@@ -281,14 +292,14 @@ export default function Library() {
     }
   };
 
-  // Loading state
+  const currentData = getCurrentData();
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-6 h-6 border-2 border-muted-foreground border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-sm">Carregando...</p>
-        </div>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-gray-50)' }}>
+        <Dimmer active>
+          <Loader size="large">Carregando...</Loader>
+        </Dimmer>
       </div>
     );
   }
@@ -297,121 +308,130 @@ export default function Library() {
     return null;
   }
 
-  // Dynamic TeamsShell props
-  const breadcrumbs = navigation.breadcrumb.map((item, index) => ({
-    label: item.name,
-    onClick: index < navigation.breadcrumb.length - 1 ? () => navigateBack(item.level) : undefined
-  }));
-
-  const primaryActions = (
-    <div className="flex gap-2">
-      {navigation.level !== 'areas' && (
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (navigation.level === 'subjects') {
-              navigateBack('areas');
-            } else if (navigation.level === 'materials') {
-              navigateBack('subjects');
-            }
-          }}
-          data-testid="button-back"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
-      )}
-      <Button 
-        onClick={() => handleCreateNew(createType)}
-        size="sm"
-        disabled={
-          (navigation.level === 'subjects' && !navigation.selectedAreaId) ||
-          (navigation.level === 'materials' && !navigation.selectedSubjectId)
-        }
-        data-testid={`button-create-${createType}`}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        {getCreateButtonText()}
-      </Button>
-    </div>
-  );
-
-  const currentData = getCurrentData();
-  const isCurrentLoading = getCurrentLoading();
-
   return (
-    <TeamsShell 
-      title={getTitle()} 
-      subtitle={getSubtitle()}
-      breadcrumbs={breadcrumbs}
-      primaryActions={primaryActions}
-    >
-      <div className="max-w-screen-2xl mx-auto space-y-6">
-        {/* Search */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-gray-50)', padding: 'var(--spacing-lg)' }}>
+      <Container>
+        {/* Header Section */}
+        <div className="mb-xl">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-lg)' }}>
+            <div>
+              <Header as="h1" style={{ fontSize: '32px', fontWeight: '600', color: 'var(--nup-gray-800)', marginBottom: 'var(--spacing-xs)' }}>
+                Biblioteca
+              </Header>
+              <p style={{ color: 'var(--nup-gray-600)', fontSize: '16px' }}>
+                Organize seus materiais de estudo por áreas e matérias
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+              <Button 
+                primary
+                icon="upload"
+                content="Upload Material"
+                onClick={() => handleCreateNew('material')}
+                data-testid="button-upload-material"
+              />
+              <Button 
+                secondary
+                icon="plus"
+                content={getCreateButtonText()}
+                onClick={() => handleCreateNew(createType)}
+                data-testid="button-create-new"
+              />
+            </div>
+          </div>
+          
+          {/* Breadcrumb Navigation */}
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <Breadcrumb size="large">
+              {navigation.breadcrumb.map((crumb, index) => (
+                <React.Fragment key={index}>
+                  <Breadcrumb.Section
+                    as={index < navigation.breadcrumb.length - 1 ? 'a' : 'span'}
+                    onClick={index < navigation.breadcrumb.length - 1 ? () => navigateBack(crumb.level) : undefined}
+                    style={{ 
+                      cursor: index < navigation.breadcrumb.length - 1 ? 'pointer' : 'default',
+                      color: index < navigation.breadcrumb.length - 1 ? 'var(--nup-secondary)' : 'var(--nup-gray-800)'
+                    }}
+                  >
+                    {crumb.name}
+                  </Breadcrumb.Section>
+                  {index < navigation.breadcrumb.length - 1 && <Breadcrumb.Divider icon="right angle" />}
+                </React.Fragment>
+              ))}
+            </Breadcrumb>
+          </div>
+
+          {/* Search Bar */}
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
             <Input
+              icon="search"
               placeholder={`Buscar ${navigation.level === 'areas' ? 'áreas' : navigation.level === 'subjects' ? 'matérias' : 'materiais'}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              data-testid="input-search"
+              fluid
+              data-testid="search-input"
             />
           </div>
         </div>
 
-        {/* Stats Overview */}
+        {/* Stats Overview - only show on areas level */}
         {navigation.level === 'areas' && (
-          <div>
+          <div className="mb-xl">
             <SectionHeader 
-              title="Estatísticas"
-              description="Visão geral da sua biblioteca"
+              title="Visão Geral"
+              description="Estatísticas da sua biblioteca"
               data-testid="stats-header"
             />
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <Grid columns={4} stackable style={{ marginTop: 'var(--spacing-md)' }}>
               {areasLoading ? (
                 <>
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
+                  <Grid.Column><SkeletonCard /></Grid.Column>
+                  <Grid.Column><SkeletonCard /></Grid.Column>
+                  <Grid.Column><SkeletonCard /></Grid.Column>
+                  <Grid.Column><SkeletonCard /></Grid.Column>
                 </>
               ) : (
                 <>
-                  <StatCard
-                    icon={<Folder className="w-8 h-8" />}
-                    value={knowledgeAreas.length}
-                    label="Áreas"
-                    variant="info"
-                    data-testid="stat-areas"
-                  />
-                  <StatCard
-                    icon={<BookOpen className="w-8 h-8" />}
-                    value={subjects.length}
-                    label="Matérias"
-                    variant="success"
-                    data-testid="stat-subjects"
-                  />
-                  <StatCard
-                    icon={<FileText className="w-8 h-8" />}
-                    value="0"
-                    label="Materiais"
-                    variant="warning"
-                    data-testid="stat-materials"
-                  />
-                  <StatCard
-                    icon={<Database className="w-8 h-8" />}
-                    value="100%"
-                    label="Organização"
-                    variant="primary"
-                    data-testid="stat-organization"
-                  />
+                  <Grid.Column>
+                    <StatCard
+                      icon={<Folder className="w-8 h-8" />}
+                      value={knowledgeAreas.length}
+                      label="Áreas"
+                      variant="info"
+                      data-testid="stat-areas"
+                    />
+                  </Grid.Column>
+                  <Grid.Column>
+                    <StatCard
+                      icon={<BookOpen className="w-8 h-8" />}
+                      value={subjects.length}
+                      label="Matérias"
+                      variant="success"
+                      data-testid="stat-subjects"
+                    />
+                  </Grid.Column>
+                  <Grid.Column>
+                    <StatCard
+                      icon={<FileText className="w-8 h-8" />}
+                      value="0"
+                      label="Materiais"
+                      variant="warning"
+                      data-testid="stat-materials"
+                    />
+                  </Grid.Column>
+                  <Grid.Column>
+                    <StatCard
+                      icon={<Database className="w-8 h-8" />}
+                      value="100%"
+                      label="Organização"
+                      variant="primary"
+                      data-testid="stat-organization"
+                    />
+                  </Grid.Column>
                 </>
               )}
-            </div>
+            </Grid>
           </div>
         )}
 
@@ -423,16 +443,16 @@ export default function Library() {
             data-testid="content-header"
           />
           
-          <div className="mt-4">
-            {isCurrentLoading ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-              </div>
+          <div style={{ marginTop: 'var(--spacing-md)' }}>
+            {isCurrentLoading() ? (
+              <Grid columns={3} stackable>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+                <Grid.Column><SkeletonCard /></Grid.Column>
+              </Grid>
             ) : currentData.length === 0 ? (
               <EmptyState
                 icon={React.createElement(getIcon(), { className: "w-12 h-12" })}
@@ -445,7 +465,7 @@ export default function Library() {
                 data-testid={`empty-${navigation.level}`}
               />
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Grid columns={3} stackable>
                 {currentData
                   .filter((item: any) => 
                     searchQuery === '' || 
@@ -453,210 +473,194 @@ export default function Library() {
                     item.title?.toLowerCase().includes(searchQuery.toLowerCase())
                   )
                   .map((item: any) => (
-                    <Card key={item.id} className="surface-elevated hover-lift transition-fast">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                              {React.createElement(getIcon(), { className: "h-5 w-5" })}
+                    <Grid.Column key={item.id}>
+                      <Card className="transition-smooth hover-lift">
+                        <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-md)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                              <div style={{
+                                padding: 'var(--spacing-sm)',
+                                borderRadius: 'var(--radius-md)',
+                                backgroundColor: 'rgba(0, 120, 212, 0.1)',
+                                color: 'var(--nup-secondary)'
+                              }}>
+                                {React.createElement(getIcon(), { style: { width: '20px', height: '20px' } })}
+                              </div>
+                              <div>
+                                <Header as="h3" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                                  {item.name || item.title}
+                                </Header>
+                                {item.description && (
+                                  <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)' }}>
+                                    {item.description}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="font-semibold text-foreground">
-                                {item.name || item.title}
-                              </h3>
-                              {item.description && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {item.description}
-                                </p>
-                              )}
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                              <Button
+                                basic
+                                icon="edit"
+                                size="mini"
+                                onClick={() => handleEdit(item)}
+                                data-testid={`button-edit-${item.id}`}
+                                title={`Editar ${item.name || item.title}`}
+                              />
+                              <Button
+                                basic
+                                icon="trash"
+                                size="mini"
+                                onClick={() => handleDelete(item)}
+                                data-testid={`button-delete-${item.id}`}
+                                title={`Excluir ${item.name || item.title}`}
+                              />
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(item)}
-                              data-testid={`button-edit-${item.id}`}
-                              aria-label={`Editar ${item.name || item.title}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(item)}
-                              data-testid={`button-delete-${item.id}`}
-                              aria-label={`Excluir ${item.name || item.title}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          {/* Item specific info */}
+                          <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                            {navigation.level === 'subjects' && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', fontSize: '14px', color: 'var(--nup-gray-600)' }}>
+                                <Label color="blue" size="small">{item.category}</Label>
+                                <span>Prioridade {item.priority}</span>
+                              </div>
+                            )}
+                            
+                            {navigation.level === 'materials' && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', fontSize: '14px', color: 'var(--nup-gray-600)' }}>
+                                <Label color="green" size="small">{item.type}</Label>
+                                {item.uploadDate && (
+                                  <span>
+                                    {new Date(item.uploadDate).toLocaleDateString('pt-BR')}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        
-                        {/* Item specific info */}
-                        <div className="space-y-2">
-                          {navigation.level === 'subjects' && (
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="capitalize">{item.category}</span>
-                              <span>Prioridade {item.priority}</span>
-                            </div>
-                          )}
                           
-                          {navigation.level === 'materials' && (
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="capitalize">{item.type}</span>
-                              {item.uploadDate && (
-                                <span>
-                                  {new Date(item.uploadDate).toLocaleDateString('pt-BR')}
-                                </span>
-                              )}
-                            </div>
+                          {/* Navigation action */}
+                          {(navigation.level === 'areas' || navigation.level === 'subjects') && (
+                            <Button
+                              fluid
+                              primary
+                              onClick={() => {
+                                if (navigation.level === 'areas') {
+                                  navigateToLevel('subjects', item.id, item.name);
+                                } else {
+                                  navigateToLevel('materials', item.id, item.name);
+                                }
+                              }}
+                              data-testid={`button-navigate-${item.id}`}
+                            >
+                              {navigation.level === 'areas' ? 'Ver Matérias' : 'Ver Materiais'}
+                            </Button>
                           )}
-                        </div>
-                        
-                        {/* Navigation action */}
-                        {(navigation.level === 'areas' || navigation.level === 'subjects') && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full mt-4"
-                            onClick={() => {
-                              if (navigation.level === 'areas') {
-                                navigateToLevel('subjects', item.id, item.name);
-                                setCreateType('subject');
-                              } else if (navigation.level === 'subjects') {
-                                navigateToLevel('materials', item.id, item.name);
-                                setCreateType('material');
-                              }
-                            }}
-                            data-testid={`button-open-${item.id}`}
-                          >
-                            {navigation.level === 'areas' ? 'Ver Matérias' : 'Ver Materiais'}
-                          </Button>
-                        )}
-                        
-                        {navigation.level === 'materials' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full mt-4"
-                            onClick={() => {
-                              // Open material for viewing
-                              if (item.filePath) {
-                                window.open(`/api/materials/${item.id}/view`, '_blank');
-                              }
-                            }}
-                            data-testid={`button-view-${item.id}`}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Visualizar
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
+                        </Card.Content>
+                      </Card>
+                    </Grid.Column>
                   ))}
-              </div>
+              </Grid>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Create Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {navigation.level === 'areas' && 'Nova Área de Conhecimento'}
-              {navigation.level === 'subjects' && 'Nova Matéria'}
-              {navigation.level === 'materials' && 'Novo Material'}
-            </DialogTitle>
-            <DialogDescription>
-              {navigation.level === 'areas' && 'Crie uma nova área para organizar suas matérias'}
-              {navigation.level === 'subjects' && 'Adicione uma nova matéria nesta área'}
-              {navigation.level === 'materials' && 'Faça upload de um novo material de estudo'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {navigation.level === 'areas' && (
-            <AreaForm 
-              onSuccess={() => setIsCreateDialogOpen(false)} 
-            />
-          )}
-          
-          {navigation.level === 'subjects' && (
-            <SubjectForm 
-              areaId={navigation.selectedAreaId}
-              onSuccess={() => setIsCreateDialogOpen(false)} 
-            />
-          )}
-          
-          {navigation.level === 'materials' && (
-            <MaterialUpload 
-              subjectId={navigation.selectedSubjectId}
-              onSuccess={() => setIsCreateDialogOpen(false)} 
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        {/* Create Modal */}
+        <Modal 
+          open={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)}
+          size="small"
+        >
+          <Modal.Header>
+            {createType === 'area' && 'Nova Área de Conhecimento'}
+            {createType === 'subject' && 'Nova Matéria'}
+            {createType === 'material' && 'Novo Material'}
+          </Modal.Header>
+          <Modal.Content>
+            {createType === 'area' && (
+              <AreaForm 
+                onSuccess={() => {
+                  setIsCreateModalOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
+                }} 
+              />
+            )}
+            {createType === 'subject' && (
+              <SubjectForm 
+                areaId={navigation.selectedAreaId}
+                onSuccess={() => {
+                  setIsCreateModalOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+                }} 
+              />
+            )}
+            {createType === 'material' && (
+              <MaterialUpload 
+                subjectId={navigation.selectedSubjectId}
+                onSuccess={() => {
+                  setIsCreateModalOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+                }} 
+              />
+            )}
+          </Modal.Content>
+        </Modal>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {navigation.level === 'areas' && 'Editar Área de Conhecimento'}
-              {navigation.level === 'subjects' && 'Editar Matéria'}
-              {navigation.level === 'materials' && 'Editar Material'}
-            </DialogTitle>
-            <DialogDescription>
-              {navigation.level === 'areas' && 'Atualize as informações desta área de conhecimento'}
-              {navigation.level === 'subjects' && 'Modifique os dados desta matéria'}
-              {navigation.level === 'materials' && 'Altere as informações deste material de estudo'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {navigation.level === 'areas' && itemToEdit && (
-            <AreaForm 
-              area={itemToEdit}
-              onSuccess={() => setIsEditDialogOpen(false)} 
-            />
-          )}
-          
-          {navigation.level === 'subjects' && itemToEdit && (
-            <SubjectForm 
-              areaId={navigation.selectedAreaId}
-              subject={itemToEdit}
-              onSuccess={() => setIsEditDialogOpen(false)} 
-            />
-          )}
-          
-          {navigation.level === 'materials' && itemToEdit && (
-            <MaterialUpload 
-              subjectId={navigation.selectedSubjectId}
-              onSuccess={() => setIsEditDialogOpen(false)} 
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        {/* Edit Modal */}
+        <Modal 
+          open={isEditModalOpen} 
+          onClose={() => setIsEditModalOpen(false)}
+          size="small"
+        >
+          <Modal.Header>Editar Item</Modal.Header>
+          <Modal.Content>
+            {navigation.level === 'areas' && itemToEdit && (
+              <AreaForm 
+                area={itemToEdit}
+                onSuccess={() => {
+                  setIsEditModalOpen(false);
+                  setItemToEdit(null);
+                  queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
+                }} 
+              />
+            )}
+            {navigation.level === 'subjects' && itemToEdit && (
+              <SubjectForm 
+                subject={itemToEdit}
+                onSuccess={() => {
+                  setIsEditModalOpen(false);
+                  setItemToEdit(null);
+                  queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+                }} 
+              />
+            )}
+          </Modal.Content>
+        </Modal>
 
-      {/* Delete Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir "{itemToDelete?.name || itemToDelete?.title}"? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} data-testid="button-confirm-delete">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </TeamsShell>
+        {/* Delete Confirmation Modal */}
+        <Modal 
+          open={isDeleteModalOpen} 
+          onClose={() => setIsDeleteModalOpen(false)}
+          size="small"
+        >
+          <Modal.Header>Confirmar Exclusão</Modal.Header>
+          <Modal.Content>
+            <p>Tem certeza de que deseja excluir "{itemToDelete?.name || itemToDelete?.title}"?</p>
+            <Message warning>
+              <p>Esta ação não pode ser desfeita.</p>
+            </Message>
+          </Modal.Content>
+          <Modal.Actions>
+            <Button content="Cancelar" onClick={() => setIsDeleteModalOpen(false)} />
+            <Button 
+              negative
+              content="Excluir"
+              onClick={confirmDelete}
+              data-testid="button-confirm-delete"
+            />
+          </Modal.Actions>
+        </Modal>
+      </Container>
+    </div>
   );
 }
