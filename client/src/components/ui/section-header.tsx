@@ -1,4 +1,4 @@
-import { Header } from 'semantic-ui-react';
+import { cn } from '@/lib/utils';
 
 interface SectionHeaderProps {
   title: string;
@@ -16,20 +16,20 @@ export function SectionHeader({
   'data-testid': testId 
 }: SectionHeaderProps) {
   return (
-    <div className={`section-header ${className}`} data-testid={testId}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <Header as="h2" className="title">
+    <div className={cn("section-header mb-6", className)} data-testid={testId}>
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-1">
+          <h2 className="main-title text-2xl font-semibold text-foreground mb-2">
             {title}
-          </Header>
+          </h2>
           {description && (
-            <p className="description text-muted">
+            <p className="card-description text-muted-foreground">
               {description}
             </p>
           )}
         </div>
         {action && (
-          <div style={{ flexShrink: 0, marginLeft: '16px' }}>
+          <div className="flex-shrink-0">
             {action}
           </div>
         )}
