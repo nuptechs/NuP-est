@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { User } from "@shared/schema";
 
 interface OnboardingData {
   age?: number;
@@ -82,7 +83,7 @@ export default function OnboardingPage() {
   const isEditMode = new URLSearchParams(window.location.search).get('mode') === 'edit';
   
   // Carregar dados atuais do usuário se estiver em modo de edição
-  const { data: currentUserData } = useQuery({
+  const { data: currentUserData } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     enabled: isEditMode && isAuthenticated,
   });
