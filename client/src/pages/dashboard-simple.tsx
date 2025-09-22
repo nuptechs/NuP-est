@@ -72,7 +72,7 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-gray-50)' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-bg)' }}>
         <Dimmer active>
           <Loader size="large">Carregando...</Loader>
         </Dimmer>
@@ -85,7 +85,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-gray-50)', padding: 'var(--spacing-lg)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-bg)', padding: 'var(--spacing-lg)' }}>
       <Container>
         {/* Header Section */}
         <div className="mb-xl">
