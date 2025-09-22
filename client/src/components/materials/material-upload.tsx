@@ -6,11 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMaterialSchema } from "@shared/schema";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { Form, Button, Dropdown, Grid } from "semantic-ui-react";
 import { Upload, FileText, Link, Video, File } from "lucide-react";
 import type { Subject } from "@shared/schema";
 
@@ -125,202 +121,240 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
   };
 
   const materialType = form.watch("type");
+  const { errors } = form.formState;
+  
+  const subjectOptions = subjects?.map(subject => ({
+    key: subject.id,
+    value: subject.id,
+    text: subject.name
+  })) || [];
+
+  const typeOptions = [
+    { key: 'pdf', value: 'pdf', text: '📄 PDF' },
+    { key: 'doc', value: 'doc', text: '📝 Documento' },
+    { key: 'txt', value: 'txt', text: '📃 Texto' },
+    { key: 'link', value: 'link', text: '🔗 Link' },
+    { key: 'video', value: 'video', text: '🎥 Vídeo' }
+  ];
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-6">
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="subjectId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-medium">Matéria</FormLabel>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-11" data-testid="select-material-subject">
-                      <SelectValue placeholder="Selecione a matéria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects?.map((subject: Subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+    <Form onSubmit={form.handleSubmit(onSubmit)} error={Object.keys(errors).length > 0}>
+      <Grid columns={2} stackable>
+        <Grid.Column>
+          <Form.Field error={!!errors.subjectId}>
+            <label>Matéria</label>
+            <Dropdown
+              selection
+              placeholder="Selecione a matéria"
+              options={subjectOptions}
+              value={form.watch("subjectId")}
+              onChange={(e, { value }) => form.setValue("subjectId", value as string)}
+              data-testid="select-material-subject"
+              style={{ 
+                backgroundColor: 'var(--nup-surface)',
+                border: '1px solid var(--nup-border)'
+              }}
+            />
+            {errors.subjectId && (
+              <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+                {errors.subjectId.message}
+              </div>
             )}
-          />
-
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-medium">Tipo</FormLabel>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-11" data-testid="select-material-type">
-                      <SelectValue placeholder="Tipo do material" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pdf">📄 PDF</SelectItem>
-                      <SelectItem value="doc">📝 Documento</SelectItem>
-                      <SelectItem value="txt">📃 Texto</SelectItem>
-                      <SelectItem value="link">🔗 Link</SelectItem>
-                      <SelectItem value="video">🎥 Vídeo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+          </Form.Field>
+        </Grid.Column>
+        
+        <Grid.Column>
+          <Form.Field error={!!errors.type}>
+            <label>Tipo</label>
+            <Dropdown
+              selection
+              placeholder="Tipo do material"
+              options={typeOptions}
+              value={form.watch("type")}
+              onChange={(e, { value }) => form.setValue("type", value as string)}
+              data-testid="select-material-type"
+              style={{ 
+                backgroundColor: 'var(--nup-surface)',
+                border: '1px solid var(--nup-border)'
+              }}
+            />
+            {errors.type && (
+              <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+                {errors.type.message}
+              </div>
             )}
-          />
-        </div>
+          </Form.Field>
+        </Grid.Column>
+      </Grid>
 
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base font-medium">Título</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Nome do material"
-                  className="h-11"
-                  {...field}
-                  data-testid="input-material-title"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      <Form.Field error={!!errors.title}>
+        <label>Título</label>
+        <input 
+          placeholder="Nome do material"
+          {...form.register("title")}
+          data-testid="input-material-title"
+          style={{ 
+            backgroundColor: 'var(--nup-surface)',
+            border: '1px solid var(--nup-border)',
+            color: 'var(--nup-text)',
+            padding: '12px'
+          }}
         />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base font-medium">Descrição</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Descrição do conteúdo (opcional)"
-                  className="resize-none h-20"
-                  {...field}
-                  data-testid="input-material-description"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Upload de Arquivo */}
-        {materialType && materialType !== "link" && materialType !== "video" && materialType !== "txt" && (
-          <div className="space-y-3">
-            <label className="text-base font-medium">Arquivo</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-              <input
-                type="file"
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx,.txt,.md"
-                className="hidden"
-                id="file-upload"
-                data-testid="input-file-upload"
-              />
-              <label htmlFor="file-upload" className="cursor-pointer block">
-                {selectedFile ? (
-                  <div className="space-y-2">
-                    <File className="h-8 w-8 mx-auto text-green-600" />
-                    <p className="font-medium">{selectedFile.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Upload className="h-8 w-8 mx-auto text-gray-400" />
-                    <p className="text-sm text-muted-foreground">
-                      Clique para selecionar arquivo
-                    </p>
-                  </div>
-                )}
-              </label>
-            </div>
+        {errors.title && (
+          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+            {errors.title.message}
           </div>
         )}
+      </Form.Field>
 
-        {/* URL para links e vídeos */}
-        {(materialType === "link" || materialType === "video") && (
-          <FormField
-            control={form.control}
-            name="url"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-medium">URL</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder={`https://exemplo.com`}
-                    type="url"
-                    className="h-11"
-                    {...field}
-                    data-testid="input-material-url"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <Form.Field error={!!errors.description}>
+        <label>Descrição</label>
+        <textarea 
+          placeholder="Descrição do conteúdo (opcional)"
+          {...form.register("description")}
+          data-testid="input-material-description"
+          rows={3}
+          style={{ 
+            backgroundColor: 'var(--nup-surface)',
+            border: '1px solid var(--nup-border)',
+            color: 'var(--nup-text)',
+            resize: 'vertical',
+            padding: '12px'
+          }}
+        />
+        {errors.description && (
+          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+            {errors.description.message}
+          </div>
         )}
+      </Form.Field>
 
-        {/* Conteúdo de texto */}
-        {materialType === "txt" && (
-          <FormField
-            control={form.control}
-            name="content"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-medium">Conteúdo</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Cole ou digite o conteúdo aqui..."
-                    className="resize-none h-32"
-                    {...field}
-                    data-testid="input-material-content"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+      {/* Upload de Arquivo */}
+      {materialType && materialType !== "link" && materialType !== "video" && materialType !== "txt" && (
+        <Form.Field>
+          <label>Arquivo</label>
+          <div style={{
+            border: '2px dashed var(--nup-border)',
+            borderRadius: '8px',
+            padding: '24px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            backgroundColor: 'var(--nup-surface)'
+          }}>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              accept=".pdf,.doc,.docx,.txt,.md"
+              style={{ display: 'none' }}
+              id="file-upload"
+              data-testid="input-file-upload"
+            />
+            <label htmlFor="file-upload" style={{ cursor: 'pointer', display: 'block' }}>
+              {selectedFile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <File style={{ width: '32px', height: '32px', color: 'var(--nup-primary)' }} />
+                  <p style={{ fontWeight: '500', color: 'var(--nup-text)' }}>{selectedFile.name}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--nup-gray-600)' }}>
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <Upload style={{ width: '32px', height: '32px', color: 'var(--nup-gray-400)' }} />
+                  <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)' }}>
+                    Clique para selecionar arquivo
+                  </p>
+                </div>
+              )}
+            </label>
+          </div>
+        </Form.Field>
+      )}
+
+      {/* URL para links e vídeos */}
+      {(materialType === "link" || materialType === "video") && (
+        <Form.Field error={!!errors.url}>
+          <label>URL</label>
+          <input 
+            placeholder="https://exemplo.com"
+            type="url"
+            {...form.register("url")}
+            data-testid="input-material-url"
+            style={{ 
+              backgroundColor: 'var(--nup-surface)',
+              border: '1px solid var(--nup-border)',
+              color: 'var(--nup-text)',
+              padding: '12px'
+            }}
           />
-        )}
+          {errors.url && (
+            <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+              {errors.url.message}
+            </div>
+          )}
+        </Form.Field>
+      )}
 
+      {/* Conteúdo de texto */}
+      {materialType === "txt" && (
+        <Form.Field error={!!errors.content}>
+          <label>Conteúdo</label>
+          <textarea 
+            placeholder="Cole ou digite o conteúdo aqui..."
+            {...form.register("content")}
+            data-testid="input-material-content"
+            rows={6}
+            style={{ 
+              backgroundColor: 'var(--nup-surface)',
+              border: '1px solid var(--nup-border)',
+              color: 'var(--nup-text)',
+              resize: 'vertical',
+              padding: '12px'
+            }}
+          />
+          {errors.content && (
+            <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+              {errors.content.message}
+            </div>
+          )}
+        </Form.Field>
+      )}
 
-        <div className="flex gap-3 pt-6">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onSuccess}
-            data-testid="button-cancel-material"
-            className="flex-1 h-11"
-          >
-            Cancelar
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={uploadMutation.isPending}
-            data-testid="button-save-material"
-            className="flex-1 h-11"
-          >
-            {uploadMutation.isPending ? "Salvando..." : "Adicionar"}
-          </Button>
-        </div>
-      </form>
+      <div style={{ 
+        display: 'flex', 
+        gap: '12px', 
+        paddingTop: '24px',
+        borderTop: '1px solid var(--nup-border)',
+        marginTop: '24px'
+      }}>
+        <Button 
+          type="button" 
+          basic
+          onClick={onSuccess}
+          data-testid="button-cancel-material"
+          style={{ 
+            flex: 1,
+            color: 'var(--nup-text)',
+            borderColor: 'var(--nup-border)'
+          }}
+        >
+          Cancelar
+        </Button>
+        <Button 
+          type="submit" 
+          primary
+          loading={uploadMutation.isPending}
+          disabled={uploadMutation.isPending}
+          data-testid="button-save-material"
+          style={{ 
+            flex: 1,
+            backgroundColor: 'var(--nup-primary)',
+            color: 'white'
+          }}
+        >
+          {uploadMutation.isPending ? "Salvando..." : "Adicionar"}
+        </Button>
+      </div>
     </Form>
   );
 }
