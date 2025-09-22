@@ -114,109 +114,158 @@ export default function Dashboard() {
         <div className="mb-xl">
           <div 
             style={{ 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              padding: 'var(--spacing-md) 0',
-              borderBottom: isStatsExpanded ? '1px solid var(--nup-gray-200)' : 'none',
-              marginBottom: 'var(--spacing-md)',
-              transition: 'all 0.2s ease'
+              borderRadius: 'var(--border-radius)',
+              backgroundColor: 'var(--nup-surface)',
+              border: '1px solid var(--nup-gray-100)',
+              boxShadow: isStatsExpanded ? '0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              overflow: 'hidden',
+              marginBottom: 'var(--spacing-lg)'
             }}
-            onClick={() => setIsStatsExpanded(!isStatsExpanded)}
-            data-testid="stats-toggle"
+            data-testid="stats-section"
           >
-            <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)', fontSize: '18px', fontWeight: '500' }}>
-              Acompanhe seu progresso diário
-            </Header>
-            {isStatsExpanded ? (
-              <ChevronUp style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
-            ) : (
-              <ChevronDown style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
-            )}
+            <div 
+              style={{ 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                padding: 'var(--spacing-md)',
+                borderBottom: isStatsExpanded ? '1px solid var(--nup-gray-100)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+              data-testid="stats-toggle"
+            >
+              <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)', fontSize: '18px', fontWeight: '500' }}>
+                Acompanhe seu progresso diário
+              </Header>
+              <div style={{ transition: 'transform 0.2s ease' }}>
+                {isStatsExpanded ? (
+                  <ChevronUp style={{ width: '18px', height: '18px', color: 'var(--nup-gray-500)' }} />
+                ) : (
+                  <ChevronDown style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
+                )}
+              </div>
+            </div>
+            
+            <div 
+              style={{
+                maxHeight: isStatsExpanded ? '500px' : '0',
+                opacity: isStatsExpanded ? 1 : 0,
+                overflow: 'hidden',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: isStatsExpanded ? 'translateY(0)' : 'translateY(-10px)'
+              }}
+            >
+              {isStatsExpanded && (
+                <div style={{ padding: 'var(--spacing-md)' }}>
+                  <ResponsiveGrid columns={4}>
+                  {statsLoading ? (
+                    <>
+                      <Grid.Column><SkeletonCard /></Grid.Column>
+                      <Grid.Column><SkeletonCard /></Grid.Column>
+                      <Grid.Column><SkeletonCard /></Grid.Column>
+                      <Grid.Column><SkeletonCard /></Grid.Column>
+                    </>
+                  ) : stats && (
+                    <>
+                      <Grid.Column>
+                        <StatCard
+                          icon={<BookOpen style={{ width: '32px', height: '32px' }} />}
+                          value={stats.subjects}
+                          label="Matérias"
+                          variant="info"
+                          data-testid="stat-subjects"
+                        />
+                      </Grid.Column>
+                      <Grid.Column>
+                        <StatCard
+                          icon={<Clock style={{ width: '32px', height: '32px' }} />}
+                          value={`${stats.todayHours}h`}
+                          label="Hoje"
+                          variant="success"
+                          data-testid="stat-today-hours"
+                        />
+                      </Grid.Column>
+                      <Grid.Column>
+                        <StatCard
+                          icon={<Brain style={{ width: '32px', height: '32px' }} />}
+                          value={stats.questionsGenerated}
+                          label="Questões IA"
+                          variant="primary"
+                          data-testid="stat-ai-questions"
+                        />
+                      </Grid.Column>
+                      <Grid.Column>
+                        <StatCard
+                          icon={<Trophy style={{ width: '32px', height: '32px' }} />}
+                          value={`${stats.goalProgress}%`}
+                          label="Progresso"
+                          variant="warning"
+                          data-testid="stat-goal-progress"
+                        />
+                      </Grid.Column>
+                    </>
+                  )}
+                  </ResponsiveGrid>
+                </div>
+              )}
+            </div>
           </div>
-          
-          {isStatsExpanded && (
-            <ResponsiveGrid columns={4}>
-            {statsLoading ? (
-              <>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-              </>
-            ) : stats && (
-              <>
-                <Grid.Column>
-                  <StatCard
-                    icon={<BookOpen style={{ width: '32px', height: '32px' }} />}
-                    value={stats.subjects}
-                    label="Matérias"
-                    variant="info"
-                    data-testid="stat-subjects"
-                  />
-                </Grid.Column>
-                <Grid.Column>
-                  <StatCard
-                    icon={<Clock style={{ width: '32px', height: '32px' }} />}
-                    value={`${stats.todayHours}h`}
-                    label="Hoje"
-                    variant="success"
-                    data-testid="stat-today-hours"
-                  />
-                </Grid.Column>
-                <Grid.Column>
-                  <StatCard
-                    icon={<Brain style={{ width: '32px', height: '32px' }} />}
-                    value={stats.questionsGenerated}
-                    label="Questões IA"
-                    variant="primary"
-                    data-testid="stat-ai-questions"
-                  />
-                </Grid.Column>
-                <Grid.Column>
-                  <StatCard
-                    icon={<Trophy style={{ width: '32px', height: '32px' }} />}
-                    value={`${stats.goalProgress}%`}
-                    label="Progresso"
-                    variant="warning"
-                    data-testid="stat-goal-progress"
-                  />
-                </Grid.Column>
-              </>
-            )}
-            </ResponsiveGrid>
-          )}
         </div>
 
         {/* Quick Actions */}
         <div className="mb-xl">
           <div 
             style={{ 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              padding: 'var(--spacing-md) 0',
-              borderBottom: isActionsExpanded ? '1px solid var(--nup-gray-200)' : 'none',
-              marginBottom: 'var(--spacing-md)',
-              transition: 'all 0.2s ease'
+              borderRadius: 'var(--border-radius)',
+              backgroundColor: 'var(--nup-surface)',
+              border: '1px solid var(--nup-gray-100)',
+              boxShadow: isActionsExpanded ? '0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              overflow: 'hidden',
+              marginBottom: 'var(--spacing-lg)'
             }}
-            onClick={() => setIsActionsExpanded(!isActionsExpanded)}
-            data-testid="actions-toggle"
+            data-testid="actions-section"
           >
-            <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)', fontSize: '18px', fontWeight: '500' }}>
-              Ações Rápidas
-            </Header>
-            {isActionsExpanded ? (
-              <ChevronUp style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
-            ) : (
-              <ChevronDown style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
-            )}
-          </div>
-          
-          {isActionsExpanded && (
-            <ResponsiveGrid columns={3}>
+            <div 
+              style={{ 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                padding: 'var(--spacing-md)',
+                borderBottom: isActionsExpanded ? '1px solid var(--nup-gray-100)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => setIsActionsExpanded(!isActionsExpanded)}
+              data-testid="actions-toggle"
+            >
+              <Header as="h3" style={{ margin: 0, color: 'var(--nup-text)', fontSize: '18px', fontWeight: '500' }}>
+                Ações Rápidas
+              </Header>
+              <div style={{ transition: 'transform 0.2s ease' }}>
+                {isActionsExpanded ? (
+                  <ChevronUp style={{ width: '18px', height: '18px', color: 'var(--nup-gray-500)' }} />
+                ) : (
+                  <ChevronDown style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
+                )}
+              </div>
+            </div>
+            
+            <div 
+              style={{
+                maxHeight: isActionsExpanded ? '500px' : '0',
+                opacity: isActionsExpanded ? 1 : 0,
+                overflow: 'hidden',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: isActionsExpanded ? 'translateY(0)' : 'translateY(-10px)'
+              }}
+            >
+              {isActionsExpanded && (
+                <div style={{ padding: 'var(--spacing-md)' }}>
+                  <ResponsiveGrid columns={3}>
             <Grid.Column>
               <Card 
                 className="transition-smooth hover-lift" 
@@ -292,8 +341,11 @@ export default function Dashboard() {
                 </Card.Content>
               </Card>
             </Grid.Column>
-            </ResponsiveGrid>
-          )}
+                  </ResponsiveGrid>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Content Overview */}
