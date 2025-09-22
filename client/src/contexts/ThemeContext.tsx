@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 
 // Definição dos temas disponíveis
 export type ThemeName = 'blue-modern' | 'green-nature' | 'purple-premium' | 'orange-energy';
+export type ThemeMode = 'light' | 'dark';
 
 export interface ThemeColors {
   primary: string;
@@ -147,7 +148,9 @@ const themes: Record<ThemeName, Theme> = {
 
 interface ThemeContextType {
   currentTheme: Theme;
+  currentMode: ThemeMode;
   setTheme: (themeName: ThemeName) => void;
+  setMode: (mode: ThemeMode) => void;
   availableThemes: Theme[];
 }
 
@@ -172,10 +175,16 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     return savedTheme && themes[savedTheme] ? savedTheme : 'blue-modern';
   });
 
+  const [currentMode, setCurrentMode] = useState<ThemeMode>(() => {
+    // Recuperar modo salvo do localStorage ou usar padrão
+    const savedMode = localStorage.getItem('nup-mode') as ThemeMode;
+    return savedMode || 'light';
+  });
+
   const currentTheme = themes[currentThemeName];
   const availableThemes = Object.values(themes);
 
-  // Aplicar as variáveis CSS quando o tema muda
+  // Aplicar as variáveis CSS quando o tema ou modo muda
   useEffect(() => {
     const applyThemeVariables = (colors: ThemeColors) => {
       const root = document.documentElement;
@@ -211,13 +220,24 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     applyThemeVariables(currentTheme.colors);
   }, [currentTheme]);
 
+  // Aplicar o modo dark/light ao documento
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', currentMode === 'dark');
+  }, [currentMode]);
+
   const setTheme = (themeName: ThemeName) => {
     setCurrentThemeName(themeName);
     localStorage.setItem('nup-theme', themeName);
   };
 
+  const setMode = (mode: ThemeMode) => {
+    setCurrentMode(mode);
+    localStorage.setItem('nup-mode', mode);
+  };
+
   return (
-    <ThemeContext.Provider value={{ currentTheme, setTheme, availableThemes }}>
+    <ThemeContext.Provider value={{ currentTheme, currentMode, setTheme, setMode, availableThemes }}>
       {children}
     </ThemeContext.Provider>
   );
