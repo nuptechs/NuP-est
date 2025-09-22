@@ -6,7 +6,7 @@ import type { MouseEvent } from 'react';
 const FloatingSettings = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('themes');
-  const { currentTheme, setTheme, availableThemes } = useTheme();
+  const { currentTheme, currentMode, setTheme, setMode, availableThemes } = useTheme();
 
   const handleThemeChange = (themeName: any) => {
     setTheme(themeName);
@@ -47,10 +47,86 @@ const FloatingSettings = () => {
     <div>
       <Header as="h3" style={{ marginBottom: '1rem', color: 'var(--nup-primary)' }}>
         <Icon name="paint brush" />
-        Escolher Tema
+        Aparência do Sistema
+      </Header>
+      
+      {/* Toggle Light/Dark Mode */}
+      <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--nup-surface-2)', borderRadius: '8px', border: '1px solid var(--nup-border)' }}>
+        <Header as="h4" style={{ marginBottom: '1rem', color: 'var(--nup-text-primary)' }}>
+          <Icon name="eye" />
+          Modo de Exibição
+        </Header>
+        <Grid stackable>
+          <Grid.Column width={8}>
+            <Card 
+              fluid
+              style={{
+                cursor: 'pointer',
+                border: currentMode === 'light' ? `2px solid var(--nup-primary)` : '1px solid var(--nup-border)',
+                boxShadow: currentMode === 'light' ? `0 4px 8px var(--nup-primary)30` : 'none',
+                transition: 'all 0.3s ease',
+                borderRadius: '8px',
+                backgroundColor: 'var(--nup-surface)'
+              }}
+              onClick={() => setMode('light')}
+              data-testid="mode-card-light"
+            >
+              <Card.Content>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <Header as="h5" style={{ margin: 0, color: 'var(--nup-text-primary)' }}>
+                    <Icon name="sun" style={{ color: '#FFA500' }} />
+                    Modo Claro
+                  </Header>
+                  {currentMode === 'light' && (
+                    <Icon name="check circle" color="green" size="large" />
+                  )}
+                </div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--nup-text-secondary)', margin: 0 }}>
+                  Interface clara e brilhante
+                </p>
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+          <Grid.Column width={8}>
+            <Card 
+              fluid
+              style={{
+                cursor: 'pointer',
+                border: currentMode === 'dark' ? `2px solid var(--nup-primary)` : '1px solid var(--nup-border)',
+                boxShadow: currentMode === 'dark' ? `0 4px 8px var(--nup-primary)30` : 'none',
+                transition: 'all 0.3s ease',
+                borderRadius: '8px',
+                backgroundColor: 'var(--nup-surface)'
+              }}
+              onClick={() => setMode('dark')}
+              data-testid="mode-card-dark"
+            >
+              <Card.Content>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <Header as="h5" style={{ margin: 0, color: 'var(--nup-text-primary)' }}>
+                    <Icon name="moon" style={{ color: '#4A5568' }} />
+                    Modo Escuro
+                  </Header>
+                  {currentMode === 'dark' && (
+                    <Icon name="check circle" color="green" size="large" />
+                  )}
+                </div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--nup-text-secondary)', margin: 0 }}>
+                  Interface escura e elegante
+                </p>
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+        </Grid>
+      </div>
+
+      {/* Theme Color Selection */}
+      <Header as="h4" style={{ marginBottom: '1rem', color: 'var(--nup-text-primary)' }}>
+        <Icon name="paint brush" />
+        Paleta de Cores
       </Header>
       <p style={{ marginBottom: '2rem', color: 'var(--nup-text-secondary)' }}>
-        Selecione uma paleta de cores para personalizar a aparência do sistema
+        Selecione uma paleta de cores para personalizar o sistema
       </p>
       <Grid stackable>
         {availableThemes.map((theme) => (
