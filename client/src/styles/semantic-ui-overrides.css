@@ -950,6 +950,139 @@ a:hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+/* === RESPONSIVE GRID SYSTEM === */
+
+/* Container with smooth scrolling */
+.nup-cards-container {
+  width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: var(--spacing-md) !important;
+  
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+.nup-cards-container::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+}
+
+/* Symmetric cards grid */
+.nup-cards-grid {
+  display: grid !important;
+  gap: var(--spacing-lg) !important;
+  min-width: 100% !important;
+  
+  /* Default: 3 columns for first row */
+  grid-template-columns: repeat(3, 1fr) !important;
+  grid-template-rows: auto auto !important;
+}
+
+/* Responsive breakpoints for cards grid */
+@media (max-width: 1200px) {
+  .nup-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    min-width: 800px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .nup-cards-grid {
+    grid-template-columns: 1fr !important;
+    min-width: 320px !important;
+  }
+  
+  .nup-cards-container {
+    padding: var(--spacing-sm) !important;
+  }
+}
+
+/* Second row grid for chat and profile */
+.nup-cards-row-2 {
+  display: grid !important;
+  grid-template-columns: 1.5fr 1fr !important;
+  gap: var(--spacing-lg) !important;
+  margin-top: var(--spacing-lg) !important;
+}
+
+@media (max-width: 768px) {
+  .nup-cards-row-2 {
+    grid-template-columns: 1fr !important;
+    gap: var(--spacing-md) !important;
+  }
+}
+
+/* Ensure cards maintain consistent height */
+.nup-card-symmetric {
+  height: 100% !important;
+  min-height: 200px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.nup-card-symmetric .content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+/* Large card variant for second row */
+.nup-card-large {
+  min-height: 180px !important;
+}
+
+.nup-card-compact {
+  min-height: 180px !important;
+}
+
+/* Enhanced spacing for symmetric layout */
+.nup-card-content-symmetric {
+  padding: var(--spacing-xl) !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+/* Icon and content alignment */
+.nup-card-header-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+.nup-card-content-left {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 140px !important;
+}
+
+.nup-card-icon-right {
+  flex-shrink: 0 !important;
+  margin-left: var(--spacing-md) !important;
+}
+
+/* Action link styling */
+.nup-card-action {
+  display: flex !important;
+  align-items: center !important;
+  color: var(--nup-primary) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  margin-top: auto !important;
+  transition: all 0.2s ease !important;
+}
+
+.nup-card-action:hover {
+  color: var(--nup-primary-hover) !important;
+  transform: translateX(2px) !important;
+}
+
 /* === REFINED TYPOGRAPHY === */
 
 .nup-section-title {
