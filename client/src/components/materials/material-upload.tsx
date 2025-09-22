@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMaterialSchema } from "@shared/schema";
 import { z } from "zod";
 import { Form, Button, Dropdown, Grid } from "semantic-ui-react";
-import { Upload, FileText, Link, Video, File } from "lucide-react";
+import { Upload, FileText, Link, Video, File as FileIcon } from "lucide-react";
 import type { Subject } from "@shared/schema";
 
 interface MaterialUploadProps {
@@ -252,7 +252,7 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
             <label htmlFor="file-upload" style={{ cursor: 'pointer', display: 'block' }}>
               {selectedFile ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <File style={{ width: '32px', height: '32px', color: 'var(--nup-primary)' }} />
+                  <FileIcon style={{ width: '32px', height: '32px', color: 'var(--nup-primary)' }} />
                   <p style={{ fontWeight: '500', color: 'var(--nup-text)' }}>{selectedFile.name}</p>
                   <p style={{ fontSize: '12px', color: 'var(--nup-gray-600)' }}>
                     {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
