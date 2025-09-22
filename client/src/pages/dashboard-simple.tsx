@@ -114,10 +114,10 @@ export default function Dashboard() {
         <div className="mb-xl">
           <div 
             style={{ 
-              borderRadius: 'var(--border-radius)',
+              borderRadius: '12px',
               backgroundColor: 'var(--nup-surface)',
-              border: '1px solid var(--nup-gray-100)',
-              boxShadow: isStatsExpanded ? '0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.05)',
+              border: '1px solid rgba(0, 0, 0, 0.03)',
+              boxShadow: isStatsExpanded ? '0 2px 8px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03)' : '0 1px 2px rgba(0, 0, 0, 0.02)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               overflow: 'hidden',
               marginBottom: 'var(--spacing-lg)'
@@ -130,8 +130,8 @@ export default function Dashboard() {
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'space-between',
-                padding: 'var(--spacing-md)',
-                borderBottom: isStatsExpanded ? '1px solid var(--nup-gray-100)' : 'none',
+                padding: 'var(--spacing-sm) var(--spacing-md)',
+                borderBottom: isStatsExpanded ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
                 transition: 'all 0.2s ease'
               }}
               onClick={() => setIsStatsExpanded(!isStatsExpanded)}
@@ -219,10 +219,10 @@ export default function Dashboard() {
         <div className="mb-xl">
           <div 
             style={{ 
-              borderRadius: 'var(--border-radius)',
+              borderRadius: '12px',
               backgroundColor: 'var(--nup-surface)',
-              border: '1px solid var(--nup-gray-100)',
-              boxShadow: isActionsExpanded ? '0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.05)',
+              border: '1px solid rgba(0, 0, 0, 0.03)',
+              boxShadow: isActionsExpanded ? '0 2px 8px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03)' : '0 1px 2px rgba(0, 0, 0, 0.02)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               overflow: 'hidden',
               marginBottom: 'var(--spacing-lg)'
@@ -235,8 +235,8 @@ export default function Dashboard() {
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'space-between',
-                padding: 'var(--spacing-md)',
-                borderBottom: isActionsExpanded ? '1px solid var(--nup-gray-100)' : 'none',
+                padding: 'var(--spacing-sm) var(--spacing-md)',
+                borderBottom: isActionsExpanded ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
                 transition: 'all 0.2s ease'
               }}
               onClick={() => setIsActionsExpanded(!isActionsExpanded)}
