@@ -489,13 +489,13 @@ export default function Dashboard() {
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <p className="subject-name" style={{ fontWeight: '500', marginBottom: 'var(--spacing-xs)' }}>{subject.name}</p>
-                            <p className="subject-category" style={{ fontSize: '14px', textTransform: 'capitalize' }}>
+                            <p className="card-title subject-name" style={{ marginBottom: 'var(--spacing-xs)' }}>{subject.name}</p>
+                            <p className="card-description subject-category">
                               {subject.category}
                             </p>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <p className="subject-priority" style={{ fontSize: '14px', fontWeight: '500' }}>
+                            <p className="card-meta subject-priority">
                               Prioridade {subject.priority}
                             </p>
                           </div>

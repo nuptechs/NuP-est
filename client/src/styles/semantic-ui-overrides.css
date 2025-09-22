@@ -51,9 +51,9 @@
   --nup-surface-hover: #F1F3F4;         /* Hover states */
   --nup-border: #E8EAED;                /* Borders */
   --nup-border-hover: #DADCE0;          /* Hover borders */
-  --nup-text-primary: #202124;          /* Primary text */
-  --nup-text-secondary: #5F6368;        /* Secondary text */
-  --nup-text-tertiary: #80868B;         /* Tertiary text */
+  --nup-text-primary: #202124;          /* Primary text - dark for readability */
+  --nup-text-secondary: #5F6368;        /* Secondary text - medium gray */
+  --nup-text-tertiary: #80868B;         /* Tertiary text - light gray */
   --nup-text-disabled: #BDC1C6;         /* Disabled text */
   
   /* Spacing scale (8pt grid) */
@@ -84,9 +84,9 @@
   --nup-surface-hover: #3C4043;         /* Hover states */
   --nup-border: #3C4043;                /* Borders */
   --nup-border-hover: #5F6368;          /* Hover borders */
-  --nup-text-primary: #E8EAED;          /* Primary text */
-  --nup-text-secondary: #BDC1C6;        /* Secondary text */
-  --nup-text-tertiary: #9AA0A6;         /* Tertiary text */
+  --nup-text-primary: #E8EAED;          /* Primary text - bright for readability */
+  --nup-text-secondary: #BDC1C6;        /* Secondary text - medium gray */
+  --nup-text-tertiary: #9AA0A6;         /* Tertiary text - subtle gray */
   --nup-text-disabled: #80868B;         /* Disabled text */
   
   /* Dark mode shadows */
@@ -231,51 +231,125 @@ body {
   color: inherit !important;
 }
 
-/* Card text color fixes for theme compliance */
+/* === SEMANTIC COLOR SYSTEM === */
 
-/* Subject cards - specific class-based styling */
+/* Typography Hierarchy */
+.card-title,
 .ui.card .content .subject-name {
   color: var(--nup-text-primary) !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
 }
 
+.card-description,
 .ui.card .content .subject-category {
   color: var(--nup-text-secondary) !important;
+  font-weight: 400 !important;
   font-size: 14px !important;
   text-transform: capitalize !important;
 }
 
+.card-meta,
 .ui.card .content .subject-priority {
-  color: var(--nup-text-primary) !important;
-  font-size: 14px !important;
+  color: var(--nup-text-tertiary) !important;
   font-weight: 500 !important;
+  font-size: 13px !important;
 }
 
-/* General card text fallback */
+/* Links and Interactive Elements */
+.card-link,
+.ui.card a,
+.ui.card .content a,
+a {
+  color: var(--nup-primary) !important;
+  text-decoration: none !important;
+  transition: color 0.2s ease !important;
+}
+
+.card-link:hover,
+.ui.card a:hover,
+.ui.card .content a:hover,
+a:hover {
+  color: var(--nup-primary-hover) !important;
+  text-decoration: underline !important;
+}
+
+/* Button Link Styles */
+.button-link {
+  color: var(--nup-primary) !important;
+  background: transparent !important;
+  border: 1px solid var(--nup-primary) !important;
+  transition: all 0.2s ease !important;
+}
+
+.button-link:hover {
+  background: var(--nup-primary) !important;
+  color: white !important;
+}
+
+/* Semantic Action Icons */
+.icon-delete,
+.action-delete {
+  color: var(--nup-error) !important;
+  transition: color 0.2s ease !important;
+}
+
+.icon-delete:hover,
+.action-delete:hover {
+  color: var(--nup-error-hover) !important;
+}
+
+.icon-edit,
+.action-edit {
+  color: var(--nup-warning) !important;
+  transition: color 0.2s ease !important;
+}
+
+.icon-edit:hover,
+.action-edit:hover {
+  color: var(--nup-warning-hover) !important;
+}
+
+.icon-save,
+.icon-complete,
+.action-save,
+.action-complete {
+  color: var(--nup-success) !important;
+  transition: color 0.2s ease !important;
+}
+
+.icon-save:hover,
+.icon-complete:hover,
+.action-save:hover,
+.action-complete:hover {
+  color: var(--nup-success-hover) !important;
+}
+
+.icon-info,
+.action-info {
+  color: var(--nup-info) !important;
+  transition: color 0.2s ease !important;
+}
+
+.icon-info:hover,
+.action-info:hover {
+  color: var(--nup-info-hover) !important;
+}
+
+/* Card Content General Rules */
 .ui.card .content p {
   color: var(--nup-text-primary) !important;
 }
 
-/* Ensure proper contrast in both themes */
-.dark .ui.card .content .subject-name,
-.dark .ui.card .content .subject-priority {
-  color: var(--nup-text-primary) !important;
-}
-
-.dark .ui.card .content .subject-category {
+.ui.card .content .description {
   color: var(--nup-text-secondary) !important;
 }
 
-.light .ui.card .content .subject-name,
-.light .ui.card .content .subject-priority {
-  color: var(--nup-text-primary) !important;
+.ui.card .content .meta {
+  color: var(--nup-text-tertiary) !important;
 }
 
-.light .ui.card .content .subject-category {
-  color: var(--nup-text-secondary) !important;
-}
-
-/* Headers */
+/* Headers - Intelligent Typography */
 .ui.header {
   font-weight: 600 !important;
   color: var(--nup-text-primary) !important;
@@ -284,18 +358,44 @@ body {
 
 .ui.huge.header {
   font-size: 28px !important;
+  font-weight: 700 !important;
 }
 
 .ui.large.header {
   font-size: 24px !important;
+  font-weight: 600 !important;
 }
 
 .ui.medium.header {
   font-size: 20px !important;
+  font-weight: 600 !important;
 }
 
 .ui.small.header {
   font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+/* Header hierarchy with semantic colors */
+.ui.header.main-title {
+  color: var(--nup-text-primary) !important;
+  font-weight: 700 !important;
+}
+
+.ui.header.section-title {
+  color: var(--nup-text-primary) !important;
+  font-weight: 600 !important;
+}
+
+.ui.header.card-title {
+  color: var(--nup-text-primary) !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+}
+
+.ui.header.subtitle {
+  color: var(--nup-text-secondary) !important;
+  font-weight: 500 !important;
 }
 
 /* Forms */
