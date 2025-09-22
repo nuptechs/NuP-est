@@ -104,9 +104,9 @@ export const ResponsiveGrid = ({ children, columns = 4, stackable = true }: Resp
   // Ajustar número de colunas baseado no tamanho da tela
   let responsiveColumns: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | "equal" = columns as any;
   if (screenSize === 'mobile') {
-    responsiveColumns = Math.min(2, columns) as any;
+    responsiveColumns = 1; // 1 coluna no mobile para melhor responsividade
   } else if (screenSize === 'tablet') {
-    responsiveColumns = Math.min(3, columns) as any;
+    responsiveColumns = Math.min(2, columns) as any; // Máximo 2 colunas no tablet
   }
 
   return (
