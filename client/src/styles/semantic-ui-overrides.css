@@ -982,64 +982,107 @@ body {
 
 /* === RESPONSIVE GRID SYSTEM === */
 
-/* Container with smooth scrolling */
+/* Container with improved scrolling */
 .nup-cards-container {
   width: 100% !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
+  max-height: 600px !important; /* Limit height to enable vertical scrolling */
+  overflow-x: hidden !important; /* Disable horizontal scroll for better responsive */
+  overflow-y: auto !important; /* Enable vertical scrolling */
   padding: var(--spacing-md) !important;
   
-  /* Hide scrollbar but keep functionality */
-  scrollbar-width: none !important; /* Firefox */
-  -ms-overflow-style: none !important; /* IE and Edge */
+  /* Improved scrollbar styling */
+  scrollbar-width: thin !important; /* Firefox - show thin scrollbar */
+  scrollbar-color: var(--nup-border) transparent !important; /* Firefox scrollbar colors */
 }
 
+/* Modern scrollbar styling for webkit browsers */
 .nup-cards-container::-webkit-scrollbar {
-  display: none !important; /* Chrome, Safari, Opera */
+  width: 6px !important;
 }
 
-/* Symmetric cards grid */
+.nup-cards-container::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.nup-cards-container::-webkit-scrollbar-thumb {
+  background-color: var(--nup-border) !important;
+  border-radius: 3px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.nup-cards-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--nup-text-tertiary) !important;
+}
+
+/* Improved responsive cards grid */
 .nup-cards-grid {
   display: grid !important;
   gap: var(--spacing-lg) !important;
-  min-width: 100% !important;
+  width: 100% !important;
   
-  /* Default: 3 columns for first row */
-  grid-template-columns: repeat(3, 1fr) !important;
-  grid-template-rows: auto auto !important;
+  /* Auto-fit grid - automatically adjusts columns based on available space */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  grid-auto-rows: minmax(200px, auto) !important;
 }
 
-/* Responsive breakpoints for cards grid */
-@media (max-width: 1200px) {
+/* Responsive breakpoints with better spacing */
+@media (max-width: 1400px) {
   .nup-cards-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    min-width: 800px !important;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    gap: var(--spacing-md) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .nup-cards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+    gap: var(--spacing-md) !important;
   }
 }
 
 @media (max-width: 768px) {
   .nup-cards-grid {
     grid-template-columns: 1fr !important;
-    min-width: 320px !important;
+    gap: var(--spacing-md) !important;
   }
   
   .nup-cards-container {
     padding: var(--spacing-sm) !important;
+    max-height: 500px !important; /* Reduce height on mobile */
   }
 }
 
-/* Second row grid for chat and profile */
+/* Second row grid with improved responsiveness */
 .nup-cards-row-2 {
   display: grid !important;
-  grid-template-columns: 1.5fr 1fr !important;
   gap: var(--spacing-lg) !important;
   margin-top: var(--spacing-lg) !important;
+  
+  /* Responsive layout by default */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
 }
 
+/* Larger screens - preferred ratio */
+@media (min-width: 1024px) {
+  .nup-cards-row-2 {
+    grid-template-columns: 1.5fr 1fr !important;
+  }
+}
+
+/* Medium screens - equal columns */
+@media (max-width: 1023px) and (min-width: 769px) {
+  .nup-cards-row-2 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: var(--spacing-md) !important;
+  }
+}
+
+/* Small screens - single column */
 @media (max-width: 768px) {
   .nup-cards-row-2 {
     grid-template-columns: 1fr !important;
     gap: var(--spacing-md) !important;
+    margin-top: var(--spacing-md) !important;
   }
 }
 
