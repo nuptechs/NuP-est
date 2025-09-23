@@ -97,181 +97,211 @@
 
 /* === GLOBAL OVERRIDES === */
 
-/* Body adjustments */
+/* Body adjustments - scoped to avoid conflicts */
+.nup-theme body,
+body.nup-app {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--nup-text-primary);
+  background-color: var(--nup-bg);
+}
+
+/* Fallback for apps without scoping */
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
-  color: var(--nup-text-primary) !important;
-  background-color: var(--nup-bg) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--nup-text-primary);
+  background-color: var(--nup-bg);
 }
 
 /* === SEMANTIC UI COMPONENT OVERRIDES === */
 
-/* Buttons */
+/* Buttons - preserve Semantic UI states */
 .ui.button {
-  border-radius: var(--radius-md) !important;
-  font-weight: 500 !important;
-  padding: var(--spacing-sm) var(--spacing-md) !important;
-  transition: all 0.2s ease !important;
-  border: 1px solid transparent !important;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  padding: var(--spacing-sm) var(--spacing-md);
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
 }
 
+/* Allow Semantic UI to handle disabled/loading/active states */
+.ui.button:not(.disabled):not(.loading) {
+  /* Custom styling only for active buttons */
+}
+
+/* Primary buttons */
 .ui.primary.button {
-  background-color: var(--nup-primary) !important;
-  color: white !important;
+  background-color: var(--nup-primary);
+  color: white;
 }
 
-.ui.primary.button:hover {
-  background-color: var(--nup-primary-hover) !important;
-  transform: translateY(-1px) !important;
-  box-shadow: var(--shadow-md) !important;
+.ui.primary.button:hover:not(.disabled):not(.loading) {
+  background-color: var(--nup-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
+/* Secondary buttons */
 .ui.secondary.button {
-  background-color: var(--nup-surface) !important;
-  color: var(--nup-text-primary) !important;
-  border-color: var(--nup-border) !important;
+  background-color: var(--nup-surface);
+  color: var(--nup-text-primary);
+  border-color: var(--nup-border);
 }
 
-.ui.secondary.button:hover {
-  background-color: var(--nup-surface-hover) !important;
-  border-color: var(--nup-border-hover) !important;
-  transform: translateY(-1px) !important;
+.ui.secondary.button:hover:not(.disabled):not(.loading) {
+  background-color: var(--nup-surface-hover);
+  border-color: var(--nup-border-hover);
+  transform: translateY(-1px);
 }
 
 /* Theme-specific colored buttons */
 .ui.positive.button,
 .ui.green.button {
-  background-color: var(--nup-success) !important;
-  color: white !important;
+  background-color: var(--nup-success);
+  color: white;
 }
 
-.ui.positive.button:hover,
-.ui.green.button:hover {
-  background-color: var(--nup-success-hover) !important;
+.ui.positive.button:hover:not(.disabled):not(.loading),
+.ui.green.button:hover:not(.disabled):not(.loading) {
+  background-color: var(--nup-success-hover);
 }
 
 .ui.warning.button,
 .ui.yellow.button {
-  background-color: var(--nup-warning) !important;
-  color: white !important;
+  background-color: var(--nup-warning);
+  color: white;
 }
 
-.ui.warning.button:hover,
-.ui.yellow.button:hover {
-  background-color: var(--nup-warning-hover) !important;
+.ui.warning.button:hover:not(.disabled):not(.loading),
+.ui.yellow.button:hover:not(.disabled):not(.loading) {
+  background-color: var(--nup-warning-hover);
 }
 
 .ui.negative.button,
 .ui.red.button {
-  background-color: var(--nup-error) !important;
-  color: white !important;
+  background-color: var(--nup-error);
+  color: white;
 }
 
-.ui.negative.button:hover,
-.ui.red.button:hover {
-  background-color: var(--nup-error-hover) !important;
+.ui.negative.button:hover:not(.disabled):not(.loading),
+.ui.red.button:hover:not(.disabled):not(.loading) {
+  background-color: var(--nup-error-hover);
 }
 
 .ui.blue.button {
-  background-color: var(--nup-info) !important;
-  color: white !important;
+  background-color: var(--nup-info);
+  color: white;
 }
 
-.ui.blue.button:hover {
-  background-color: var(--nup-info-hover) !important;
+.ui.blue.button:hover:not(.disabled):not(.loading) {
+  background-color: var(--nup-info-hover);
 }
 
-/* Cards */
+/* Cards - softer overrides */
 .ui.card {
-  border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-sm) !important;
-  border: 1px solid var(--nup-border) !important;
-  background-color: var(--nup-surface) !important;
-  color: var(--nup-text-primary) !important;
-  transition: all 0.2s ease !important;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--nup-border);
+  background-color: var(--nup-surface);
+  color: var(--nup-text-primary);
+  transition: all 0.2s ease;
 }
 
 .ui.card:hover {
-  box-shadow: var(--shadow-md) !important;
-  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .ui.card > .content {
-  padding: var(--spacing-lg) !important;
-  background-color: var(--nup-surface) !important;
-  color: var(--nup-text-primary) !important;
+  padding: var(--spacing-lg);
+  background-color: var(--nup-surface);
+  color: var(--nup-text-primary);
 }
 
 .ui.card > .content > .header {
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  color: var(--nup-text-primary) !important;
-  margin-bottom: var(--spacing-sm) !important;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--nup-text-primary);
+  margin-bottom: var(--spacing-sm);
 }
 
 .ui.card > .content > .description {
-  color: var(--nup-text-secondary) !important;
-  font-size: 14px !important;
-  line-height: 1.4 !important;
+  color: var(--nup-text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* Card Headers - specific override for Card.Header components */
 .ui.card .header,
 .ui.card > .content .header {
-  color: var(--nup-text-primary) !important;
-  font-weight: 600 !important;
+  color: var(--nup-text-primary);
+  font-weight: 600;
 }
 
 /* Card content text - ensure proper theme colors */
 .ui.card p,
 .ui.card span,
 .ui.card div {
-  color: inherit !important;
+  color: inherit;
 }
 
 /* === SEMANTIC COLOR SYSTEM === */
 
-/* Typography Hierarchy */
+/* Typography Hierarchy - scoped to avoid conflicts */
+.nup-theme .card-title,
+.nup-theme .ui.card .content .subject-name {
+  color: var(--nup-text-primary);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.nup-theme .card-description,
+.nup-theme .ui.card .content .subject-category {
+  color: var(--nup-text-secondary);
+  font-weight: 400;
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.nup-theme .card-meta,
+.nup-theme .ui.card .content .subject-priority {
+  color: var(--nup-text-tertiary);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* Fallback for non-scoped usage */
 .card-title,
-.ui.card .content .subject-name {
-  color: var(--nup-text-primary) !important;
-  font-weight: 600 !important;
-  font-size: 16px !important;
-}
-
 .card-description,
-.ui.card .content .subject-category {
-  color: var(--nup-text-secondary) !important;
-  font-weight: 400 !important;
-  font-size: 14px !important;
-  text-transform: capitalize !important;
+.card-meta {
+  color: var(--nup-text-primary);
 }
 
-.card-meta,
-.ui.card .content .subject-priority {
-  color: var(--nup-text-tertiary) !important;
-  font-weight: 500 !important;
-  font-size: 13px !important;
+/* Links and Interactive Elements - preserve browser defaults for most cases */
+.nup-theme .card-link,
+.nup-theme .ui.card a,
+.nup-theme .ui.card .content a {
+  color: var(--nup-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
-/* Links and Interactive Elements */
-.card-link,
-.ui.card a,
-.ui.card .content a,
-a {
-  color: var(--nup-primary) !important;
-  text-decoration: none !important;
-  transition: color 0.2s ease !important;
+.nup-theme .card-link:hover,
+.nup-theme .ui.card a:hover,
+.nup-theme .ui.card .content a:hover {
+  color: var(--nup-primary-hover);
+  text-decoration: underline;
 }
 
-.card-link:hover,
-.ui.card a:hover,
-.ui.card .content a:hover,
-a:hover {
-  color: var(--nup-primary-hover) !important;
-  text-decoration: underline !important;
+/* Only override global links when necessary */
+.nup-content a {
+  color: var(--nup-primary);
+  transition: color 0.2s ease;
+}
+
+.nup-content a:hover {
+  color: var(--nup-primary-hover);
 }
 
 /* Button Link Styles */
