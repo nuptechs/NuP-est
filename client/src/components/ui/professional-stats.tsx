@@ -16,6 +16,7 @@ interface ProfessionalStatsProps {
   variant?: 'default' | 'success' | 'warning' | 'destructive' | 'info';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  'data-testid'?: string;
 }
 
 const variantStyles = {
@@ -103,7 +104,8 @@ export function ProfessionalStats({
   trend,
   variant = 'default',
   size = 'md',
-  className
+  className,
+  'data-testid': dataTestId
 }: ProfessionalStatsProps) {
   const styles = variantStyles[variant];
   const sizeStyle = sizeStyles[size];
@@ -122,11 +124,14 @@ export function ProfessionalStats({
   };
 
   return (
-    <Card className={cn(
-      "transition-all duration-200 hover:shadow-sm",
-      styles.card,
-      className
-    )}>
+    <Card 
+      className={cn(
+        "transition-all duration-200 hover:shadow-sm",
+        styles.card,
+        className
+      )}
+      data-testid={dataTestId}
+    >
       <CardContent className={sizeStyle.card}>
         <div className="flex items-center justify-between mb-2">
           <p className={cn(

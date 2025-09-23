@@ -2,22 +2,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Container,
-  Grid, 
-  Card,
-  Header,
-  Button,
-  Dropdown,
-  Progress,
-  Label,
-  Icon,
-  Segment,
-  Message,
-  Loader,
-  Dimmer,
-  Statistic
-} from 'semantic-ui-react';
+// Removed Semantic UI imports - migrating to shadcn/ui
 import { 
   TrendingUp, 
   Clock, 
@@ -31,7 +16,17 @@ import {
   ChevronDown,
   FileText
 } from "lucide-react";
-import FloatingSettings from "@/components/FloatingSettings";
+// Modern shadcn/ui imports
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+// Professional components  
+import ProfessionalShell from "@/components/ui/professional-shell";
+import { ProfessionalStats } from "@/components/ui/professional-stats";
 import type { Subject, StudySession, Target } from "@shared/schema";
 
 export default function Analytics() {
@@ -80,9 +75,12 @@ export default function Analytics() {
 
   if (isLoading) {
     return (
-      <Dimmer active>
-        <Loader size='large'>Carregando...</Loader>
-      </Dimmer>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Carregando analytics...</p>
+        </div>
+      </div>
     );
   }
 
@@ -175,293 +173,214 @@ export default function Analytics() {
   const weeklyStudyTime = Math.round(calculateWeeklyStudyTime() / 60 * 100) / 100; // Convert to hours
 
   return (
-    <Container fluid style={{ padding: '2rem', backgroundColor: 'var(--nup-bg)', minHeight: '100vh' }}>
-      <Container>
+    <ProfessionalShell
+      title="Analytics"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Analytics', href: '/analytics' }
+      ]}
+    >
         {/* Page Header */}
-        <Header as='h1' size='large' className='main-title' style={{ marginBottom: '2rem' }}>
-          <Icon>
-            <BarChart3 size={28} style={{ color: 'var(--nup-primary)' }} />
-          </Icon>
-          <Header.Content>
-            Analytics
-            <Header.Subheader className='subtitle'>
-              Acompanhe seu desempenho e evolução nos estudos
-            </Header.Subheader>
-          </Header.Content>
-        </Header>
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-2">
+            <BarChart3 className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">Analytics Detalhado</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Acompanhe seu desempenho e evolução nos estudos
+          </p>
+        </div>
 
         {/* Overview Stats */}
-        <Grid columns={4} stackable style={{ marginBottom: '2rem' }}>
-          <Grid.Column>
-            <Card className='nup-card--soft nup-card--warning nup-card-interactive'>
-              <Card.Content className='nup-kpi'>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <div>
-                    <Statistic size='small'>
-                      <Statistic.Value style={{ color: 'var(--nup-warning)' }} data-testid="stat-study-streak">
-                        {studyStreak}
-                      </Statistic.Value>
-                      <Statistic.Label style={{ color: 'var(--nup-warning)', fontSize: '11px' }}>
-                        Dias consecutivos
-                      </Statistic.Label>
-                    </Statistic>
-                  </div>
-                  <div className='nup-kpi__icon'>
-                    <Flame size={32} style={{ color: 'var(--nup-warning)' }} />
-                  </div>
-                </div>
-              </Card.Content>
-            </Card>
-          </Grid.Column>
-
-          <Grid.Column>
-            <Card className='nup-card--soft nup-card--success nup-card-interactive'>
-              <Card.Content className='nup-kpi'>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <div>
-                    <Statistic size='small'>
-                      <Statistic.Value style={{ color: 'var(--nup-success)' }} data-testid="stat-weekly-hours">
-                        {weeklyStudyTime}h
-                      </Statistic.Value>
-                      <Statistic.Label style={{ color: 'var(--nup-success)', fontSize: '11px' }}>
-                        Esta semana
-                      </Statistic.Label>
-                    </Statistic>
-                  </div>
-                  <div className='nup-kpi__icon'>
-                    <Clock size={32} style={{ color: 'var(--nup-success)' }} />
-                  </div>
-                </div>
-              </Card.Content>
-            </Card>
-          </Grid.Column>
-
-          <Grid.Column>
-            <Card className='nup-card--soft nup-card--primary nup-card-interactive'>
-              <Card.Content className='nup-kpi'>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <div>
-                    <Statistic size='small'>
-                      <Statistic.Value style={{ color: 'var(--nup-primary)' }} data-testid="stat-ai-questions">
-                        {(stats as any)?.questionsGenerated || 0}
-                      </Statistic.Value>
-                      <Statistic.Label style={{ color: 'var(--nup-primary)', fontSize: '11px' }}>
-                        Questões IA
-                      </Statistic.Label>
-                    </Statistic>
-                  </div>
-                  <div className='nup-kpi__icon'>
-                    <Brain size={32} style={{ color: 'var(--nup-primary)' }} />
-                  </div>
-                </div>
-              </Card.Content>
-            </Card>
-          </Grid.Column>
-
-          <Grid.Column>
-            <Card className='nup-card--soft nup-card--info nup-card-interactive'>
-              <Card.Content className='nup-kpi'>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <div>
-                    <Statistic size='small'>
-                      <Statistic.Value style={{ color: 'var(--nup-info)' }} data-testid="stat-goal-completion">
-                        {(stats as any)?.goalProgress || 0}%
-                      </Statistic.Value>
-                      <Statistic.Label style={{ color: 'var(--nup-info)', fontSize: '11px' }}>
-                        Metas concluídas
-                      </Statistic.Label>
-                    </Statistic>
-                  </div>
-                  <div className='nup-kpi__icon'>
-                    <Trophy size={32} style={{ color: 'var(--nup-info)' }} />
-                  </div>
-                </div>
-              </Card.Content>
-            </Card>
-          </Grid.Column>
-        </Grid>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <ProfessionalStats
+            title="Dias consecutivos"
+            value={studyStreak.toString()}
+            icon={<Flame className="w-8 h-8" />}
+            variant="warning"
+            data-testid="stat-study-streak"
+          />
+          <ProfessionalStats
+            title="Esta semana"
+            value={`${weeklyStudyTime}h`}
+            icon={<Clock className="w-8 h-8" />}
+            variant="success"
+            data-testid="stat-weekly-hours"
+          />
+          <ProfessionalStats
+            title="Questões IA"
+            value={((stats as any)?.questionsGenerated || 0).toString()}
+            icon={<Brain className="w-8 h-8" />}
+            variant="info"
+            data-testid="stat-ai-questions"
+          />
+          <ProfessionalStats
+            title="Metas concluídas"
+            value={`${(stats as any)?.goalProgress || 0}%`}
+            icon={<Trophy className="w-8 h-8" />}
+            variant="info"
+            data-testid="stat-goal-completion"
+          />
+        </div>
 
         {/* Subject Progress and Weekly Goals */}
-        <Grid columns={3} stackable>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Subject Progress */}
-          <Grid.Column width={10}>
-            <Card className='nup-card-subtle'>
-              <Card.Content>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                  <Header as='h3' className='section-title'>
-                    <Icon>
-                      <BarChart3 size={20} style={{ color: 'var(--nup-primary)' }} />
-                    </Icon>
-                    <Header.Content>
-                      Progresso por Matéria
-                    </Header.Content>
-                  </Header>
-                  <Dropdown
-                    selection
-                    compact
-                    defaultValue='month'
-                    data-testid="select-progress-period"
-                    options={[
-                      { key: 'week', value: 'week', text: 'Esta semana' },
-                      { key: 'month', value: 'month', text: 'Este mês' },
-                      { key: 'quarter', value: 'quarter', text: 'Este trimestre' }
-                    ]}
-                  />
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <span>Progresso por Matéria</span>
+                </CardTitle>
+                <Select defaultValue="month" data-testid="select-progress-period">
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">Esta semana</SelectItem>
+                    <SelectItem value="month">Este mês</SelectItem>
+                    <SelectItem value="quarter">Este trimestre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {subjectsLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-20" />
+                  ))}
                 </div>
-                {subjectsLoading ? (
-                  <div>
-                    {[...Array(3)].map((_, i) => (
-                      <Segment key={i} loading style={{ marginBottom: '1rem' }}>
-                        <div style={{ height: '60px' }}></div>
-                      </Segment>
-                    ))}
-                  </div>
-                ) : !Array.isArray(subjectProgress) || !subjectProgress?.length ? (
-                  <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                    <div className='empty-state-icon' style={{ marginBottom: '1rem' }}>
-                      <BarChart3 size={48} style={{ color: 'var(--nup-text-tertiary)' }} />
-                    </div>
-                    <Header as='h4' className='card-description'>
-                      Nenhuma matéria cadastrada
-                    </Header>
-                    <p className='card-meta'>
-                      Adicione matérias para ver o progresso
-                    </p>
-                  </div>
-                ) : (
-                  <div style={{ marginTop: '1rem' }}>
-                    {Array.isArray(subjectProgress) && subjectProgress?.map((subject: any) => (
-                      <Segment key={subject.id} className='session-item' style={{ marginBottom: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <div 
-                              style={{
-                                width: '16px',
-                                height: '16px',
-                                borderRadius: '50%',
-                                backgroundColor: subject.color,
-                                marginRight: '12px'
-                              }}
-                            />
-                            <Header as='h5' className='card-title' style={{ margin: 0 }} data-testid={`subject-analytics-${subject.id}`}>
-                              {subject.name}
-                            </Header>
-                          </div>
-                          <span className='card-meta' data-testid={`subject-total-hours-${subject.id}`}>
-                            {subject.totalHours}h total
-                          </span>
-                        </div>
-                        
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <span className='card-meta'>Progresso geral</span>
-                            <span className='card-title' style={{ fontSize: '12px' }} data-testid={`subject-progress-percent-${subject.id}`}>
-                              {subject.progress}%
-                            </span>
-                          </div>
-                          <Progress 
-                            percent={subject.progress} 
-                            color={subject.progress > 70 ? 'green' : subject.progress > 40 ? 'yellow' : 'red'}
-                            size='tiny'
+              ) : !Array.isArray(subjectProgress) || !subjectProgress?.length ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <BarChart3 className="w-12 h-12 text-muted-foreground mb-4" />
+                  <h4 className="text-lg font-medium mb-2">
+                    Nenhuma matéria cadastrada
+                  </h4>
+                  <p className="text-muted-foreground">
+                    Adicione matérias para ver o progresso
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Array.isArray(subjectProgress) && subjectProgress?.map((subject: any) => (
+                    <Card key={subject.id} className="p-4 border-l-4" style={{
+                      borderLeftColor: subject.color
+                    }}>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div 
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: subject.color }}
                           />
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem' }}>
-                            <span className='card-meta'>
-                              <Icon>
-                                <FileText size={12} />
-                              </Icon>
-                              <span data-testid={`subject-materials-count-${subject.id}`}>{subject.materials}</span> materiais
-                            </span>
-                            <span className='card-meta'>
-                              <Icon>
-                                <Brain size={12} />
-                              </Icon>
-                              <span data-testid={`subject-questions-count-${subject.id}`}>{subject.questions}</span> questões
-                            </span>
-                          </div>
+                          <h5 className="font-semibold text-foreground" data-testid={`subject-analytics-${subject.id}`}>
+                            {subject.name}
+                          </h5>
                         </div>
-                      </Segment>
-                    ))}
-                  </div>
-                )}
-              </Card.Content>
-            </Card>
-          </Grid.Column>
-
-          {/* Weekly Goals */}
-          <Grid.Column width={6}>
-            <Card className='nup-card-subtle'>
-              <Card.Content>
-                <Header as='h3' className='section-title' style={{ marginBottom: '1.5rem' }}>
-                  <Icon>
-                    <TargetIcon size={20} style={{ color: 'var(--nup-primary)' }} />
-                  </Icon>
-                  <Header.Content>
-                    Metas da Semana
-                  </Header.Content>
-                </Header>
-                {weeklyLoading ? (
-                  <div>
-                    {[...Array(3)].map((_, i) => (
-                      <Segment key={i} loading style={{ marginBottom: '1rem' }}>
-                        <div style={{ height: '40px' }}></div>
-                      </Segment>
-                    ))}
-                  </div>
-                ) : !Array.isArray(weeklyProgress) || !weeklyProgress?.length ? (
-                  <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-                    <div className='empty-state-icon' style={{ marginBottom: '1rem', width: '48px', height: '48px' }}>
-                      <TargetIcon size={32} style={{ color: 'var(--nup-text-tertiary)' }} />
-                    </div>
-                    <p className='card-description'>
-                      Nenhuma meta semanal
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    {Array.isArray(weeklyProgress) && weeklyProgress?.map((goal: any) => (
-                      <div key={goal.id} style={{ marginBottom: '1.5rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <span className='card-title' style={{ fontSize: '14px' }} data-testid={`weekly-goal-name-${goal.id}`}>
-                            {goal.name}
-                          </span>
-                          <span className='card-meta' data-testid={`weekly-goal-progress-${goal.id}`}>
-                            {goal.progress}
+                        <Badge variant="secondary" data-testid={`subject-total-hours-${subject.id}`}>
+                          {subject.totalHours}h total
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Progresso geral</span>
+                          <span className="text-sm font-medium" data-testid={`subject-progress-percent-${subject.id}`}>
+                            {subject.progress}%
                           </span>
                         </div>
                         <Progress 
-                          percent={goal.percentage} 
-                          color={goal.percentage > 70 ? 'green' : goal.percentage > 40 ? 'yellow' : 'red'}
-                          size='tiny'
+                          value={subject.progress} 
+                          className="h-2"
                         />
+                        
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <div className="flex items-center space-x-1">
+                            <FileText className="w-3 h-3" />
+                            <span data-testid={`subject-materials-count-${subject.id}`}>{subject.materials}</span>
+                            <span>materiais</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Brain className="w-3 h-3" />
+                            <span data-testid={`subject-questions-count-${subject.id}`}>{subject.questions}</span>
+                            <span>questões</span>
+                          </div>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </Card.Content>
-            </Card>
-          </Grid.Column>
-        </Grid>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Weekly Goals */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <TargetIcon className="w-5 h-5 text-primary" />
+                <span>Metas da Semana</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {weeklyLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-12" />
+                  ))}
+                </div>
+              ) : !Array.isArray(weeklyProgress) || !weeklyProgress?.length ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <TargetIcon className="w-12 h-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    Nenhuma meta semanal
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Array.isArray(weeklyProgress) && weeklyProgress?.map((goal: any) => (
+                    <div key={goal.id} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium" data-testid={`weekly-goal-name-${goal.id}`}>
+                          {goal.name}
+                        </span>
+                        <Badge variant="outline" data-testid={`weekly-goal-progress-${goal.id}`}>
+                          {goal.progress}
+                        </Badge>
+                      </div>
+                      <Progress 
+                        value={goal.percentage} 
+                        className="h-2"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Simplified Analytics */}
-        <Card className='nup-card-subtle' style={{ marginTop: '2rem' }}>
-          <Card.Content>
-            <Header as='h3' className='section-title'>
-              <Icon>
-                <TrendingUp size={20} style={{ color: 'var(--nup-primary)' }} />
-              </Icon>
-              <Header.Content>
-                Analytics em desenvolvimento
-              </Header.Content>
-            </Header>
-            <p className='card-description'>
-              Interface de analytics atualizada em breve...
-            </p>
-          </Card.Content>
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <span>Analytics Avançado</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                <TrendingUp className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Gráficos e Relatórios Detalhados</h3>
+              <p className="text-muted-foreground max-w-md">
+                Visualizações avançadas, gráficos de evolução e relatórios personalizados estarão disponíveis em breve.
+              </p>
+            </div>
+          </CardContent>
         </Card>
-      </Container>
-      
-      <FloatingSettings />
-    </Container>
+    </ProfessionalShell>
   );
 }
