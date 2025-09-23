@@ -275,7 +275,7 @@ export default function Dashboard() {
             >
               {isActionsExpanded && (
                 <div className="nup-cards-container">
-                  {/* First row - 3 cards */}
+                  {/* Intelligent responsive grid - all cards together */}
                   <div className="nup-cards-grid">
                     <div>
                       <Card 
@@ -369,13 +369,10 @@ export default function Dashboard() {
                         </Card.Content>
                       </Card>
                     </div>
-                  </div>
 
-                  {/* Second row - 1 card (Chat IA only) */}
-                  <div className="nup-cards-row-single">
                     <div>
                       <Card 
-                        className="nup-card nup-card--soft nup-card--warning nup-card-large transition-smooth hover-lift" 
+                        className="nup-card nup-card--soft nup-card--warning nup-card-symmetric transition-smooth hover-lift" 
                         style={{ cursor: 'pointer' }}
                         onClick={() => navigate('/study')}
                         data-testid="card-ai-chat"

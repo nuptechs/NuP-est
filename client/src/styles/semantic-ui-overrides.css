@@ -1014,33 +1014,54 @@ body {
   background-color: var(--nup-text-tertiary) !important;
 }
 
-/* Improved responsive cards grid */
+/* Intelligent symmetric responsive grid for action cards */
 .nup-cards-grid {
   display: grid !important;
   gap: var(--spacing-lg) !important;
   width: 100% !important;
+  justify-content: center !important;
   
-  /* Auto-fit grid - automatically adjusts columns based on available space */
+  /* Default: Auto-fit with intelligent minimum width */
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
   grid-auto-rows: minmax(200px, auto) !important;
 }
 
-/* Responsive breakpoints with better spacing */
-@media (max-width: 1400px) {
+/* Ultra-wide screens (1600px+): Perfect 3-column symmetry */
+@media (min-width: 1600px) {
   .nup-cards-grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+    gap: var(--spacing-xl) !important;
+  }
+}
+
+/* Large screens (1200-1599px): 3 columns optimal */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .nup-cards-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: var(--spacing-lg) !important;
+  }
+}
+
+/* Medium-Large screens (900-1199px): 2 columns balanced */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .nup-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--spacing-lg) !important;
+  }
+}
+
+/* Medium screens (700-899px): 2 columns compact */
+@media (min-width: 700px) and (max-width: 899px) {
+  .nup-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: var(--spacing-md) !important;
   }
 }
 
-@media (max-width: 1024px) {
-  .nup-cards-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
-    gap: var(--spacing-md) !important;
-  }
-}
-
-@media (max-width: 768px) {
+/* Small screens (below 700px): Single column */
+@media (max-width: 699px) {
   .nup-cards-grid {
     grid-template-columns: 1fr !important;
     gap: var(--spacing-md) !important;
@@ -1048,7 +1069,7 @@ body {
   
   .nup-cards-container {
     padding: var(--spacing-sm) !important;
-    max-height: 500px !important; /* Reduce height on mobile */
+    max-height: 600px !important;
   }
 }
 
