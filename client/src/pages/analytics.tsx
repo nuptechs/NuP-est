@@ -2,10 +2,22 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
+import { 
+  Container,
+  Grid, 
+  Card,
+  Header,
+  Button,
+  Dropdown,
+  Progress,
+  Label,
+  Icon,
+  Segment,
+  Message,
+  Loader,
+  Dimmer,
+  Statistic
+} from 'semantic-ui-react';
 import { 
   TrendingUp, 
   Clock, 
@@ -18,6 +30,7 @@ import {
   Calendar,
   ChevronDown
 } from "lucide-react";
+import FloatingSettings from "@/components/FloatingSettings";
 import type { Subject, StudySession, Target } from "@shared/schema";
 
 export default function Analytics() {
@@ -66,12 +79,9 @@ export default function Analytics() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
+      <Dimmer active>
+        <Loader size='large'>Carregando...</Loader>
+      </Dimmer>
     );
   }
 
@@ -82,15 +92,15 @@ export default function Analytics() {
   const getSessionTypeColor = (type: string) => {
     switch (type) {
       case "theory":
-        return "bg-primary/10 text-primary border-primary/20";
+        return "blue";
       case "practice":
-        return "bg-secondary/10 text-secondary border-secondary/20";
+        return "green";
       case "ai_questions":
-        return "bg-accent/10 text-accent border-accent/20";
+        return "purple";
       case "review":
-        return "bg-chart-4/10 text-yellow-700 border-yellow-200";
+        return "yellow";
       default:
-        return "bg-muted/10 text-muted-foreground border-muted/20";
+        return "grey";
     }
   };
 
@@ -164,215 +174,293 @@ export default function Analytics() {
   const weeklyStudyTime = Math.round(calculateWeeklyStudyTime() / 60 * 100) / 100; // Convert to hours
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Analytics Content */}
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Analytics</h1>
-        <p className="text-sm text-gray-500">
-          Acompanhe seu desempenho e evolução nos estudos
-        </p>
-      </div>
+    <Container fluid style={{ padding: '2rem', backgroundColor: 'var(--nup-bg)', minHeight: '100vh' }}>
+      <Container>
+        {/* Page Header */}
+        <Header as='h1' size='large' className='main-title' style={{ marginBottom: '2rem' }}>
+          <Icon>
+            <BarChart3 size={28} style={{ color: 'var(--nup-primary)' }} />
+          </Icon>
+          <Header.Content>
+            Analytics
+            <Header.Subheader className='subtitle'>
+              Acompanhe seu desempenho e evolução nos estudos
+            </Header.Subheader>
+          </Header.Content>
+        </Header>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-950 dark:to-red-900">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300" data-testid="stat-study-streak">
-                  {studyStreak}
-                </p>
-                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">Dias consecutivos</p>
-              </div>
-              <Flame className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-300" data-testid="stat-weekly-hours">
-                  {weeklyStudyTime}h
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 font-medium">Esta semana</p>
-              </div>
-              <Clock className="w-8 h-8 text-green-600 dark:text-green-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300" data-testid="stat-ai-questions">
-                  {(stats as any)?.questionsGenerated || 0}
-                </p>
-                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Questões IA</p>
-              </div>
-              <Brain className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-amber-700 dark:text-amber-300" data-testid="stat-goal-completion">
-                  {(stats as any)?.goalProgress || 0}%
-                </p>
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Metas concluídas</p>
-              </div>
-              <Trophy className="w-8 h-8 text-amber-600 dark:text-amber-400" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-          {/* Subject Progress and Weekly Goals */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Subject Progress */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Progresso por Matéria</CardTitle>
-                    <Select defaultValue="month">
-                      <SelectTrigger className="w-32" data-testid="select-progress-period">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="week">Esta semana</SelectItem>
-                        <SelectItem value="month">Este mês</SelectItem>
-                        <SelectItem value="quarter">Este trimestre</SelectItem>
-                      </SelectContent>
-                    </Select>
+        {/* Overview Stats */}
+        <Grid columns={4} stackable style={{ marginBottom: '2rem' }}>
+          <Grid.Column>
+            <Card className='nup-card--soft nup-card--warning nup-card-interactive'>
+              <Card.Content className='nup-kpi'>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div>
+                    <Statistic size='small'>
+                      <Statistic.Value style={{ color: 'var(--nup-warning)' }} data-testid="stat-study-streak">
+                        {studyStreak}
+                      </Statistic.Value>
+                      <Statistic.Label style={{ color: 'var(--nup-warning)', fontSize: '11px' }}>
+                        Dias consecutivos
+                      </Statistic.Label>
+                    </Statistic>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {subjectsLoading ? (
-                    <div className="space-y-4">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="animate-pulse p-4 bg-muted/30 rounded-lg">
-                          <div className="h-4 bg-muted rounded w-1/2 mb-3"></div>
-                          <div className="h-2 bg-muted rounded mb-2"></div>
-                          <div className="h-3 bg-muted rounded w-3/4"></div>
+                  <div className='nup-kpi__icon'>
+                    <Flame size={32} style={{ color: 'var(--nup-warning)' }} />
+                  </div>
+                </div>
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+
+          <Grid.Column>
+            <Card className='nup-card--soft nup-card--success nup-card-interactive'>
+              <Card.Content className='nup-kpi'>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div>
+                    <Statistic size='small'>
+                      <Statistic.Value style={{ color: 'var(--nup-success)' }} data-testid="stat-weekly-hours">
+                        {weeklyStudyTime}h
+                      </Statistic.Value>
+                      <Statistic.Label style={{ color: 'var(--nup-success)', fontSize: '11px' }}>
+                        Esta semana
+                      </Statistic.Label>
+                    </Statistic>
+                  </div>
+                  <div className='nup-kpi__icon'>
+                    <Clock size={32} style={{ color: 'var(--nup-success)' }} />
+                  </div>
+                </div>
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+
+          <Grid.Column>
+            <Card className='nup-card--soft nup-card--primary nup-card-interactive'>
+              <Card.Content className='nup-kpi'>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div>
+                    <Statistic size='small'>
+                      <Statistic.Value style={{ color: 'var(--nup-primary)' }} data-testid="stat-ai-questions">
+                        {(stats as any)?.questionsGenerated || 0}
+                      </Statistic.Value>
+                      <Statistic.Label style={{ color: 'var(--nup-primary)', fontSize: '11px' }}>
+                        Questões IA
+                      </Statistic.Label>
+                    </Statistic>
+                  </div>
+                  <div className='nup-kpi__icon'>
+                    <Brain size={32} style={{ color: 'var(--nup-primary)' }} />
+                  </div>
+                </div>
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+
+          <Grid.Column>
+            <Card className='nup-card--soft nup-card--info nup-card-interactive'>
+              <Card.Content className='nup-kpi'>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div>
+                    <Statistic size='small'>
+                      <Statistic.Value style={{ color: 'var(--nup-info)' }} data-testid="stat-goal-completion">
+                        {(stats as any)?.goalProgress || 0}%
+                      </Statistic.Value>
+                      <Statistic.Label style={{ color: 'var(--nup-info)', fontSize: '11px' }}>
+                        Metas concluídas
+                      </Statistic.Label>
+                    </Statistic>
+                  </div>
+                  <div className='nup-kpi__icon'>
+                    <Trophy size={32} style={{ color: 'var(--nup-info)' }} />
+                  </div>
+                </div>
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+        </Grid>
+
+        {/* Subject Progress and Weekly Goals */}
+        <Grid columns={3} stackable>
+          {/* Subject Progress */}
+          <Grid.Column width={10}>
+            <Card className='nup-card-subtle'>
+              <Card.Content>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                  <Header as='h3' className='section-title'>
+                    <Icon>
+                      <BarChart3 size={20} style={{ color: 'var(--nup-primary)' }} />
+                    </Icon>
+                    <Header.Content>
+                      Progresso por Matéria
+                    </Header.Content>
+                  </Header>
+                  <Dropdown
+                    selection
+                    compact
+                    defaultValue='month'
+                    data-testid="select-progress-period"
+                    options={[
+                      { key: 'week', value: 'week', text: 'Esta semana' },
+                      { key: 'month', value: 'month', text: 'Este mês' },
+                      { key: 'quarter', value: 'quarter', text: 'Este trimestre' }
+                    ]}
+                  />
+                </div>
+                {subjectsLoading ? (
+                  <div>
+                    {[...Array(3)].map((_, i) => (
+                      <Segment key={i} loading style={{ marginBottom: '1rem' }}>
+                        <div style={{ height: '60px' }}></div>
+                      </Segment>
+                    ))}
+                  </div>
+                ) : !Array.isArray(subjectProgress) || !subjectProgress?.length ? (
+                  <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                    <div className='empty-state-icon' style={{ marginBottom: '1rem' }}>
+                      <BarChart3 size={48} style={{ color: 'var(--nup-text-tertiary)' }} />
+                    </div>
+                    <Header as='h4' className='card-description'>
+                      Nenhuma matéria cadastrada
+                    </Header>
+                    <p className='card-meta'>
+                      Adicione matérias para ver o progresso
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '1rem' }}>
+                    {Array.isArray(subjectProgress) && subjectProgress?.map((subject: any) => (
+                      <Segment key={subject.id} className='session-item' style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div 
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                backgroundColor: subject.color,
+                                marginRight: '12px'
+                              }}
+                            />
+                            <Header as='h5' className='card-title' style={{ margin: 0 }} data-testid={`subject-analytics-${subject.id}`}>
+                              {subject.name}
+                            </Header>
+                          </div>
+                          <span className='card-meta' data-testid={`subject-total-hours-${subject.id}`}>
+                            {subject.totalHours}h total
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  ) : !Array.isArray(subjectProgress) || !subjectProgress?.length ? (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i className="fas fa-chart-bar text-muted-foreground text-2xl"></i>
-                      </div>
-                      <p className="text-muted-foreground">Nenhuma matéria cadastrada</p>
-                      <p className="text-sm text-muted-foreground">Adicione matérias para ver o progresso</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {Array.isArray(subjectProgress) && subjectProgress?.map((subject: any) => (
-                        <div key={subject.id} className="p-4 bg-muted/30 rounded-lg border border-border">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center">
-                              <div 
-                                className="w-4 h-4 rounded-full mr-3" 
-                                style={{ backgroundColor: subject.color }}
-                              ></div>
-                              <h4 className="font-medium text-foreground" data-testid={`subject-analytics-${subject.id}`}>
-                                {subject.name}
-                              </h4>
-                            </div>
-                            <span className="text-sm text-muted-foreground" data-testid={`subject-total-hours-${subject.id}`}>
-                              {subject.totalHours}h total
+                        
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <span className='card-meta'>Progresso geral</span>
+                            <span className='card-title' style={{ fontSize: '12px' }} data-testid={`subject-progress-percent-${subject.id}`}>
+                              {subject.progress}%
                             </span>
                           </div>
+                          <Progress 
+                            percent={subject.progress} 
+                            color={subject.progress > 70 ? 'green' : subject.progress > 40 ? 'yellow' : 'red'}
+                            size='tiny'
+                          />
                           
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-muted-foreground">Progresso geral</span>
-                              <span className="text-xs font-medium text-foreground" data-testid={`subject-progress-percent-${subject.id}`}>
-                                {subject.progress}%
-                              </span>
-                            </div>
-                            <Progress value={subject.progress} className="h-2" />
-                            
-                            <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                              <span>
-                                <i className="fas fa-file-alt mr-1"></i>
-                                <span data-testid={`subject-materials-count-${subject.id}`}>{subject.materials}</span> materiais
-                              </span>
-                              <span>
-                                <i className="fas fa-question-circle mr-1"></i>
-                                <span data-testid={`subject-questions-count-${subject.id}`}>{subject.questions}</span> questões
-                              </span>
-                            </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+                            <span className='card-meta'>
+                              <Icon>
+                                <FileText size={12} />
+                              </Icon>
+                              <span data-testid={`subject-materials-count-${subject.id}`}>{subject.materials}</span> materiais
+                            </span>
+                            <span className='card-meta'>
+                              <Icon>
+                                <Brain size={12} />
+                              </Icon>
+                              <span data-testid={`subject-questions-count-${subject.id}`}>{subject.questions}</span> questões
+                            </span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                      </Segment>
+                    ))}
+                  </div>
+                )}
+              </Card.Content>
+            </Card>
+          </Grid.Column>
 
-            {/* Weekly Goals */}
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Metas da Semana</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {weeklyLoading ? (
-                    <div className="space-y-4">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="animate-pulse space-y-2">
-                          <div className="h-4 bg-muted rounded w-3/4"></div>
-                          <div className="h-2 bg-muted rounded"></div>
-                        </div>
-                      ))}
+          {/* Weekly Goals */}
+          <Grid.Column width={6}>
+            <Card className='nup-card-subtle'>
+              <Card.Content>
+                <Header as='h3' className='section-title' style={{ marginBottom: '1.5rem' }}>
+                  <Icon>
+                    <TargetIcon size={20} style={{ color: 'var(--nup-primary)' }} />
+                  </Icon>
+                  <Header.Content>
+                    Metas da Semana
+                  </Header.Content>
+                </Header>
+                {weeklyLoading ? (
+                  <div>
+                    {[...Array(3)].map((_, i) => (
+                      <Segment key={i} loading style={{ marginBottom: '1rem' }}>
+                        <div style={{ height: '40px' }}></div>
+                      </Segment>
+                    ))}
+                  </div>
+                ) : !Array.isArray(weeklyProgress) || !weeklyProgress?.length ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                    <div className='empty-state-icon' style={{ marginBottom: '1rem', width: '48px', height: '48px' }}>
+                      <TargetIcon size={32} style={{ color: 'var(--nup-text-tertiary)' }} />
                     </div>
-                  ) : !Array.isArray(weeklyProgress) || !weeklyProgress?.length ? (
-                    <div className="text-center py-6">
-                      <div className="w-12 h-12 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i className="fas fa-target text-muted-foreground"></i>
+                    <p className='card-description'>
+                      Nenhuma meta semanal
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {Array.isArray(weeklyProgress) && weeklyProgress?.map((goal: any) => (
+                      <div key={goal.id} style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <span className='card-title' style={{ fontSize: '14px' }} data-testid={`weekly-goal-name-${goal.id}`}>
+                            {goal.name}
+                          </span>
+                          <span className='card-meta' data-testid={`weekly-goal-progress-${goal.id}`}>
+                            {goal.progress}
+                          </span>
+                        </div>
+                        <Progress 
+                          percent={goal.percentage} 
+                          color={goal.percentage > 70 ? 'green' : goal.percentage > 40 ? 'yellow' : 'red'}
+                          size='tiny'
+                        />
                       </div>
-                      <p className="text-muted-foreground mb-4">Nenhuma meta semanal</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {Array.isArray(weeklyProgress) && weeklyProgress?.map((goal: any) => (
-                        <div key={goal.id} className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-foreground" data-testid={`weekly-goal-name-${goal.id}`}>
-                              {goal.name}
-                            </span>
-                            <span className="text-sm text-muted-foreground" data-testid={`weekly-goal-progress-${goal.id}`}>
-                              {goal.progress}
-                            </span>
-                          </div>
-                          <Progress value={goal.percentage} className="h-2" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                    ))}
+                  </div>
+                )}
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+        </Grid>
 
-          {/* Simplified Analytics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics em desenvolvimento</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Interface de analytics atualizada em breve...</p>
-            </CardContent>
-          </Card>
-        </div>
-    </div>
+        {/* Simplified Analytics */}
+        <Card className='nup-card-subtle' style={{ marginTop: '2rem' }}>
+          <Card.Content>
+            <Header as='h3' className='section-title'>
+              <Icon>
+                <TrendingUp size={20} style={{ color: 'var(--nup-primary)' }} />
+              </Icon>
+              <Header.Content>
+                Analytics em desenvolvimento
+              </Header.Content>
+            </Header>
+            <p className='card-description'>
+              Interface de analytics atualizada em breve...
+            </p>
+          </Card.Content>
+        </Card>
+      </Container>
+      
+      <FloatingSettings />
+    </Container>
   );
 }
