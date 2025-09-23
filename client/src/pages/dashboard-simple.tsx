@@ -596,7 +596,7 @@ export default function Dashboard() {
                     color: 'white',
                     border: 'none'
                   }}
-                  onClick={() => navigate('/setup')}
+                  onClick={() => navigate('/onboarding')}
                   data-testid="button-update-profile"
                 >
                   <Settings style={{ width: '16px', height: '16px', marginRight: '8px' }} />
