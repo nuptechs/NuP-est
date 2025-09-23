@@ -203,10 +203,10 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
   // Aplicar as variáveis CSS quando o tema ou modo muda
   useEffect(() => {
-    const applyThemeVariables = (colors: ThemeColors) => {
+    const applyThemeVariables = (colors: ThemeColors, mode: ThemeMode) => {
       const root = document.documentElement;
       
-      // Aplicar cores do tema às variáveis CSS
+      // === Variáveis NuP-est (sistema próprio) ===
       root.style.setProperty('--nup-primary', colors.primary);
       root.style.setProperty('--nup-primary-hover', colors.primaryHover);
       root.style.setProperty('--nup-primary-light', colors.primaryLight);
@@ -232,10 +232,57 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
       root.style.setProperty('--nup-info', colors.info);
       root.style.setProperty('--nup-info-hover', colors.infoHover);
       root.style.setProperty('--nup-info-light', colors.infoLight);
+
+      // === Ponte para shadcn/Tailwind (compatibilidade) ===
+      // Mapear variáveis NuP-est para variáveis esperadas pelo shadcn/Tailwind
+      
+      // Core colors
+      root.style.setProperty('--primary', colors.primary);
+      root.style.setProperty('--primary-foreground', '#ffffff');
+      root.style.setProperty('--secondary', colors.secondary);
+      root.style.setProperty('--secondary-foreground', '#ffffff');
+      
+      // Background and text colors - baseados no CSS mode-aware
+      if (mode === 'dark') {
+        root.style.setProperty('--background', '#202124'); // --nup-bg dark
+        root.style.setProperty('--foreground', '#E8EAED'); // --nup-text-primary dark
+        root.style.setProperty('--muted', '#303134'); // --nup-bg-muted dark  
+        root.style.setProperty('--muted-foreground', '#BDC1C6'); // --nup-text-secondary dark
+        root.style.setProperty('--border', '#3C4043'); // --nup-border dark
+        root.style.setProperty('--input', '#2A2D31'); // --nup-surface dark
+        root.style.setProperty('--card', '#2A2D31'); // --nup-surface dark
+        root.style.setProperty('--card-foreground', '#E8EAED'); // --nup-text-primary dark
+      } else {
+        root.style.setProperty('--background', '#F8F9FA'); // --nup-bg light
+        root.style.setProperty('--foreground', '#202124'); // --nup-text-primary light
+        root.style.setProperty('--muted', '#F1F3F4'); // --nup-bg-muted light
+        root.style.setProperty('--muted-foreground', '#5F6368'); // --nup-text-secondary light
+        root.style.setProperty('--border', '#E8EAED'); // --nup-border light
+        root.style.setProperty('--input', '#FFFFFF'); // --nup-surface light
+        root.style.setProperty('--card', '#FFFFFF'); // --nup-surface light
+        root.style.setProperty('--card-foreground', '#202124'); // --nup-text-primary light
+      }
+      
+      // Status colors
+      root.style.setProperty('--destructive', colors.error);
+      root.style.setProperty('--destructive-foreground', '#ffffff');
+      root.style.setProperty('--success', colors.success);
+      root.style.setProperty('--success-foreground', '#ffffff');
+      root.style.setProperty('--warning', colors.warning);
+      root.style.setProperty('--warning-foreground', '#ffffff');
+      
+      // Additional utility colors
+      root.style.setProperty('--accent', colors.primaryLight);
+      root.style.setProperty('--accent-foreground', colors.primary);
+      root.style.setProperty('--popover', mode === 'dark' ? '#2A2D31' : '#FFFFFF');
+      root.style.setProperty('--popover-foreground', mode === 'dark' ? '#E8EAED' : '#202124');
+      
+      // Ring (focus states)
+      root.style.setProperty('--ring', colors.primary);
     };
 
-    applyThemeVariables(currentTheme.colors);
-  }, [currentTheme]);
+    applyThemeVariables(currentTheme.colors, currentMode);
+  }, [currentTheme, currentMode]);
 
   // Aplicar o modo dark/light ao documento
   useEffect(() => {
