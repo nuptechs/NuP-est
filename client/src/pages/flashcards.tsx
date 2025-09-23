@@ -279,7 +279,7 @@ export default function FlashcardsPage() {
   const materialOptions = materials.map(material => ({
     key: material.id,
     value: material.id,
-    text: material.name
+    text: material.title
   }));
 
   const tabPanes = [

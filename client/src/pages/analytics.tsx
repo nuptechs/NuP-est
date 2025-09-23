@@ -28,7 +28,8 @@ import {
   BookOpen,
   BarChart3,
   Calendar,
-  ChevronDown
+  ChevronDown,
+  FileText
 } from "lucide-react";
 import FloatingSettings from "@/components/FloatingSettings";
 import type { Subject, StudySession, Target } from "@shared/schema";
