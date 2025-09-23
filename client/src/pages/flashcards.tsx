@@ -1,36 +1,43 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Container,
-  Grid, 
-  Card,
-  Header,
-  Button,
-  Tab,
-  Label,
-  Progress,
-  Modal,
-  Form,
-  Input,
-  TextArea,
-  Dropdown,
-  Message,
-  Loader,
-  Dimmer,
-  Icon,
-  Segment
-} from 'semantic-ui-react';
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, BookOpen, Upload, Play, Edit, Trash2, Brain, FileText, Folder } from "lucide-react";
+import ProfessionalShell from "@/components/ui/professional-shell";
+import { ProfessionalCard } from "@/components/ui/professional-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Plus,
+  BookOpen,
+  Upload,
+  Play,
+  Brain,
+  FileText,
+  Folder,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  RotateCcw
+} from "lucide-react";
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import ModernFlashcard from "@/components/flashcard/ModernFlashcard";
-import FloatingSettings from "@/components/FloatingSettings";
+import { cn } from "@/lib/utils";
 
 const createDeckSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -58,29 +65,7 @@ type CreateDeckFormData = z.infer<typeof createDeckSchema>;
 type UploadFileFormData = z.infer<typeof uploadFileSchema>;
 type MaterialFlashcardFormData = z.infer<typeof materialFlashcardSchema>;
 
-// Função para decodificar conteúdo de flashcards (resolve problemas de escapes duplos)
-const decodeFlashcardContent = (content: string): string => {
-  if (!content) return '';
-  
-  try {
-    // Método 1: Tentativa segura usando JSON.parse para decodificação automática
-    const jsonString = `"${content.replace(/"/g, '\\"')}"`;
-    const decoded = JSON.parse(jsonString);
-    return decoded.trim();
-  } catch {
-    // Método 2: Fallback manual com ordem correta (barras primeiro)
-    return content
-      .replace(/\\\\/g, '\x00TEMP_BACKSLASH\x00')  // Preservar \\ temporariamente
-      .replace(/\\n/g, '\n')                       // \\n -> \n (quebras)
-      .replace(/\\t/g, '\t')                       // \\t -> \t (tabs)
-      .replace(/\\r/g, '\r')                       // \\r -> \r (carriage return)
-      .replace(/\\"/g, '"')                        // \\" -> " (aspas)
-      .replace(/\x00TEMP_BACKSLASH\x00/g, '\\')    // Restaurar \\ únicos
-      .trim();
-  }
-};
-
-export default function FlashcardsPage() {
+export default function FlashcardsModernPage() {
   const [activeTab, setActiveTab] = useState("decks");
   const [selectedDeck, setSelectedDeck] = useState<FlashcardDeck | null>(null);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
@@ -117,6 +102,39 @@ export default function FlashcardsPage() {
     queryKey: ["/api/flashcards/review"],
   });
 
+  // Create deck form
+  const createForm = useForm<CreateDeckFormData>({
+    resolver: zodResolver(createDeckSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      subjectId: "",
+    },
+  });
+
+  // Upload file form
+  const uploadForm = useForm<UploadFileFormData>({
+    resolver: zodResolver(uploadFileSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      subjectId: "",
+      count: 10,
+    },
+  });
+
+  // Material form
+  const materialForm = useForm<MaterialFlashcardFormData>({
+    resolver: zodResolver(materialFlashcardSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      subjectId: "",
+      materialId: "",
+      count: 10,
+    },
+  });
+
   // Create deck mutation
   const createDeckMutation = useMutation({
     mutationFn: async (data: CreateDeckFormData) => {
@@ -134,6 +152,7 @@ export default function FlashcardsPage() {
         description: "Deck de flashcards criado com sucesso!",
       });
       setCreateModalOpen(false);
+      createForm.reset();
     },
     onError: (error: any) => {
       toast({
@@ -173,6 +192,7 @@ export default function FlashcardsPage() {
         description: "Flashcards gerados com sucesso a partir do arquivo!",
       });
       setUploadModalOpen(false);
+      uploadForm.reset();
     },
     onError: (error: any) => {
       toast({
@@ -196,6 +216,7 @@ export default function FlashcardsPage() {
         description: "Flashcards gerados com sucesso a partir do material!",
       });
       setMaterialModalOpen(false);
+      materialForm.reset();
     },
     onError: (error: any) => {
       toast({
@@ -205,49 +226,6 @@ export default function FlashcardsPage() {
       });
     },
   });
-
-  const {
-    register: registerCreate,
-    handleSubmit: handleCreateSubmit,
-    formState: { errors: createErrors },
-    reset: resetCreate,
-  } = useForm<CreateDeckFormData>({
-    resolver: zodResolver(createDeckSchema),
-  });
-
-  const {
-    register: registerUpload,
-    handleSubmit: handleUploadSubmit,
-    formState: { errors: uploadErrors },
-    reset: resetUpload,
-    setValue: setUploadValue,
-    watch: watchUpload,
-  } = useForm<UploadFileFormData>({
-    resolver: zodResolver(uploadFileSchema),
-    defaultValues: { count: 10 },
-  });
-
-  const {
-    register: registerMaterial,
-    handleSubmit: handleMaterialSubmit,
-    formState: { errors: materialErrors },
-    reset: resetMaterial,
-  } = useForm<MaterialFlashcardFormData>({
-    resolver: zodResolver(materialFlashcardSchema),
-    defaultValues: { count: 10 },
-  });
-
-  const onCreateSubmit = (data: CreateDeckFormData) => {
-    createDeckMutation.mutate(data);
-  };
-
-  const onUploadSubmit = (data: UploadFileFormData) => {
-    uploadFileMutation.mutate(data);
-  };
-
-  const onMaterialSubmit = (data: MaterialFlashcardFormData) => {
-    generateFromMaterialMutation.mutate(data);
-  };
 
   const handleDeckClick = (deck: FlashcardDeck) => {
     setSelectedDeck(deck);
@@ -270,355 +248,500 @@ export default function FlashcardsPage() {
     }
   };
 
-  const subjectOptions = subjects.map(subject => ({
-    key: subject.id,
-    value: subject.id,
-    text: subject.name
-  }));
+  const onCreateSubmit = (data: CreateDeckFormData) => {
+    createDeckMutation.mutate(data);
+  };
 
-  const materialOptions = materials.map(material => ({
-    key: material.id,
-    value: material.id,
-    text: material.title
-  }));
+  const onUploadSubmit = (data: UploadFileFormData) => {
+    uploadFileMutation.mutate(data);
+  };
 
-  const tabPanes = [
-    {
-      menuItem: { key: 'decks', icon: 'folder', content: 'Meus Decks' },
-      render: () => (
-        <Tab.Pane>
-          <div style={{ marginBottom: '1rem' }}>
-            <Button.Group>
-              <Button 
-                primary 
-                icon 
-                labelPosition="left" 
-                onClick={() => setCreateModalOpen(true)}
-                data-testid="button-create-deck"
-              >
-                <Icon name="plus" />
-                Criar Deck Manual
-              </Button>
-              <Button 
-                secondary 
-                icon 
-                labelPosition="left" 
-                onClick={() => setUploadModalOpen(true)}
-                data-testid="button-upload-file"
-              >
-                <Icon name="upload" />
-                Gerar do Arquivo
-              </Button>
-              <Button 
-                color="teal"
-                icon 
-                labelPosition="left" 
-                onClick={() => setMaterialModalOpen(true)}
-                data-testid="button-generate-material"
-              >
-                <Brain style={{ width: '16px', height: '16px' }} />
-                Gerar da Biblioteca
-              </Button>
-            </Button.Group>
-          </div>
+  const onMaterialSubmit = (data: MaterialFlashcardFormData) => {
+    generateFromMaterialMutation.mutate(data);
+  };
 
-          {decksLoading ? (
-            <Segment style={{ padding: '3em 0' }}>
-              <Dimmer active inverted>
-                <Loader inverted>Carregando decks...</Loader>
-              </Dimmer>
-            </Segment>
-          ) : decks.length === 0 ? (
-            <Message info>
-              <Message.Header>Nenhum deck encontrado</Message.Header>
-              <p>Crie seu primeiro deck de flashcards!</p>
-            </Message>
-          ) : (
-            <Grid stackable columns={3}>
-              {decks.map((deck) => (
-                <Grid.Column key={deck.id}>
-                  <Card fluid data-testid={`deck-card-${deck.id}`}>
-                    <Card.Content>
-                      <Card.Header>{deck.title}</Card.Header>
-                      <Card.Meta>
-                        {deck.totalCards} cards • {deck.studiedCards} estudados
-                      </Card.Meta>
-                      {deck.description && (
-                        <Card.Description>{deck.description}</Card.Description>
-                      )}
-                    </Card.Content>
-                    <Card.Content extra>
-                      <div className="ui two buttons">
+  return (
+    <ProfessionalShell
+      title="Flashcards"
+      subtitle="Crie e estude com flashcards inteligentes"
+      breadcrumbs={[
+        { label: "Estudar", href: "/study" },
+        { label: "Flashcards" }
+      ]}
+      actions={
+        <div className="flex items-center space-x-2">
+          <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-create-deck">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Deck
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Criar Novo Deck</DialogTitle>
+                <DialogDescription>
+                  Crie um deck personalizado de flashcards para seus estudos
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...createForm}>
+                <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
+                  <FormField
+                    control={createForm.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Título</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome do deck" {...field} data-testid="input-deck-title" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={createForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Descrição do deck" {...field} data-testid="textarea-deck-description" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={createForm.control}
+                    name="subjectId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Matéria <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-deck-subject">
+                              <SelectValue placeholder="Selecione uma matéria" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {subjects.map((subject) => (
+                              <SelectItem key={subject.id} value={subject.id}>
+                                {subject.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setCreateModalOpen(false)}
+                      data-testid="button-cancel-deck"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={createDeckMutation.isPending} data-testid="button-submit-deck">
+                      {createDeckMutation.isPending ? "Criando..." : "Criar Deck"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      }
+    >
+      <div className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="decks" className="flex items-center space-x-2" data-testid="tab-decks">
+              <Folder className="w-4 h-4" />
+              <span>Meus Decks</span>
+            </TabsTrigger>
+            <TabsTrigger value="study" className="flex items-center space-x-2" data-testid="tab-study">
+              <Play className="w-4 h-4" />
+              <span>Estudar</span>
+            </TabsTrigger>
+            <TabsTrigger value="review" className="flex items-center space-x-2" data-testid="tab-review">
+              <RefreshCw className="w-4 h-4" />
+              <span>Revisão</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="decks" className="mt-6">
+            <div className="space-y-6">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" data-testid="button-upload-file">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Gerar do Arquivo
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Gerar Flashcards do Arquivo</DialogTitle>
+                      <DialogDescription>
+                        Envie um arquivo e a IA criará flashcards automaticamente
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Form {...uploadForm}>
+                      <form onSubmit={uploadForm.handleSubmit(onUploadSubmit)} className="space-y-4">
+                        <FormField
+                          control={uploadForm.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Título do Deck</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Nome do deck" {...field} data-testid="input-upload-title" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={uploadForm.control}
+                          name="file"
+                          render={({ field: { onChange, value, ...field } }) => (
+                            <FormItem>
+                              <FormLabel>Arquivo</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="file"
+                                  accept=".pdf,.doc,.docx,.txt,.md"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) onChange(file);
+                                  }}
+                                  data-testid="input-upload-file"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>Arquivos suportados: PDF, DOC, DOCX, TXT, MD</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={uploadForm.control}
+                          name="count"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Número de Flashcards</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={50}
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                  data-testid="input-upload-count"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={uploadForm.control}
+                          name="subjectId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Matéria <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-upload-subject">
+                                    <SelectValue placeholder="Selecione uma matéria" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {subjects.map((subject) => (
+                                    <SelectItem key={subject.id} value={subject.id}>
+                                      {subject.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setUploadModalOpen(false)}
+                            data-testid="button-cancel-upload"
+                          >
+                            Cancelar
+                          </Button>
+                          <Button type="submit" disabled={uploadFileMutation.isPending} data-testid="button-submit-upload">
+                            {uploadFileMutation.isPending ? "Gerando..." : "Gerar Flashcards"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={materialModalOpen} onOpenChange={setMaterialModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" data-testid="button-generate-material">
+                      <Brain className="w-4 h-4 mr-2" />
+                      Gerar da Biblioteca
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Gerar Flashcards da Biblioteca</DialogTitle>
+                      <DialogDescription>
+                        Selecione um material da sua biblioteca para gerar flashcards
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Form {...materialForm}>
+                      <form onSubmit={materialForm.handleSubmit(onMaterialSubmit)} className="space-y-4">
+                        <FormField
+                          control={materialForm.control}
+                          name="materialId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Material</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-material">
+                                    <SelectValue placeholder="Selecione um material" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {materials.map((material) => (
+                                    <SelectItem key={material.id} value={material.id}>
+                                      {material.title}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={materialForm.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Título do Deck</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Nome do deck" {...field} data-testid="input-material-title" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={materialForm.control}
+                          name="count"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Número de Flashcards</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={50}
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                  data-testid="input-material-count"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={materialForm.control}
+                          name="subjectId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Matéria <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-material-subject">
+                                    <SelectValue placeholder="Selecione uma matéria" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {subjects.map((subject) => (
+                                    <SelectItem key={subject.id} value={subject.id}>
+                                      {subject.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setMaterialModalOpen(false)}
+                            data-testid="button-cancel-material"
+                          >
+                            Cancelar
+                          </Button>
+                          <Button type="submit" disabled={generateFromMaterialMutation.isPending} data-testid="button-submit-material">
+                            {generateFromMaterialMutation.isPending ? "Gerando..." : "Gerar Flashcards"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Decks Grid */}
+              {decksLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Card key={i}>
+                      <CardHeader>
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </CardHeader>
+                      <CardContent>
+                        <Skeleton className="h-3 w-full mb-2" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : decks.length === 0 ? (
+                <Alert>
+                  <BookOpen className="h-4 w-4" />
+                  <AlertTitle>Nenhum deck encontrado</AlertTitle>
+                  <AlertDescription>
+                    Crie seu primeiro deck de flashcards para começar a estudar!
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {decks.map((deck) => (
+                    <ProfessionalCard
+                      key={deck.id}
+                      title={deck.title}
+                      description={deck.description}
+                      subtitle={`${deck.totalCards} cards • ${deck.studiedCards} estudados`}
+                      icon={<BookOpen className="w-5 h-5 text-primary" />}
+                      badge={
+                        deck.totalCards > 0 ? (
+                          <Badge variant="secondary">
+                            {Math.round((deck.studiedCards / deck.totalCards) * 100)}% completo
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Novo</Badge>
+                        )
+                      }
+                      actions={
                         <Button 
-                          basic 
-                          color="blue"
+                          size="sm"
                           onClick={() => handleDeckClick(deck)}
                           data-testid={`button-study-${deck.id}`}
                         >
-                          <Play style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                          <Play className="w-4 h-4 mr-2" />
                           Estudar
                         </Button>
-                      </div>
-                    </Card.Content>
-                  </Card>
-                </Grid.Column>
-              ))}
-            </Grid>
-          )}
-        </Tab.Pane>
-      )
-    },
-    {
-      menuItem: { key: 'study', icon: 'play', content: 'Estudar' },
-      render: () => (
-        <Tab.Pane>
-          {selectedDeck && flashcards.length > 0 ? (
-            <div>
-              <Header as="h2">{selectedDeck.title}</Header>
-              <Progress 
-                percent={((currentFlashcardIndex + 1) / flashcards.length) * 100} 
-                indicating 
-                size="small"
-                label={`${currentFlashcardIndex + 1} de ${flashcards.length}`}
-              />
-              <ModernFlashcard
-                flashcards={flashcards}
-                currentIndex={currentFlashcardIndex}
-                onNext={handleNextFlashcard}
-                onPrevious={handlePreviousFlashcard}
-                onComplete={(flashcardId, difficulty) => {
-                  // Handle flashcard completion
-                  console.log('Flashcard completed:', flashcardId, difficulty);
-                }}
-              />
+                      }
+                      className="transition-all hover:shadow-lg"
+                      data-testid={`deck-card-${deck.id}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <Message info>
-              <Message.Header>Selecione um deck</Message.Header>
-              <p>Escolha um deck na aba "Meus Decks" para começar a estudar.</p>
-            </Message>
-          )}
-        </Tab.Pane>
-      )
-    },
-    {
-      menuItem: { key: 'review', icon: 'refresh', content: 'Revisão' },
-      render: () => (
-        <Tab.Pane>
-          <Header as="h3">Flashcards para Revisão</Header>
-          {reviewFlashcards.length === 0 ? (
-            <Message>
-              <Message.Header>Nenhum flashcard para revisão</Message.Header>
-              <p>Continue estudando para ter cards disponíveis para revisão!</p>
-            </Message>
-          ) : (
-            <div>
-              <p>{reviewFlashcards.length} flashcards prontos para revisão</p>
-              {/* Review interface would go here */}
+          </TabsContent>
+
+          <TabsContent value="study" className="mt-6">
+            {selectedDeck && flashcards.length > 0 ? (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-semibold text-foreground">{selectedDeck.title}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {currentFlashcardIndex + 1} de {flashcards.length} flashcards
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {Math.round(((currentFlashcardIndex + 1) / flashcards.length) * 100)}%
+                    </Badge>
+                  </div>
+                  
+                  <Progress value={((currentFlashcardIndex + 1) / flashcards.length) * 100} className="w-full" />
+                </div>
+
+                <ModernFlashcard
+                  flashcards={flashcards}
+                  currentIndex={currentFlashcardIndex}
+                  onNext={handleNextFlashcard}
+                  onPrevious={handlePreviousFlashcard}
+                  onComplete={(flashcardId, difficulty) => {
+                    console.log('Flashcard completed:', flashcardId, difficulty);
+                  }}
+                />
+              </div>
+            ) : (
+              <Alert>
+                <BookOpen className="h-4 w-4" />
+                <AlertTitle>Selecione um deck</AlertTitle>
+                <AlertDescription>
+                  Escolha um deck na aba "Meus Decks" para começar a estudar.
+                </AlertDescription>
+              </Alert>
+            )}
+          </TabsContent>
+
+          <TabsContent value="review" className="mt-6">
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">Flashcards para Revisão</h3>
+              {reviewFlashcards.length === 0 ? (
+                <Alert>
+                  <RotateCcw className="h-4 w-4" />
+                  <AlertTitle>Nenhum flashcard para revisão</AlertTitle>
+                  <AlertDescription>
+                    Continue estudando para ter cards disponíveis para revisão!
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    {reviewFlashcards.length} flashcards prontos para revisão
+                  </p>
+                  {/* Review interface would go here */}
+                </div>
+              )}
             </div>
-          )}
-        </Tab.Pane>
-      )
-    }
-  ];
-
-  return (
-    <Container fluid style={{ padding: '2rem', minHeight: '100vh', backgroundColor: 'var(--nup-background)' }}>
-      <FloatingSettings />
-      
-      <Header as="h1" style={{ marginBottom: '2rem', color: 'var(--nup-text)' }}>
-        <BookOpen style={{ width: '32px', height: '32px', marginRight: '1rem' }} />
-        Flashcards
-      </Header>
-
-      <Tab 
-        panes={tabPanes} 
-        activeIndex={tabPanes.findIndex(pane => pane.menuItem.key === activeTab)}
-        onTabChange={(e, { activeIndex }) => {
-          setActiveTab(tabPanes[activeIndex as number].menuItem.key);
-        }}
-        menu={{ secondary: true, pointing: true }}
-      />
-
-      {/* Create Deck Modal */}
-      <Modal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        size="small"
-      >
-        <Modal.Header>Criar Novo Deck</Modal.Header>
-        <Modal.Content>
-          <Form onSubmit={handleCreateSubmit(onCreateSubmit)}>
-            <Form.Field error={!!createErrors.title}>
-              <label>Título</label>
-              <Input
-                {...registerCreate('title')}
-                placeholder="Nome do deck"
-              />
-              {createErrors.title && (
-                <Label pointing color="red">{createErrors.title.message}</Label>
-              )}
-            </Form.Field>
-
-            <Form.Field error={!!createErrors.description}>
-              <label>Descrição (opcional)</label>
-              <TextArea
-                {...registerCreate('description')}
-                placeholder="Descrição do deck"
-                rows={3}
-              />
-            </Form.Field>
-
-            <Form.Field>
-              <label>Matéria (opcional)</label>
-              <Dropdown
-                {...registerCreate('subjectId')}
-                placeholder="Selecione uma matéria"
-                fluid
-                selection
-                clearable
-                options={subjectOptions}
-              />
-            </Form.Field>
-          </Form>
-        </Modal.Content>
-        <Modal.Actions>
-          <Button onClick={() => setCreateModalOpen(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            primary 
-            loading={createDeckMutation.isPending}
-            onClick={handleCreateSubmit(onCreateSubmit)}
-          >
-            Criar Deck
-          </Button>
-        </Modal.Actions>
-      </Modal>
-
-      {/* Upload File Modal */}
-      <Modal
-        open={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
-        size="small"
-      >
-        <Modal.Header>Gerar Flashcards do Arquivo</Modal.Header>
-        <Modal.Content>
-          <Form onSubmit={handleUploadSubmit(onUploadSubmit)}>
-            <Form.Field error={!!uploadErrors.title}>
-              <label>Título do Deck</label>
-              <Input
-                {...registerUpload('title')}
-                placeholder="Nome do deck"
-              />
-              {uploadErrors.title && (
-                <Label pointing color="red">{uploadErrors.title.message}</Label>
-              )}
-            </Form.Field>
-
-            <Form.Field>
-              <label>Arquivo</label>
-              <Input
-                type="file"
-                accept=".pdf,.doc,.docx,.txt,.md"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setUploadValue('file', file);
-                  }
-                }}
-              />
-              {uploadErrors.file && (
-                <Label pointing color="red">{uploadErrors.file.message}</Label>
-              )}
-            </Form.Field>
-
-            <Form.Field>
-              <label>Número de Flashcards</label>
-              <Input
-                type="number"
-                {...registerUpload('count', { valueAsNumber: true })}
-                min={1}
-                max={50}
-                defaultValue={10}
-              />
-            </Form.Field>
-          </Form>
-        </Modal.Content>
-        <Modal.Actions>
-          <Button onClick={() => setUploadModalOpen(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            primary 
-            loading={uploadFileMutation.isPending}
-            onClick={handleUploadSubmit(onUploadSubmit)}
-          >
-            Gerar Flashcards
-          </Button>
-        </Modal.Actions>
-      </Modal>
-
-      {/* Generate from Material Modal */}
-      <Modal
-        open={materialModalOpen}
-        onClose={() => setMaterialModalOpen(false)}
-        size="small"
-      >
-        <Modal.Header>Gerar Flashcards da Biblioteca</Modal.Header>
-        <Modal.Content>
-          <Form onSubmit={handleMaterialSubmit(onMaterialSubmit)}>
-            <Form.Field error={!!materialErrors.materialId}>
-              <label>Material</label>
-              <Dropdown
-                {...registerMaterial('materialId')}
-                placeholder="Selecione um material"
-                fluid
-                selection
-                search
-                options={materialOptions}
-              />
-              {materialErrors.materialId && (
-                <Label pointing color="red">{materialErrors.materialId.message}</Label>
-              )}
-            </Form.Field>
-
-            <Form.Field error={!!materialErrors.title}>
-              <label>Título do Deck</label>
-              <Input
-                {...registerMaterial('title')}
-                placeholder="Nome do deck"
-              />
-              {materialErrors.title && (
-                <Label pointing color="red">{materialErrors.title.message}</Label>
-              )}
-            </Form.Field>
-
-            <Form.Field>
-              <label>Número de Flashcards</label>
-              <Input
-                type="number"
-                {...registerMaterial('count', { valueAsNumber: true })}
-                min={1}
-                max={50}
-                defaultValue={10}
-              />
-            </Form.Field>
-          </Form>
-        </Modal.Content>
-        <Modal.Actions>
-          <Button onClick={() => setMaterialModalOpen(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            primary 
-            loading={generateFromMaterialMutation.isPending}
-            onClick={handleMaterialSubmit(onMaterialSubmit)}
-          >
-            Gerar Flashcards
-          </Button>
-        </Modal.Actions>
-      </Modal>
-    </Container>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </ProfessionalShell>
   );
 }
