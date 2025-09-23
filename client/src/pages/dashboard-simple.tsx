@@ -274,101 +274,115 @@ export default function Dashboard() {
               }}
             >
               {isActionsExpanded && (
-                <div style={{ padding: 'var(--spacing-md)' }}>
-                  <Grid columns={3} stackable>
-            <Grid.Column>
-              <Card 
-                className="nup-card nup-card--soft nup-card--primary transition-smooth hover-lift" 
-                style={{ cursor: 'pointer', height: '100%' }}
-                onClick={() => navigate('/library')}
-                data-testid="card-library"
-              >
-                <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="nup-cards-container">
+                  {/* First row - 3 cards */}
+                  <div className="nup-cards-grid">
                     <div>
-                      <Header as="h3" className="nup-card-title">
-                        Biblioteca
-                      </Header>
-                      <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
-                        Organize materiais, crie áreas de conhecimento e gerencie conteúdo
-                      </p>
-                      <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
-                        <span>Ver biblioteca</span>
-                        <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
-                      </div>
+                      <Card 
+                        className="nup-card nup-card--soft nup-card--primary nup-card-symmetric transition-smooth hover-lift" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate('/library')}
+                        data-testid="card-library"
+                      >
+                        <Card.Content className="nup-card-content-symmetric">
+                          <div className="nup-card-header-row">
+                            <div className="nup-card-content-left">
+                              <div>
+                                <Header as="h3" className="nup-card-title">
+                                  Biblioteca
+                                </Header>
+                                <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
+                                  Organize materiais, crie áreas de conhecimento e gerencie conteúdo
+                                </p>
+                              </div>
+                              <div className="nup-card-action">
+                                <span>Ver biblioteca</span>
+                                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
+                              </div>
+                            </div>
+                            <div className="nup-card-icon-right">
+                              <BookOpen style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
+                            </div>
+                          </div>
+                        </Card.Content>
+                      </Card>
                     </div>
-                    <BookOpen style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
-                  </div>
-                </Card.Content>
-              </Card>
-            </Grid.Column>
 
-            <Grid.Column>
-              <Card 
-                className="nup-card nup-card--soft nup-card--success transition-smooth hover-lift" 
-                style={{ cursor: 'pointer', height: '100%' }}
-                onClick={() => navigate('/flashcards')}
-                data-testid="card-flashcards"
-              >
-                <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <Header as="h3" className="nup-card-title">
-                        Criar Flashcards
-                      </Header>
-                      <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
-                        Crie e estude com flashcards personalizados
-                      </p>
-                      <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
-                        <span>Criar flashcards</span>
-                        <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
-                      </div>
+                      <Card 
+                        className="nup-card nup-card--soft nup-card--success nup-card-symmetric transition-smooth hover-lift" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate('/flashcards')}
+                        data-testid="card-flashcards"
+                      >
+                        <Card.Content className="nup-card-content-symmetric">
+                          <div className="nup-card-header-row">
+                            <div className="nup-card-content-left">
+                              <div>
+                                <Header as="h3" className="nup-card-title">
+                                  Criar Flashcards
+                                </Header>
+                                <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
+                                  Crie e estude com flashcards personalizados
+                                </p>
+                              </div>
+                              <div className="nup-card-action">
+                                <span>Criar flashcards</span>
+                                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
+                              </div>
+                            </div>
+                            <div className="nup-card-icon-right">
+                              <CreditCard style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
+                            </div>
+                          </div>
+                        </Card.Content>
+                      </Card>
                     </div>
-                    <CreditCard style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
-                  </div>
-                </Card.Content>
-              </Card>
-            </Grid.Column>
 
-            <Grid.Column>
-              <Card 
-                className="nup-card nup-card--soft nup-card--info transition-smooth hover-lift" 
-                style={{ cursor: 'pointer', height: '100%' }}
-                onClick={() => navigate('/study')}
-                data-testid="card-ai-questions"
-              >
-                <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <Header as="h3" className="nup-card-title">
-                        Questões com IA
-                      </Header>
-                      <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
-                        Pratique com questões geradas por inteligência artificial
-                      </p>
-                      <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
-                        <span>Gerar questões</span>
-                        <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
-                      </div>
+                      <Card 
+                        className="nup-card nup-card--soft nup-card--info nup-card-symmetric transition-smooth hover-lift" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate('/study')}
+                        data-testid="card-ai-questions"
+                      >
+                        <Card.Content className="nup-card-content-symmetric">
+                          <div className="nup-card-header-row">
+                            <div className="nup-card-content-left">
+                              <div>
+                                <Header as="h3" className="nup-card-title">
+                                  Questões com IA
+                                </Header>
+                                <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
+                                  Pratique com questões geradas por inteligência artificial
+                                </p>
+                              </div>
+                              <div className="nup-card-action">
+                                <span>Gerar questões</span>
+                                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
+                              </div>
+                            </div>
+                            <div className="nup-card-icon-right">
+                              <Brain style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
+                            </div>
+                          </div>
+                        </Card.Content>
+                      </Card>
                     </div>
-                    <Brain style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
                   </div>
-                </Card.Content>
-              </Card>
-            </Grid.Column>
-                  </Grid>
 
-                  <div style={{ marginTop: 'var(--spacing-lg)' }}>
-                    <Grid columns={2} stackable>
-                      <Grid.Column>
-                        <Card 
-                          className="nup-card nup-card--soft nup-card--warning transition-smooth hover-lift" 
-                          style={{ cursor: 'pointer', height: '100%' }}
-                          onClick={() => navigate('/study')}
-                          data-testid="card-ai-chat"
-                        >
-                          <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {/* Second row - 2 cards */}
+                  <div className="nup-cards-row-2">
+                    <div>
+                      <Card 
+                        className="nup-card nup-card--soft nup-card--warning nup-card-large transition-smooth hover-lift" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate('/study')}
+                        data-testid="card-ai-chat"
+                      >
+                        <Card.Content className="nup-card-content-symmetric">
+                          <div className="nup-card-header-row">
+                            <div className="nup-card-content-left">
                               <div>
                                 <Header as="h3" className="nup-card-title">
                                   Chat com IA
@@ -376,20 +390,23 @@ export default function Dashboard() {
                                 <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
                                   Converse com a IA para esclarecer dúvidas e estudar
                                 </p>
-                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--nup-primary)', fontSize: '14px', fontWeight: '500' }}>
-                                  <span>Iniciar chat</span>
-                                  <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
-                                </div>
                               </div>
+                              <div className="nup-card-action">
+                                <span>Iniciar chat</span>
+                                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
+                              </div>
+                            </div>
+                            <div className="nup-card-icon-right">
                               <MessageCircle style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
                             </div>
-                          </Card.Content>
-                        </Card>
-                      </Grid.Column>
+                          </div>
+                        </Card.Content>
+                      </Card>
+                    </div>
 
-                      <Grid.Column>
-                        <Card className="nup-card nup-card--soft nup-card--primary" style={{ height: '100%' }}>
-                          <Card.Content>
+                    <div>
+                      <Card className="nup-card nup-card--soft nup-card--primary nup-card-compact">
+                        <Card.Content>
                             <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
                               <User style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
                               Seu Perfil
@@ -450,8 +467,7 @@ export default function Dashboard() {
                             </Button>
                           </Card.Content>
                         </Card>
-                      </Grid.Column>
-                    </Grid>
+                    </div>
                   </div>
                 </div>
               )}
