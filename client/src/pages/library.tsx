@@ -3,24 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Container,
-  Grid, 
-  Card,
-  Header,
-  Button,
-  Form,
-  Input,
-  Modal,
-  Message,
-  Breadcrumb,
-  Icon,
-  Loader,
-  Dimmer,
-  Label,
-  Segment,
-  Search
-} from 'semantic-ui-react';
+// Shadcn/ui imports
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
 import AreaForm from "@/components/knowledge-areas/area-form";
@@ -38,11 +30,10 @@ import {
   Folder,
   FolderOpen
 } from "lucide-react";
-import { StatCard } from "@/components/ui/stat-card";
-import { SectionHeader } from "@/components/ui/section-header";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SkeletonCard } from "@/components/ui/skeleton-row";
-import FloatingSettings from "@/components/FloatingSettings";
+// Professional components
+import ProfessionalShell from "@/components/ui/professional-shell";
+import { ProfessionalCard } from "@/components/ui/professional-card";
+import { ProfessionalStats } from "@/components/ui/professional-stats";
 // import { 
 //   ResponsiveHeader, 
 //   ResponsiveButton, 
@@ -148,24 +139,32 @@ export default function Library() {
 
   // Helper functions
   const navigateToLevel = (level: ViewLevel, id?: string, name?: string) => {
-    const newBreadcrumb = [...navigation.breadcrumb];
-    
     if (level === 'subjects' && id && name) {
+      // Reset to areas level, then add subjects level
+      const baseBreadcrumb = [{ name: 'Biblioteca', level: 'areas' as ViewLevel }];
       setNavigation({
         level: 'subjects',
         selectedAreaId: id,
-        breadcrumb: [...newBreadcrumb, { id, name, level: 'subjects' }]
+        selectedSubjectId: undefined,
+        breadcrumb: [...baseBreadcrumb, { id, name, level: 'subjects' }]
       });
     } else if (level === 'materials' && id && name) {
+      // Keep current breadcrumb up to subjects level, then add materials level
+      const currentBreadcrumb = navigation.breadcrumb.filter(item => 
+        item.level === 'areas' || item.level === 'subjects'
+      );
       setNavigation({
         ...navigation,
         level: 'materials',
         selectedSubjectId: id,
-        breadcrumb: [...newBreadcrumb, { id, name, level: 'materials' }]
+        breadcrumb: [...currentBreadcrumb, { id, name, level: 'materials' }]
       });
     } else {
+      // Reset to areas level
       setNavigation({
         level: 'areas',
+        selectedAreaId: undefined,
+        selectedSubjectId: undefined,
         breadcrumb: [{ name: 'Biblioteca', level: 'areas' }]
       });
     }
@@ -317,10 +316,11 @@ export default function Library() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-bg)' }}>
-        <Dimmer active>
-          <Loader size="large">Carregando...</Loader>
-        </Dimmer>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     );
   }
@@ -330,180 +330,164 @@ export default function Library() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-bg)', padding: 'var(--spacing-lg)' }}>
-      <Container>
-        {/* Header Section */}
-        <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: 'var(--spacing-lg)',
-            flexWrap: 'wrap',
-            gap: 'var(--spacing-md)'
-          }}>
-            <div>
-              <Header as="h1" style={{ 
-                fontSize: '28px',
-                fontWeight: '700',
-                color: 'var(--nup-text-primary)',
-                marginBottom: 'var(--spacing-xs)'
-              }}>
-                Biblioteca
-              </Header>
-              <p style={{
-                color: 'var(--nup-text-secondary)',
-                fontSize: '16px',
-                margin: 0
-              }}>
-                Organize Materiais Por Áreas
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+    <ProfessionalShell
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Biblioteca" }
+      ]}
+    >
+        {/* Action Buttons */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex gap-3">
               <Button 
-                primary
-                icon={<Upload size={16} />}
-                content="Upload"
                 onClick={() => handleCreateNew('material')}
                 data-testid="button-upload-material"
-              />
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Upload</span>
+              </Button>
               <Button 
-                secondary
-                icon={<Plus size={16} />}
-                content={navigation.level === 'areas' ? 'Nova Área' : navigation.level === 'subjects' ? 'Nova Matéria' : 'Novo Material'}
                 onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
                 data-testid="button-create-new"
-              />
+                className="flex items-center space-x-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{navigation.level === 'areas' ? 'Nova Área' : navigation.level === 'subjects' ? 'Nova Matéria' : 'Novo Material'}</span>
+              </Button>
             </div>
           </div>
+        </div>
           
-          {/* Breadcrumb Navigation */}
-          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <Breadcrumb size="large">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-6">
+          <Breadcrumb>
+            <BreadcrumbList>
               {navigation.breadcrumb.map((crumb, index) => (
                 <React.Fragment key={index}>
-                  <Breadcrumb.Section
-                    as={index < navigation.breadcrumb.length - 1 ? 'a' : 'span'}
-                    onClick={index < navigation.breadcrumb.length - 1 ? () => navigateBack(crumb.level) : undefined}
-                    style={{ 
-                      cursor: index < navigation.breadcrumb.length - 1 ? 'pointer' : 'default',
-                      color: index < navigation.breadcrumb.length - 1 ? 'var(--nup-secondary)' : 'var(--nup-gray-800)'
-                    }}
-                  >
-                    {crumb.name}
-                  </Breadcrumb.Section>
-                  {index < navigation.breadcrumb.length - 1 && <Breadcrumb.Divider icon="right angle" />}
+                  <BreadcrumbItem>
+                    {index < navigation.breadcrumb.length - 1 ? (
+                      <BreadcrumbLink 
+                        onClick={() => navigateBack(crumb.level)}
+                        className="cursor-pointer hover:text-primary"
+                      >
+                        {crumb.name}
+                      </BreadcrumbLink>
+                    ) : (
+                      <BreadcrumbPage>{crumb.name}</BreadcrumbPage>
+                    )}
+                  </BreadcrumbItem>
+                  {index < navigation.breadcrumb.length - 1 && <BreadcrumbSeparator />}
                 </React.Fragment>
               ))}
-            </Breadcrumb>
-          </div>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
 
-          {/* Search Bar */}
-          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <Search
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
               placeholder={navigation.level === 'areas' ? 'Buscar áreas...' : navigation.level === 'subjects' ? 'Buscar matérias...' : 'Buscar materiais...'}
               value={searchQuery}
-              onSearchChange={(e, data) => setSearchQuery(data.value || '')}
-              showNoResults={false}
-              fluid
-              size="large"
+              onChange={(e) => setSearchQuery(e.target.value)}
               data-testid="search-input"
+              className="pl-10"
             />
           </div>
         </div>
 
         {/* Stats Overview - only show on areas level */}
         {navigation.level === 'areas' && (
-          <div className="mb-xl">
-            <SectionHeader 
-              title="Visão Geral"
-              description="Estatísticas da sua biblioteca"
-              data-testid="stats-header"
-            />
+          <div className="mb-8">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-foreground mb-1">Visão Geral</h2>
+              <p className="text-sm text-muted-foreground">Estatísticas da sua biblioteca</p>
+            </div>
             
-            <Grid columns={4} stackable>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {areasLoading ? (
                 <>
-                  <Grid.Column><SkeletonCard /></Grid.Column>
-                  <Grid.Column><SkeletonCard /></Grid.Column>
-                  <Grid.Column><SkeletonCard /></Grid.Column>
-                  <Grid.Column><SkeletonCard /></Grid.Column>
+                  <Skeleton className="h-24" />
+                  <Skeleton className="h-24" />
+                  <Skeleton className="h-24" />
+                  <Skeleton className="h-24" />
                 </>
               ) : (
                 <>
-                  <Grid.Column>
-                    <StatCard
-                      icon={<Folder style={{ width: '32px', height: '32px' }} />}
-                      value={knowledgeAreas.length}
-                      label="Áreas"
-                      variant="info"
-                      data-testid="stat-areas"
-                    />
-                  </Grid.Column>
-                  <Grid.Column>
-                    <StatCard
-                      icon={<BookOpen style={{ width: '32px', height: '32px' }} />}
-                      value={subjects.length}
-                      label="Matérias"
-                      variant="success"
-                      data-testid="stat-subjects"
-                    />
-                  </Grid.Column>
-                  <Grid.Column>
-                    <StatCard
-                      icon={<FileText style={{ width: '32px', height: '32px' }} />}
-                      value="0"
-                      label="Materiais"
-                      variant="warning"
-                      data-testid="stat-materials"
-                    />
-                  </Grid.Column>
-                  <Grid.Column>
-                    <StatCard
-                      icon={<Database style={{ width: '32px', height: '32px' }} />}
-                      value="100%"
-                      label="Organização"
-                      variant="primary"
-                      data-testid="stat-organization"
-                    />
-                  </Grid.Column>
+                  <ProfessionalStats
+                    icon={<Folder className="w-5 h-5" />}
+                    value={knowledgeAreas.length}
+                    title="Áreas"
+                    variant="info"
+                    data-testid="stat-areas"
+                  />
+                  <ProfessionalStats
+                    icon={<BookOpen className="w-5 h-5" />}
+                    value={subjects.length}
+                    title="Matérias"
+                    variant="success"
+                    data-testid="stat-subjects"
+                  />
+                  <ProfessionalStats
+                    icon={<FileText className="w-5 h-5" />}
+                    value="0"
+                    title="Materiais"
+                    variant="warning"
+                    data-testid="stat-materials"
+                  />
+                  <ProfessionalStats
+                    icon={<Database className="w-5 h-5" />}
+                    value="100%"
+                    title="Organização"
+                    variant="default"
+                    data-testid="stat-organization"
+                  />
                 </>
               )}
-            </Grid>
+            </div>
           </div>
         )}
 
         {/* Content Grid */}
         <div>
-          <SectionHeader 
-            title={getTitle()}
-            description={`${currentData.length} ${navigation.level === 'areas' ? 'áreas' : navigation.level === 'subjects' ? 'matérias' : 'materiais'} encontrada${currentData.length !== 1 ? 's' : ''}`}
-            data-testid="content-header"
-          />
+          <div className="mb-6" data-testid="content-header">
+            <h2 className="text-lg font-semibold text-foreground mb-1">{getTitle()}</h2>
+            <p className="text-sm text-muted-foreground">
+              {currentData.length} {navigation.level === 'areas' ? 'áreas' : navigation.level === 'subjects' ? 'matérias' : 'materiais'} encontrada{currentData.length !== 1 ? 's' : ''}
+            </p>
+          </div>
           
-          <div style={{ marginTop: 'var(--spacing-md)' }}>
+          <div className="mt-4">
             {isCurrentLoading() ? (
-              <Grid columns={3} stackable>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-                <Grid.Column><SkeletonCard /></Grid.Column>
-              </Grid>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Skeleton className="h-32" />
+                <Skeleton className="h-32" />
+                <Skeleton className="h-32" />
+                <Skeleton className="h-32" />
+                <Skeleton className="h-32" />
+                <Skeleton className="h-32" />
+              </div>
             ) : currentData.length === 0 ? (
-              <EmptyState
-                icon={React.createElement(getIcon(), { style: { width: '48px', height: '48px' } })}
-                title={`Nenhuma ${navigation.level === 'areas' ? 'área' : navigation.level === 'subjects' ? 'matéria' : 'material'} encontrada`}
-                description={`Comece criando sua primeira ${navigation.level === 'areas' ? 'área de conhecimento' : navigation.level === 'subjects' ? 'matéria' : 'material de estudo'}.`}
-                action={{
-                  label: getCreateButtonText(),
-                  onClick: () => handleCreateNew(createType)
-                }}
-                data-testid={`empty-${navigation.level}`}
-              />
+              <div className="flex flex-col items-center justify-center py-16 text-center" data-testid={`empty-${navigation.level}`}>
+                <div className="w-16 h-16 mb-4 text-muted-foreground">
+                  {React.createElement(getIcon(), { className: "w-full h-full" })}
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Nenhuma {navigation.level === 'areas' ? 'área' : navigation.level === 'subjects' ? 'matéria' : 'material'} encontrada
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-md">
+                  Comece criando sua primeira {navigation.level === 'areas' ? 'área de conhecimento' : navigation.level === 'subjects' ? 'matéria' : 'material de estudo'}.
+                </p>
+                <Button onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}>
+                  {getCreateButtonText()}
+                </Button>
+              </div>
             ) : (
-              <Grid columns={3} stackable>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {currentData
                   .filter((item: any) => 
                     searchQuery === '' || 
@@ -511,195 +495,201 @@ export default function Library() {
                     item.title?.toLowerCase().includes(searchQuery.toLowerCase())
                   )
                   .map((item: any) => (
-                    <Grid.Column key={item.id}>
-                      <Card className="transition-smooth hover-lift">
-                        <Card.Content style={{ padding: 'var(--spacing-xl)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-md)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                              <div style={{
-                                padding: 'var(--spacing-sm)',
-                                borderRadius: 'var(--radius-md)',
-                                backgroundColor: 'rgba(0, 120, 212, 0.1)',
-                                color: 'var(--nup-secondary)'
-                              }}>
-                                {React.createElement(getIcon(), { style: { width: '20px', height: '20px' } })}
-                              </div>
-                              <div>
-                                <Header as="h3" style={{ marginBottom: 'var(--spacing-xs)' }}>
-                                  {item.name || item.title}
-                                </Header>
-                                {item.description && (
-                                  <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)' }}>
-                                    {item.description}
-                                  </p>
-                                )}
-                              </div>
+                    <Card key={item.id} className="transition-all duration-200 hover:shadow-md cursor-pointer">
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                              {React.createElement(getIcon(), { className: "w-5 h-5" })}
                             </div>
-                            
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
-                              <Button
-                                basic
-                                icon="edit"
-                                size="mini"
-                                onClick={() => handleEdit(item)}
-                                data-testid={`button-edit-${item.id}`}
-                                title={`Editar ${item.name || item.title}`}
-                              />
-                              <Button
-                                basic
-                                icon="trash"
-                                size="mini"
-                                onClick={() => handleDelete(item)}
-                                data-testid={`button-delete-${item.id}`}
-                                title={`Excluir ${item.name || item.title}`}
-                              />
+                            <div>
+                              <h3 className="font-semibold text-base mb-1">
+                                {item.name || item.title}
+                              </h3>
+                              {item.description && (
+                                <p className="text-sm text-muted-foreground">
+                                  {item.description}
+                                </p>
+                              )}
                             </div>
                           </div>
-                          
-                          {/* Item specific info */}
-                          <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                            {navigation.level === 'subjects' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', fontSize: '14px', color: 'var(--nup-gray-600)' }}>
-                                <Label color="blue" size="small">{item.category}</Label>
-                                <span>Prioridade {item.priority}</span>
-                              </div>
-                            )}
                             
-                            {navigation.level === 'materials' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', fontSize: '14px', color: 'var(--nup-gray-600)' }}>
-                                <Label color="green" size="small">{item.type}</Label>
-                                {item.uploadDate && (
-                                  <span>
-                                    {new Date(item.uploadDate).toLocaleDateString('pt-BR')}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Navigation action */}
-                          {(navigation.level === 'areas' || navigation.level === 'subjects') && (
+                          <div className="flex items-center gap-2">
                             <Button
-                              fluid
-                              primary
-                              onClick={() => {
-                                if (navigation.level === 'areas') {
-                                  navigateToLevel('subjects', item.id, item.name);
-                                } else {
-                                  navigateToLevel('materials', item.id, item.name);
-                                }
-                              }}
-                              data-testid={`button-navigate-${item.id}`}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(item)}
+                              data-testid={`button-edit-${item.id}`}
+                              title={`Editar ${item.name || item.title}`}
                             >
-                              {navigation.level === 'areas' ? 'Ver Matérias' : 'Ver Materiais'}
+                              <Edit className="w-4 h-4" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(item)}
+                              data-testid={`button-delete-${item.id}`}
+                              title={`Excluir ${item.name || item.title}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          </div>
+                          
+                        {/* Item specific info */}
+                        <div className="mb-4">
+                          {navigation.level === 'subjects' && (
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <Badge variant="secondary">{item.category}</Badge>
+                              <span>Prioridade {item.priority}</span>
+                            </div>
                           )}
-                        </Card.Content>
-                      </Card>
-                    </Grid.Column>
+                          
+                          {navigation.level === 'materials' && (
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <Badge variant="outline">{item.type}</Badge>
+                              {item.uploadDate && (
+                                <span>
+                                  {new Date(item.uploadDate).toLocaleDateString('pt-BR')}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                          
+                        {/* Navigation action */}
+                        {(navigation.level === 'areas' || navigation.level === 'subjects') && (
+                          <Button
+                            className="w-full"
+                            onClick={() => {
+                              if (navigation.level === 'areas') {
+                                navigateToLevel('subjects', item.id, item.name);
+                              } else {
+                                navigateToLevel('materials', item.id, item.name);
+                              }
+                            }}
+                            data-testid={`button-navigate-${item.id}`}
+                          >
+                            {navigation.level === 'areas' ? 'Ver Matérias' : 'Ver Materiais'}
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
-              </Grid>
+              </div>
             )}
           </div>
         </div>
 
         {/* Create Modal */}
-        <Modal 
+        <Dialog 
           open={isCreateModalOpen} 
-          onClose={() => setIsCreateModalOpen(false)}
-          size="small"
+          onOpenChange={setIsCreateModalOpen}
         >
-          <Modal.Header>
-            {createType === 'area' && 'Nova Área de Conhecimento'}
-            {createType === 'subject' && 'Nova Matéria'}
-            {createType === 'material' && 'Novo Material'}
-          </Modal.Header>
-          <Modal.Content>
-            {createType === 'area' && (
-              <AreaForm 
-                onSuccess={() => {
-                  setIsCreateModalOpen(false);
-                  queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
-                }} 
-              />
-            )}
-            {createType === 'subject' && (
-              <SubjectForm 
-                areaId={navigation.selectedAreaId}
-                onSuccess={() => {
-                  setIsCreateModalOpen(false);
-                  queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
-                }} 
-              />
-            )}
-            {createType === 'material' && (
-              <MaterialUpload 
-                subjectId={navigation.selectedSubjectId}
-                onSuccess={() => {
-                  setIsCreateModalOpen(false);
-                  queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
-                }} 
-              />
-            )}
-          </Modal.Content>
-        </Modal>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                {createType === 'area' && 'Nova Área de Conhecimento'}
+                {createType === 'subject' && 'Nova Matéria'}
+                {createType === 'material' && 'Novo Material'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              {createType === 'area' && (
+                <AreaForm 
+                  onSuccess={() => {
+                    setIsCreateModalOpen(false);
+                    queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
+                  }} 
+                />
+              )}
+              {createType === 'subject' && (
+                <SubjectForm 
+                  areaId={navigation.selectedAreaId}
+                  onSuccess={() => {
+                    setIsCreateModalOpen(false);
+                    queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+                  }} 
+                />
+              )}
+              {createType === 'material' && (
+                <MaterialUpload 
+                  subjectId={navigation.selectedSubjectId}
+                  onSuccess={() => {
+                    setIsCreateModalOpen(false);
+                    queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+                  }} 
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Modal */}
-        <Modal 
+        <Dialog 
           open={isEditModalOpen} 
-          onClose={() => setIsEditModalOpen(false)}
-          size="small"
+          onOpenChange={setIsEditModalOpen}
         >
-          <Modal.Header>Editar Item</Modal.Header>
-          <Modal.Content>
-            {navigation.level === 'areas' && itemToEdit && (
-              <AreaForm 
-                area={itemToEdit}
-                onSuccess={() => {
-                  setIsEditModalOpen(false);
-                  setItemToEdit(null);
-                  queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
-                }} 
-              />
-            )}
-            {navigation.level === 'subjects' && itemToEdit && (
-              <SubjectForm 
-                subject={itemToEdit}
-                onSuccess={() => {
-                  setIsEditModalOpen(false);
-                  setItemToEdit(null);
-                  queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
-                }} 
-              />
-            )}
-          </Modal.Content>
-        </Modal>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Editar Item</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              {navigation.level === 'areas' && itemToEdit && (
+                <AreaForm 
+                  area={itemToEdit}
+                  onSuccess={() => {
+                    setIsEditModalOpen(false);
+                    setItemToEdit(null);
+                    queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
+                  }} 
+                />
+              )}
+              {navigation.level === 'subjects' && itemToEdit && (
+                <SubjectForm 
+                  subject={itemToEdit}
+                  onSuccess={() => {
+                    setIsEditModalOpen(false);
+                    setItemToEdit(null);
+                    queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+                  }} 
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Delete Confirmation Modal */}
-        <Modal 
+        <AlertDialog 
           open={isDeleteModalOpen} 
-          onClose={() => setIsDeleteModalOpen(false)}
-          size="small"
+          onOpenChange={setIsDeleteModalOpen}
         >
-          <Modal.Header>Confirmar Exclusão</Modal.Header>
-          <Modal.Content>
-            <p>Tem certeza de que deseja excluir "{itemToDelete?.name || itemToDelete?.title}"?</p>
-            <Message warning>
-              <p>Esta ação não pode ser desfeita.</p>
-            </Message>
-          </Modal.Content>
-          <Modal.Actions>
-            <Button content="Cancelar" onClick={() => setIsDeleteModalOpen(false)} />
-            <Button 
-              negative
-              content="Excluir"
-              onClick={confirmDelete}
-              data-testid="button-confirm-delete"
-            />
-          </Modal.Actions>
-        </Modal>
-      </Container>
-      <FloatingSettings />
-    </div>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza de que deseja excluir "{itemToDelete?.name || itemToDelete?.title}"?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Alert className="my-4">
+              <AlertDescription>
+                Esta ação não pode ser desfeita.
+              </AlertDescription>
+            </Alert>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setIsDeleteModalOpen(false)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDelete}
+                data-testid="button-confirm-delete"
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+    </ProfessionalShell>
   );
 }
