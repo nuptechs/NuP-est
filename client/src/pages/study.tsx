@@ -3,22 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import AiStudyModal from "@/components/study/ai-study-modal";
-import { 
-  Container,
-  Grid, 
-  Card,
-  Header,
-  Button,
-  Dropdown,
-  Label,
-  Icon,
-  Segment,
-  Message,
-  Loader,
-  Dimmer
-} from 'semantic-ui-react';
-import { BookOpen, Bot, BarChart3, Clock, Play, FileText, GraduationCap, History } from "lucide-react";
-import FloatingSettings from "@/components/FloatingSettings";
+// Removed Semantic UI imports - migrating to shadcn/ui
+import { BookOpen, Bot, BarChart3, Clock, Play, FileText, GraduationCap, History, ChevronDown } from "lucide-react";
+// Modern shadcn/ui imports
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+// Professional components  
+import ProfessionalShell from "@/components/ui/professional-shell";
+import { ProfessionalCard } from "@/components/ui/professional-card";
 import type { Subject } from "@shared/schema";
 
 export default function Study() {
@@ -113,9 +110,12 @@ export default function Study() {
 
   if (isLoading) {
     return (
-      <Dimmer active>
-        <Loader size='large'>Carregando...</Loader>
-      </Dimmer>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
     );
   }
 
@@ -124,255 +124,198 @@ export default function Study() {
   }
 
   return (
-    <Container fluid style={{ padding: '2rem', backgroundColor: 'var(--nup-bg)', minHeight: '100vh' }}>
-      <Container>
-        {/* Page Header */}
-        <Header as='h1' size='large' className='main-title' style={{ marginBottom: '2rem' }}>
-          <Icon>
-            <GraduationCap size={28} style={{ color: 'var(--nup-primary)' }} />
-          </Icon>
-          <Header.Content>
-            Estudar
-            <Header.Subheader className='subtitle'>
-              Escolha seu método de estudo e comece a praticar
-            </Header.Subheader>
-          </Header.Content>
-        </Header>
+    <ProfessionalShell
+      title="Estudar"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Estudar', href: '/study' }
+      ]}
+    >
+        {/* Page Introduction */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-2">
+            <GraduationCap className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">Métodos de Estudo</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Escolha seu método de estudo e comece a praticar
+          </p>
+        </div>
         {/* Subject Selection */}
-        <Segment className='nup-card-subtle mb-lg'>
-          <Header as='h3' className='section-title'>
-            <Icon>
-              <GraduationCap size={20} style={{ color: 'var(--nup-primary)' }} />
-            </Icon>
-            <Header.Content>
-              Configuração da Sessão
-            </Header.Content>
-          </Header>
-          
-          <div style={{ marginTop: '1.5rem' }}>
-            <Label className='card-description' style={{ display: 'block', marginBottom: '0.5rem' }}>
-              Selecione a matéria para estudar:
-            </Label>
-            <Dropdown
-              placeholder='Escolha uma matéria'
-              fluid
-              selection
-              value={selectedSubject}
-              onChange={(e, { value }) => setSelectedSubject(value as string)}
-              data-testid="select-study-subject"
-              options={subjects?.map((subject: Subject) => ({
-                key: subject.id,
-                value: subject.id,
-                text: (
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div 
-                      style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        backgroundColor: subject.color || '#666',
-                        marginRight: '8px'
-                      }}
-                    />
-                    {subject.name}
-                  </div>
-                )
-              })) || []}
-            />
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <GraduationCap className="w-5 h-5 text-primary" />
+              <span>Configuração da Sessão</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="subject-select">
+                Selecione a matéria para estudar:
+              </label>
+              <Select value={selectedSubject} onValueChange={setSelectedSubject} data-testid="select-study-subject">
+                <SelectTrigger id="subject-select">
+                  <SelectValue placeholder="Escolha uma matéria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects?.map((subject: Subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      <div className="flex items-center space-x-2">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: subject.color || '#666' }}
+                        />
+                        <span>{subject.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             
             {selectedSubject && (
-              <Message info style={{ marginTop: '1rem' }}>
-                <Icon>
-                  <FileText size={16} />
-                </Icon>
-                {materials?.length || 0} material{materials?.length !== 1 ? 's' : ''} disponível{materials?.length !== 1 ? 's' : ''}
-              </Message>
+              <Alert>
+                <FileText className="h-4 w-4" />
+                <AlertDescription>
+                  {materials?.length || 0} material{materials?.length !== 1 ? 's' : ''} disponível{materials?.length !== 1 ? 's' : ''}
+                </AlertDescription>
+              </Alert>
             )}
-          </div>
-        </Segment>
+          </CardContent>
+        </Card>
 
         {/* Study Methods */}
-        <div style={{ marginBottom: '2rem' }}>
-          <Header as='h2' className='section-title' style={{ marginBottom: '1.5rem' }}>
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-foreground mb-6">
             Métodos de Estudo
-          </Header>
-          <Grid columns={2} stackable>
-            <Grid.Column>
-              <Card 
-                className='nup-card-interactive hover-lift transition-smooth'
-                onClick={handleStartAiStudy}
-                data-testid="button-ai-study"
-                style={{ cursor: 'pointer', height: '100%' }}
-              >
-                <Card.Content>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div className='icon-container primary'>
-                        <Bot size={24} style={{ color: 'var(--nup-primary)' }} />
-                      </div>
-                      <div>
-                        <Card.Header className='card-title'>Questões IA</Card.Header>
-                        <Card.Description className='card-description'>
-                          Questões personalizadas geradas pela IA com base em seus materiais
-                        </Card.Description>
-                      </div>
-                    </div>
-                    <Icon>
-                      <Play size={20} style={{ color: 'var(--nup-text-tertiary)' }} />
-                    </Icon>
-                  </div>
-                </Card.Content>
-              </Card>
-            </Grid.Column>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ProfessionalCard
+              title="Questões IA"
+              description="Questões personalizadas geradas pela IA com base em seus materiais"
+              icon={<Bot className="w-6 h-6" />}
+              variant="elevated"
+              onClick={handleStartAiStudy}
+              className="cursor-pointer transition-all hover:shadow-md"
+              data-testid="button-ai-study"
+              actions={
+                <Play className="w-5 h-5 text-muted-foreground" />
+              }
+            />
             
-            <Grid.Column>
-              <Card 
-                className='nup-card-interactive transition-smooth'
-                onClick={() => toast({ title: "Em desenvolvimento", description: "Esta funcionalidade estará disponível em breve" })}
-                style={{ cursor: 'pointer', height: '100%', opacity: 0.75 }}
-              >
-                <Card.Content>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div className='icon-container success'>
-                        <BookOpen size={24} style={{ color: 'var(--nup-success)' }} />
-                      </div>
-                      <div>
-                        <Card.Header className='card-title'>Revisão de Conceitos</Card.Header>
-                        <Card.Description className='card-description'>
-                          Revise teoria e conceitos importantes das suas matérias
-                        </Card.Description>
-                      </div>
-                    </div>
-                    <Label size='mini' className='status-label'>Em breve</Label>
-                  </div>
-                </Card.Content>
-              </Card>
-            </Grid.Column>
+            <ProfessionalCard
+              title="Revisão de Conceitos"
+              description="Revise teoria e conceitos importantes das suas matérias"
+              icon={<BookOpen className="w-6 h-6" />}
+              variant="outline"
+              onClick={() => toast({ title: "Em desenvolvimento", description: "Esta funcionalidade estará disponível em breve" })}
+              className="cursor-pointer opacity-75 transition-all hover:opacity-90"
+              data-testid="button-concept-review"
+              actions={
+                <Badge variant="secondary" className="text-xs">Em breve</Badge>
+              }
+            />
             
-            <Grid.Column>
-              <Card 
-                className='nup-card-interactive transition-smooth'
-                onClick={() => toast({ title: "Em desenvolvimento", description: "Esta funcionalidade estará disponível em breve" })}
-                style={{ cursor: 'pointer', height: '100%', opacity: 0.75 }}
-              >
-                <Card.Content>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div className='icon-container info'>
-                        <BarChart3 size={24} style={{ color: 'var(--nup-info)' }} />
-                      </div>
-                      <div>
-                        <Card.Header className='card-title'>Flashcards</Card.Header>
-                        <Card.Description className='card-description'>
-                          Sistema de repetição espaçada para memorização eficiente
-                        </Card.Description>
-                      </div>
-                    </div>
-                    <Label size='mini' className='status-label'>Em breve</Label>
-                  </div>
-                </Card.Content>
-              </Card>
-            </Grid.Column>
+            <ProfessionalCard
+              title="Flashcards"
+              description="Sistema de repetição espaçada para memorização eficiente"
+              icon={<BarChart3 className="w-6 h-6" />}
+              variant="elevated"
+              onClick={() => window.location.href = '/flashcards'}
+              className="cursor-pointer transition-all hover:shadow-md"
+              data-testid="button-flashcards"
+              actions={
+                <Play className="w-5 h-5 text-muted-foreground" />
+              }
+            />
             
-            <Grid.Column>
-              <Card 
-                className='nup-card-interactive transition-smooth'
-                onClick={() => toast({ title: "Em desenvolvimento", description: "Esta funcionalidade estará disponível em breve" })}
-                style={{ cursor: 'pointer', height: '100%', opacity: 0.75 }}
-              >
-                <Card.Content>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div className='icon-container warning'>
-                        <Clock size={24} style={{ color: 'var(--nup-warning)' }} />
-                      </div>
-                      <div>
-                        <Card.Header className='card-title'>Simulados</Card.Header>
-                        <Card.Description className='card-description'>
-                          Provas completas para testar seu conhecimento
-                        </Card.Description>
-                      </div>
-                    </div>
-                    <Label size='mini' className='status-label'>Em breve</Label>
-                  </div>
-                </Card.Content>
-              </Card>
-            </Grid.Column>
-          </Grid>
+            <ProfessionalCard
+              title="Simulados"
+              description="Provas completas para testar seu conhecimento"
+              icon={<Clock className="w-6 h-6" />}
+              variant="outline"
+              onClick={() => toast({ title: "Em desenvolvimento", description: "Esta funcionalidade estará disponível em breve" })}
+              className="cursor-pointer opacity-75 transition-all hover:opacity-90"
+              data-testid="button-simulados"
+              actions={
+                <Badge variant="outline" className="text-xs">Em breve</Badge>
+              }
+            />
+          </div>
         </div>
 
         {/* Recent Sessions */}
-        <Segment className='nup-card-subtle'>
-          <Header as='h3' className='section-title'>
-            <Icon>
-              <History size={20} style={{ color: 'var(--nup-text-secondary)' }} />
-            </Icon>
-            <Header.Content>
-              Sessões Recentes
-            </Header.Content>
-          </Header>
-          
-          {!recentSessions?.length ? (
-            <div style={{ textAlign: 'center', padding: '3rem 0' }}>
-              <div className='empty-state-icon' style={{ marginBottom: '1rem' }}>
-                <History size={48} style={{ color: 'var(--nup-text-tertiary)' }} />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <History className="w-5 h-5 text-muted-foreground" />
+              <span>Sessões Recentes</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!recentSessions?.length ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <History className="w-12 h-12 text-muted-foreground mb-4" />
+                <h4 className="text-lg font-medium mb-2">
+                  Nenhuma sessão de estudo encontrada
+                </h4>
+                <p className="text-muted-foreground">
+                  Comece estudando para ver seu histórico aqui
+                </p>
               </div>
-              <Header as='h4' className='card-description' style={{ marginBottom: '0.5rem' }}>
-                Nenhuma sessão de estudo encontrada
-              </Header>
-              <p className='card-meta'>
-                Comece estudando para ver seu histórico aqui
-              </p>
-            </div>
-          ) : (
-            <div style={{ marginTop: '1.5rem' }}>
-              {recentSessions?.slice(0, 5).map((session: any) => {
-                const subject = subjects?.find((s: Subject) => s.id === session.subjectId);
-                return (
-                  <Segment key={session.id} className='session-item' style={{ marginBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div className={`icon-container ${session.completed ? 'success' : 'warning'}`}>
-                          {session.completed ? (
-                            <BarChart3 size={20} style={{ color: 'var(--nup-success)' }} />
-                          ) : (
-                            <Clock size={20} style={{ color: 'var(--nup-warning)' }} />
-                          )}
+            ) : (
+              <div className="space-y-3">
+                {recentSessions?.slice(0, 5).map((session: any) => {
+                  const subject = subjects?.find((s: Subject) => s.id === session.subjectId);
+                  return (
+                    <Card key={session.id} className="p-4 border-l-4" style={{
+                      borderLeftColor: session.completed ? '#10b981' : '#f59e0b'
+                    }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-2 rounded-lg ${
+                            session.completed 
+                              ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+                              : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400'
+                          }`}>
+                            {session.completed ? (
+                              <BarChart3 className="w-5 h-5" />
+                            ) : (
+                              <Clock className="w-5 h-5" />
+                            )}
+                          </div>
+                          <div>
+                            <h5 className="font-semibold text-foreground">
+                              {subject?.name || "Matéria não encontrada"}
+                            </h5>
+                            <p className="text-sm text-muted-foreground">
+                              {session.duration} min • {session.type}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <Header as='h5' className='card-title' style={{ margin: 0 }}>
-                            {subject?.name || "Matéria não encontrada"}
-                          </Header>
-                          <p className='card-description' style={{ margin: 0, fontSize: '13px' }}>
-                            {session.duration} min • {session.type}
+                        <div className="text-right">
+                          {session.completed && session.score && (
+                            <p className="text-sm font-semibold text-foreground">{session.score}%</p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(session.startedAt).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        {session.completed && session.score && (
-                          <p className='card-title' style={{ margin: 0, fontSize: '14px' }}>{session.score}%</p>
-                        )}
-                        <p className='card-meta' style={{ margin: 0, fontSize: '12px' }}>
-                          {new Date(session.startedAt).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                    </div>
-                  </Segment>
-                );
-              })}
-            </div>
-          )}
-        </Segment>
-      </Container>
-      
-      <FloatingSettings />
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       
       <AiStudyModal 
         isOpen={isAiStudyOpen}
         onClose={() => setIsAiStudyOpen(false)}
         subjectId={selectedSubject}
       />
-    </Container>
+    </ProfessionalShell>
   );
 }
