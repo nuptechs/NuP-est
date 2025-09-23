@@ -1086,6 +1086,27 @@ body {
   }
 }
 
+/* Single card row - for Chat IA only */
+.nup-cards-row-single {
+  display: grid !important;
+  gap: var(--spacing-lg) !important;
+  margin-top: var(--spacing-lg) !important;
+  justify-content: center !important;
+  
+  /* Center single card with max width */
+  grid-template-columns: 1fr !important;
+  max-width: 600px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+@media (max-width: 768px) {
+  .nup-cards-row-single {
+    margin-top: var(--spacing-md) !important;
+    max-width: 100% !important;
+  }
+}
+
 /* Ensure cards maintain consistent height */
 .nup-card-symmetric {
   height: 100% !important;

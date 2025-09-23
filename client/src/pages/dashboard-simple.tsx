@@ -371,8 +371,8 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Second row - 2 cards */}
-                  <div className="nup-cards-row-2">
+                  {/* Second row - 1 card (Chat IA only) */}
+                  <div className="nup-cards-row-single">
                     <div>
                       <Card 
                         className="nup-card nup-card--soft nup-card--warning nup-card-large transition-smooth hover-lift" 
@@ -403,71 +403,6 @@ export default function Dashboard() {
                         </Card.Content>
                       </Card>
                     </div>
-
-                    <div>
-                      <Card className="nup-card nup-card--soft nup-card--primary nup-card-compact">
-                        <Card.Content>
-                            <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
-                              <User style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
-                              Seu Perfil
-                            </Card.Header>
-                            
-                            <div style={{ textAlign: 'center' }}>
-                              <div style={{ 
-                                width: '64px', 
-                                height: '64px', 
-                                backgroundColor: 'var(--nup-primary)', 
-                                borderRadius: '50%', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                margin: '0 auto var(--spacing-md)' 
-                              }}>
-                                <User style={{ width: '32px', height: '32px', color: 'white' }} />
-                              </div>
-                              <Header as="h4" style={{ marginBottom: 'var(--spacing-xs)' }}>
-                                {user?.firstName || 'Estudante'}
-                              </Header>
-                              <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)' }}>
-                                {user?.studyProfile === 'disciplined' && 'Disciplinado'}
-                                {user?.studyProfile === 'undisciplined' && 'Flexível'}
-                                {user?.studyProfile === 'average' && 'Balanceado'}
-                                {!user?.studyProfile && 'Perfil não definido'}
-                              </p>
-                            </div>
-                            
-                            {stats && (
-                              <div style={{ marginTop: 'var(--spacing-md)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: 'var(--spacing-xs)' }}>
-                                  <span style={{ color: 'var(--nup-gray-600)' }}>Progresso das Metas</span>
-                                  <span style={{ fontWeight: '500' }}>{stats.goalProgress}%</span>
-                                </div>
-                                <Progress 
-                                  percent={parseInt(stats.goalProgress)} 
-                                  color="blue"
-                                  size="small"
-                                  style={{ marginBottom: 'var(--spacing-md)' }}
-                                />
-                              </div>
-                            )}
-                            
-                            <Button 
-                              fluid 
-                              size="small"
-                              style={{ 
-                                backgroundColor: 'var(--nup-primary)', 
-                                color: 'white',
-                                border: 'none'
-                              }}
-                              onClick={() => navigate('/setup')}
-                              data-testid="button-update-profile"
-                            >
-                              <Settings style={{ width: '16px', height: '16px', marginRight: '8px' }} />
-                              Atualizar Perfil
-                            </Button>
-                          </Card.Content>
-                        </Card>
-                    </div>
                   </div>
                 </div>
               )}
@@ -476,7 +411,7 @@ export default function Dashboard() {
         </div>
 
         {/* Content Overview */}
-        <Grid columns={2} stackable>
+        <Grid columns={3} stackable>
           {/* Recent Subjects */}
           <Grid.Column>
             <Card style={{ height: '100%' }}>
@@ -597,6 +532,73 @@ export default function Dashboard() {
                     data-testid="empty-goals"
                   />
                 )}
+              </Card.Content>
+            </Card>
+          </Grid.Column>
+
+          {/* User Profile */}
+          <Grid.Column>
+            <Card style={{ height: '100%' }}>
+              <Card.Content>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+                  <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                    <User style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
+                    Seu Perfil
+                  </Card.Header>
+                </div>
+                
+                <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>
+                  <div style={{ 
+                    width: '80px', 
+                    height: '80px', 
+                    backgroundColor: 'var(--nup-primary)', 
+                    borderRadius: '50%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    margin: '0 auto var(--spacing-md)' 
+                  }}>
+                    <User style={{ width: '40px', height: '40px', color: 'white' }} />
+                  </div>
+                  <Header as="h4" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                    {user?.firstName || 'Estudante'}
+                  </Header>
+                  <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)' }}>
+                    {user?.studyProfile === 'disciplined' && 'Disciplinado'}
+                    {user?.studyProfile === 'undisciplined' && 'Flexível'}
+                    {user?.studyProfile === 'average' && 'Balanceado'}
+                    {!user?.studyProfile && 'Perfil não definido'}
+                  </p>
+                </div>
+                
+                {stats && (
+                  <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: 'var(--spacing-xs)' }}>
+                      <span style={{ color: 'var(--nup-gray-600)' }}>Progresso das Metas</span>
+                      <span style={{ fontWeight: '500' }}>{stats.goalProgress}%</span>
+                    </div>
+                    <Progress 
+                      percent={parseInt(stats.goalProgress)} 
+                      color="blue"
+                      size="small"
+                    />
+                  </div>
+                )}
+                
+                <Button 
+                  fluid 
+                  size="small"
+                  style={{ 
+                    backgroundColor: 'var(--nup-primary)', 
+                    color: 'white',
+                    border: 'none'
+                  }}
+                  onClick={() => navigate('/setup')}
+                  data-testid="button-update-profile"
+                >
+                  <Settings style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                  Atualizar Perfil
+                </Button>
               </Card.Content>
             </Card>
           </Grid.Column>
