@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { Header } from 'semantic-ui-react';
 
 interface SectionHeaderProps {
   title: string;
@@ -16,24 +16,45 @@ export function SectionHeader({
   'data-testid': testId 
 }: SectionHeaderProps) {
   return (
-    <div className={cn("section-header mb-6", className)} data-testid={testId}>
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-1">
-          <h2 className="main-title text-2xl font-semibold text-foreground mb-2">
-            {title}
-          </h2>
-          {description && (
-            <p className="card-description text-muted-foreground">
-              {description}
-            </p>
-          )}
-        </div>
-        {action && (
-          <div className="flex-shrink-0">
-            {action}
-          </div>
+    <div 
+      className={`nup-section-header ${className}`} 
+      style={{ 
+        marginBottom: '2rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: '1rem'
+      }} 
+      data-testid={testId}
+    >
+      <div style={{ flex: 1 }}>
+        <Header 
+          as="h2" 
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            color: 'var(--nup-text-primary)',
+            marginBottom: '0.5rem'
+          }}
+        >
+          {title}
+        </Header>
+        {description && (
+          <p style={{ 
+            color: 'var(--nup-text-secondary)',
+            fontSize: '1rem',
+            margin: 0,
+            lineHeight: '1.5'
+          }}>
+            {description}
+          </p>
         )}
       </div>
+      {action && (
+        <div style={{ flexShrink: 0 }}>
+          {action}
+        </div>
+      )}
     </div>
   );
 }

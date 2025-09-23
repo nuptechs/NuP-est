@@ -1,6 +1,4 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Card, Button, Header } from 'semantic-ui-react';
 
 interface EmptyStateProps {
   icon: React.ReactNode;
@@ -23,28 +21,68 @@ export function EmptyState({
   'data-testid': testId 
 }: EmptyStateProps) {
   return (
-    <Card className={cn("text-center py-12", className)} data-testid={testId}>
-      <CardContent className="space-y-4">
-        <div className="flex justify-center text-6xl text-muted-foreground/50 mb-4">
+    <Card 
+      className={`nup-card ${className}`} 
+      style={{ 
+        textAlign: 'center',
+        padding: '3rem 2rem',
+        backgroundColor: 'var(--nup-bg-secondary)',
+        border: '1px solid var(--nup-border)',
+        borderRadius: '12px'
+      }} 
+      data-testid={testId}
+    >
+      <Card.Content>
+        <div 
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            fontSize: '3.5rem', 
+            color: 'var(--nup-text-tertiary)',
+            marginBottom: '1.5rem',
+            opacity: 0.6
+          }}
+        >
           {icon}
         </div>
-        <h3 className="card-title text-xl font-semibold text-foreground">
+        <Header 
+          as="h3" 
+          style={{
+            fontSize: '1.25rem',
+            fontWeight: '600',
+            color: 'var(--nup-text-primary)',
+            marginBottom: '0.75rem'
+          }}
+        >
           {title}
-        </h3>
-        <p className="card-description text-muted-foreground max-w-sm mx-auto">
+        </Header>
+        <p 
+          style={{ 
+            color: 'var(--nup-text-secondary)',
+            fontSize: '1rem',
+            lineHeight: '1.5',
+            maxWidth: '400px',
+            margin: '0 auto 1.5rem auto'
+          }}
+        >
           {description}
         </p>
         {action && (
-          <div className="pt-4">
+          <div style={{ paddingTop: '1rem' }}>
             <Button 
+              primary
               onClick={action.onClick}
+              style={{
+                backgroundColor: 'var(--nup-primary)',
+                color: 'white'
+              }}
               data-testid="empty-state-action"
             >
               {action.label}
             </Button>
           </div>
         )}
-      </CardContent>
+      </Card.Content>
     </Card>
   );
 }

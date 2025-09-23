@@ -1394,3 +1394,20 @@ body {
     color: var(--nup-gray-800) !important;
   }
 }
+
+/* === SKELETON LOADING ANIMATION === */
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.nup-skeleton {
+  background: linear-gradient(90deg, var(--nup-bg-tertiary) 25%, rgba(255,255,255,0.2) 37%, var(--nup-bg-tertiary) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}

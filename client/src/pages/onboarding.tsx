@@ -40,8 +40,8 @@ interface OnboardingData {
 
 const STEPS = [
   { id: 1, title: "Perfil Básico", icon: "user", color: "blue" },
-  { id: 2, title: "Dificuldades", icon: "brain", color: "purple" },
-  { id: 3, title: "Objetivos", icon: "target", color: "green" },
+  { id: 2, title: "Dificuldades", icon: "puzzle", color: "purple" },
+  { id: 3, title: "Objetivos", icon: "crosshairs", color: "green" },
   { id: 4, title: "Preferências", icon: "heart", color: "pink" },
   { id: 5, title: "Finalizar", icon: "star", color: "yellow" },
 ];
