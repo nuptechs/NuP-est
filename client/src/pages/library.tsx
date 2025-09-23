@@ -43,14 +43,14 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-row";
 import FloatingSettings from "@/components/FloatingSettings";
-import { 
-  ResponsiveHeader, 
-  ResponsiveButton, 
-  ResponsiveGrid, 
-  ResponsiveStatCard, 
-  ResponsiveSearch 
-} from "@/components/ui/responsive-components";
-import { useResponsiveText, responsiveTexts } from "@/hooks/useResponsiveText";
+// import { 
+//   ResponsiveHeader, 
+//   ResponsiveButton, 
+//   ResponsiveGrid, 
+//   ResponsiveStatCard, 
+//   ResponsiveSearch 
+// } from "@/components/ui/responsive-components";
+// import { useResponsiveText, responsiveTexts } from "@/hooks/useResponsiveText";
 import type { Subject, Material, KnowledgeArea } from "@shared/schema";
 
 // Navigation state types
@@ -256,7 +256,7 @@ export default function Library() {
     }
   };
 
-  const { getResponsiveText } = useResponsiveText();
+  // const { getResponsiveText } = useResponsiveText();
 
   const getTitle = () => {
     switch (navigation.level) {
@@ -267,30 +267,22 @@ export default function Library() {
     }
   };
 
+  // Helper functions for text content
   const getCreateButtonText = () => {
     switch (navigation.level) {
-      case 'areas': return getResponsiveText(responsiveTexts.library.buttons.newArea);
-      case 'subjects': return getResponsiveText(responsiveTexts.library.buttons.newSubject);
-      case 'materials': return getResponsiveText(responsiveTexts.library.buttons.newMaterial);
+      case 'areas': return 'Nova Área';
+      case 'subjects': return 'Nova Matéria';
+      case 'materials': return 'Novo Material';
       default: return 'Adicionar';
-    }
-  };
-
-  const getCreateButtonTextObject = () => {
-    switch (navigation.level) {
-      case 'areas': return responsiveTexts.library.buttons.newArea;
-      case 'subjects': return responsiveTexts.library.buttons.newSubject;
-      case 'materials': return responsiveTexts.library.buttons.newMaterial;
-      default: return { desktop: 'Adicionar' };
     }
   };
 
   const getSearchPlaceholder = () => {
     switch (navigation.level) {
-      case 'areas': return responsiveTexts.library.searchPlaceholder.areas;
-      case 'subjects': return responsiveTexts.library.searchPlaceholder.subjects;
-      case 'materials': return responsiveTexts.library.searchPlaceholder.materials;
-      default: return responsiveTexts.library.searchPlaceholder.areas;
+      case 'areas': return 'Buscar áreas...';
+      case 'subjects': return 'Buscar matérias...';
+      case 'materials': return 'Buscar materiais...';
+      default: return 'Buscar...';
     }
   };
 
@@ -341,28 +333,49 @@ export default function Library() {
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-bg)', padding: 'var(--spacing-lg)' }}>
       <Container>
         {/* Header Section */}
-        <div className="mb-xl">
-          <ResponsiveHeader 
-            page="library"
-            rightActions={
-              <>
-                <ResponsiveButton 
-                  textKey={responsiveTexts.library.uploadMaterial}
-                  icon={<Upload size={16} />}
-                  primary
-                  onClick={() => handleCreateNew('material')}
-                  testId="button-upload-material"
-                />
-                <ResponsiveButton 
-                  textKey={getCreateButtonTextObject()}
-                  icon={<Plus size={16} />}
-                  secondary
-                  onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
-                  testId="button-create-new"
-                />
-              </>
-            }
-          />
+        <div style={{ marginBottom: 'var(--spacing-xl)' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: 'var(--spacing-lg)',
+            flexWrap: 'wrap',
+            gap: 'var(--spacing-md)'
+          }}>
+            <div>
+              <Header as="h1" style={{ 
+                fontSize: '28px',
+                fontWeight: '700',
+                color: 'var(--nup-text-primary)',
+                marginBottom: 'var(--spacing-xs)'
+              }}>
+                Biblioteca
+              </Header>
+              <p style={{
+                color: 'var(--nup-text-secondary)',
+                fontSize: '16px',
+                margin: 0
+              }}>
+                Organize Materiais Por Áreas
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+              <Button 
+                primary
+                icon={<Upload size={16} />}
+                content="Upload"
+                onClick={() => handleCreateNew('material')}
+                data-testid="button-upload-material"
+              />
+              <Button 
+                secondary
+                icon={<Plus size={16} />}
+                content={navigation.level === 'areas' ? 'Nova Área' : navigation.level === 'subjects' ? 'Nova Matéria' : 'Novo Material'}
+                onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
+                data-testid="button-create-new"
+              />
+            </div>
+          </div>
           
           {/* Breadcrumb Navigation */}
           <div style={{ marginBottom: 'var(--spacing-lg)' }}>
@@ -386,12 +399,17 @@ export default function Library() {
           </div>
 
           {/* Search Bar */}
-          <ResponsiveSearch 
-            placeholder={getSearchPlaceholder()}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            testId="search-input"
-          />
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <Search
+              placeholder={navigation.level === 'areas' ? 'Buscar áreas...' : navigation.level === 'subjects' ? 'Buscar matérias...' : 'Buscar materiais...'}
+              value={searchQuery}
+              onSearchChange={(e, data) => setSearchQuery(data.value || '')}
+              showNoResults={false}
+              fluid
+              size="large"
+              data-testid="search-input"
+            />
+          </div>
         </div>
 
         {/* Stats Overview - only show on areas level */}
@@ -403,7 +421,7 @@ export default function Library() {
               data-testid="stats-header"
             />
             
-            <ResponsiveGrid columns={4} stackable>
+            <Grid columns={4} stackable>
               {areasLoading ? (
                 <>
                   <Grid.Column><SkeletonCard /></Grid.Column>
@@ -414,44 +432,44 @@ export default function Library() {
               ) : (
                 <>
                   <Grid.Column>
-                    <ResponsiveStatCard
+                    <StatCard
                       icon={<Folder style={{ width: '32px', height: '32px' }} />}
                       value={knowledgeAreas.length}
-                      labelKey={responsiveTexts.library.stats.labels.areas}
+                      label="Áreas"
                       variant="info"
-                      testId="stat-areas"
+                      data-testid="stat-areas"
                     />
                   </Grid.Column>
                   <Grid.Column>
-                    <ResponsiveStatCard
+                    <StatCard
                       icon={<BookOpen style={{ width: '32px', height: '32px' }} />}
                       value={subjects.length}
-                      labelKey={responsiveTexts.library.stats.labels.subjects}
+                      label="Matérias"
                       variant="success"
-                      testId="stat-subjects"
+                      data-testid="stat-subjects"
                     />
                   </Grid.Column>
                   <Grid.Column>
-                    <ResponsiveStatCard
+                    <StatCard
                       icon={<FileText style={{ width: '32px', height: '32px' }} />}
                       value="0"
-                      labelKey={responsiveTexts.library.stats.labels.materials}
+                      label="Materiais"
                       variant="warning"
-                      testId="stat-materials"
+                      data-testid="stat-materials"
                     />
                   </Grid.Column>
                   <Grid.Column>
-                    <ResponsiveStatCard
+                    <StatCard
                       icon={<Database style={{ width: '32px', height: '32px' }} />}
                       value="100%"
-                      labelKey={responsiveTexts.library.stats.labels.organization}
+                      label="Organização"
                       variant="primary"
-                      testId="stat-organization"
+                      data-testid="stat-organization"
                     />
                   </Grid.Column>
                 </>
               )}
-            </ResponsiveGrid>
+            </Grid>
           </div>
         )}
 
@@ -465,14 +483,14 @@ export default function Library() {
           
           <div style={{ marginTop: 'var(--spacing-md)' }}>
             {isCurrentLoading() ? (
-              <ResponsiveGrid columns={3} stackable>
+              <Grid columns={3} stackable>
                 <Grid.Column><SkeletonCard /></Grid.Column>
                 <Grid.Column><SkeletonCard /></Grid.Column>
                 <Grid.Column><SkeletonCard /></Grid.Column>
                 <Grid.Column><SkeletonCard /></Grid.Column>
                 <Grid.Column><SkeletonCard /></Grid.Column>
                 <Grid.Column><SkeletonCard /></Grid.Column>
-              </ResponsiveGrid>
+              </Grid>
             ) : currentData.length === 0 ? (
               <EmptyState
                 icon={React.createElement(getIcon(), { style: { width: '48px', height: '48px' } })}
@@ -485,7 +503,7 @@ export default function Library() {
                 data-testid={`empty-${navigation.level}`}
               />
             ) : (
-              <ResponsiveGrid columns={3} stackable>
+              <Grid columns={3} stackable>
                 {currentData
                   .filter((item: any) => 
                     searchQuery === '' || 
@@ -580,7 +598,7 @@ export default function Library() {
                       </Card>
                     </Grid.Column>
                   ))}
-              </ResponsiveGrid>
+              </Grid>
             )}
           </div>
         </div>
