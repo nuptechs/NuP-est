@@ -140,11 +140,15 @@ export default function OnboardingPage() {
       }, 1000);
     },
     onError: () => {
+      setIsLoading(false);
       toast({
         variant: "destructive",
         title: "Erro ao salvar perfil",
         description: "Tente novamente em alguns instantes.",
       });
+    },
+    onSettled: () => {
+      setIsLoading(false);
     },
   });
 
