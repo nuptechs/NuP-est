@@ -348,16 +348,16 @@ export default function Library() {
               <>
                 <ResponsiveButton 
                   textKey={responsiveTexts.library.uploadMaterial}
-                  icon="upload"
+                  icon={<Upload size={16} />}
                   primary
                   onClick={() => handleCreateNew('material')}
                   testId="button-upload-material"
                 />
                 <ResponsiveButton 
                   textKey={getCreateButtonTextObject()}
-                  icon="plus"
+                  icon={<Plus size={16} />}
                   secondary
-                  onClick={() => handleCreateNew(createType)}
+                  onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
                   testId="button-create-new"
                 />
               </>
