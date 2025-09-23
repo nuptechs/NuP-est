@@ -2,21 +2,24 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ArrowLeft, ArrowRight, Sparkles, BookOpen, Target, Clock, Brain, Heart, LayoutDashboard } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { 
+  Container, 
+  Card, 
+  Button, 
+  Input, 
+  Checkbox, 
+  Dropdown, 
+  Form, 
+  Header, 
+  Icon, 
+  Step, 
+  Segment, 
+  Grid, 
+  Progress,
+  Message
+} from "semantic-ui-react";
+import { ArrowLeft, ArrowRight, Sparkles, BookOpen, Target, Clock, Brain, Heart, LayoutDashboard } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { User } from "@shared/schema";
 
@@ -36,11 +39,11 @@ interface OnboardingData {
 }
 
 const STEPS = [
-  { id: 1, title: "Perfil Básico", icon: BookOpen, color: "bg-blue-500" },
-  { id: 2, title: "Dificuldades", icon: Brain, color: "bg-purple-500" },
-  { id: 3, title: "Objetivos", icon: Target, color: "bg-green-500" },
-  { id: 4, title: "Preferências", icon: Heart, color: "bg-pink-500" },
-  { id: 5, title: "Finalizar", icon: Sparkles, color: "bg-yellow-500" },
+  { id: 1, title: "Perfil Básico", icon: "user", color: "blue" },
+  { id: 2, title: "Dificuldades", icon: "brain", color: "purple" },
+  { id: 3, title: "Objetivos", icon: "target", color: "green" },
+  { id: 4, title: "Preferências", icon: "heart", color: "pink" },
+  { id: 5, title: "Finalizar", icon: "star", color: "yellow" },
 ];
 
 const LEARNING_DIFFICULTIES = [
@@ -76,8 +79,8 @@ export default function OnboardingPage() {
 
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [message, setMessage] = useState<{type: 'success' | 'error', content: string} | null>(null);
   
   // Detectar se está em modo de edição
   const isEditMode = new URLSearchParams(window.location.search).get('mode') === 'edit';
@@ -95,10 +98,10 @@ export default function OnboardingPage() {
         age: currentUserData.age || undefined,
         studyProfile: currentUserData.studyProfile || "average",
         learningDifficulties: currentUserData.learningDifficulties || [],
-        customDifficulties: currentUserData.customDifficulties,
-        studyObjective: currentUserData.studyObjective,
+        customDifficulties: currentUserData.customDifficulties || undefined,
+        studyObjective: currentUserData.studyObjective || undefined,
         studyDeadline: currentUserData.studyDeadline ? new Date(currentUserData.studyDeadline) : undefined,
-        dailyStudyHours: currentUserData.dailyStudyHours,
+        dailyStudyHours: currentUserData.dailyStudyHours || undefined,
         preferredStudyTime: currentUserData.preferredStudyTime || "flexible",
         learningStyle: currentUserData.learningStyle || "mixed",
         preferredExplanationStyle: currentUserData.preferredExplanationStyle || "balanced",
@@ -132,9 +135,9 @@ export default function OnboardingPage() {
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
       
-      toast({
-        title: "Perfil configurado com sucesso!",
-        description: "Agora você terá uma experiência de estudo personalizada.",
+      setMessage({
+        type: 'success',
+        content: 'Perfil configurado com sucesso! Agora você terá uma experiência de estudo personalizada.'
       });
       
       // Aguarda um momento para garantir que o estado seja atualizado
@@ -143,10 +146,9 @@ export default function OnboardingPage() {
       }, 100);
     },
     onError: () => {
-      toast({
-        title: "Erro ao salvar perfil",
-        description: "Tente novamente em alguns instantes.",
-        variant: "destructive",
+      setMessage({
+        type: 'error',
+        content: 'Erro ao salvar perfil. Tente novamente em alguns instantes.'
       });
     },
   });
@@ -180,14 +182,21 @@ export default function OnboardingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
+            style={{ padding: '2rem 0' }}
           >
-            <div className="text-center space-y-2">
-              <BookOpen className="h-12 w-12 text-blue-500 mx-auto" />
-              <h2 className="text-2xl font-bold">
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <BookOpen 
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  color: 'var(--nup-primary)', 
+                  margin: '0 auto 1rem' 
+                }} 
+              />
+              <Header as="h2" style={{ marginBottom: '0.5rem', color: 'var(--nup-text-primary)' }}>
                 {isEditMode ? "Atualize seu perfil" : "Vamos conhecer você!"}
-              </h2>
-              <p className="text-muted-foreground">
+              </Header>
+              <p style={{ color: 'var(--nup-text-secondary)', fontSize: '1rem' }}>
                 {isEditMode 
                   ? "Revise e atualize suas informações de estudante"
                   : "Conte-nos um pouco sobre seu perfil de estudante"
@@ -195,32 +204,43 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="age">Idade (opcional)</Label>
+            <Form>
+              <Form.Field style={{ marginBottom: '1.5rem' }}>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Idade (opcional)</label>
                 <Input
-                  id="age"
                   type="number"
                   value={data.age || ""}
                   onChange={(e) => updateData("age", parseInt(e.target.value) || undefined)}
                   placeholder="Ex: 18"
+                  style={{ 
+                    backgroundColor: 'var(--nup-bg-secondary)',
+                    border: '1px solid var(--nup-border)',
+                    color: 'var(--nup-text-primary)'
+                  }}
+                  data-testid="input-age"
                 />
-              </div>
+              </Form.Field>
 
-              <div>
-                <Label>Como você se considera como estudante?</Label>
-                <Select value={data.studyProfile} onValueChange={(value) => updateData("studyProfile", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="disciplined">Disciplinado - Tenho rotina fixa e sigo cronogramas</SelectItem>
-                    <SelectItem value="average">Moderado - Estudo quando possível</SelectItem>
-                    <SelectItem value="undisciplined">Flexível - Prefiro estudar quando sinto vontade</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+              <Form.Field>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Como você se considera como estudante?</label>
+                <Dropdown
+                  selection
+                  fluid
+                  value={data.studyProfile}
+                  onChange={(e, { value }) => updateData("studyProfile", value)}
+                  options={[
+                    { key: 'disciplined', value: 'disciplined', text: 'Disciplinado - Tenho rotina fixa e sigo cronogramas' },
+                    { key: 'average', value: 'average', text: 'Moderado - Estudo quando possível' },
+                    { key: 'undisciplined', value: 'undisciplined', text: 'Flexível - Prefiro estudar quando sinto vontade' }
+                  ]}
+                  style={{ 
+                    backgroundColor: 'var(--nup-bg-secondary)',
+                    color: 'var(--nup-text-primary)'
+                  }}
+                  data-testid="dropdown-study-profile"
+                />
+              </Form.Field>
+            </Form>
           </motion.div>
         );
 
@@ -230,14 +250,21 @@ export default function OnboardingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
+            style={{ padding: '2rem 0' }}
           >
-            <div className="text-center space-y-2">
-              <Brain className="h-12 w-12 text-purple-500 mx-auto" />
-              <h2 className="text-2xl font-bold">
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <Brain 
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  color: '#9333ea', 
+                  margin: '0 auto 1rem' 
+                }} 
+              />
+              <Header as="h2" style={{ marginBottom: '0.5rem', color: 'var(--nup-text-primary)' }}>
                 {isEditMode ? "Atualize suas dificuldades" : "Desafios de Aprendizado"}
-              </h2>
-              <p className="text-muted-foreground">
+              </Header>
+              <p style={{ color: 'var(--nup-text-secondary)', fontSize: '1rem' }}>
                 {isEditMode 
                   ? "Revise suas dificuldades de aprendizado atuais"
                   : "Conhecer suas dificuldades nos ajuda a personalizar sua experiência"
@@ -245,41 +272,49 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            <div className="space-y-4">
-              <Label>Marque todas as dificuldades que se aplicam a você:</Label>
-              <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
-                {LEARNING_DIFFICULTIES.map((difficulty) => (
-                  <div key={difficulty.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={difficulty.value}
-                      checked={data.learningDifficulties.includes(difficulty.value)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateData("learningDifficulties", [...data.learningDifficulties, difficulty.value]);
-                        } else {
-                          updateData("learningDifficulties", data.learningDifficulties.filter(d => d !== difficulty.value));
-                        }
-                      }}
-                    />
-                    <Label htmlFor={difficulty.value} className="text-sm leading-5">
-                      {difficulty.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+            <Form>
+              <Form.Field>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '1rem', display: 'block' }}>Marque todas as dificuldades que se aplicam a você:</label>
+                <div style={{ maxHeight: '320px', overflowY: 'auto', padding: '0.5rem' }}>
+                  {LEARNING_DIFFICULTIES.map((difficulty) => (
+                    <div key={difficulty.value} style={{ marginBottom: '0.75rem' }}>
+                      <Checkbox
+                        label={difficulty.label}
+                        checked={data.learningDifficulties.includes(difficulty.value)}
+                        onChange={(e, { checked }) => {
+                          if (checked) {
+                            updateData("learningDifficulties", [...data.learningDifficulties, difficulty.value]);
+                          } else {
+                            updateData("learningDifficulties", data.learningDifficulties.filter(d => d !== difficulty.value));
+                          }
+                        }}
+                        style={{ 
+                          color: 'var(--nup-text-primary)'
+                        }}
+                        data-testid={`checkbox-difficulty-${difficulty.value}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </Form.Field>
 
               {data.learningDifficulties.includes("other") && (
-                <div>
-                  <Label htmlFor="customDifficulties">Descreva suas dificuldades específicas:</Label>
-                  <Textarea
-                    id="customDifficulties"
+                <Form.Field style={{ marginTop: '1.5rem' }}>
+                  <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Descreva suas dificuldades específicas:</label>
+                  <Form.TextArea
                     value={data.customDifficulties || ""}
-                    onChange={(e) => updateData("customDifficulties", e.target.value)}
+                    onChange={(e, { value }) => updateData("customDifficulties", value as string)}
                     placeholder="Descreva suas dificuldades específicas..."
+                    style={{ 
+                      backgroundColor: 'var(--nup-bg-secondary)',
+                      border: '1px solid var(--nup-border)',
+                      color: 'var(--nup-text-primary)'
+                    }}
+                    data-testid="textarea-custom-difficulties"
                   />
-                </div>
+                </Form.Field>
               )}
-            </div>
+            </Form>
           </motion.div>
         );
 
@@ -289,14 +324,21 @@ export default function OnboardingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
+            style={{ padding: '2rem 0' }}
           >
-            <div className="text-center space-y-2">
-              <Target className="h-12 w-12 text-green-500 mx-auto" />
-              <h2 className="text-2xl font-bold">
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <Target 
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  color: '#10b981', 
+                  margin: '0 auto 1rem' 
+                }} 
+              />
+              <Header as="h2" style={{ marginBottom: '0.5rem', color: 'var(--nup-text-primary)' }}>
                 {isEditMode ? "Atualize seus objetivos" : "Seus Objetivos"}
-              </h2>
-              <p className="text-muted-foreground">
+              </Header>
+              <p style={{ color: 'var(--nup-text-secondary)', fontSize: '1rem' }}>
                 {isEditMode 
                   ? "Revise seus objetivos e metas de estudo"
                   : "Vamos alinhar seus estudos com seus objetivos"
@@ -304,86 +346,89 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <Label>Qual é seu principal objetivo de estudos?</Label>
-                <Select value={data.studyObjective || ""} onValueChange={(value) => updateData("studyObjective", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione seu objetivo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STUDY_OBJECTIVES.map((objective) => (
-                      <SelectItem key={objective} value={objective}>
-                        {objective}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <Form>
+              <Form.Field style={{ marginBottom: '1.5rem' }}>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Qual é seu principal objetivo de estudos?</label>
+                <Dropdown
+                  selection
+                  fluid
+                  placeholder="Selecione seu objetivo"
+                  value={data.studyObjective || ""}
+                  onChange={(e, { value }) => updateData("studyObjective", value)}
+                  options={STUDY_OBJECTIVES.map(objective => ({
+                    key: objective,
+                    value: objective,
+                    text: objective
+                  }))}
+                  style={{ 
+                    backgroundColor: 'var(--nup-bg-secondary)',
+                    color: 'var(--nup-text-primary)'
+                  }}
+                  data-testid="dropdown-study-objective"
+                />
+              </Form.Field>
 
-              <div>
-                <Label>Você tem uma data limite? (opcional)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !data.studyDeadline && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {data.studyDeadline ? format(data.studyDeadline, "dd/MM/yyyy") : "Selecione uma data"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={data.studyDeadline}
-                      onSelect={(date) => updateData("studyDeadline", date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+              <Form.Field style={{ marginBottom: '1.5rem' }}>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Você tem uma data limite? (opcional)</label>
+                <Input
+                  type="date"
+                  value={data.studyDeadline ? data.studyDeadline.toISOString().split('T')[0] : ""}
+                  onChange={(e) => updateData("studyDeadline", e.target.value ? new Date(e.target.value) : undefined)}
+                  style={{ 
+                    backgroundColor: 'var(--nup-bg-secondary)',
+                    border: '1px solid var(--nup-border)',
+                    color: 'var(--nup-text-primary)'
+                  }}
+                  data-testid="input-deadline"
+                />
+              </Form.Field>
 
-              <div>
-                <Label>Quantas horas por dia você pode estudar?</Label>
-                <div className="px-3 py-2">
-                  <Slider
-                    value={[data.dailyStudyHours || 2]}
-                    onValueChange={([value]) => updateData("dailyStudyHours", value)}
-                    max={12}
-                    min={0.5}
-                    step={0.5}
-                    className="w-full"
+              <Form.Field style={{ marginBottom: '1.5rem' }}>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Quantas horas por dia você pode estudar?</label>
+                <div style={{ padding: '1rem 0' }}>
+                  <Input
+                    type="range"
+                    min="0.5"
+                    max="12"
+                    step="0.5"
+                    value={data.dailyStudyHours || 2}
+                    onChange={(e) => updateData("dailyStudyHours", parseFloat(e.target.value))}
+                    style={{ width: '100%', marginBottom: '0.5rem' }}
+                    data-testid="slider-study-hours"
                   />
-                  <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--nup-text-secondary)' }}>
                     <span>30min</span>
-                    <span className="font-medium text-foreground">
+                    <span style={{ fontWeight: '500', color: 'var(--nup-text-primary)' }}>
                       {data.dailyStudyHours || 2}h
                     </span>
                     <span>12h</span>
                   </div>
                 </div>
-              </div>
+              </Form.Field>
 
-              <div>
-                <Label>Qual seu horário preferido para estudar?</Label>
-                <Select value={data.preferredStudyTime || ""} onValueChange={(value) => updateData("preferredStudyTime", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o horário" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="morning">Manhã (6h - 12h)</SelectItem>
-                    <SelectItem value="afternoon">Tarde (12h - 18h)</SelectItem>
-                    <SelectItem value="evening">Noite (18h - 22h)</SelectItem>
-                    <SelectItem value="late_night">Madrugada (22h - 6h)</SelectItem>
-                    <SelectItem value="flexible">Flexível</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+              <Form.Field>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Qual seu horário preferido para estudar?</label>
+                <Dropdown
+                  selection
+                  fluid
+                  placeholder="Selecione o horário"
+                  value={data.preferredStudyTime || ""}
+                  onChange={(e, { value }) => updateData("preferredStudyTime", value)}
+                  options={[
+                    { key: 'morning', value: 'morning', text: 'Manhã (6h - 12h)' },
+                    { key: 'afternoon', value: 'afternoon', text: 'Tarde (12h - 18h)' },
+                    { key: 'evening', value: 'evening', text: 'Noite (18h - 22h)' },
+                    { key: 'late_night', value: 'late_night', text: 'Madrugada (22h - 6h)' },
+                    { key: 'flexible', value: 'flexible', text: 'Flexível' }
+                  ]}
+                  style={{ 
+                    backgroundColor: 'var(--nup-bg-secondary)',
+                    color: 'var(--nup-text-primary)'
+                  }}
+                  data-testid="dropdown-study-time"
+                />
+              </Form.Field>
+            </Form>
           </motion.div>
         );
 
@@ -393,14 +438,21 @@ export default function OnboardingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
+            style={{ padding: '2rem 0' }}
           >
-            <div className="text-center space-y-2">
-              <Heart className="h-12 w-12 text-pink-500 mx-auto" />
-              <h2 className="text-2xl font-bold">
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <Heart 
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  color: '#ec4899', 
+                  margin: '0 auto 1rem' 
+                }} 
+              />
+              <Header as="h2" style={{ marginBottom: '0.5rem', color: 'var(--nup-text-primary)' }}>
                 {isEditMode ? "Atualize suas preferências" : "Suas Preferências"}
-              </h2>
-              <p className="text-muted-foreground">
+              </Header>
+              <p style={{ color: 'var(--nup-text-secondary)', fontSize: '1rem' }}>
                 {isEditMode 
                   ? "Revise como você prefere aprender e estudar"
                   : "Como você prefere aprender?"
@@ -408,63 +460,77 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <Label>Qual seu estilo de aprendizado?</Label>
-                <Select value={data.learningStyle} onValueChange={(value) => updateData("learningStyle", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="visual">Visual - Prefiro gráficos, diagramas e imagens</SelectItem>
-                    <SelectItem value="auditory">Auditivo - Prefiro ouvir explicações e discussões</SelectItem>
-                    <SelectItem value="kinesthetic">Cinestésico - Aprendo fazendo e praticando</SelectItem>
-                    <SelectItem value="reading_writing">Leitura/Escrita - Prefiro textos e anotações</SelectItem>
-                    <SelectItem value="mixed">Misto - Combino diferentes estilos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <Form>
+              <Form.Field style={{ marginBottom: '1.5rem' }}>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Qual seu estilo de aprendizado?</label>
+                <Dropdown
+                  selection
+                  fluid
+                  value={data.learningStyle}
+                  onChange={(e, { value }) => updateData("learningStyle", value)}
+                  options={[
+                    { key: 'visual', value: 'visual', text: 'Visual - Prefiro gráficos, diagramas e imagens' },
+                    { key: 'auditory', value: 'auditory', text: 'Auditivo - Prefiro ouvir explicações e discussões' },
+                    { key: 'kinesthetic', value: 'kinesthetic', text: 'Cinestésico - Aprendo fazendo e praticando' },
+                    { key: 'reading_writing', value: 'reading_writing', text: 'Leitura/Escrita - Prefiro textos e anotações' },
+                    { key: 'mixed', value: 'mixed', text: 'Misto - Combino diferentes estilos' }
+                  ]}
+                  style={{ 
+                    backgroundColor: 'var(--nup-bg-secondary)',
+                    color: 'var(--nup-text-primary)'
+                  }}
+                  data-testid="dropdown-learning-style"
+                />
+              </Form.Field>
 
-              <div>
-                <Label>Como prefere as explicações?</Label>
-                <Select value={data.preferredExplanationStyle} onValueChange={(value) => updateData("preferredExplanationStyle", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="simple">Simples - Linguagem clara e direta</SelectItem>
-                    <SelectItem value="detailed">Detalhada - Explicações completas e minuciosas</SelectItem>
-                    <SelectItem value="practical">Prática - Focada em aplicações reais</SelectItem>
-                    <SelectItem value="theoretical">Teórica - Com fundamentos e conceitos</SelectItem>
-                    <SelectItem value="balanced">Equilibrada - Mix de teoria e prática</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Form.Field style={{ marginBottom: '1.5rem' }}>
+                <label style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem', display: 'block' }}>Como prefere as explicações?</label>
+                <Dropdown
+                  selection
+                  fluid
+                  value={data.preferredExplanationStyle}
+                  onChange={(e, { value }) => updateData("preferredExplanationStyle", value)}
+                  options={[
+                    { key: 'simple', value: 'simple', text: 'Simples - Linguagem clara e direta' },
+                    { key: 'detailed', value: 'detailed', text: 'Detalhada - Explicações completas e minuciosas' },
+                    { key: 'practical', value: 'practical', text: 'Prática - Focada em aplicações reais' },
+                    { key: 'theoretical', value: 'theoretical', text: 'Teórica - Com fundamentos e conceitos' },
+                    { key: 'balanced', value: 'balanced', text: 'Equilibrada - Mix de teoria e prática' }
+                  ]}
+                  style={{ 
+                    backgroundColor: 'var(--nup-bg-secondary)',
+                    color: 'var(--nup-text-primary)'
+                  }}
+                  data-testid="dropdown-explanation-style"
+                />
+              </Form.Field>
 
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
+              <Form.Field>
+                <div style={{ marginBottom: '0.75rem' }}>
                   <Checkbox
-                    id="needsMotivation"
+                    label="Preciso de motivação e encorajamento constante"
                     checked={data.needsMotivation}
-                    onCheckedChange={(checked) => updateData("needsMotivation", checked)}
+                    onChange={(e, { checked }) => updateData("needsMotivation", checked)}
+                    style={{ 
+                      color: 'var(--nup-text-primary)'
+                    }}
+                    data-testid="checkbox-needs-motivation"
                   />
-                  <Label htmlFor="needsMotivation">
-                    Preciso de motivação e encorajamento constante
-                  </Label>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div>
                   <Checkbox
-                    id="prefersExamples"
+                    label="Prefiro aprender com exemplos práticos"
                     checked={data.prefersExamples}
-                    onCheckedChange={(checked) => updateData("prefersExamples", checked)}
+                    onChange={(e, { checked }) => updateData("prefersExamples", checked)}
+                    style={{ 
+                      color: 'var(--nup-text-primary)'
+                    }}
+                    data-testid="checkbox-prefers-examples"
                   />
-                  <Label htmlFor="prefersExamples">
-                    Prefiro aprender com exemplos práticos
-                  </Label>
                 </div>
-              </div>
-            </div>
+              </Form.Field>
+            </Form>
           </motion.div>
         );
 
@@ -474,61 +540,94 @@ export default function OnboardingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
+            style={{ padding: '2rem 0' }}
           >
-            <div className="text-center space-y-2">
-              <Sparkles className="h-12 w-12 text-yellow-500 mx-auto" />
-              <h2 className="text-2xl font-bold">Tudo Pronto!</h2>
-              <p className="text-muted-foreground">
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <Sparkles 
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  color: '#eab308', 
+                  margin: '0 auto 1rem' 
+                }} 
+              />
+              <Header as="h2" style={{ marginBottom: '0.5rem', color: 'var(--nup-text-primary)' }}>Tudo Pronto!</Header>
+              <p style={{ color: 'var(--nup-text-secondary)', fontSize: '1rem' }}>
                 Seu perfil personalizado está configurado
               </p>
             </div>
 
-            <div className="bg-muted/50 rounded-lg p-6 space-y-4">
-              <h3 className="font-semibold text-lg">Resumo do seu perfil:</h3>
+            <Segment 
+              style={{ 
+                backgroundColor: 'var(--nup-bg-tertiary)', 
+                border: '1px solid var(--nup-border)',
+                borderRadius: '8px',
+                padding: '1.5rem',
+                marginBottom: '2rem'
+              }}
+            >
+              <Header as="h3" style={{ marginBottom: '1rem', color: 'var(--nup-text-primary)' }}>Resumo do seu perfil:</Header>
               
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Idade:</span>
-                  <span className="ml-2">{data.age || "Não informado"}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Perfil:</span>
-                  <span className="ml-2">
-                    {data.studyProfile === "disciplined" ? "Disciplinado" :
-                     data.studyProfile === "average" ? "Moderado" : "Flexível"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium">Objetivo:</span>
-                  <span className="ml-2">{data.studyObjective || "Não informado"}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Horas diárias:</span>
-                  <span className="ml-2">{data.dailyStudyHours || 2}h</span>
-                </div>
-                <div>
-                  <span className="font-medium">Estilo:</span>
-                  <span className="ml-2">
-                    {data.learningStyle === "visual" ? "Visual" :
-                     data.learningStyle === "auditory" ? "Auditivo" :
-                     data.learningStyle === "kinesthetic" ? "Cinestésico" :
-                     data.learningStyle === "reading_writing" ? "Leitura/Escrita" : "Misto"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium">Dificuldades:</span>
-                  <span className="ml-2">
-                    {data.learningDifficulties.length > 0 ? 
-                      data.learningDifficulties.length === 1 && data.learningDifficulties[0] === "none" ? 
-                        "Nenhuma" : `${data.learningDifficulties.length} selecionadas`
-                      : "Nenhuma"}
-                  </span>
-                </div>
-              </div>
-            </div>
+              <Grid columns={2} stackable>
+                <Grid.Row>
+                  <Grid.Column>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <strong style={{ color: 'var(--nup-text-primary)' }}>Idade:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--nup-text-secondary)' }}>{data.age || "Não informado"}</span>
+                    </div>
+                  </Grid.Column>
+                  <Grid.Column>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <strong style={{ color: 'var(--nup-text-primary)' }}>Perfil:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--nup-text-secondary)' }}>
+                        {data.studyProfile === "disciplined" ? "Disciplinado" :
+                         data.studyProfile === "average" ? "Moderado" : "Flexível"}
+                      </span>
+                    </div>
+                  </Grid.Column>
+                </Grid.Row>
+                <Grid.Row>
+                  <Grid.Column>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <strong style={{ color: 'var(--nup-text-primary)' }}>Objetivo:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--nup-text-secondary)' }}>{data.studyObjective || "Não informado"}</span>
+                    </div>
+                  </Grid.Column>
+                  <Grid.Column>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <strong style={{ color: 'var(--nup-text-primary)' }}>Horas diárias:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--nup-text-secondary)' }}>{data.dailyStudyHours || 2}h</span>
+                    </div>
+                  </Grid.Column>
+                </Grid.Row>
+                <Grid.Row>
+                  <Grid.Column>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <strong style={{ color: 'var(--nup-text-primary)' }}>Estilo:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--nup-text-secondary)' }}>
+                        {data.learningStyle === "visual" ? "Visual" :
+                         data.learningStyle === "auditory" ? "Auditivo" :
+                         data.learningStyle === "kinesthetic" ? "Cinestésico" :
+                         data.learningStyle === "reading_writing" ? "Leitura/Escrita" : "Misto"}
+                      </span>
+                    </div>
+                  </Grid.Column>
+                  <Grid.Column>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <strong style={{ color: 'var(--nup-text-primary)' }}>Dificuldades:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--nup-text-secondary)' }}>
+                        {data.learningDifficulties.length > 0 ? 
+                          data.learningDifficulties.length === 1 && data.learningDifficulties[0] === "none" ? 
+                            "Nenhuma" : `${data.learningDifficulties.length} selecionadas`
+                          : "Nenhuma"}
+                      </span>
+                    </div>
+                  </Grid.Column>
+                </Grid.Row>
+              </Grid>
+            </Segment>
 
-            <div className="text-center text-sm text-muted-foreground">
+            <div style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--nup-text-tertiary)' }}>
               Você pode alterar essas configurações a qualquer momento em seu perfil.
             </div>
           </motion.div>
@@ -540,108 +639,144 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900">
+    <div className="nup-shell" style={{ minHeight: '100vh', backgroundColor: 'var(--nup-bg-primary)' }}>
       {/* Dashboard Icon - Bottom Left */}
       <Button
-        variant="ghost"
-        size="sm"
+        circular
+        icon
         onClick={() => window.location.href = '/dashboard'}
-        className="fixed bottom-4 left-4 z-50 p-2 h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg transition-all duration-200 hover:scale-105"
+        style={{
+          position: 'fixed',
+          bottom: '1rem',
+          left: '1rem',
+          zIndex: 50,
+          backgroundColor: 'var(--nup-primary)',
+          color: 'white',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          transition: 'all 0.2s ease'
+        }}
         data-testid="button-dashboard"
       >
-        <LayoutDashboard className="h-4 w-4 text-white" />
+        <LayoutDashboard style={{ width: '16px', height: '16px' }} />
       </Button>
       
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <Container style={{ padding: '2rem 1rem' }}>
         {/* Progress Header */}
-        <div className="max-w-4xl mx-auto mb-6 sm:mb-8 mt-6 sm:mt-4">
-          <div className="flex items-center justify-center sm:justify-between mb-4 overflow-x-auto pb-2">
-            {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center flex-shrink-0">
-                <div
-                  className={cn(
-                    "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-semibold",
-                    currentStep >= step.id ? step.color : "bg-gray-300",
-                    currentStep === step.id && "ring-2 sm:ring-4 ring-white shadow-lg scale-105 sm:scale-110"
-                  )}
-                >
-                  <step.icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                </div>
-                {index < STEPS.length - 1 && (
-                  <div
-                    className={cn(
-                      "h-1 w-8 sm:w-16 mx-1 sm:mx-2",
-                      currentStep > step.id ? "bg-green-400" : "bg-gray-300"
-                    )}
-                  />
-                )}
-              </div>
+        <div style={{ maxWidth: '900px', margin: '0 auto', marginBottom: '2rem' }}>
+          <Step.Group fluid size="small" style={{ marginBottom: '2rem' }}>
+            {STEPS.map((step) => (
+              <Step
+                key={step.id}
+                active={currentStep === step.id}
+                completed={currentStep > step.id}
+                style={{
+                  backgroundColor: currentStep >= step.id ? 'var(--nup-primary)' : 'var(--nup-bg-secondary)',
+                  color: currentStep >= step.id ? 'white' : 'var(--nup-text-secondary)'
+                }}
+              >
+                <Icon name={step.icon as any} style={{ fontSize: '1rem' }} />
+                <Step.Content>
+                  <Step.Title style={{ fontSize: '0.875rem' }}>{step.title}</Step.Title>
+                </Step.Content>
+              </Step>
             ))}
-          </div>
-          <div className="text-center">
-            <p className="text-xs sm:text-sm text-muted-foreground">
+          </Step.Group>
+          
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <Header as="h1" style={{ color: 'var(--nup-text-primary)', marginBottom: '0.5rem' }}>
               Etapa {currentStep} de {STEPS.length}: {STEPS[currentStep - 1]?.title}
-            </p>
+            </Header>
+            {isEditMode ? (
+              <p style={{ color: 'var(--nup-text-secondary)' }}>
+                Bem-vindo ao NuP-Study!
+              </p>
+            ) : (
+              <p style={{ color: 'var(--nup-text-secondary)' }}>
+                Vamos personalizar sua experiência de estudos
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="max-w-2xl mx-auto">
-          <Card className="shadow-xl border-0">
-            <CardHeader className="text-center px-4 sm:px-6">
-              <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Bem-vindo ao NuP-Study!
-              </CardTitle>
-              <CardDescription className="text-base sm:text-lg">
-                Vamos personalizar sua experiência de estudos
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6">
+        {/* Main Card */}
+        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+          <Card 
+            className="nup-card" 
+            style={{ 
+              backgroundColor: 'var(--nup-bg-secondary)',
+              border: '1px solid var(--nup-border)',
+              borderRadius: '12px',
+              minHeight: '500px',
+              padding: '2rem'
+            }}
+          >
+            <Card.Content>
               <AnimatePresence mode="wait">
                 {renderStep()}
               </AnimatePresence>
-
-              {/* Navigation */}
-              <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 pt-6 mt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={prevStep}
-                  disabled={currentStep === 1}
-                  className="flex items-center justify-center gap-2 w-full sm:w-auto"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Anterior
-                </Button>
-
-                {currentStep < STEPS.length ? (
-                  <Button onClick={nextStep} className="flex items-center justify-center gap-2 w-full sm:w-auto">
-                    Próximo
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleFinish}
-                    disabled={isLoading || updateProfileMutation.isPending}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  >
-                    {isLoading || updateProfileMutation.isPending ? (
-                      <>
-                        <Clock className="h-4 w-4 animate-spin" />
-                        Finalizando...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Finalizar
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </CardContent>
+            </Card.Content>
           </Card>
         </div>
-      </div>
+
+        {/* Navigation Buttons */}
+        <div style={{ maxWidth: '700px', margin: '2rem auto 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Button
+              basic
+              onClick={prevStep}
+              disabled={currentStep === 1}
+              style={{
+                backgroundColor: 'transparent',
+                color: 'var(--nup-text-secondary)',
+                border: '1px solid var(--nup-border)'
+              }}
+              data-testid="button-previous"
+            >
+              <ArrowLeft style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+              Anterior
+            </Button>
+
+            {message && (
+              <Message 
+                positive={message.type === 'success'}
+                negative={message.type === 'error'}
+                style={{ margin: '0 1rem', flex: 1 }}
+              >
+                {message.content}
+              </Message>
+            )}
+
+            {currentStep === STEPS.length ? (
+              <Button
+                primary
+                onClick={handleFinish}
+                loading={isLoading}
+                style={{
+                  backgroundColor: 'var(--nup-success)',
+                  color: 'white'
+                }}
+                data-testid="button-finish"
+              >
+                <Sparkles style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                Finalizar
+              </Button>
+            ) : (
+              <Button
+                primary
+                onClick={nextStep}
+                style={{
+                  backgroundColor: 'var(--nup-primary)',
+                  color: 'white'
+                }}
+                data-testid="button-next"
+              >
+                Próximo
+                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
+              </Button>
+            )}
+          </div>
+        </div>
+      </Container>
     </div>
   );
 }
