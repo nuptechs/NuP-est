@@ -1,25 +1,16 @@
-import { Button } from 'semantic-ui-react';
+import { Button } from './button';
 import { LayoutDashboard } from "lucide-react";
 
 export function DashboardIcon() {
   return (
     <Button
-      primary
-      circular
-      icon
+      variant="default"
+      size="icon"
+      className="fixed bottom-4 left-4 z-50 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
       onClick={() => window.location.href = '/dashboard'}
-      style={{
-        position: 'fixed',
-        bottom: '16px',
-        left: '16px',
-        zIndex: 50,
-        boxShadow: 'var(--shadow-lg)',
-        transition: 'var(--transition-normal)',
-      }}
-      className="dashboard-icon-button"
       data-testid="button-dashboard"
     >
-      <LayoutDashboard style={{ width: '16px', height: '16px' }} />
+      <LayoutDashboard className="h-4 w-4" />
     </Button>
   );
 }

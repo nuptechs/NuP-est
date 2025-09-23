@@ -6,7 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMaterialSchema } from "@shared/schema";
 import { z } from "zod";
-import { Form, Button, Dropdown, Grid } from "semantic-ui-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, Link, Video, File as FileIcon } from "lucide-react";
 import type { Subject } from "@shared/schema";
 
@@ -58,15 +62,12 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
       return response.json();
     },
     onSuccess: () => {
-      // Invalidate general materials query
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
       
-      // If we have a subjectId, also invalidate the specific subject's materials
       if (subjectId) {
         queryClient.invalidateQueries({ queryKey: ["/api/materials", subjectId] });
       }
       
-      // Invalidate all materials queries with any subjectId
       queryClient.invalidateQueries({ 
         predicate: (query) => 
           Array.isArray(query.queryKey) && 
@@ -88,273 +89,222 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
     if (!user) return;
-    const formData = new FormData();
-    
-    Object.entries(data).forEach(([key, value]) => {
-      if (value) {
-        formData.append(key, value);
-      }
-    });
 
-    if (selectedFile) {
-      formData.append("file", selectedFile);
-    }
+    const formData = new FormData();
+    formData.append("title", data.title);
+    formData.append("description", data.description || "");
+    formData.append("subjectId", data.subjectId || "");
+    formData.append("type", data.type);
+    
+    if (data.url) formData.append("url", data.url);
+    if (data.content) formData.append("content", data.content);
+    if (selectedFile) formData.append("file", selectedFile);
 
     uploadMutation.mutate(formData);
   };
+
+  const { errors } = form.formState;
+  const materialType = form.watch("type");
+
+  const materialTypeOptions = [
+    { value: "pdf", label: "Arquivo PDF", icon: FileText },
+    { value: "txt", label: "Texto", icon: FileText },
+    { value: "link", label: "Link/URL", icon: Link },
+    { value: "video", label: "Vídeo", icon: Video },
+    { value: "file", label: "Arquivo", icon: FileIcon },
+  ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      if (!form.getValues("title")) {
-        form.setValue("title", file.name.split('.')[0]);
-      }
-      
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      if (extension) {
-        form.setValue("type", extension);
-      }
     }
   };
 
-  const materialType = form.watch("type");
-  const { errors } = form.formState;
-  
-  const subjectOptions = subjects?.map(subject => ({
-    key: subject.id,
-    value: subject.id,
-    text: subject.name
-  })) || [];
-
-  const typeOptions = [
-    { key: 'pdf', value: 'pdf', text: '📄 PDF' },
-    { key: 'doc', value: 'doc', text: '📝 Documento' },
-    { key: 'txt', value: 'txt', text: '📃 Texto' },
-    { key: 'link', value: 'link', text: '🔗 Link' },
-    { key: 'video', value: 'video', text: '🎥 Vídeo' }
-  ];
-
   return (
-    <Form onSubmit={form.handleSubmit(onSubmit)} error={Object.keys(errors).length > 0}>
-      <Grid columns={2} stackable>
-        <Grid.Column>
-          <Form.Field error={!!errors.subjectId}>
-            <label>Matéria</label>
-            <Dropdown
-              selection
-              placeholder="Selecione a matéria"
-              options={subjectOptions}
-              value={form.watch("subjectId")}
-              onChange={(e, { value }) => form.setValue("subjectId", value as string)}
-              data-testid="select-material-subject"
-              style={{ 
-                backgroundColor: 'var(--nup-surface)',
-                border: '1px solid var(--nup-border)'
-              }}
-            />
-            {errors.subjectId && (
-              <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
-                {errors.subjectId.message}
-              </div>
-            )}
-          </Form.Field>
-        </Grid.Column>
-        
-        <Grid.Column>
-          <Form.Field error={!!errors.type}>
-            <label>Tipo</label>
-            <Dropdown
-              selection
-              placeholder="Tipo do material"
-              options={typeOptions}
-              value={form.watch("type")}
-              onChange={(e, { value }) => form.setValue("type", value as string)}
-              data-testid="select-material-type"
-              style={{ 
-                backgroundColor: 'var(--nup-surface)',
-                border: '1px solid var(--nup-border)'
-              }}
-            />
-            {errors.type && (
-              <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
-                {errors.type.message}
-              </div>
-            )}
-          </Form.Field>
-        </Grid.Column>
-      </Grid>
-
-      <Form.Field error={!!errors.title}>
-        <label>Título</label>
-        <input 
-          placeholder="Nome do material"
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="title" className="text-foreground font-medium">
+          Título
+        </Label>
+        <Input
+          id="title"
+          placeholder="Nome do material" 
           {...form.register("title")}
           data-testid="input-material-title"
-          style={{ 
-            backgroundColor: 'var(--nup-surface)',
-            border: '1px solid var(--nup-border)',
-            color: 'var(--nup-text)',
-            padding: '12px'
-          }}
+          className={errors.title ? "border-red-500" : ""}
         />
         {errors.title && (
-          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+          <p className="text-red-500 text-sm mt-1">
             {errors.title.message}
-          </div>
+          </p>
         )}
-      </Form.Field>
+      </div>
 
-      <Form.Field error={!!errors.description}>
-        <label>Descrição</label>
-        <textarea 
-          placeholder="Descrição do conteúdo (opcional)"
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-foreground font-medium">
+          Descrição
+        </Label>
+        <Textarea
+          id="description"
+          placeholder="Breve descrição do material..."
           {...form.register("description")}
           data-testid="input-material-description"
           rows={3}
-          style={{ 
-            backgroundColor: 'var(--nup-surface)',
-            border: '1px solid var(--nup-border)',
-            color: 'var(--nup-text)',
-            resize: 'vertical',
-            padding: '12px'
-          }}
         />
-        {errors.description && (
-          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
-            {errors.description.message}
-          </div>
-        )}
-      </Form.Field>
+      </div>
 
-      {/* Upload de Arquivo */}
-      {materialType && materialType !== "link" && materialType !== "video" && materialType !== "txt" && (
-        <Form.Field>
-          <label>Arquivo</label>
-          <div style={{
-            border: '2px dashed var(--nup-border)',
-            borderRadius: '8px',
-            padding: '24px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            backgroundColor: 'var(--nup-surface)'
-          }}>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              accept=".pdf,.doc,.docx,.txt,.md"
-              style={{ display: 'none' }}
-              id="file-upload"
-              data-testid="input-file-upload"
-            />
-            <label htmlFor="file-upload" style={{ cursor: 'pointer', display: 'block' }}>
-              {selectedFile ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <FileIcon style={{ width: '32px', height: '32px', color: 'var(--nup-primary)' }} />
-                  <p style={{ fontWeight: '500', color: 'var(--nup-text)' }}>{selectedFile.name}</p>
-                  <p style={{ fontSize: '12px', color: 'var(--nup-gray-600)' }}>
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <Upload style={{ width: '32px', height: '32px', color: 'var(--nup-gray-400)' }} />
-                  <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)' }}>
-                    Clique para selecionar arquivo
-                  </p>
-                </div>
-              )}
-            </label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-foreground font-medium">Matéria</Label>
+          <Select
+            value={form.watch("subjectId")}
+            onValueChange={(value) => form.setValue("subjectId", value)}
+            data-testid="select-material-subject"
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione uma matéria" />
+            </SelectTrigger>
+            <SelectContent>
+              {subjects?.map((subject) => (
+                <SelectItem key={subject.id} value={subject.id}>
+                  {subject.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-foreground font-medium">Tipo</Label>
+          <Select
+            value={form.watch("type")}
+            onValueChange={(value) => form.setValue("type", value)}
+            data-testid="select-material-type"
+          >
+            <SelectTrigger className={errors.type ? "border-red-500" : ""}>
+              <SelectValue placeholder="Selecione o tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              {materialTypeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex items-center gap-2">
+                    <option.icon className="w-4 h-4" />
+                    {option.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.type && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.type.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* File Upload */}
+      {(materialType === "pdf" || materialType === "file") && (
+        <div className="space-y-2">
+          <Label htmlFor="file" className="text-foreground font-medium">
+            Arquivo
+          </Label>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            <div className="text-center">
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mt-4">
+                <label htmlFor="file" className="cursor-pointer">
+                  <span className="mt-2 block text-sm font-medium text-gray-900">
+                    {selectedFile ? selectedFile.name : "Selecione um arquivo"}
+                  </span>
+                  <input
+                    id="file"
+                    type="file"
+                    className="sr-only"
+                    onChange={handleFileChange}
+                    data-testid="input-material-file"
+                    accept={materialType === "pdf" ? ".pdf" : "*/*"}
+                  />
+                </label>
+              </div>
+            </div>
           </div>
-        </Form.Field>
+        </div>
       )}
 
-      {/* URL para links e vídeos */}
+      {/* URL Input */}
       {(materialType === "link" || materialType === "video") && (
-        <Form.Field error={!!errors.url}>
-          <label>URL</label>
-          <input 
+        <div className="space-y-2">
+          <Label htmlFor="url" className="text-foreground font-medium">
+            URL
+          </Label>
+          <Input
+            id="url"
             placeholder="https://exemplo.com"
             type="url"
             {...form.register("url")}
             data-testid="input-material-url"
-            style={{ 
-              backgroundColor: 'var(--nup-surface)',
-              border: '1px solid var(--nup-border)',
-              color: 'var(--nup-text)',
-              padding: '12px'
-            }}
+            className={errors.url ? "border-red-500" : ""}
           />
           {errors.url && (
-            <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+            <p className="text-red-500 text-sm mt-1">
               {errors.url.message}
-            </div>
+            </p>
           )}
-        </Form.Field>
+        </div>
       )}
 
-      {/* Conteúdo de texto */}
+      {/* Content Input */}
       {materialType === "txt" && (
-        <Form.Field error={!!errors.content}>
-          <label>Conteúdo</label>
-          <textarea 
+        <div className="space-y-2">
+          <Label htmlFor="content" className="text-foreground font-medium">
+            Conteúdo
+          </Label>
+          <Textarea
+            id="content"
             placeholder="Cole ou digite o conteúdo aqui..."
             {...form.register("content")}
             data-testid="input-material-content"
             rows={6}
-            style={{ 
-              backgroundColor: 'var(--nup-surface)',
-              border: '1px solid var(--nup-border)',
-              color: 'var(--nup-text)',
-              resize: 'vertical',
-              padding: '12px'
-            }}
+            className={errors.content ? "border-red-500" : ""}
           />
           {errors.content && (
-            <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+            <p className="text-red-500 text-sm mt-1">
               {errors.content.message}
-            </div>
+            </p>
           )}
-        </Form.Field>
+        </div>
       )}
 
-      <div style={{ 
-        display: 'flex', 
-        gap: '12px', 
-        paddingTop: '24px',
-        borderTop: '1px solid var(--nup-border)',
-        marginTop: '24px'
-      }}>
+      <div className="flex gap-3 pt-6 border-t border-border">
         <Button 
           type="button" 
-          basic
+          variant="outline"
           onClick={onSuccess}
           data-testid="button-cancel-material"
-          style={{ 
-            flex: 1,
-            color: 'var(--nup-text)',
-            borderColor: 'var(--nup-border)'
-          }}
+          className="flex-1"
         >
           Cancelar
         </Button>
         <Button 
           type="submit" 
-          primary
-          loading={uploadMutation.isPending}
           disabled={uploadMutation.isPending}
           data-testid="button-save-material"
-          style={{ 
-            flex: 1,
-            backgroundColor: 'var(--nup-primary)',
-            color: 'white'
-          }}
+          className="flex-1"
         >
-          {uploadMutation.isPending ? "Salvando..." : "Adicionar"}
+          {uploadMutation.isPending ? (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Salvando...
+            </div>
+          ) : (
+            "Adicionar"
+          )}
         </Button>
       </div>
-    </Form>
+    </form>
   );
 }

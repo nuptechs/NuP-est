@@ -1,4 +1,5 @@
-import { Card } from 'semantic-ui-react';
+import { Card, CardContent } from './card';
+import { cn } from "@/lib/utils";
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -20,71 +21,37 @@ export function StatCard({
   const getVariantColor = (variant: string) => {
     switch (variant) {
       case 'primary':
-        return 'var(--nup-primary)';
+        return 'text-blue-600';
       case 'success':
-        return 'var(--nup-success)';
+        return 'text-green-600';
       case 'warning':
-        return 'var(--nup-warning)';
+        return 'text-orange-600';
       case 'info':
-        return 'var(--nup-info)';
+        return 'text-cyan-600';
       default:
-        return 'var(--nup-primary)';
+        return 'text-blue-600';
     }
   };
 
   return (
     <Card 
-      className={`nup-card hover-lift ${className}`}
-      style={{ 
-        backgroundColor: 'var(--nup-bg-secondary)',
-        border: '1px solid var(--nup-border)',
-        borderRadius: '12px',
-        transition: 'all 0.2s ease',
-        height: '100%'
-      }}
+      className={cn(
+        "h-full transition-all duration-200 hover:shadow-md hover:-translate-y-1", 
+        className
+      )}
       data-testid={testId}
     >
-      <Card.Content 
-        style={{ 
-          padding: '1.5rem',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center'
-        }}
-      >
-        <div 
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '1rem',
-            fontSize: '2rem',
-            color: getVariantColor(variant)
-          }}
-        >
+      <CardContent className="flex flex-col items-center text-center p-6">
+        <div className={cn("mb-4 text-3xl", getVariantColor(variant))}>
           {icon}
         </div>
-        <div 
-          style={{
-            fontSize: '2rem',
-            fontWeight: '600',
-            color: 'var(--nup-text-primary)',
-            marginBottom: '0.25rem',
-            lineHeight: '1.2'
-          }}
-        >
+        <div className="text-2xl font-semibold text-foreground mb-1 leading-none">
           {value}
         </div>
-        <div 
-          style={{
-            fontSize: '0.875rem',
-            color: 'var(--nup-text-secondary)',
-            fontWeight: '500'
-          }}
-        >
+        <div className="text-sm font-medium text-muted-foreground">
           {label}
         </div>
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }

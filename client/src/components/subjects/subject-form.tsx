@@ -6,7 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertSubjectSchema } from "@shared/schema";
 import { z } from "zod";
-import { Form, Button, Dropdown, Grid } from "semantic-ui-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Subject } from "@shared/schema";
 
 interface SubjectFormProps {
@@ -73,175 +77,161 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
   const { errors } = form.formState;
   
   const categoryOptions = [
-    { key: 'exatas', value: 'exatas', text: 'Exatas' },
-    { key: 'humanas', value: 'humanas', text: 'Humanas' },
-    { key: 'biologicas', value: 'biologicas', text: 'Biológicas' }
+    { value: 'exatas', label: 'Exatas' },
+    { value: 'humanas', label: 'Humanas' },
+    { value: 'biologicas', label: 'Biológicas' }
   ];
 
   const priorityOptions = [
-    { key: 'high', value: 'high', text: 'Alta' },
-    { key: 'medium', value: 'medium', text: 'Média' },
-    { key: 'low', value: 'low', text: 'Baixa' }
+    { value: 'high', label: 'Alta' },
+    { value: 'medium', label: 'Média' },
+    { value: 'low', label: 'Baixa' }
   ];
 
   return (
-    <Form onSubmit={form.handleSubmit(onSubmit)} error={Object.keys(errors).length > 0}>
-      <Form.Field error={!!errors.name}>
-        <label>Nome da Matéria</label>
-        <input 
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="name" className="text-foreground font-medium">
+          Nome da Matéria
+        </Label>
+        <Input
+          id="name"
           placeholder="Ex: Cálculo I" 
           {...form.register("name")}
           data-testid="input-subject-name"
-          style={{ 
-            backgroundColor: 'var(--nup-surface)',
-            border: '1px solid var(--nup-border)',
-            color: 'var(--nup-text)'
-          }}
+          className={errors.name ? "border-red-500" : ""}
         />
         {errors.name && (
-          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+          <p className="text-red-500 text-sm mt-1">
             {errors.name.message}
-          </div>
+          </p>
         )}
-      </Form.Field>
+      </div>
 
-      <Form.Field error={!!errors.description}>
-        <label>Descrição</label>
-        <textarea 
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-foreground font-medium">
+          Descrição
+        </Label>
+        <Textarea
+          id="description"
           placeholder="Breve descrição da matéria..." 
           {...form.register("description")}
           data-testid="input-subject-description"
           rows={3}
-          style={{ 
-            backgroundColor: 'var(--nup-surface)',
-            border: '1px solid var(--nup-border)',
-            color: 'var(--nup-text)',
-            resize: 'vertical'
-          }}
+          className={`resize-none ${errors.description ? "border-red-500" : ""}`}
         />
         {errors.description && (
-          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+          <p className="text-red-500 text-sm mt-1">
             {errors.description.message}
-          </div>
+          </p>
         )}
-      </Form.Field>
+      </div>
 
-      <Grid columns={2} stackable>
-        <Grid.Column>
-          <Form.Field error={!!errors.category}>
-            <label>Categoria</label>
-            <Dropdown
-              selection
-              placeholder="Selecione"
-              options={categoryOptions}
-              value={form.watch("category")}
-              onChange={(e, { value }) => form.setValue("category", value as string)}
-              data-testid="select-subject-category"
-              style={{ 
-                backgroundColor: 'var(--nup-surface)',
-                border: '1px solid var(--nup-border)'
-              }}
-            />
-            {errors.category && (
-              <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
-                {errors.category.message}
-              </div>
-            )}
-          </Form.Field>
-        </Grid.Column>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-foreground font-medium">
+            Categoria
+          </Label>
+          <Select
+            value={form.watch("category")}
+            onValueChange={(value) => form.setValue("category", value)}
+            data-testid="select-subject-category"
+          >
+            <SelectTrigger className={errors.category ? "border-red-500" : ""}>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.category && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.category.message}
+            </p>
+          )}
+        </div>
         
-        <Grid.Column>
-          <Form.Field error={!!errors.priority}>
-            <label>Prioridade</label>
-            <Dropdown
-              selection
-              placeholder="Selecione"
-              options={priorityOptions}
-              value={form.watch("priority")}
-              onChange={(e, { value }) => form.setValue("priority", value as string)}
-              data-testid="select-subject-priority"
-              style={{ 
-                backgroundColor: 'var(--nup-surface)',
-                border: '1px solid var(--nup-border)'
-              }}
-            />
-            {errors.priority && (
-              <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
-                {errors.priority.message}
-              </div>
-            )}
-          </Form.Field>
-        </Grid.Column>
-      </Grid>
+        <div className="space-y-2">
+          <Label className="text-foreground font-medium">
+            Prioridade
+          </Label>
+          <Select
+            value={form.watch("priority")}
+            onValueChange={(value) => form.setValue("priority", value)}
+            data-testid="select-subject-priority"
+          >
+            <SelectTrigger className={errors.priority ? "border-red-500" : ""}>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {priorityOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.priority && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.priority.message}
+            </p>
+          )}
+        </div>
+      </div>
 
-      <Form.Field error={!!errors.color}>
-        <label>Cor</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <input 
+      <div className="space-y-2">
+        <Label htmlFor="color" className="text-foreground font-medium">
+          Cor
+        </Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="color"
             type="color" 
             {...form.register("color")}
             data-testid="input-subject-color"
-            style={{ 
-              backgroundColor: 'var(--nup-surface)',
-              border: '1px solid var(--nup-border)',
-              height: '40px',
-              width: '50px',
-              cursor: 'pointer'
-            }}
+            className={`w-12 h-10 cursor-pointer ${errors.color ? "border-red-500" : ""}`}
           />
-          <input 
+          <Input
             placeholder="#3b82f6" 
             {...form.register("color")}
-            style={{ 
-              flex: 1,
-              backgroundColor: 'var(--nup-surface)',
-              border: '1px solid var(--nup-border)',
-              color: 'var(--nup-text)',
-              padding: '8px 12px'
-            }}
+            className={`flex-1 ${errors.color ? "border-red-500" : ""}`}
           />
         </div>
         {errors.color && (
-          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
+          <p className="text-red-500 text-sm mt-1">
             {errors.color.message}
-          </div>
+          </p>
         )}
-      </Form.Field>
+      </div>
 
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        gap: '12px', 
-        paddingTop: '24px',
-        borderTop: '1px solid var(--nup-border)',
-        marginTop: '24px'
-      }}>
+      <div className="flex justify-end gap-3 pt-6 border-t border-border">
         <Button 
           type="button" 
-          basic
+          variant="outline"
           onClick={onSuccess}
           data-testid="button-cancel-subject"
-          style={{ 
-            color: 'var(--nup-text)',
-            borderColor: 'var(--nup-border)'
-          }}
         >
           Cancelar
         </Button>
         <Button 
           type="submit" 
-          primary
-          loading={createMutation.isPending}
           disabled={createMutation.isPending}
           data-testid="button-save-subject"
-          style={{ 
-            backgroundColor: 'var(--nup-primary)',
-            color: 'white'
-          }}
         >
-          {subject ? "Atualizar" : "Criar Matéria"}
+          {createMutation.isPending ? (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Salvando...
+            </div>
+          ) : (
+            subject ? "Atualizar" : "Criar Matéria"
+          )}
         </Button>
       </div>
-    </Form>
+    </form>
   );
 }

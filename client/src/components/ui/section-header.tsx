@@ -1,5 +1,3 @@
-import { Header } from 'semantic-ui-react';
-
 interface SectionHeaderProps {
   title: string;
   description?: string;
@@ -17,41 +15,21 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <div 
-      className={`nup-section-header ${className}`} 
-      style={{ 
-        marginBottom: '2rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        gap: '1rem'
-      }} 
+      className={`flex justify-between items-start gap-4 mb-8 ${className}`}
       data-testid={testId}
     >
-      <div style={{ flex: 1 }}>
-        <Header 
-          as="h2" 
-          style={{
-            fontSize: '1.5rem',
-            fontWeight: '600',
-            color: 'var(--nup-text-primary)',
-            marginBottom: '0.5rem'
-          }}
-        >
+      <div className="flex-1">
+        <h2 className="text-2xl font-semibold text-foreground mb-2">
           {title}
-        </Header>
+        </h2>
         {description && (
-          <p style={{ 
-            color: 'var(--nup-text-secondary)',
-            fontSize: '1rem',
-            margin: 0,
-            lineHeight: '1.5'
-          }}>
+          <p className="text-muted-foreground leading-relaxed">
             {description}
           </p>
         )}
       </div>
       {action && (
-        <div style={{ flexShrink: 0 }}>
+        <div className="flex-shrink-0">
           {action}
         </div>
       )}

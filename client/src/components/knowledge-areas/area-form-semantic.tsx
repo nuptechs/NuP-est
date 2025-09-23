@@ -6,10 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertKnowledgeAreaSchema } from "@shared/schema";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Form, Button } from "semantic-ui-react";
 import type { KnowledgeArea } from "@shared/schema";
 
 interface AreaFormProps {
@@ -68,86 +65,101 @@ export default function AreaForm({ area, onSuccess }: AreaFormProps) {
   const { errors } = form.formState;
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="name" className="text-foreground font-medium">
-          Nome da Área
-        </Label>
-        <Input
-          id="name"
+    <Form onSubmit={form.handleSubmit(onSubmit)} error={Object.keys(errors).length > 0}>
+      <Form.Field error={!!errors.name}>
+        <label>Nome da Área</label>
+        <input 
           placeholder="Ex: Ciências Exatas" 
           {...form.register("name")}
           data-testid="input-area-name"
-          className={errors.name ? "border-red-500" : ""}
+          style={{ 
+            backgroundColor: 'var(--nup-surface)',
+            border: '1px solid var(--nup-border)',
+            color: 'var(--nup-text)'
+          }}
         />
         {errors.name && (
-          <p className="text-red-500 text-sm mt-1">
+          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
             {errors.name.message}
-          </p>
+          </div>
         )}
-      </div>
+      </Form.Field>
 
-      <div className="space-y-2">
-        <Label htmlFor="description" className="text-foreground font-medium">
-          Descrição
-        </Label>
-        <Textarea
-          id="description"
+      <Form.Field error={!!errors.description}>
+        <label>Descrição</label>
+        <textarea 
           placeholder="Descreva esta área de conhecimento..." 
           {...form.register("description")}
           data-testid="textarea-area-description"
           rows={3}
-          className={`resize-none ${errors.description ? "border-red-500" : ""}`}
+          style={{ 
+            backgroundColor: 'var(--nup-surface)',
+            border: '1px solid var(--nup-border)',
+            color: 'var(--nup-text)',
+            resize: 'vertical'
+          }}
         />
         {errors.description && (
-          <p className="text-red-500 text-sm mt-1">
+          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
             {errors.description.message}
-          </p>
+          </div>
         )}
-      </div>
+      </Form.Field>
 
-      <div className="space-y-2">
-        <Label htmlFor="color" className="text-foreground font-medium">
-          Cor
-        </Label>
-        <Input
-          id="color"
+      <Form.Field error={!!errors.color}>
+        <label>Cor</label>
+        <input 
           type="color" 
           {...form.register("color")}
           data-testid="input-area-color"
-          className={`h-10 cursor-pointer ${errors.color ? "border-red-500" : ""}`}
+          style={{ 
+            backgroundColor: 'var(--nup-surface)',
+            border: '1px solid var(--nup-border)',
+            height: '40px',
+            cursor: 'pointer'
+          }}
         />
         {errors.color && (
-          <p className="text-red-500 text-sm mt-1">
+          <div style={{ color: 'var(--nup-error)', fontSize: '12px', marginTop: '4px' }}>
             {errors.color.message}
-          </p>
+          </div>
         )}
-      </div>
+      </Form.Field>
 
-      <div className="flex justify-end gap-3 pt-6 border-t border-border">
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        gap: '12px', 
+        paddingTop: '24px',
+        borderTop: '1px solid var(--nup-border)',
+        marginTop: '24px'
+      }}>
         <Button 
           type="button" 
-          variant="outline"
+          basic
           onClick={onSuccess}
           data-testid="button-cancel-area"
+          style={{ 
+            color: 'var(--nup-text)',
+            borderColor: 'var(--nup-border)'
+          }}
         >
           Cancelar
         </Button>
         <Button 
           type="submit" 
+          primary
+          loading={createMutation.isPending}
           disabled={createMutation.isPending}
           data-testid="button-submit-area"
+          style={{ 
+            backgroundColor: 'var(--nup-primary)',
+            color: 'white'
+          }}
         >
-          {createMutation.isPending ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Salvando...
-            </div>
-          ) : (
-            area ? "Atualizar" : "Criar Área"
-          )}
+          {area ? "Atualizar" : "Criar Área"}
         </Button>
       </div>
-    </form>
+    </Form>
   );
 }

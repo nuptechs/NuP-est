@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { Button, Modal, Header, Segment, Grid, Card, Icon, Popup, Label } from 'semantic-ui-react';
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Settings, Palette, Bell, User, HelpCircle, Sun, Moon, Check } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useResponsiveText } from '@/hooks/useResponsiveText';
-import { ResponsiveGrid } from '@/components/ui/responsive-components';
-import type { MouseEvent } from 'react';
 
 const FloatingSettings = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('themes');
   const { currentTheme, currentMode, setTheme, setMode, availableThemes } = useTheme();
-  const { isMobile, isTablet } = useResponsiveText();
 
   const handleThemeChange = (themeName: any) => {
     setTheme(themeName);
@@ -20,203 +20,173 @@ const FloatingSettings = () => {
       key: 'themes',
       title: 'Temas',
       description: 'Personalizar cores e aparência',
-      icon: 'paint brush',
+      icon: Palette,
       color: 'blue'
     },
     {
       key: 'notifications',
       title: 'Notificações',
       description: 'Gerenciar alertas e lembretes',
-      icon: 'bell',
+      icon: Bell,
       color: 'yellow'
     },
     {
       key: 'account',
       title: 'Conta',
       description: 'Perfil e preferências',
-      icon: 'user',
+      icon: User,
       color: 'green'
     },
     {
       key: 'help',
       title: 'Ajuda',
       description: 'Suporte e documentação',
-      icon: 'help circle',
+      icon: HelpCircle,
       color: 'purple'
     }
   ];
 
   const renderThemesTab = () => (
-    <div>
-      <Header as="h3" style={{ marginBottom: '1rem', color: 'var(--nup-primary)' }}>
-        <Icon name="paint brush" />
-        Aparência do Sistema
-      </Header>
-      
-      {/* Toggle Light/Dark Mode */}
-      <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--nup-surface-2)', borderRadius: '8px', border: '1px solid var(--nup-border)' }}>
-        <Header as="h4" style={{ marginBottom: '1rem', color: 'var(--nup-text-primary)' }}>
-          <Icon name="eye" />
-          Modo de Exibição
-        </Header>
-        <ResponsiveGrid columns={2}>
-          <Grid.Column>
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">
+          <Palette className="h-5 w-5" />
+          Aparência do Sistema
+        </h3>
+        
+        {/* Toggle Light/Dark Mode */}
+        <div className="p-4 bg-muted rounded-lg border mb-6">
+          <h4 className="text-base font-medium text-foreground flex items-center gap-2 mb-4">
+            <Settings className="h-4 w-4" />
+            Modo de Exibição
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card 
-              fluid
-              style={{
-                cursor: 'pointer',
-                border: currentMode === 'light' ? `2px solid var(--nup-primary)` : '1px solid var(--nup-border)',
-                boxShadow: currentMode === 'light' ? `0 4px 8px var(--nup-primary)30` : 'none',
-                transition: 'all 0.3s ease',
-                borderRadius: '8px',
-                backgroundColor: 'var(--nup-surface)'
-              }}
+              className={`cursor-pointer transition-all ${
+                currentMode === 'light' 
+                  ? 'border-primary shadow-lg' 
+                  : 'border-border hover:border-primary/50'
+              }`}
               onClick={() => setMode('light')}
               data-testid="mode-card-light"
             >
-              <Card.Content>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <Header as="h5" style={{ margin: 0, color: 'var(--nup-text-primary)' }}>
-                    <Icon name="sun" style={{ color: '#FFA500' }} />
-                    Modo Claro
-                  </Header>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-5 w-5 text-orange-500" />
+                    <span className="font-medium">Modo Claro</span>
+                  </div>
                   {currentMode === 'light' && (
-                    <Icon name="check circle" color="green" size="large" />
+                    <Check className="h-5 w-5 text-green-500" />
                   )}
                 </div>
-                <p style={{ fontSize: '0.9rem', color: 'var(--nup-text-secondary)', margin: 0 }}>
+                <p className="text-sm text-muted-foreground">
                   Interface clara e brilhante
                 </p>
-              </Card.Content>
+              </CardContent>
             </Card>
-          </Grid.Column>
-          <Grid.Column>
+            
             <Card 
-              fluid
-              style={{
-                cursor: 'pointer',
-                border: currentMode === 'dark' ? `2px solid var(--nup-primary)` : '1px solid var(--nup-border)',
-                boxShadow: currentMode === 'dark' ? `0 4px 8px var(--nup-primary)30` : 'none',
-                transition: 'all 0.3s ease',
-                borderRadius: '8px',
-                backgroundColor: 'var(--nup-surface)'
-              }}
+              className={`cursor-pointer transition-all ${
+                currentMode === 'dark' 
+                  ? 'border-primary shadow-lg' 
+                  : 'border-border hover:border-primary/50'
+              }`}
               onClick={() => setMode('dark')}
               data-testid="mode-card-dark"
             >
-              <Card.Content>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <Header as="h5" style={{ margin: 0, color: 'var(--nup-text-primary)' }}>
-                    <Icon name="moon" style={{ color: '#4A5568' }} />
-                    Modo Escuro
-                  </Header>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-5 w-5 text-gray-600" />
+                    <span className="font-medium">Modo Escuro</span>
+                  </div>
                   {currentMode === 'dark' && (
-                    <Icon name="check circle" color="green" size="large" />
+                    <Check className="h-5 w-5 text-green-500" />
                   )}
                 </div>
-                <p style={{ fontSize: '0.9rem', color: 'var(--nup-text-secondary)', margin: 0 }}>
+                <p className="text-sm text-muted-foreground">
                   Interface escura e elegante
                 </p>
-              </Card.Content>
+              </CardContent>
             </Card>
-          </Grid.Column>
-        </ResponsiveGrid>
-      </div>
+          </div>
+        </div>
 
-      {/* Theme Color Selection */}
-      <Header as="h4" style={{ marginBottom: '1rem', color: 'var(--nup-text-primary)' }}>
-        <Icon name="paint brush" />
-        Paleta de Cores
-      </Header>
-      <p style={{ marginBottom: '2rem', color: 'var(--nup-text-secondary)' }}>
-        Selecione uma paleta de cores para personalizar o sistema
-      </p>
-      <ResponsiveGrid columns={2}>
-        {availableThemes.map((theme) => (
-          <Grid.Column key={theme.name} style={{ marginBottom: '1rem' }}>
+        {/* Theme Color Selection */}
+        <h4 className="text-base font-medium text-foreground flex items-center gap-2 mb-4">
+          <Palette className="h-4 w-4" />
+          Paleta de Cores
+        </h4>
+        <p className="text-muted-foreground mb-4">
+          Selecione uma paleta de cores para personalizar o sistema
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {availableThemes.map((theme) => (
             <Card 
-              fluid
+              key={theme.name}
+              className={`cursor-pointer transition-all ${
+                currentTheme.name === theme.name
+                  ? 'border-2 shadow-lg'
+                  : 'border hover:border-primary/50'
+              }`}
               style={{
-                cursor: 'pointer',
-                border: currentTheme.name === theme.name ? `2px solid ${theme.colors.primary}` : '1px solid #e0e0e0',
-                boxShadow: currentTheme.name === theme.name ? `0 4px 8px ${theme.colors.primary}30` : 'none',
-                transition: 'all 0.3s ease',
-                borderRadius: '8px'
+                borderColor: currentTheme.name === theme.name ? theme.colors.primary : undefined
               }}
               onClick={() => handleThemeChange(theme.name)}
               data-testid={`theme-card-${theme.name}`}
             >
-              <Card.Content>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <Header as="h4" style={{ margin: 0, color: theme.colors.primary }}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium" style={{ color: theme.colors.primary }}>
                     {theme.displayName}
-                  </Header>
+                  </h4>
                   {currentTheme.name === theme.name && (
-                    <Icon name="check circle" color="green" size="large" />
+                    <Check className="h-5 w-5 text-green-500" />
                   )}
                 </div>
-                <p style={{ fontSize: '0.9rem', color: 'var(--nup-text-secondary)', margin: '0.5rem 0 1rem 0' }}>
+                <p className="text-sm text-muted-foreground mb-3">
                   {theme.description}
                 </p>
                 
-                {/* Preview das cores */}
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {/* Color Preview */}
+                <div className="flex gap-2 flex-wrap">
                   <div 
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      backgroundColor: theme.colors.primary,
-                      borderRadius: '4px',
-                      border: '1px solid #ddd'
-                    }}
+                    className="w-6 h-6 rounded border border-border"
+                    style={{ backgroundColor: theme.colors.primary }}
                     title="Cor primária"
                   />
                   <div 
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      backgroundColor: theme.colors.secondary,
-                      borderRadius: '4px',
-                      border: '1px solid #ddd'
-                    }}
+                    className="w-6 h-6 rounded border border-border"
+                    style={{ backgroundColor: theme.colors.secondary }}
                     title="Cor secundária"
                   />
                   <div 
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      backgroundColor: theme.colors.success,
-                      borderRadius: '4px',
-                      border: '1px solid #ddd'
-                    }}
+                    className="w-6 h-6 rounded border border-border"
+                    style={{ backgroundColor: theme.colors.success }}
                     title="Cor de sucesso"
                   />
                   <div 
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      backgroundColor: theme.colors.warning,
-                      borderRadius: '4px',
-                      border: '1px solid #ddd'
-                    }}
+                    className="w-6 h-6 rounded border border-border"
+                    style={{ backgroundColor: theme.colors.warning }}
                     title="Cor de aviso"
                   />
                 </div>
-              </Card.Content>
+              </CardContent>
             </Card>
-          </Grid.Column>
-        ))}
-      </ResponsiveGrid>
+          ))}
+        </div>
+      </div>
     </div>
   );
 
   const renderComingSoonTab = (option: any) => (
-    <div style={{ textAlign: 'center', padding: '2rem' }}>
-      <Icon name={option.icon} size="huge" color="grey" />
-      <Header as="h3" style={{ color: 'var(--nup-text-secondary)' }}>
+    <div className="text-center py-12">
+      <option.icon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-muted-foreground mb-2">
         {option.title}
-      </Header>
-      <p style={{ color: 'var(--nup-text-secondary)' }}>
+      </h3>
+      <p className="text-muted-foreground">
         Esta funcionalidade estará disponível em breve!
       </p>
     </div>
@@ -234,156 +204,65 @@ const FloatingSettings = () => {
 
   return (
     <>
-      {/* Botão Flutuante */}
-      <Popup
-        content="Configurações do Sistema"
-        trigger={
-          <Button
-            circular
-            size="large"
-            style={{
-              position: 'fixed',
-              bottom: '2rem',
-              right: '2rem',
-              backgroundColor: 'var(--nup-primary)',
-              color: 'white',
-              zIndex: 1000,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              border: 'none',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e: MouseEvent<HTMLButtonElement>) => {
-              e.currentTarget.style.transform = 'scale(1.1)';
-              e.currentTarget.style.backgroundColor = 'var(--nup-primary-hover)';
-            }}
-            onMouseLeave={(e: MouseEvent<HTMLButtonElement>) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.backgroundColor = 'var(--nup-primary)';
-            }}
-            onClick={() => setIsOpen(true)}
-            data-testid="floating-settings-button"
-          >
-            <Icon name="setting" />
-          </Button>
-        }
-        position="left center"
-      />
-
-      {/* Modal de Configurações */}
-      <Modal
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
-        size={isMobile ? "fullscreen" : "large"}
-        closeIcon
-        data-testid="settings-modal"
-        style={isMobile ? {
-          width: '100vw',
-          height: '100vh',
-          margin: 0,
-          maxWidth: '100%',
-          borderRadius: 0
-        } : {}}
+      {/* Floating Button */}
+      <Button
+        size="lg"
+        className="fixed bottom-8 right-8 z-50 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+        onClick={() => setIsOpen(true)}
+        data-testid="floating-settings-button"
+        title="Configurações do Sistema"
       >
-        <Modal.Header style={{ 
-          backgroundColor: 'var(--nup-primary)', 
-          color: 'white',
-          padding: isMobile ? '1rem' : '1.5rem 2rem'
-        }}>
-          <Icon name="setting" />
-          Configurações do Sistema
-        </Modal.Header>
-        <Modal.Content style={{ padding: 0 }}>
-          {isMobile ? (
-            // Layout Mobile: Só conteúdo, sem sidebar
-            <div style={{ padding: '1rem' }}>
-              {/* Navegação horizontal no mobile */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '0.5rem', 
-                marginBottom: '1.5rem',
-                overflowX: 'auto',
-                padding: '0.5rem 0'
-              }}>
+        <Settings className="h-5 w-5" />
+      </Button>
+
+      {/* Settings Modal */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" data-testid="settings-modal">
+          <DialogHeader className="bg-primary text-primary-foreground p-6 -m-6 mb-6 rounded-t-lg">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Settings className="h-6 w-6" />
+              Configurações do Sistema
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Settings Navigation */}
+            <div className="md:col-span-1">
+              <div className="space-y-2">
                 {settingsOptions.map((option) => (
-                  <Button
+                  <button
                     key={option.key}
-                    size="small"
-                    style={{
-                      backgroundColor: activeTab === option.key ? 'var(--nup-primary)' : 'var(--nup-surface)',
-                      color: activeTab === option.key ? 'white' : 'var(--nup-text-primary)',
-                      border: `1px solid ${activeTab === option.key ? 'var(--nup-primary)' : 'var(--nup-border)'}`,
-                      borderRadius: '20px',
-                      whiteSpace: 'nowrap',
-                      minWidth: 'auto'
-                    }}
+                    className={`w-full p-3 text-left rounded-lg border transition-all ${
+                      activeTab === option.key
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'hover:bg-muted border-border'
+                    }`}
                     onClick={() => setActiveTab(option.key)}
-                    data-testid={`settings-tab-${option.key}-mobile`}
+                    data-testid={`settings-tab-${option.key}`}
                   >
-                    <Icon name={option.icon as any} />
-                    {option.title}
-                  </Button>
-                ))}
-              </div>
-              {renderTabContent()}
-            </div>
-          ) : (
-            // Layout Desktop: Com sidebar
-            <Grid>
-              {/* Sidebar com opções */}
-              <Grid.Column width={4} style={{ borderRight: '1px solid #e0e0e0' }}>
-                <div style={{ padding: '1rem 0' }}>
-                  {settingsOptions.map((option) => (
-                    <Segment
-                      key={option.key}
-                      basic
-                      style={{
-                        cursor: 'pointer',
-                        padding: '1rem',
-                        margin: '0.5rem 0',
-                        backgroundColor: activeTab === option.key ? 'var(--nup-primary-light)' : 'transparent',
-                        borderLeft: activeTab === option.key ? `4px solid var(--nup-primary)` : '4px solid transparent',
-                        borderRadius: '0 8px 8px 0',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onClick={() => setActiveTab(option.key)}
-                      onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
-                        if (activeTab !== option.key) {
-                          e.currentTarget.style.backgroundColor = '#f8f9fa';
-                        }
-                      }}
-                      onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
-                        if (activeTab !== option.key) {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }
-                      }}
-                      data-testid={`settings-tab-${option.key}`}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Icon name={option.icon as any} size="large" color={option.color as any} />
-                        <div>
-                          <div style={{ fontWeight: 'bold', color: 'var(--nup-text-primary)' }}>
-                            {option.title}
-                          </div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--nup-text-secondary)' }}>
-                            {option.description}
-                          </div>
+                    <div className="flex items-center gap-3">
+                      <option.icon className="h-5 w-5" />
+                      <div>
+                        <div className="font-medium text-sm">
+                          {option.title}
+                        </div>
+                        <div className="text-xs opacity-70">
+                          {option.description}
                         </div>
                       </div>
-                    </Segment>
-                  ))}
-                </div>
-              </Grid.Column>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              {/* Conteúdo principal */}
-              <Grid.Column width={12}>
-                <div style={{ padding: '1rem 2rem' }}>
-                  {renderTabContent()}
-                </div>
-              </Grid.Column>
-            </Grid>
-          )}
-        </Modal.Content>
-      </Modal>
+            {/* Content Area */}
+            <div className="md:col-span-3">
+              {renderTabContent()}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
