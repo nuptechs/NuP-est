@@ -1127,6 +1127,120 @@ a:hover {
   color: var(--nup-text-secondary) !important;
 }
 
+/* === SEMANTIC UI PAGE COMPONENTS === */
+
+/* Icon containers with themed colors */
+.icon-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: var(--radius-md) !important;
+  transition: all 0.2s ease !important;
+}
+
+.icon-container.primary {
+  background-color: var(--nup-primary-light) !important;
+}
+
+.icon-container.success {
+  background-color: var(--nup-success-light) !important;
+}
+
+.icon-container.warning {
+  background-color: var(--nup-warning-light) !important;
+}
+
+.icon-container.info {
+  background-color: var(--nup-info-light) !important;
+}
+
+.icon-container.error {
+  background-color: var(--nup-error-light) !important;
+}
+
+/* Status labels */
+.status-label {
+  background-color: var(--nup-surface-2) !important;
+  color: var(--nup-text-tertiary) !important;
+  border: 1px solid var(--nup-border) !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Interactive cards */
+.nup-card-interactive {
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.nup-card-interactive:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-color: var(--nup-border-hover) !important;
+}
+
+/* Subtle cards */
+.nup-card-subtle {
+  background-color: var(--nup-surface) !important;
+  border: 1px solid var(--nup-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* Empty state styling */
+.empty-state-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 64px !important;
+  height: 64px !important;
+  background-color: var(--nup-surface-2) !important;
+  border-radius: 50% !important;
+  margin: 0 auto !important;
+}
+
+/* Session item styling */
+.session-item {
+  background-color: var(--nup-surface-2) !important;
+  border: 1px solid var(--nup-border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: var(--spacing-md) !important;
+  transition: all 0.2s ease !important;
+}
+
+.session-item:hover {
+  background-color: var(--nup-surface-hover) !important;
+  border-color: var(--nup-border-hover) !important;
+}
+
+/* Enhanced Semantic UI card compatibility */
+.ui.card.nup-card-interactive:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.ui.card.nup-card-subtle {
+  background-color: var(--nup-surface) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* Spacing utilities for semantic consistency */
+.mb-lg {
+  margin-bottom: var(--spacing-lg) !important;
+}
+
+.mt-lg {
+  margin-top: var(--spacing-lg) !important;
+}
+
+.p-lg {
+  padding: var(--spacing-lg) !important;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --nup-gray-50: #202124;
