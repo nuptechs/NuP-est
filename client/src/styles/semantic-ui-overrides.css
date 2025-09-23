@@ -1107,6 +1107,25 @@ body {
   }
 }
 
+/* Content Overview - force equal height columns */
+.ui.grid > .ui.column {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.ui.grid > .ui.column > .ui.card {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 350px !important;
+}
+
+.ui.grid > .ui.column > .ui.card > .content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
 /* Ensure cards maintain consistent height */
 .nup-card-symmetric {
   height: 100% !important;

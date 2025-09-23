@@ -414,7 +414,7 @@ export default function Dashboard() {
         <Grid columns={3} stackable>
           {/* Recent Subjects */}
           <Grid.Column>
-            <Card style={{ height: '100%' }}>
+            <Card style={{ height: '100%', minHeight: '350px' }}>
               <Card.Content>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
                   <Card.Header>Matérias Recentes</Card.Header>
@@ -479,7 +479,7 @@ export default function Dashboard() {
 
           {/* Recent Goals */}
           <Grid.Column>
-            <Card style={{ height: '100%' }}>
+            <Card style={{ height: '100%', minHeight: '350px' }}>
               <Card.Content>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
                   <Card.Header>Metas Ativas</Card.Header>
@@ -538,7 +538,7 @@ export default function Dashboard() {
 
           {/* User Profile */}
           <Grid.Column>
-            <Card style={{ height: '100%' }}>
+            <Card style={{ height: '100%', minHeight: '350px' }}>
               <Card.Content>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
                   <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
@@ -548,17 +548,23 @@ export default function Dashboard() {
                 </div>
                 
                 <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>
-                  <div style={{ 
-                    width: '80px', 
-                    height: '80px', 
-                    backgroundColor: 'var(--nup-primary)', 
-                    borderRadius: '50%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    margin: '0 auto var(--spacing-md)' 
-                  }}>
-                    <User style={{ width: '40px', height: '40px', color: 'white' }} />
+                  <div 
+                    data-testid="avatar-container"
+                    style={{ 
+                      width: '80px', 
+                      height: '80px', 
+                      backgroundColor: 'var(--nup-primary)', 
+                      borderRadius: '50%', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      margin: '0 auto var(--spacing-md)' 
+                    }}
+                  >
+                    <User 
+                      data-testid="avatar-icon"
+                      style={{ width: '48px', height: '48px', color: 'white' }} 
+                    />
                   </div>
                   <Header as="h4" style={{ marginBottom: 'var(--spacing-xs)' }}>
                     {user?.firstName || 'Estudante'}
