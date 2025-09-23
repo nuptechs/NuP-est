@@ -3,16 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Container,
-  Grid, 
-  Card,
-  Header,
-  Button,
-  Progress,
-  Loader,
-  Dimmer
-} from 'semantic-ui-react';
+// Removed Semantic UI imports - migrating to shadcn/ui
 import { 
   User, 
   BookOpen, 
@@ -28,11 +19,18 @@ import {
   MessageCircle,
   Settings
 } from "lucide-react";
-import { StatCard } from "@/components/ui/stat-card";
-import { SectionHeader } from "@/components/ui/section-header";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SkeletonCard } from "@/components/ui/skeleton-row";
-import FloatingSettings from "@/components/FloatingSettings";
+// Modern shadcn/ui imports
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
+// Professional components  
+import ProfessionalShell from "@/components/ui/professional-shell";
+import { ProfessionalCard } from "@/components/ui/professional-card";
+import { ProfessionalStats } from "@/components/ui/professional-stats";
 import type { Subject, Goal } from "@shared/schema";
 
 export default function Dashboard() {
@@ -79,10 +77,11 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-bg)' }}>
-        <Dimmer active>
-          <Loader size="large">Carregando...</Loader>
-        </Dimmer>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Carregando dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -92,522 +91,389 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--nup-bg)', padding: 'var(--spacing-lg)' }}>
-      <Container>
+    <ProfessionalShell
+      title="Dashboard"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/dashboard' }
+      ]}
+    >
         {/* Header Section */}
-        <div className="mb-xl">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-lg)' }}>
-            <div>
-              <Header as="h1" style={{ fontSize: '32px', fontWeight: '600', color: 'var(--nup-gray-800)', marginBottom: 'var(--spacing-xs)' }}>
-                Dashboard
-              </Header>
-            </div>
-            <Button 
-              primary
-              icon="plus"
-              content="Novo Material"
-              onClick={() => navigate('/library?create=material')}
-              data-testid="button-upload-material"
-            />
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Bem-vindo de volta!</h1>
+            <p className="text-muted-foreground">Acompanhe seu progresso e continue seus estudos</p>
           </div>
+          <Button 
+            onClick={() => navigate('/library?create=material')}
+            data-testid="button-upload-material"
+            className="flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Novo Material</span>
+          </Button>
         </div>
 
         {/* Stats Overview */}
-        <div className="mb-xl">
-          <div 
-            style={{ 
-              borderRadius: '12px',
-              backgroundColor: 'var(--nup-surface)',
-              border: '1px solid rgba(0, 0, 0, 0.03)',
-              boxShadow: isStatsExpanded ? '0 2px 8px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03)' : '0 1px 2px rgba(0, 0, 0, 0.02)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              overflow: 'hidden',
-              marginBottom: 'var(--spacing-lg)'
-            }}
+        <div className="mb-8">
+          <Collapsible 
+            open={isStatsExpanded} 
+            onOpenChange={setIsStatsExpanded}
             data-testid="stats-section"
           >
-            <div 
-              style={{ 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                padding: 'var(--spacing-sm) var(--spacing-md)',
-                borderBottom: isStatsExpanded ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={() => setIsStatsExpanded(!isStatsExpanded)}
-              data-testid="stats-toggle"
-            >
-              <Header as="h3" className="nup-section-title" style={{ margin: 0 }}>
-                Acompanhe seu progresso diário
-              </Header>
-              <div style={{ transition: 'transform 0.2s ease' }}>
-                {isStatsExpanded ? (
-                  <ChevronUp style={{ width: '18px', height: '18px', color: 'var(--nup-gray-500)' }} />
-                ) : (
-                  <ChevronDown style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
-                )}
-              </div>
-            </div>
-            
-            <div 
-              style={{
-                maxHeight: isStatsExpanded ? '500px' : '0',
-                opacity: isStatsExpanded ? 1 : 0,
-                overflow: 'hidden',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: isStatsExpanded ? 'translateY(0)' : 'translateY(-10px)'
-              }}
-            >
-              {isStatsExpanded && (
-                <div style={{ padding: 'var(--spacing-md)' }}>
-                  <Grid columns={4} stackable>
-                  {statsLoading ? (
-                    <>
-                      <Grid.Column><SkeletonCard /></Grid.Column>
-                      <Grid.Column><SkeletonCard /></Grid.Column>
-                      <Grid.Column><SkeletonCard /></Grid.Column>
-                      <Grid.Column><SkeletonCard /></Grid.Column>
-                    </>
-                  ) : stats && (
-                    <>
-                      <Grid.Column>
-                        <Card className="nup-card nup-card--soft nup-card--info hover-lift" data-testid="stat-subjects">
-                          <Card.Content className="nup-kpi">
-                            <div className="nup-kpi__icon">
-                              <BookOpen style={{ width: '32px', height: '32px', color: 'var(--nup-info)' }} />
-                            </div>
-                            <div className="nup-kpi__value">{stats.subjects}</div>
-                            <div className="nup-kpi__label">Matérias</div>
-                          </Card.Content>
-                        </Card>
-                      </Grid.Column>
-                      <Grid.Column>
-                        <Card className="nup-card nup-card--soft nup-card--success hover-lift" data-testid="stat-today-hours">
-                          <Card.Content className="nup-kpi">
-                            <div className="nup-kpi__icon">
-                              <Clock style={{ width: '32px', height: '32px', color: 'var(--nup-success)' }} />
-                            </div>
-                            <div className="nup-kpi__value">{stats.todayHours}h</div>
-                            <div className="nup-kpi__label">Hoje</div>
-                          </Card.Content>
-                        </Card>
-                      </Grid.Column>
-                      <Grid.Column>
-                        <Card className="nup-card nup-card--soft nup-card--primary hover-lift" data-testid="stat-ai-questions">
-                          <Card.Content className="nup-kpi">
-                            <div className="nup-kpi__icon">
-                              <Brain style={{ width: '32px', height: '32px', color: 'var(--nup-primary)' }} />
-                            </div>
-                            <div className="nup-kpi__value">{stats.questionsGenerated}</div>
-                            <div className="nup-kpi__label">Questões IA</div>
-                          </Card.Content>
-                        </Card>
-                      </Grid.Column>
-                      <Grid.Column>
-                        <Card className="nup-card nup-card--soft nup-card--warning hover-lift" data-testid="stat-goal-progress">
-                          <Card.Content className="nup-kpi">
-                            <div className="nup-kpi__icon">
-                              <Trophy style={{ width: '32px', height: '32px', color: 'var(--nup-warning)' }} />
-                            </div>
-                            <div className="nup-kpi__value">{stats.goalProgress}%</div>
-                            <div className="nup-kpi__label">Progresso</div>
-                          </Card.Content>
-                        </Card>
-                      </Grid.Column>
-                    </>
-                  )}
-                  </Grid>
-                </div>
-              )}
-            </div>
-          </div>
+            <CollapsibleTrigger asChild>
+              <Card className="cursor-pointer hover:shadow-md transition-all">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="text-lg font-semibold">
+                    Acompanhe seu progresso diário
+                  </CardTitle>
+                  <div className="transition-transform duration-200" data-testid="stats-toggle">
+                    {isStatsExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </CardHeader>
+              </Card>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="transition-all duration-300">
+              <Card className="mt-2">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {statsLoading ? (
+                      <>
+                        <Skeleton className="h-32" />
+                        <Skeleton className="h-32" />
+                        <Skeleton className="h-32" />
+                        <Skeleton className="h-32" />
+                      </>
+                    ) : stats && (
+                      <>
+                        <ProfessionalStats
+                          title="Matérias"
+                          value={stats.subjects}
+                          icon={<BookOpen className="w-8 h-8" />}
+                          variant="info"
+                          data-testid="stat-subjects"
+                        />
+                        <ProfessionalStats
+                          title="Hoje"
+                          value={`${stats.todayHours}h`}
+                          icon={<Clock className="w-8 h-8" />}
+                          variant="success"
+                          data-testid="stat-today-hours"
+                        />
+                        <ProfessionalStats
+                          title="Questões IA"
+                          value={stats.questionsGenerated}
+                          icon={<Brain className="w-8 h-8" />}
+                          variant="info"
+                          data-testid="stat-ai-questions"
+                        />
+                        <ProfessionalStats
+                          title="Progresso"
+                          value={`${stats.goalProgress}%`}
+                          icon={<Trophy className="w-8 h-8" />}
+                          variant="warning"
+                          data-testid="stat-goal-progress"
+                        />
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-xl">
-          <div 
-            style={{ 
-              borderRadius: '12px',
-              backgroundColor: 'var(--nup-surface)',
-              border: '1px solid rgba(0, 0, 0, 0.03)',
-              boxShadow: isActionsExpanded ? '0 2px 8px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03)' : '0 1px 2px rgba(0, 0, 0, 0.02)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              overflow: 'hidden',
-              marginBottom: 'var(--spacing-lg)'
-            }}
+        <div className="mb-8">
+          <Collapsible 
+            open={isActionsExpanded} 
+            onOpenChange={setIsActionsExpanded}
             data-testid="actions-section"
           >
-            <div 
-              style={{ 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                padding: 'var(--spacing-sm) var(--spacing-md)',
-                borderBottom: isActionsExpanded ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={() => setIsActionsExpanded(!isActionsExpanded)}
-              data-testid="actions-toggle"
-            >
-              <Header as="h3" className="nup-section-title" style={{ margin: 0 }}>
-                Ações Rápidas
-              </Header>
-              <div style={{ transition: 'transform 0.2s ease' }}>
-                {isActionsExpanded ? (
-                  <ChevronUp style={{ width: '18px', height: '18px', color: 'var(--nup-gray-500)' }} />
-                ) : (
-                  <ChevronDown style={{ width: '18px', height: '18px', color: 'var(--nup-gray-400)' }} />
-                )}
-              </div>
-            </div>
-            
-            <div 
-              style={{
-                maxHeight: isActionsExpanded ? '600px' : '0',
-                opacity: isActionsExpanded ? 1 : 0,
-                overflow: isActionsExpanded ? 'visible' : 'hidden',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: isActionsExpanded ? 'translateY(0)' : 'translateY(-10px)'
-              }}
-            >
-              {isActionsExpanded && (
-                <div className="nup-cards-container">
-                  {/* Intelligent responsive grid - all cards together */}
-                  <div className="nup-cards-grid">
-                    <div>
-                      <Card 
-                        className="nup-card nup-card--soft nup-card--primary nup-card-symmetric transition-smooth hover-lift" 
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => navigate('/library')}
-                        data-testid="card-library"
-                      >
-                        <Card.Content className="nup-card-content-symmetric">
-                          <div className="nup-card-header-row">
-                            <div className="nup-card-content-left">
-                              <div>
-                                <Header as="h3" className="nup-card-title">
-                                  Biblioteca
-                                </Header>
-                                <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
-                                  Organize materiais, crie áreas de conhecimento e gerencie conteúdo
-                                </p>
-                              </div>
-                              <div className="nup-card-action">
-                                <span>Ver biblioteca</span>
-                                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
-                              </div>
-                            </div>
-                            <div className="nup-card-icon-right">
-                              <BookOpen style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
-                            </div>
-                          </div>
-                        </Card.Content>
-                      </Card>
-                    </div>
-
-                    <div>
-                      <Card 
-                        className="nup-card nup-card--soft nup-card--success nup-card-symmetric transition-smooth hover-lift" 
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => navigate('/flashcards')}
-                        data-testid="card-flashcards"
-                      >
-                        <Card.Content className="nup-card-content-symmetric">
-                          <div className="nup-card-header-row">
-                            <div className="nup-card-content-left">
-                              <div>
-                                <Header as="h3" className="nup-card-title">
-                                  Criar Flashcards
-                                </Header>
-                                <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
-                                  Crie e estude com flashcards personalizados
-                                </p>
-                              </div>
-                              <div className="nup-card-action">
-                                <span>Criar flashcards</span>
-                                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
-                              </div>
-                            </div>
-                            <div className="nup-card-icon-right">
-                              <CreditCard style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
-                            </div>
-                          </div>
-                        </Card.Content>
-                      </Card>
-                    </div>
-
-                    <div>
-                      <Card 
-                        className="nup-card nup-card--soft nup-card--info nup-card-symmetric transition-smooth hover-lift" 
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => navigate('/study')}
-                        data-testid="card-ai-questions"
-                      >
-                        <Card.Content className="nup-card-content-symmetric">
-                          <div className="nup-card-header-row">
-                            <div className="nup-card-content-left">
-                              <div>
-                                <Header as="h3" className="nup-card-title">
-                                  Questões com IA
-                                </Header>
-                                <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
-                                  Pratique com questões geradas por inteligência artificial
-                                </p>
-                              </div>
-                              <div className="nup-card-action">
-                                <span>Gerar questões</span>
-                                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
-                              </div>
-                            </div>
-                            <div className="nup-card-icon-right">
-                              <Brain style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
-                            </div>
-                          </div>
-                        </Card.Content>
-                      </Card>
-                    </div>
-
-                    <div>
-                      <Card 
-                        className="nup-card nup-card--soft nup-card--warning nup-card-symmetric transition-smooth hover-lift" 
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => navigate('/study')}
-                        data-testid="card-ai-chat"
-                      >
-                        <Card.Content className="nup-card-content-symmetric">
-                          <div className="nup-card-header-row">
-                            <div className="nup-card-content-left">
-                              <div>
-                                <Header as="h3" className="nup-card-title">
-                                  Chat com IA
-                                </Header>
-                                <p className="nup-card-description" style={{ marginBottom: 'var(--spacing-md)' }}>
-                                  Converse com a IA para esclarecer dúvidas e estudar
-                                </p>
-                              </div>
-                              <div className="nup-card-action">
-                                <span>Iniciar chat</span>
-                                <ArrowRight style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
-                              </div>
-                            </div>
-                            <div className="nup-card-icon-right">
-                              <MessageCircle style={{ width: '48px', height: '48px', color: 'var(--nup-gray-400)' }} />
-                            </div>
-                          </div>
-                        </Card.Content>
-                      </Card>
-                    </div>
+            <CollapsibleTrigger asChild>
+              <Card className="cursor-pointer hover:shadow-md transition-all">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="text-lg font-semibold">
+                    Ações Rápidas
+                  </CardTitle>
+                  <div className="transition-transform duration-200" data-testid="actions-toggle">
+                    {isActionsExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
+                </CardHeader>
+              </Card>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="transition-all duration-300">
+              <Card className="mt-2">
+                <CardContent className="p-6">
+                  {/* Responsive grid for action cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <ProfessionalCard
+                      title="Biblioteca"
+                      description="Organize materiais, crie áreas de conhecimento e gerencie conteúdo"
+                      icon={<BookOpen className="w-6 h-6" />}
+                      variant="elevated"
+                      onClick={() => navigate('/library')}
+                      className="cursor-pointer"
+                      data-testid="card-library"
+                      actions={
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span>Ver biblioteca</span>
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </div>
+                      }
+                    />
+
+                    <ProfessionalCard
+                      title="Criar Flashcards"
+                      description="Crie e estude com flashcards personalizados"
+                      icon={<CreditCard className="w-6 h-6" />}
+                      variant="outline"
+                      onClick={() => navigate('/flashcards')}
+                      className="cursor-pointer"
+                      data-testid="card-flashcards"
+                      actions={
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span>Criar flashcards</span>
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </div>
+                      }
+                    />
+
+                    <ProfessionalCard
+                      title="Questões com IA"
+                      description="Pratique com questões geradas por inteligência artificial"
+                      icon={<Brain className="w-6 h-6" />}
+                      variant="elevated"
+                      onClick={() => navigate('/study')}
+                      className="cursor-pointer"
+                      data-testid="card-ai-questions"
+                      actions={
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span>Gerar questões</span>
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </div>
+                      }
+                    />
+
+                    <ProfessionalCard
+                      title="Chat com IA"
+                      description="Converse com a IA para esclarecer dúvidas e estudar"
+                      icon={<MessageCircle className="w-6 h-6" />}
+                      variant="outline"
+                      onClick={() => navigate('/study')}
+                      className="cursor-pointer"
+                      data-testid="card-ai-chat"
+                      actions={
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span>Iniciar chat</span>
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </div>
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {/* Content Overview */}
-        <Grid columns={3} stackable>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Subjects */}
-          <Grid.Column>
-            <Card style={{ height: '100%', minHeight: '350px' }}>
-              <Card.Content>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-                  <Card.Header>Matérias Recentes</Card.Header>
-                  <Button 
-                    basic 
-                    size="small" 
-                    content="Ver todas"
-                    onClick={() => navigate('/library')}
-                  />
+          <Card className="min-h-[350px]">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Matérias Recentes</CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/library')}
+                >
+                  Ver todas
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+              {subjectsLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
                 </div>
-                
-                {subjectsLoading ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-                    <SkeletonCard />
-                    <SkeletonCard />
-                    <SkeletonCard />
-                  </div>
-                ) : subjects && subjects.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-                    {subjects.slice(0, 3).map((subject) => (
-                      <Card 
-                        key={subject.id}
-                        className="transition-smooth"
-                        style={{ 
-                          cursor: 'pointer',
-                          border: '1px solid var(--nup-gray-200)',
-                          padding: 'var(--spacing-md)'
-                        }}
-                        onClick={() => navigate(`/library?subject=${subject.id}`)}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <p className="card-title subject-name" style={{ marginBottom: 'var(--spacing-xs)' }}>{subject.name}</p>
-                            <p className="card-description subject-category">
+              ) : subjects && subjects.length > 0 ? (
+                <div className="space-y-3">
+                  {(subjects || []).slice(0, 3).map((subject) => (
+                    <Card 
+                      key={subject.id}
+                      className="cursor-pointer border transition-colors hover:bg-accent/5"
+                      onClick={() => navigate(`/library?subject=${subject.id}`)}
+                      data-testid={`subject-${subject.id}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <div 
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: subject.color || '#666' }}
+                              />
+                              <h4 className="font-medium text-foreground">{subject.name}</h4>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
                               {subject.category}
                             </p>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <p className="card-meta subject-priority">
+                          <div className="text-right">
+                            <Badge variant="secondary" className="text-xs">
                               Prioridade {subject.priority}
-                            </p>
+                            </Badge>
                           </div>
                         </div>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={<BookOpen style={{ width: '48px', height: '48px' }} />}
-                    title="Nenhuma matéria"
-                    description="Adicione sua primeira matéria para começar a organizar seus estudos"
-                    action={{
-                      label: "Adicionar matéria",
-                      onClick: () => navigate('/library')
-                    }}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <BookOpen className="w-12 h-12 text-muted-foreground mb-4" />
+                  <h4 className="text-lg font-medium mb-2">Nenhuma matéria</h4>
+                  <p className="text-muted-foreground mb-4">
+                    Adicione sua primeira matéria para começar a organizar seus estudos
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/library')}
                     data-testid="empty-subjects"
-                  />
-                )}
-              </Card.Content>
-            </Card>
-          </Grid.Column>
+                  >
+                    Adicionar matéria
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Recent Goals */}
-          <Grid.Column>
-            <Card style={{ height: '100%', minHeight: '350px' }}>
-              <Card.Content>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-                  <Card.Header>Metas Ativas</Card.Header>
-                  <Button 
-                    basic 
-                    size="small" 
-                    content="Ver todas"
-                    onClick={() => navigate('/goals')}
-                  />
+          <Card className="min-h-[350px]">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Metas Ativas</CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/goals')}
+                >
+                  Ver todas
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+              {goalsLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
                 </div>
-                
-                {goalsLoading ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-                    <SkeletonCard />
-                    <SkeletonCard />
-                    <SkeletonCard />
-                  </div>
-                ) : goals && goals.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-                    {goals.slice(0, 3).map((goal) => (
-                      <Card 
-                        key={goal.id}
-                        className="transition-smooth"
-                        style={{ 
-                          cursor: 'pointer',
-                          border: '1px solid var(--nup-gray-200)',
-                          padding: 'var(--spacing-md)'
-                        }}
-                        onClick={() => navigate('/goals')}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-sm)' }}>
-                          <p style={{ fontWeight: '500', flex: 1 }}>{goal.title}</p>
-                          <Target style={{ width: '16px', height: '16px', color: 'var(--nup-gray-400)' }} />
+              ) : goals && goals.length > 0 ? (
+                <div className="space-y-3">
+                  {(goals || []).slice(0, 3).map((goal) => (
+                    <Card 
+                      key={goal.id}
+                      className="cursor-pointer border transition-colors hover:bg-accent/5"
+                      onClick={() => navigate('/goals')}
+                      data-testid={`goal-${goal.id}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium text-foreground flex-1 pr-2">
+                            {goal.title}
+                          </h4>
+                          <Target className="w-4 h-4 text-muted-foreground mt-1" />
                         </div>
-                        <div style={{ fontSize: '12px', color: 'var(--nup-gray-600)' }}>
+                        <p className="text-sm text-muted-foreground">
                           {goal.description || 'Meta sem descrição'}
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={<Target style={{ width: '48px', height: '48px' }} />}
-                    title="Nenhuma meta"
-                    description="Defina metas de estudo para manter o foco e acompanhar seu progresso"
-                    action={{
-                      label: "Criar meta",
-                      onClick: () => navigate('/goals')
-                    }}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Target className="w-12 h-12 text-muted-foreground mb-4" />
+                  <h4 className="text-lg font-medium mb-2">Nenhuma meta</h4>
+                  <p className="text-muted-foreground mb-4">
+                    Defina metas de estudo para manter o foco e acompanhar seu progresso
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/goals')}
                     data-testid="empty-goals"
-                  />
-                )}
-              </Card.Content>
-            </Card>
-          </Grid.Column>
+                  >
+                    Criar meta
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* User Profile */}
-          <Grid.Column>
-            <Card style={{ height: '100%', minHeight: '350px' }}>
-              <Card.Content>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-                  <Card.Header style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                    <User style={{ width: '20px', height: '20px', color: 'var(--nup-gray-500)' }} />
-                    Seu Perfil
-                  </Card.Header>
-                </div>
-                
-                <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>
-                  <div 
-                    data-testid="avatar-container"
-                    style={{ 
-                      width: '80px', 
-                      height: '80px', 
-                      backgroundColor: 'var(--nup-primary)', 
-                      borderRadius: '50%', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      margin: '0 auto var(--spacing-md)' 
-                    }}
-                  >
-                    <User 
-                      data-testid="avatar-icon"
-                      style={{ width: '48px', height: '48px', color: 'white' }} 
-                    />
-                  </div>
-                  <Header as="h4" style={{ marginBottom: 'var(--spacing-xs)' }}>
-                    {user?.firstName || 'Estudante'}
-                  </Header>
-                  <p style={{ fontSize: '14px', color: 'var(--nup-gray-600)', marginBottom: 'var(--spacing-md)' }}>
-                    {user?.studyProfile === 'disciplined' && 'Disciplinado'}
-                    {user?.studyProfile === 'undisciplined' && 'Flexível'}
-                    {user?.studyProfile === 'average' && 'Balanceado'}
-                    {!user?.studyProfile && 'Perfil não definido'}
-                  </p>
-                </div>
-                
-                {stats && (
-                  <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: 'var(--spacing-xs)' }}>
-                      <span style={{ color: 'var(--nup-gray-600)' }}>Progresso das Metas</span>
-                      <span style={{ fontWeight: '500' }}>{stats.goalProgress}%</span>
-                    </div>
-                    <Progress 
-                      percent={parseInt(stats.goalProgress)} 
-                      color="blue"
-                      size="small"
-                    />
-                  </div>
-                )}
-                
-                <Button 
-                  fluid 
-                  size="small"
-                  style={{ 
-                    backgroundColor: 'var(--nup-primary)', 
-                    color: 'white',
-                    border: 'none'
-                  }}
-                  onClick={() => navigate('/onboarding')}
-                  data-testid="button-update-profile"
+          <Card className="min-h-[350px]">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <User className="w-5 h-5 text-muted-foreground" />
+                <span>Seu Perfil</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col justify-between flex-1">
+              <div className="text-center mb-6">
+                <div 
+                  data-testid="avatar-container"
+                  className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4"
                 >
-                  <Settings style={{ width: '16px', height: '16px', marginRight: '8px' }} />
-                  Atualizar Perfil
-                </Button>
-              </Card.Content>
-            </Card>
-          </Grid.Column>
-        </Grid>
-      </Container>
-      <FloatingSettings />
-    </div>
+                  <User 
+                    data-testid="avatar-icon"
+                    className="w-12 h-12 text-primary-foreground" 
+                  />
+                </div>
+                <h4 className="text-lg font-semibold text-foreground mb-1">
+                  {user?.firstName || 'Estudante'}
+                </h4>
+                <Badge variant="secondary" className="text-sm">
+                  {user?.studyProfile === 'disciplined' && 'Disciplinado'}
+                  {user?.studyProfile === 'undisciplined' && 'Flexível'}
+                  {user?.studyProfile === 'average' && 'Balanceado'}
+                  {!user?.studyProfile && 'Perfil não definido'}
+                </Badge>
+              </div>
+              
+              {stats && (
+                <div className="mb-6">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Progresso das Metas</span>
+                    <span className="font-medium">{stats?.goalProgress || 0}%</span>
+                  </div>
+                  <Progress 
+                    value={parseInt(stats?.goalProgress || '0')} 
+                    className="h-2"
+                  />
+                </div>
+              )}
+              
+              <Button 
+                className="w-full flex items-center justify-center space-x-2" 
+                onClick={() => navigate('/onboarding')}
+                data-testid="button-update-profile"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Atualizar Perfil</span>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+    </ProfessionalShell>
   );
 }
