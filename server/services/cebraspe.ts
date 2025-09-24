@@ -1,5 +1,6 @@
 import { embeddingsService } from './embeddings';
 import { pineconeService } from './pinecone';
+import { legacyRAGAdapter } from './rag/adapters/LegacyRAGAdapter';
 import { webScraperService } from './web-scraper';
 import { browserScraperService } from './browser-scraper';
 
