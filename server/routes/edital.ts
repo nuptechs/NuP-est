@@ -178,9 +178,6 @@ router.get('/lista', async (req, res) => {
         fileSize: edital.fileSize,
         concursoNome: edital.concursoNome,
         status: edital.status,
-        hasSingleCargo: edital.hasSingleCargo,
-        cargoName: edital.cargoName,
-        totalCargos: Array.isArray(edital.cargos) ? edital.cargos.length : (edital.hasSingleCargo ? 1 : 0),
         createdAt: edital.createdAt,
         processedAt: edital.processedAt,
         hasError: !!edital.errorMessage
@@ -236,12 +233,7 @@ router.get('/:editalId', async (req, res) => {
         fileSize: edital.fileSize,
         concursoNome: edital.concursoNome,
         status: edital.status,
-        // Campos removidos: rawContentLength, chunksGenerated, pineconeIndexed
-        // A aplicação externa gerencia processamento e indexação
-        hasSingleCargo: edital.hasSingleCargo,
-        cargoName: edital.cargoName,
-        cargos: edital.cargos,
-        // conteudoProgramatico: gerenciado pela aplicação externa
+        smartSummary: edital.smartSummary ? JSON.parse(edital.smartSummary) : null,
         errorMessage: edital.errorMessage,
         createdAt: edital.createdAt,
         processedAt: edital.processedAt,
