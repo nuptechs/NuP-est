@@ -67,49 +67,82 @@ export class NewEditalService {
         status: 'processing'
       });
 
-      // 3. Enviar arquivo para aplicação externa 
-      // A aplicação externa fará: processamento + chunks + embeddings + Pinecone
-      console.log(`🚀 Enviando arquivo para aplicação externa (processamento completo)...`);
+      // 3. Tentar enviar arquivo para aplicação externa primeiro
+      console.log(`🚀 Tentando enviar arquivo para aplicação externa (processamento completo)...`);
       
-      const processingResponse = await externalProcessingService.processDocument({
-        filePath: request.filePath,
-        fileName: request.originalName,
-        concursoNome: request.concursoNome,
-        userId: request.userId,
-        metadata: {
-          editalId: edital.id,
-          fileType
-        }
-      });
-
-      if (!processingResponse.success) {
-        // Marcar como erro e manter registro
-        await storage.updateEdital(edital.id, {
-          status: 'failed',
-          processedAt: new Date()
+      let processingResponse;
+      try {
+        processingResponse = await externalProcessingService.processDocument({
+          filePath: request.filePath,
+          fileName: request.originalName,
+          concursoNome: request.concursoNome,
+          userId: request.userId,
+          metadata: {
+            editalId: edital.id,
+            fileType
+          }
         });
-        
-        throw new Error(processingResponse.error || 'Erro no processamento externo');
+      } catch (externalError) {
+        console.warn(`⚠️ Serviço externo falhou, tentando processamento local:`, externalError);
+        processingResponse = { success: false, error: 'External service unavailable' };
       }
 
-      console.log(`✅ Aplicação externa processou e indexou no Pinecone com sucesso`);
+      let useLocalProcessing = false;
+      let jobId = null;
 
-      // 4. Marcar como indexado e salvar o externalFileId (pós-processamento será feito separadamente)
-      await storage.updateEdital(edital.id, {
-        status: 'indexed',
-        externalFileId: processingResponse.job_id, // Salvar job_id para filtrar RAG depois
-        processedAt: new Date()
-      });
+      if (!processingResponse.success) {
+        console.log(`🔄 Aplicação externa indisponível, usando processamento local...`);
+        useLocalProcessing = true;
+        
+        // Processamento local: extrair texto do PDF
+        try {
+          const extractedContent = await fileProcessorService.processFile(request.filePath, request.fileName);
+          console.log(`📄 Texto extraído localmente: ${extractedContent.text.length} caracteres`);
+          
+          // Gerar um ID único para o processamento local
+          jobId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
+          // Salvar conteúdo extraído no banco para análise posterior
+          await storage.updateEdital(edital.id, {
+            status: 'chunked',
+            rawContent: extractedContent.text.substring(0, 50000), // Limitar tamanho 
+            externalFileId: jobId,
+            processedAt: new Date()
+          });
+          
+          console.log(`✅ Texto extraído e salvo localmente. Job ID: ${jobId}`);
+          
+        } catch (localError) {
+          console.error(`❌ Erro no processamento local:`, localError);
+          await storage.updateEdital(edital.id, {
+            status: 'failed',
+            errorMessage: 'Falha no processamento local do PDF',
+            processedAt: new Date()
+          });
+          throw new Error('Não foi possível processar o PDF localmente');
+        }
+        
+      } else {
+        console.log(`✅ Aplicação externa processou com sucesso`);
+        jobId = processingResponse.job_id;
+        
+        // 4. Marcar como indexado e salvar o externalFileId
+        await storage.updateEdital(edital.id, {
+          status: 'indexed',
+          externalFileId: jobId,
+          processedAt: new Date()
+        });
+      }
       
-      console.log(`💾 ExternalFileId salvo: ${processingResponse.job_id}`);
+      console.log(`💾 Job ID salvo: ${jobId}`);
       
-      // 5. AGENDAR pós-processamento automático (não bloquear resposta)
+      // 5. AGENDAR pós-processamento automático (funciona para ambos os casos)
       console.log(`📋 Agendando pós-processamento automático...`);
       setTimeout(() => {
-        this.executePostProcessing(request.userId, edital!.id).catch(error => {
+        this.executePostProcessingWithFallback(request.userId, edital!.id, useLocalProcessing).catch(error => {
           console.error('❌ Erro no pós-processamento:', error);
         });
-      }, 5000); // 5 segundos para garantir indexação
+      }, 3000); // 3 segundos
 
       // 6. Limpar arquivo local (opcional - manter ou não)
       if (fs.existsSync(request.filePath)) {
@@ -122,10 +155,14 @@ export class NewEditalService {
       return {
         success: true,
         edital: updatedEdital || edital,
-        message: 'Arquivo indexado com sucesso! Análise de cargos em andamento...',
+        message: useLocalProcessing 
+          ? 'Arquivo processado localmente com sucesso! Análise de cargos em andamento...'
+          : 'Arquivo indexado com sucesso! Análise de cargos em andamento...',
         details: {
-          externalProcessingSuccess: true,
-          processingMessage: 'Documento processado e indexado no Pinecone pela aplicação externa'
+          externalProcessingSuccess: !useLocalProcessing,
+          processingMessage: useLocalProcessing 
+            ? 'Documento processado localmente (serviço externo indisponível)'
+            : 'Documento processado e indexado no Pinecone pela aplicação externa'
         }
       };
 
@@ -194,7 +231,141 @@ export class NewEditalService {
   }
 
   /**
-   * NOVO: Executa pós-processamento com análise estruturada
+   * NOVO: Executa pós-processamento com fallback local/externo
+   */
+  private async executePostProcessingWithFallback(userId: string, editalId: string, useLocalProcessing: boolean): Promise<void> {
+    try {
+      console.log(`🔍 Iniciando pós-processamento para edital ${editalId} (local: ${useLocalProcessing})`);
+      
+      if (useLocalProcessing) {
+        // Processamento baseado no texto extraído localmente
+        const edital = await storage.getEdital(editalId);
+        const rawContent = edital?.rawContent;
+        
+        if (!rawContent) {
+          throw new Error('Texto extraído não encontrado - processamento local falhou');
+        }
+        
+        console.log(`📄 Analisando ${rawContent.length} caracteres de texto extraído`);
+        
+        // Análise local simples usando regex e padrões
+        const analiseLocal = this.analyzeTextLocally(rawContent);
+        
+        // Salvar resultados
+        await storage.updateEdital(editalId, {
+          status: 'completed',
+          hasSingleCargo: analiseLocal.hasSingleCargo,
+          cargoName: analiseLocal.cargoName,
+          cargos: analiseLocal.cargos,
+          conteudoProgramatico: analiseLocal.conteudoProgramatico,
+          processingLogs: JSON.stringify({
+            method: 'local_processing',
+            textLength: rawContent.length,
+            processedAt: new Date().toISOString()
+          }),
+          processedAt: new Date()
+        });
+        
+        console.log(`✅ Pós-processamento local concluído para edital ${editalId}`);
+        
+      } else {
+        // Usar o método original para processamento externo
+        await this.executePostProcessing(userId, editalId);
+      }
+      
+    } catch (error) {
+      console.error(`❌ Erro no pós-processamento do edital ${editalId}:`, error);
+      
+      await storage.updateEdital(editalId, {
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+        processedAt: new Date()
+      });
+    }
+  }
+
+  /**
+   * Análise local de texto extraído do PDF
+   */
+  private analyzeTextLocally(text: string): {
+    hasSingleCargo: boolean;
+    cargoName: string | null;
+    cargos: any[];
+    conteudoProgramatico: string[];
+  } {
+    console.log('🔍 Iniciando análise local do texto');
+    
+    // Identificar cargos usando padrões comuns
+    const cargoPatterns = [
+      /cargo[:\s]+([^\n\.]+)/gi,
+      /vaga[:\s]+([^\n\.]+)/gi,
+      /função[:\s]+([^\n\.]+)/gi,
+      /(auditor[^\n\.]*)/gi,
+      /(analista[^\n\.]*)/gi,
+      /(técnico[^\n\.]*)/gi,
+      /(fiscal[^\n\.]*)/gi
+    ];
+    
+    const cargosEncontrados = new Set<string>();
+    
+    for (const pattern of cargoPatterns) {
+      const matches = Array.from(text.matchAll(pattern));
+      for (const match of matches) {
+        const cargo = match[1] || match[0];
+        if (cargo && cargo.length > 3 && cargo.length < 100) {
+          cargosEncontrados.add(cargo.trim().toLowerCase());
+        }
+      }
+    }
+    
+    // Identificar conhecimentos/disciplinas
+    const disciplinaPatterns = [
+      /conhecimento[s]?\s+específico[s]?[:\s]*([^\n]+)/gi,
+      /disciplina[s]?[:\s]*([^\n]+)/gi,
+      /matéria[s]?[:\s]*([^\n]+)/gi,
+      /(direito[^\n]*)/gi,
+      /(português[^\n]*)/gi,
+      /(matemática[^\n]*)/gi,
+      /(informática[^\n]*)/gi,
+      /(raciocínio[^\n]*)/gi,
+      /(legislação[^\n]*)/gi
+    ];
+    
+    const disciplinasEncontradas = new Set<string>();
+    
+    for (const pattern of disciplinaPatterns) {
+      const matches = Array.from(text.matchAll(pattern));
+      for (const match of matches) {
+        const disciplina = match[1] || match[0];
+        if (disciplina && disciplina.length > 3 && disciplina.length < 200) {
+          disciplinasEncontradas.add(disciplina.trim());
+        }
+      }
+    }
+    
+    // Estruturar resultados
+    const cargosArray = Array.from(cargosEncontrados);
+    const disciplinasArray = Array.from(disciplinasEncontradas);
+    
+    const primeiroCargo = cargosArray.length > 0 ? cargosArray[0] : 'Cargo do Concurso';
+    
+    const cargos = [{
+      nome: primeiroCargo,
+      conteudoProgramatico: disciplinasArray.map(d => `• ${d}`)
+    }];
+    
+    console.log(`📊 Análise local concluída: ${cargosArray.length} cargos, ${disciplinasArray.length} disciplinas`);
+    
+    return {
+      hasSingleCargo: cargosArray.length <= 1,
+      cargoName: primeiroCargo,
+      cargos: cargos,
+      conteudoProgramatico: disciplinasArray.map(d => `📖 ${d}`)
+    };
+  }
+
+  /**
+   * MÉTODO ORIGINAL: Executa pós-processamento com análise estruturada (para serviço externo)
    */
   private async executePostProcessing(userId: string, editalId: string): Promise<void> {
     try {
