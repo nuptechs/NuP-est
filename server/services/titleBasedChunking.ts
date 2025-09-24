@@ -192,13 +192,18 @@ export class TitleBasedChunkingService {
         const titleText = match[1] || match[0];
         const level = this.determineTitleLevel(originalLine, titleText);
         
+        console.log(`🔍 [TITLE-DEBUG] Título detectado por padrão: "${titleText}" (linha: "${originalLine.substring(0, 50)}...")`);
+        
         // Validação adicional para títulos detectados
         if (this.validateTitleCandidate(titleText, originalLine)) {
+          console.log(`✅ [TITLE-DEBUG] Título aceito: "${titleText}" (nível ${level})`);
           return {
             isTitle: true,
             titleText: this.cleanTitleText(titleText),
             level
           };
+        } else {
+          console.log(`❌ [TITLE-DEBUG] Título rejeitado pela validação: "${titleText}"`);
         }
       }
     }
@@ -206,6 +211,7 @@ export class TitleBasedChunkingService {
     // Análise contextual para títulos não capturados pelos padrões
     const contextualAnalysis = this.analyzeContextualTitle(originalLine);
     if (contextualAnalysis.isTitle) {
+      console.log(`✅ [TITLE-DEBUG] Título contextual aceito: "${contextualAnalysis.titleText}" (nível ${contextualAnalysis.level})`);
       return contextualAnalysis;
     }
     
@@ -242,31 +248,25 @@ export class TitleBasedChunkingService {
   
   /**
    * Valida se um candidato a título é realmente um título
+   * VERSÃO SIMPLIFICADA: Permite que títulos reais passem (correção do bug de filtragem excessiva)
    */
   private validateTitleCandidate(titleText: string, originalLine: string): boolean {
     const cleanTitle = titleText.trim();
     
-    // Muito curto ou muito longo
-    if (cleanTitle.length < 2 || cleanTitle.length > 150) return false;
+    // Apenas filtros essenciais - não bloquear títulos legítimos
+    if (cleanTitle.length < 2) return false; // Muito curto
+    if (cleanTitle.length > 200) return false; // Excessivamente longo
     
-    // Contém muitos números (provavelmente dados)
-    const numberCount = (cleanTitle.match(/\d/g) || []).length;
-    if (numberCount > cleanTitle.length * 0.3) return false;
+    // Bloquear apenas casos óbvios de não-títulos
+    if (/^\d+[.,]\d+$/.test(cleanTitle)) return false; // Apenas números decimais
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(cleanTitle)) return false; // Datas
+    if (/^[a-z]{3,}/.test(cleanTitle) && cleanTitle.length > 100) return false; // Texto corrido muito longo
     
-    // Contém caracteres especiais demais
-    const specialCount = (cleanTitle.match(/[^\w\s\-\(\)\[\]]/g) || []).length;
-    if (specialCount > cleanTitle.length * 0.2) return false;
+    // REMOVIDO: Filtros de preposições/artigos que bloqueavam títulos como "DAS INSCRIÇÕES"
+    // REMOVIDO: Filtros de caracteres especiais que bloqueavam numeração
+    // REMOVIDO: Filtros de densidade de números que bloqueavam títulos numerados
     
-    // Parece uma frase completa (tem artigos, preposições, etc.)
-    const articles = ['a', 'o', 'as', 'os', 'um', 'uma', 'uns', 'umas'];
-    const prepositions = ['de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos', 'por', 'para'];
-    const words = cleanTitle.toLowerCase().split(/\s+/);
-    const commonWordsCount = words.filter(word => [...articles, ...prepositions].includes(word)).length;
-    
-    // Se tem muitas palavras comuns, pode ser texto comum, não título
-    if (words.length > 8 && commonWordsCount > words.length * 0.4) return false;
-    
-    return true;
+    return true; // Permitir que títulos detectados pelos padrões passem
   }
   
   /**
