@@ -446,14 +446,12 @@ export const editais = pgTable("editais", {
   
   // Conteúdo e processamento
   rawContent: text("raw_content"), // Texto extraído do arquivo
-  deepseekChunks: jsonb("deepseek_chunks"), // Chunks gerados pelo DeepSeek R1
   pineconeIndexed: boolean("pinecone_indexed").default(false),
   
-  // Análise de cargos
-  hasSingleCargo: boolean("has_single_cargo"),
-  cargoName: varchar("cargo_name"),
-  cargos: jsonb("cargos"), // Lista de cargos quando múltiplos
-  conteudoProgramatico: jsonb("conteudo_programatico"),
+  // Novo sistema: Sumário baseado em títulos
+  titleChunks: jsonb("title_chunks"), // Chunks organizados por títulos
+  smartSummary: jsonb("smart_summary"), // Sumário inteligente gerado pela IA
+  documentStructure: jsonb("document_structure"), // Estrutura hierárquica do documento
   
   // Controle de processamento
   externalFileId: varchar("external_file_id"), // ID retornado pela aplicação externa (job_id)
