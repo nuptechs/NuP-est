@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { titleBasedChunkingService } from '../services/titleBasedChunking';
 import fs from 'fs';
 import { newEditalService } from '../services/newEditalService';
 import { fileProcessorService } from '../services/fileProcessor';
@@ -328,6 +329,51 @@ router.get('/info/formatos', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erro interno'
+    });
+  }
+});
+
+// ENDPOINT DE TESTE - Testar normalização de linha
+router.get('/test-normalization', async (req, res) => {
+  try {
+    console.log('🧪 [TEST] Testando normalização de linha...');
+    
+    // Texto simulado com problemas de quebra de linha (como PDF real)
+    const problematicText = "EDITAL Nº 5 – SEFAZ/SE\r\nA Secretária de Estado\rda Administração do Estado de Sergipe\r\n1 DAS DISPOSIÇÕES PRELIMINARES\r\n1.1 O concurso público será regido\r\n2 DOS REQUISITOS\r\n2.1 São requisitos para investidura\r\n3 DAS INSCRIÇÕES\r\n3.1 As inscrições serão realizadas\r\n4 DAS PROVAS\r\n4.1 As provas objetivas";
+    
+    console.log(`📄 [TEST] Texto original: ${problematicText.length} chars`);
+    console.log(`📊 [TEST] Quebras \\r: ${(problematicText.match(/\r/g) || []).length}`);
+    console.log(`📊 [TEST] Quebras \\n: ${(problematicText.match(/\n/g) || []).length}`);
+    
+    // Simular processamento direto
+    const testResult = await titleBasedChunkingService.processDocumentWithTitleChunking(
+      null, // Não precisamos do arquivo
+      'test-normalization.pdf'
+    );
+    
+    res.json({
+      success: true,
+      teste: 'normalização de linha',
+      entrada: {
+        caracteres: problematicText.length,
+        quebrasR: (problematicText.match(/\r/g) || []).length,
+        quebrasN: (problematicText.match(/\n/g) || []).length
+      },
+      resultado: {
+        totalChunks: testResult.totalChunks,
+        titulos: testResult.structure.map(chunk => ({
+          titulo: chunk.title,
+          nivel: chunk.level,
+          tamanho: chunk.content.length
+        }))
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [TEST] Erro no teste de normalização:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
