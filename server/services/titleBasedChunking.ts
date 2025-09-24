@@ -1,6 +1,6 @@
 import { fileProcessorService } from './fileProcessor.js';
 
-interface TitleChunk {
+export interface TitleChunk {
   id: string;
   title: string;
   level: number; // 1 = título principal, 2 = subtítulo, etc.
