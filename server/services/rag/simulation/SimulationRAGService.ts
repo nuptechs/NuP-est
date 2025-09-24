@@ -85,7 +85,7 @@ export class SimulationRAGService extends BaseRAGService {
         const searchResult = await this.pineconeAdapter.query({
           indexName: this.config.indexName,
           vector: queryEmbedding,
-          topK: query.maxResults || this.config.maxResults,
+          topK: query.maxResults || this.config.maxResults || 20,
           filter: {
             userId: query.userId,
             chunkType: 'simulation',
