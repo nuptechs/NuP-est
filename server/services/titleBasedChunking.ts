@@ -20,6 +20,21 @@ interface DocumentSummary {
 export class TitleBasedChunkingService {
   
   /**
+   * Normaliza quebras de linha de diferentes formatos (Windows, Mac, PDF) para Unix (\n)
+   * CORREÇÃO CRÍTICA: PDFs podem vir com \r, \f ou outras quebras
+   */
+  private normalizeLineBreaks(text: string): string {
+    // Substituir diferentes tipos de quebra de linha por \n
+    return text
+      .replace(/\r\n/g, '\n')    // Windows CRLF
+      .replace(/\r/g, '\n')      // Mac CR  
+      .replace(/\f/g, '\n')      // Form feed (comum em PDFs)
+      .replace(/\u2028/g, '\n')  // Line separator Unicode
+      .replace(/\u2029/g, '\n')  // Paragraph separator Unicode
+      .replace(/\n{3,}/g, '\n\n'); // Múltiplas quebras → máximo 2
+  }
+  
+  /**
    * Processa um documento PDF e o quebra em chunks baseados nos títulos
    */
   async processDocumentWithTitleChunking(filePath: string, fileName: string): Promise<DocumentSummary> {
@@ -52,7 +67,17 @@ export class TitleBasedChunkingService {
    * MELHORADO: Detecção mais robusta e abrangente de títulos
    */
   private identifyTitlesAndCreateChunks(text: string): TitleChunk[] {
-    const lines = text.split('\n').filter(line => line.trim().length > 0);
+    // CORREÇÃO CRÍTICA: Normalizar quebras de linha antes de processar
+    const normalizedText = this.normalizeLineBreaks(text);
+    console.log(`📄 [TITLE-DEBUG] Texto normalizado: ${normalizedText.length} chars`);
+    
+    const lines = normalizedText.split('\n').filter(line => line.trim().length > 0);
+    console.log(`📝 [TITLE-DEBUG] Total de linhas após normalização: ${lines.length}`);
+    
+    // Log das primeiras linhas para debug
+    lines.slice(0, 5).forEach((line, i) => {
+      console.log(`  Linha ${i}: "${line.substring(0, 80)}..."`);
+    });
     const chunks: TitleChunk[] = [];
     
     // Padrões EXPANDIDOS para identificar títulos em editais
