@@ -51,13 +51,22 @@ const ImportanceBadge = ({ importance }: { importance: 'high' | 'medium' | 'low'
 const SummaryItemComponent = ({ 
   item, 
   isExpanded, 
-  onToggle 
+  onToggle,
+  children,
+  allItems,
+  expandedItems,
+  toggleItem
 }: { 
   item: SummaryItem;
   isExpanded: boolean;
   onToggle: () => void;
+  children?: SummaryItem[];
+  allItems: SummaryItem[];
+  expandedItems: Set<string>;
+  toggleItem: (itemId: string) => void;
 }) => {
   const levelIndent = (item.level - 1) * 16;
+  const childItems = allItems.filter(child => child.parentId === item.id);
   
   return (
     <div 
@@ -127,6 +136,23 @@ const SummaryItemComponent = ({
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+            
+            {/* Renderizar filhos recursivamente */}
+            {childItems.length > 0 && (
+              <div className="mt-2 space-y-1" data-testid={`children-${item.id}`}>
+                {childItems.map((childItem) => (
+                  <SummaryItemComponent
+                    key={childItem.id}
+                    item={childItem}
+                    isExpanded={expandedItems.has(childItem.id)}
+                    onToggle={() => toggleItem(childItem.id)}
+                    allItems={allItems}
+                    expandedItems={expandedItems}
+                    toggleItem={toggleItem}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -236,6 +262,9 @@ export const InteractiveSummary = ({ summary, className }: InteractiveSummaryPro
                 item={item}
                 isExpanded={expandedItems.has(item.id)}
                 onToggle={() => toggleItem(item.id)}
+                allItems={summary.summaryItems}
+                expandedItems={expandedItems}
+                toggleItem={toggleItem}
               />
             ))}
           </div>

@@ -179,6 +179,22 @@ export class TitleBasedChunkingService {
   }
   
   /**
+   * Processa apenas texto (para testes) - método público
+   */
+  processContent(text: string): {
+    titleChunks: string[];
+    documentStructure: TitleChunk[];
+  } {
+    const chunks = this.identifyTitlesAndCreateChunks(text);
+    const titleChunks = chunks.map(chunk => chunk.content);
+    
+    return {
+      titleChunks,
+      documentStructure: chunks
+    };
+  }
+  
+  /**
    * Gera uma prévia do sumário para visualização rápida
    */
   generateSummaryPreview(summary: DocumentSummary): string {
