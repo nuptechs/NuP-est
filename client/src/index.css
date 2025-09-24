@@ -159,7 +159,7 @@
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+    @apply bg-muted-foreground opacity-50;
   }
 }
 
