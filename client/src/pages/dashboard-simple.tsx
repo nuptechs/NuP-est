@@ -317,23 +317,26 @@ export default function Dashboard() {
                       data-testid={`subject-${subject.id}`}
                     >
                       <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <div 
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: subject.color || '#666' }}
-                              />
-                              <h4 className="font-medium text-foreground">{subject.name}</h4>
-                            </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-medium text-foreground truncate max-w-[160px]">
+                              {subject.name.length > 20 ? subject.name.substring(0, 20) + '...' : subject.name}
+                            </h4>
+                            <Badge 
+                              variant="secondary" 
+                              className="text-xs px-2 py-0.5 rounded-sm bg-muted/60 text-muted-foreground font-normal"
+                            >
+                              {subject.priority}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div 
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: subject.color || '#666' }}
+                            />
                             <p className="text-sm text-muted-foreground">
                               {subject.category}
                             </p>
-                          </div>
-                          <div className="text-right">
-                            <Badge variant="secondary" className="text-xs">
-                              Prioridade {subject.priority}
-                            </Badge>
                           </div>
                         </div>
                       </CardContent>
