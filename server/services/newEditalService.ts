@@ -2,6 +2,8 @@ import fs from 'fs';
 import { fileProcessorService } from './fileProcessor';
 import { externalProcessingService } from './externalProcessingService';
 import { editalRAGService } from './editalRAG';
+import { titleBasedChunkingService } from './titleBasedChunking';
+import { smartSummaryService } from './smartSummaryService';
 import { storage } from '../storage';
 import type { Edital } from '@shared/schema';
 
@@ -91,35 +93,52 @@ export class NewEditalService {
       let jobId = null;
 
       if (!processingResponse.success) {
-        console.log(`🔄 Aplicação externa indisponível, usando processamento local...`);
+        console.log(`🔄 Aplicação externa indisponível, usando novo processamento baseado em títulos...`);
         useLocalProcessing = true;
         
-        // Processamento local: extrair texto do PDF
         try {
-          const extractedContent = await fileProcessorService.processFile(request.filePath, request.fileName);
-          console.log(`📄 Texto extraído localmente: ${extractedContent.text.length} caracteres`);
+          // NOVO SISTEMA: Chunking baseado em títulos + Sumário inteligente
+          console.log(`🔍 Iniciando chunking baseado em títulos...`);
+          const documentSummary = await titleBasedChunkingService.processDocumentWithTitleChunking(
+            request.filePath, 
+            request.fileName
+          );
+          
+          console.log(`📑 ${documentSummary.totalChunks} chunks criados baseados em títulos`);
+          
+          // Gerar sumário inteligente com IA
+          console.log(`🧠 Gerando sumário inteligente com IA...`);
+          const smartSummary = await smartSummaryService.generateSmartSummary(
+            documentSummary.structure,
+            documentSummary.documentName
+          );
+          
+          console.log(`✅ Sumário inteligente gerado com ${smartSummary.totalSections} seções`);
           
           // Gerar um ID único para o processamento local
           jobId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           
-          // Salvar conteúdo extraído no banco para análise posterior
+          // Salvar novo sistema no banco
           await storage.updateEdital(edital.id, {
-            status: 'chunked',
-            rawContent: extractedContent.text.substring(0, 50000), // Limitar tamanho 
+            status: 'summary_generated',
+            rawContent: documentSummary.structure.map(chunk => chunk.content).join('\n').substring(0, 50000),
+            titleChunks: JSON.stringify(documentSummary),
+            smartSummary: JSON.stringify(smartSummary),
+            documentStructure: JSON.stringify(documentSummary.structure),
             externalFileId: jobId,
             processedAt: new Date()
           });
           
-          console.log(`✅ Texto extraído e salvo localmente. Job ID: ${jobId}`);
+          console.log(`✅ Novo sistema de sumário salvo. Job ID: ${jobId}`);
           
         } catch (localError) {
-          console.error(`❌ Erro no processamento local:`, localError);
+          console.error(`❌ Erro no novo processamento baseado em títulos:`, localError);
           await storage.updateEdital(edital.id, {
             status: 'failed',
-            errorMessage: 'Falha no processamento local do PDF',
+            errorMessage: 'Falha no processamento baseado em títulos',
             processedAt: new Date()
           });
-          throw new Error('Não foi possível processar o PDF localmente');
+          throw new Error('Não foi possível processar o documento com o novo sistema');
         }
         
       } else {
@@ -136,13 +155,17 @@ export class NewEditalService {
       
       console.log(`💾 Job ID salvo: ${jobId}`);
       
-      // 5. AGENDAR pós-processamento automático (funciona para ambos os casos)
-      console.log(`📋 Agendando pós-processamento automático...`);
-      setTimeout(() => {
-        this.executePostProcessingWithFallback(request.userId, edital!.id, useLocalProcessing).catch(error => {
-          console.error('❌ Erro no pós-processamento:', error);
-        });
-      }, 3000); // 3 segundos
+      // 5. Para processamento local com novo sistema, não é necessário pós-processamento
+      if (!useLocalProcessing) {
+        console.log(`📋 Agendando pós-processamento para serviço externo...`);
+        setTimeout(() => {
+          this.executePostProcessingWithFallback(request.userId, edital!.id, useLocalProcessing).catch(error => {
+            console.error('❌ Erro no pós-processamento:', error);
+          });
+        }, 3000); // 3 segundos
+      } else {
+        console.log(`✅ Processamento local completo - sumário já gerado!`);
+      }
 
       // 6. Limpar arquivo local (opcional - manter ou não)
       if (fs.existsSync(request.filePath)) {
@@ -156,7 +179,7 @@ export class NewEditalService {
         success: true,
         edital: updatedEdital || edital,
         message: useLocalProcessing 
-          ? 'Arquivo processado localmente com sucesso! Análise de cargos em andamento...'
+          ? 'Arquivo processado com novo sistema baseado em títulos! Sumário inteligente gerado com sucesso.'
           : 'Arquivo indexado com sucesso! Análise de cargos em andamento...',
         details: {
           externalProcessingSuccess: !useLocalProcessing,
