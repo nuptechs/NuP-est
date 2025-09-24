@@ -67,6 +67,7 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
           cardVariants[variant],
           isClickable && "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.01]",
           loading && "animate-pulse",
+          "flex flex-col",
           className
         )}
         onClick={onClick}
@@ -107,7 +108,7 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
                   )}
                   {description && (
                     <CardDescription className={cn(
-                      "leading-relaxed",
+                      "leading-relaxed text-justify",
                       size === "sm" ? "text-xs" : "text-sm"
                     )}>
                       {description}
@@ -140,6 +141,7 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
           <CardContent className={cn(
             sizeVariants[size],
             (title || description || subtitle || icon || badge || actions) && "pt-0",
+            "flex-grow",
             contentClassName
           )}>
             {loading ? (

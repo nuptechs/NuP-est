@@ -649,21 +649,24 @@ export default function FlashcardsModernPage() {
                       key={deck.id}
                       title={deck.title}
                       description={deck.description ? (
-                        deck.description.length > 60 
-                          ? deck.description.substring(0, 60) + '...'
+                        deck.description.length > 100 
+                          ? deck.description.substring(0, 100) + '...'
                           : deck.description
                       ) : undefined}
                       subtitle={`${deck.totalCards || 0} cards • ${deck.studiedCards || 0} estudados`}
                       icon={<BookOpen className="w-5 h-5 text-primary" />}
                       footer={
                         <div className="flex items-center justify-between gap-3">
-                          <div className="flex-shrink-0">
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge variant="outline" className="rounded-md px-2 py-1 text-xs font-medium">
+                              {deck.totalCards || 0} cards
+                            </Badge>
                             {(deck.totalCards || 0) > 0 ? (
-                              <Badge variant="secondary" className="rounded-md px-3 py-1.5 text-xs font-medium border border-border">
+                              <Badge variant="secondary" className="rounded-md px-2 py-1 text-xs font-medium border border-border">
                                 {Math.round(((deck.studiedCards || 0) / (deck.totalCards || 1)) * 100)}% completo
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="rounded-md px-3 py-1.5 text-xs font-medium">Novo</Badge>
+                              <Badge variant="outline" className="rounded-md px-2 py-1 text-xs font-medium">Novo</Badge>
                             )}
                           </div>
                           <Button 
@@ -677,7 +680,7 @@ export default function FlashcardsModernPage() {
                           </Button>
                         </div>
                       }
-                      className="transition-all hover:shadow-lg"
+                      className="transition-all hover:shadow-lg h-full flex flex-col"
                       data-testid={`deck-card-${deck.id}`}
                     />
                   ))}
