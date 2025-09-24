@@ -233,7 +233,7 @@ router.get('/:editalId', async (req, res) => {
         fileSize: edital.fileSize,
         concursoNome: edital.concursoNome,
         status: edital.status,
-        smartSummary: edital.smartSummary ? JSON.parse(edital.smartSummary) : null,
+        smartSummary: edital.smartSummary || null,
         errorMessage: edital.errorMessage,
         createdAt: edital.createdAt,
         processedAt: edital.processedAt,
