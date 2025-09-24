@@ -6,18 +6,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { InteractiveSummary } from '@/components/ui/interactive-summary';
 
 interface ConteudoProgramatico {
   disciplina: string;
   topicos: string[];
 }
 
+interface SummaryItem {
+  id: string;
+  title: string;
+  level: number;
+  summary: string;
+  keyPoints: string[];
+  importance: 'high' | 'medium' | 'low';
+  parentId?: string;
+  originalChunkId: string;
+}
+
+interface SmartSummary {
+  documentName: string;
+  overallSummary: string;
+  totalSections: number;
+  summaryItems: SummaryItem[];
+  generatedAt: Date;
+}
+
 interface EditalResult {
   id: string;
   concursoNome: string;
   fileName: string;
-  status: 'processing' | 'indexed' | 'completed' | 'failed';
-  hasSingleCargo: boolean;
+  status: 'processing' | 'indexed' | 'completed' | 'failed' | 'summary_generated';
+  hasSingleCargo?: boolean;
   cargoName?: string;
   cargos?: Array<{
     nome: string;
@@ -27,6 +47,7 @@ interface EditalResult {
     vagas?: number;
   }>;
   conteudoProgramatico?: ConteudoProgramatico[];
+  smartSummary?: SmartSummary;
   processedAt: string;
 }
 
@@ -48,14 +69,14 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
         const response = await fetch(`/api/edital/${editalId}`);
         const data = await response.json();
         
-        if (data.success && data.edital.status === 'completed') {
+        if (data.success && (data.edital.status === 'completed' || data.edital.status === 'summary_generated')) {
           setResult(data.edital);
           clearInterval(interval);
           setPollingInterval(null);
           
           toast({
-            title: "✅ Análise de cargos concluída!",
-            description: "O edital foi totalmente processado e analisado.",
+            title: data.edital.status === 'summary_generated' ? "✅ Sumário inteligente gerado!" : "✅ Análise de cargos concluída!",
+            description: data.edital.status === 'summary_generated' ? "O edital foi processado e o sumário interativo está disponível." : "O edital foi totalmente processado e analisado.",
           });
         } else if (data.success && data.edital.status === 'failed') {
           clearInterval(interval);
@@ -312,6 +333,7 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                   <strong>Status:</strong> 
                   {result.status === 'indexed' && <span className="text-yellow-600"> 🔄 Analisando cargos</span>}
                   {result.status === 'completed' && <span className="text-green-600"> ✅ Análise concluída</span>}
+                  {result.status === 'summary_generated' && <span className="text-blue-600"> 📚 Sumário gerado</span>}
                   {result.status === 'failed' && <span className="text-red-600"> ❌ Erro no processamento</span>}
                 </div>
                 {result.status === 'completed' && (
@@ -327,6 +349,16 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                   </>
                 )}
               </div>
+
+              {/* Sumário Interativo quando gerado via novo sistema */}
+              {result.status === 'summary_generated' && result.smartSummary && (
+                <div className="mt-6">
+                  <InteractiveSummary 
+                    summary={result.smartSummary} 
+                    className="" 
+                  />
+                </div>
+              )}
 
               {/* Exibe cargos e conhecimentos quando análise está completa */}
               {result.status === 'completed' && result.cargos && result.cargos.length > 0 && (
@@ -371,6 +403,17 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                   <AlertDescription>
                     Não foi possível identificar informações específicas sobre cargos neste edital.
                     O conteúdo foi indexado e está disponível para consultas via RAG.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {/* Fallback quando sumário não foi gerado ou há erro */}
+              {result.status === 'summary_generated' && !result.smartSummary && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    O edital foi processado mas o sumário não pôde ser carregado.
+                    Tente recarregar a página ou contate o suporte.
                   </AlertDescription>
                 </Alert>
               )}
