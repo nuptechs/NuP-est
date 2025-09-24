@@ -4,6 +4,7 @@ import { externalProcessingService } from './externalProcessingService';
 import { titleBasedChunkingService } from './titleBasedChunking';
 import { smartSummaryService } from './smartSummaryService';
 import { storage } from '../storage';
+import { ragOrchestrator } from './rag/index';
 import type { Edital } from '@shared/schema';
 
 interface ProcessEditalRequest {
@@ -113,6 +114,48 @@ export class NewEditalService {
           );
           
           console.log(`✅ Sumário inteligente gerado com ${smartSummary.totalSections} seções`);
+          
+          // NOVO: Integrar com arquitetura RAG para embeddings semânticos
+          console.log(`🔗 Integrando chunks com arquitetura RAG...`);
+          try {
+            // Preparar dados para o RAG
+            const ragDocumentId = `edital_${edital.id}`;
+            const ragMetadata = {
+              documentId: edital.id,
+              documentName: documentSummary.documentName,
+              concursoNome: request.concursoNome,
+              processedAt: new Date().toISOString(),
+              totalChunks: documentSummary.totalChunks,
+              userId: request.userId
+            };
+            
+            // Transformar chunks em formato RAGDocument para o domínio simulation
+            for (const [index, chunk] of documentSummary.structure.entries()) {
+              const ragDocument = {
+                id: `${ragDocumentId}_chunk_${index}`,
+                userId: request.userId,
+                content: chunk.content,
+                createdAt: new Date(),
+                metadata: {
+                  ...ragMetadata,
+                  chunkId: chunk.id,
+                  title: chunk.title,
+                  level: chunk.level,
+                  startPosition: chunk.startPosition,
+                  endPosition: chunk.endPosition,
+                  parentId: chunk.parentId,
+                  chunkIndex: index
+                }
+              };
+              
+              // Armazenar cada chunk no domínio 'simulation' (concursos/editais)
+              await ragOrchestrator.processDocumentInDomain('simulation', ragDocument);
+            }
+            console.log(`✅ ${documentSummary.totalChunks} chunks armazenados no sistema RAG com ID: ${ragDocumentId}`);
+            
+          } catch (ragError) {
+            console.warn(`⚠️ Erro ao integrar com RAG (não crítico):`, ragError);
+          }
           
           // Gerar um ID único para o processamento local
           jobId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

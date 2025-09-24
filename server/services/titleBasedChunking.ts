@@ -490,24 +490,47 @@ export class TitleBasedChunkingService {
   
   /**
    * Divisão forçada por tamanho como último recurso
+   * MELHORADA: Garante que sempre gera múltiplos chunks
    */
   private forceChunkingBySize(fullText: string, targetChunks: number): TitleChunk[] {
     console.log(`🔢 Aplicando divisão forçada em ${targetChunks} seções por tamanho...`);
     
     const chunks: TitleChunk[] = [];
     const lines = fullText.split('\n').filter(line => line.trim().length > 0);
+    const minLinesPerChunk = Math.max(1, Math.floor(lines.length / targetChunks));
+    
+    console.log(`📊 Total de linhas: ${lines.length}, Min linhas por chunk: ${minLinesPerChunk}`);
     
     let currentPos = 0;
     let chunkIndex = 0;
+    let startLineIndex = 0;
     
-    for (let i = 0; i < targetChunks; i++) {
-      const startPos = Math.floor(i * (lines.length / targetChunks));
-      const endPos = i === targetChunks - 1 ? lines.length : Math.floor((i + 1) * (lines.length / targetChunks));
+    for (let i = 0; i < targetChunks && startLineIndex < lines.length; i++) {
+      // Calcular quantas linhas deve ter este chunk
+      let endLineIndex;
+      if (i === targetChunks - 1) {
+        // Último chunk pega todas as linhas restantes
+        endLineIndex = lines.length;
+      } else {
+        endLineIndex = Math.min(
+          startLineIndex + minLinesPerChunk,
+          startLineIndex + Math.floor((lines.length - startLineIndex) / (targetChunks - i))
+        );
+        
+        // Garantir que sempre avança pelo menos 1 linha
+        endLineIndex = Math.max(endLineIndex, startLineIndex + 1);
+      }
       
-      const chunkLines = lines.slice(startPos, endPos);
-      const content = chunkLines.join('\n');
+      const chunkLines = lines.slice(startLineIndex, endLineIndex);
+      const content = chunkLines.join('\n').trim();
       
-      if (content.trim().length === 0) continue;
+      console.log(`📑 Chunk ${i}: linhas ${startLineIndex}-${endLineIndex} (${chunkLines.length} linhas, ${content.length} chars)`);
+      
+      // Só pular se realmente estiver vazio (verificação mais robusta)
+      if (content.length === 0 || chunkLines.length === 0) {
+        console.warn(`⚠️ Chunk ${i} está vazio, pulando...`);
+        continue;
+      }
       
       const title = this.inferSectionTitle(chunkLines, chunkIndex);
       
@@ -515,13 +538,44 @@ export class TitleBasedChunkingService {
         id: `size_chunk_${chunkIndex}`,
         title,
         level: chunkIndex === 0 ? 1 : 2,
-        content: content.trim(),
+        content,
         startPosition: currentPos,
         endPosition: currentPos + content.length
       });
       
       currentPos += content.length;
+      startLineIndex = endLineIndex;
       chunkIndex++;
+      
+      console.log(`✅ Chunk criado: "${title}" (${content.length} chars)`);
+    }
+    
+    // Garantir que pelo menos temos 2 chunks se o texto for longo o suficiente
+    if (chunks.length < 2 && fullText.length > 1000) {
+      console.log(`🔄 Apenas ${chunks.length} chunk criado, forçando divisão em 2...`);
+      
+      const midPoint = Math.floor(lines.length / 2);
+      const firstHalf = lines.slice(0, midPoint).join('\n').trim();
+      const secondHalf = lines.slice(midPoint).join('\n').trim();
+      
+      return [
+        {
+          id: 'forced_chunk_0',
+          title: this.inferSectionTitle(lines.slice(0, midPoint), 0),
+          level: 1,
+          content: firstHalf,
+          startPosition: 0,
+          endPosition: firstHalf.length
+        },
+        {
+          id: 'forced_chunk_1', 
+          title: this.inferSectionTitle(lines.slice(midPoint), 1),
+          level: 2,
+          content: secondHalf,
+          startPosition: firstHalf.length,
+          endPosition: firstHalf.length + secondHalf.length
+        }
+      ];
     }
     
     console.log(`✅ Divisão por tamanho concluída: ${chunks.length} seções`);
