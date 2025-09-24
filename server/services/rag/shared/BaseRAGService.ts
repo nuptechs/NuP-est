@@ -1,5 +1,4 @@
-import { PineconeService } from '../../pinecone';
-import { embeddingsService } from '../../embeddings';
+import { MultiIndexPineconeAdapter } from './MultiIndexPineconeAdapter';
 
 export interface RAGConfig {
   indexName: string;
@@ -47,9 +46,9 @@ export interface RAGSearchResponse {
  */
 export abstract class BaseRAGService {
   protected config: RAGConfig;
-  protected pineconeService: PineconeService;
+  protected pineconeAdapter: MultiIndexPineconeAdapter;
 
-  constructor(config: RAGConfig) {
+  constructor(config: RAGConfig, pineconeAdapter?: MultiIndexPineconeAdapter) {
     this.config = {
       embeddingModel: 'text-embedding-004',
       maxResults: 10,
@@ -58,7 +57,7 @@ export abstract class BaseRAGService {
       overlapSize: 200,
       ...config
     };
-    this.pineconeService = new PineconeService();
+    this.pineconeAdapter = pineconeAdapter || new MultiIndexPineconeAdapter();
   }
 
   /**
@@ -82,7 +81,7 @@ export abstract class BaseRAGService {
    */
   protected async generateEmbeddings(text: string): Promise<number[]> {
     try {
-      const embeddings = await embeddingsService.generateEmbedding(text);
+      const embeddings = await this.pineconeAdapter.generateEmbedding(text);
       return embeddings;
     } catch (error) {
       console.error(`❌ Erro ao gerar embeddings para ${this.config.indexName}:`, error);
@@ -93,6 +92,7 @@ export abstract class BaseRAGService {
 
   /**
    * Funcionalidade comum: chunking inteligente
+   * CORREÇÃO: Previne loop infinito garantindo progresso mínimo
    */
   protected chunkText(text: string): string[] {
     const chunks: string[] = [];
@@ -115,7 +115,14 @@ export abstract class BaseRAGService {
       }
       
       chunks.push(chunk.trim());
-      start += chunk.length - (overlapSize || 0);
+      
+      // CORREÇÃO: Garantir progresso mínimo para prevenir loop infinito
+      const actualChunkLength = chunk.length;
+      const safeOverlap = Math.min(overlapSize || 0, actualChunkLength - 1);
+      const nextStart = start + actualChunkLength - safeOverlap;
+      
+      // Garantir progresso mínimo de pelo menos 1 caractere
+      start = Math.max(nextStart, start + 1);
       
       if (start >= text.length) break;
     }

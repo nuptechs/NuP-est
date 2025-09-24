@@ -54,7 +54,7 @@ export class FlashcardRAGService extends BaseRAGService {
         );
 
         // Upsert no Pinecone
-        await this.pineconeService.upsertVectors(
+        await this.pineconeAdapter.upsertVectors(
           this.config.indexName,
           processedChunks
         );
@@ -76,10 +76,10 @@ export class FlashcardRAGService extends BaseRAGService {
   async search(query: RAGQuery): Promise<RAGSearchResponse> {
     const { result: searchResults, duration } = await this.measurePerformance(
       'Flashcard search',
-      async () => {
+      async (): Promise<RAGSearchResponse> => {
         const queryEmbedding = await this.generateEmbeddings(query.query);
         
-        const searchResult = await this.pineconeService.query({
+        const searchResult = await this.pineconeAdapter.query({
           indexName: this.config.indexName,
           vector: queryEmbedding,
           topK: query.maxResults || this.config.maxResults,
@@ -92,8 +92,8 @@ export class FlashcardRAGService extends BaseRAGService {
         });
 
         const results: RAGResult[] = searchResult.matches
-          .filter(match => match.score >= (query.minSimilarity || this.config.minSimilarity!))
-          .map(match => ({
+          .filter((match: any) => match.score >= (query.minSimilarity || this.config.minSimilarity!))
+          .map((match: any) => ({
             id: match.id,
             content: match.metadata?.content as string,
             metadata: {
@@ -181,7 +181,7 @@ export class FlashcardRAGService extends BaseRAGService {
           filter.createdAt = { $lt: olderThan.toISOString() };
         }
 
-        await this.pineconeService.deleteByFilter(this.config.indexName, filter);
+        await this.pineconeAdapter.deleteByFilter(this.config.indexName, filter);
       }
     );
 
@@ -231,7 +231,7 @@ export class FlashcardRAGService extends BaseRAGService {
       }
     });
 
-    return [...new Set(concepts)].slice(0, 5); // Máximo 5 conceitos únicos
+    return Array.from(new Set(concepts)).slice(0, 5); // Máximo 5 conceitos únicos
   }
 
   /**

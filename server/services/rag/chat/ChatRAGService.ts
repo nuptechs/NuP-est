@@ -61,7 +61,7 @@ export class ChatRAGService extends BaseRAGService {
         );
 
         // Upsert no Pinecone
-        await this.pineconeService.upsertVectors(
+        await this.pineconeAdapter.upsertVectors(
           this.config.indexName,
           processedChunks
         );
@@ -83,13 +83,13 @@ export class ChatRAGService extends BaseRAGService {
   async search(query: RAGQuery): Promise<RAGSearchResponse> {
     const { result: searchResults, duration } = await this.measurePerformance(
       'Chat contextual search',
-      async () => {
+      async (): Promise<RAGSearchResponse> => {
         // Enriquecer query com contexto conversacional
         const enrichedQuery = this.enrichQueryWithContext(query.query, query.userId);
         
         const queryEmbedding = await this.generateEmbeddings(enrichedQuery);
         
-        const searchResult = await this.pineconeService.query({
+        const searchResult = await this.pineconeAdapter.query({
           indexName: this.config.indexName,
           vector: queryEmbedding,
           topK: query.maxResults || this.config.maxResults,
@@ -102,8 +102,8 @@ export class ChatRAGService extends BaseRAGService {
         });
 
         const results: RAGResult[] = searchResult.matches
-          .filter(match => match.score >= (query.minSimilarity || this.config.minSimilarity!))
-          .map(match => ({
+          .filter((match: any) => match.score >= (query.minSimilarity || this.config.minSimilarity!))
+          .map((match: any) => ({
             id: match.id,
             content: match.metadata?.content as string,
             metadata: {
@@ -115,7 +115,7 @@ export class ChatRAGService extends BaseRAGService {
             similarity: match.score
           }))
           // Reordenar por valor conversacional
-          .sort((a, b) => {
+          .sort((a: any, b: any) => {
             const aValue = a.metadata.conversationalValue as number || 0;
             const bValue = b.metadata.conversationalValue as number || 0;
             return (b.similarity * bValue) - (a.similarity * aValue);
@@ -237,7 +237,7 @@ export class ChatRAGService extends BaseRAGService {
           filter.createdAt = { $lt: olderThan.toISOString() };
         }
 
-        await this.pineconeService.deleteByFilter(this.config.indexName, filter);
+        await this.pineconeAdapter.deleteByFilter(this.config.indexName, filter);
 
         // Limpar histórico conversacional
         if (this.conversationHistory.has(userId)) {
@@ -297,7 +297,7 @@ export class ChatRAGService extends BaseRAGService {
       }
     });
 
-    return [...new Set(topics)].slice(0, 3);
+    return Array.from(new Set(topics)).slice(0, 3);
   }
 
   /**
@@ -319,7 +319,7 @@ export class ChatRAGService extends BaseRAGService {
       }
     });
 
-    return [...new Set(entities)];
+    return Array.from(new Set(entities));
   }
 
   /**
