@@ -5,7 +5,7 @@ import { BaseRAGService, RAGConfig, RAGDocument, RAGQuery, RAGSearchResponse, RA
  * Otimizado para extrair conceitos chave, definições e perguntas/respostas
  */
 export class FlashcardRAGService extends BaseRAGService {
-  constructor() {
+  constructor(pineconeAdapter?: import('../shared/MultiIndexPineconeAdapter').MultiIndexPineconeAdapter) {
     super({
       indexName: 'nup-flashcards-kb',
       embeddingModel: 'text-embedding-004',
@@ -13,7 +13,7 @@ export class FlashcardRAGService extends BaseRAGService {
       minSimilarity: 0.75,
       chunkSize: 800,  // Chunks menores para conceitos mais precisos
       overlapSize: 150
-    });
+    }, pineconeAdapter);
   }
 
   /**
@@ -108,11 +108,14 @@ export class FlashcardRAGService extends BaseRAGService {
         return {
           results,
           totalFound: results.length,
-          processingTime: duration,
+          processingTime: 0, // Será sobrescrito após measurePerformance
           query: query.query
         };
       }
     );
+
+    // Corrigir processingTime após measurePerformance
+    searchResults.processingTime = duration;
 
     this.log('info', 'Flashcard search completed', {
       query: query.query,

@@ -12,7 +12,7 @@ export class ChatRAGService extends BaseRAGService {
     context: string[];
   }>> = new Map();
 
-  constructor() {
+  constructor(pineconeAdapter?: import('../shared/MultiIndexPineconeAdapter').MultiIndexPineconeAdapter) {
     super({
       indexName: 'nup-chat-context',
       embeddingModel: 'text-embedding-004',
@@ -20,7 +20,7 @@ export class ChatRAGService extends BaseRAGService {
       minSimilarity: 0.7,
       chunkSize: 1200, // Chunks maiores para contexto conversacional
       overlapSize: 300
-    });
+    }, pineconeAdapter);
   }
 
   /**
@@ -124,11 +124,14 @@ export class ChatRAGService extends BaseRAGService {
         return {
           results,
           totalFound: results.length,
-          processingTime: duration,
+          processingTime: 0, // Será sobrescrito após measurePerformance
           query: query.query
         };
       }
     );
+
+    // Corrigir processingTime após measurePerformance
+    searchResults.processingTime = duration;
 
     this.log('info', 'Chat contextual search completed', {
       originalQuery: query.query,
