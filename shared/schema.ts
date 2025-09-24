@@ -395,7 +395,7 @@ export const fileTypeEnum = pgEnum("file_type", [
 ]);
 
 export const editalStatusEnum = pgEnum("edital_status", [
-  "uploaded", "processing", "chunked", "indexed", "analyzed", "completed", "failed"
+  "uploaded", "processing", "chunked", "indexed", "analyzed", "summary_generated", "completed", "failed"
 ]);
 
 export const processingJobs = pgTable("processing_jobs", {
