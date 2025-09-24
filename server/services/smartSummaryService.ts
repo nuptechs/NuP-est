@@ -137,7 +137,17 @@ IMPORTANTE: Resposta deve ser JSON válido, sem texto adicional.
    */
   private parseBatchSummaryResponse(content: string, chunks: TitleChunk[]): SummaryItem[] {
     try {
-      const parsed = JSON.parse(content);
+      // Limpar markdown da resposta se presente
+      let cleanContent = content.trim();
+      
+      // Remover ```json e ``` se presentes
+      if (cleanContent.startsWith('```json')) {
+        cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanContent.startsWith('```')) {
+        cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      const parsed = JSON.parse(cleanContent);
       const summaries = parsed.summaries || [];
       
       return summaries.map((summary: any, index: number) => {
