@@ -65,9 +65,12 @@ export class SmartSummaryService {
    * Processa um lote de chunks e gera sumários
    */
   private async processBatchSummary(chunks: TitleChunk[]): Promise<SummaryItem[]> {
+    console.log(`🔄 [BATCH-DEBUG] Processando ${chunks.length} chunks:`, chunks.map(c => c.title));
+    
     const prompt = this.buildBatchSummaryPrompt(chunks);
     
     try {
+      console.log(`🚀 [OPENROUTER-DEBUG] Fazendo chamada para deepseek/deepseek-r1...`);
       const response = await this.openai.chat.completions.create({
         model: 'deepseek/deepseek-r1',
         messages: [
@@ -85,13 +88,16 @@ export class SmartSummaryService {
       });
 
       const content = response.choices[0]?.message?.content;
+      console.log(`📥 [OPENROUTER-DEBUG] Resposta recebida (${content?.length || 0} chars):`, content?.substring(0, 200) + '...');
+      
       if (!content) {
         throw new Error('Resposta vazia da IA');
       }
 
       return this.parseBatchSummaryResponse(content, chunks);
     } catch (error) {
-      console.error('Erro ao gerar sumário por lote:', error);
+      console.error('❌ [BATCH-ERROR] Erro ao gerar sumário por lote:', error);
+      console.log(`🔄 [FALLBACK] Usando fallback com ${chunks.length} chunks detectados`);
       // Fallback: criar sumários básicos
       return this.createFallbackSummaries(chunks);
     }
@@ -136,6 +142,8 @@ IMPORTANTE: Resposta deve ser JSON válido, sem texto adicional.
    * Faz parsing da resposta da IA para o formato esperado
    */
   private parseBatchSummaryResponse(content: string, chunks: TitleChunk[]): SummaryItem[] {
+    console.log(`🔍 [PARSE-DEBUG] Fazendo parse da resposta para ${chunks.length} chunks`);
+    
     try {
       // Limpar markdown da resposta se presente
       let cleanContent = content.trim();
@@ -150,7 +158,7 @@ IMPORTANTE: Resposta deve ser JSON válido, sem texto adicional.
       const parsed = JSON.parse(cleanContent);
       const summaries = parsed.summaries || [];
       
-      return summaries.map((summary: any, index: number) => {
+      const result = summaries.map((summary: any, index: number) => {
         const chunk = chunks[index];
         return {
           id: `summary_${chunk.id}`,
@@ -163,8 +171,12 @@ IMPORTANTE: Resposta deve ser JSON válido, sem texto adicional.
           originalChunkId: chunk.id
         } as SummaryItem;
       });
+      
+      console.log(`✅ [PARSE-DEBUG] Parse bem-sucedido: ${result.length} summaryItems criados`);
+      return result;
     } catch (error) {
-      console.error('Erro ao fazer parse da resposta:', error);
+      console.error('❌ [PARSE-ERROR] Erro ao fazer parse da resposta:', error);
+      console.log(`🔄 [FALLBACK] Usando createFallbackSummaries para ${chunks.length} chunks`);
       return this.createFallbackSummaries(chunks);
     }
   }
@@ -173,7 +185,10 @@ IMPORTANTE: Resposta deve ser JSON válido, sem texto adicional.
    * Cria sumários básicos quando a IA falha
    */
   private createFallbackSummaries(chunks: TitleChunk[]): SummaryItem[] {
-    return chunks.map(chunk => ({
+    console.log(`🔄 [FALLBACK-DEBUG] Criando ${chunks.length} sumários de fallback:`);
+    chunks.forEach((chunk, i) => console.log(`  ${i+1}. "${chunk.title}" (level ${chunk.level})`));
+    
+    const fallbackItems = chunks.map(chunk => ({
       id: `summary_${chunk.id}`,
       title: chunk.title,
       level: chunk.level,
@@ -183,6 +198,9 @@ IMPORTANTE: Resposta deve ser JSON válido, sem texto adicional.
       parentId: chunk.parentId,
       originalChunkId: chunk.id
     }));
+    
+    console.log(`✅ [FALLBACK-DEBUG] ${fallbackItems.length} sumários fallback criados com títulos preservados`);
+    return fallbackItems;
   }
   
   /**

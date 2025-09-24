@@ -333,6 +333,29 @@ router.get('/info/formatos', (req, res) => {
   }
 });
 
+// ===== ENDPOINT DE TESTE DE DEBUG - Pipeline Completo =====
+router.get('/test-pipeline', async (req, res) => {
+  try {
+    // Importar função de teste
+    const { testEditalProcessingPipeline } = await import('../services/newEditalService.js');
+    
+    console.log(`🧪 [TEST-ROUTE] Executando teste completo do pipeline...`);
+    const result = await testEditalProcessingPipeline();
+    
+    res.json({
+      success: true,
+      testResult: result,
+      message: 'Teste do pipeline executado - verifique os logs do servidor para debug detalhado'
+    });
+  } catch (error) {
+    console.error('❌ [TEST-ROUTE] Erro:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // ENDPOINT DE TESTE - Testar normalização de linha
 router.get('/test-normalization', async (req, res) => {
   try {

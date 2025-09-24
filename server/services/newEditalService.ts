@@ -289,4 +289,51 @@ export class NewEditalService {
 
 }
 
+// ===== FUNÇÃO DE TESTE DE DEBUG =====
+export async function testEditalProcessingPipeline() {
+  console.log(`🧪 [PIPELINE-TEST] Iniciando teste completo do pipeline de edital...`);
+  
+  try {
+    console.log(`🔍 [PIPELINE-TEST] Testando titleBasedChunking diretamente...`);
+    
+    // Teste direto: simular file path null para usar o texto de teste
+    const result = await titleBasedChunkingService.processDocumentWithTitleChunking(
+      null as any, 
+      'test-normalization.pdf'
+    );
+    
+    console.log(`📊 [PIPELINE-TEST] Resultado do chunking:`);
+    console.log(`  - Total chunks: ${result.structure.length}`);
+    result.structure.forEach((chunk, i) => {
+      console.log(`  ${i+1}. "${chunk.title}" (level ${chunk.level}, ${chunk.content.length} chars)`);
+    });
+    
+    // Testar smartSummaryService
+    console.log(`🧠 [PIPELINE-TEST] Testando smartSummaryService com chunks detectados...`);
+    const smartSummary = await smartSummaryService.generateSmartSummary(
+      result.structure, 
+      'test-normalization.pdf'
+    );
+    
+    console.log(`📋 [PIPELINE-TEST] Resultado do smart summary:`);
+    console.log(`  - Total seções: ${smartSummary.totalSections}`);
+    console.log(`  - Summary items: ${smartSummary.summaryItems.length}`);
+    smartSummary.summaryItems.forEach((item, i) => {
+      console.log(`  ${i+1}. "${item.title}" (${item.importance}) - "${item.summary.substring(0, 50)}..."`);
+    });
+    
+    return {
+      chunks: result.structure.length,
+      summaryItems: smartSummary.summaryItems.length,
+      success: true
+    };
+    
+  } catch (error) {
+    console.error(`❌ [PIPELINE-TEST] Erro no teste:`, error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
 export const newEditalService = new NewEditalService();
+
+// Função de teste disponível para debug manual quando necessário
