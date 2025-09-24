@@ -49,23 +49,52 @@ export class TitleBasedChunkingService {
   
   /**
    * Identifica títulos no texto e cria chunks flexíveis baseados na estrutura
+   * MELHORADO: Detecção mais robusta e abrangente de títulos
    */
   private identifyTitlesAndCreateChunks(text: string): TitleChunk[] {
     const lines = text.split('\n').filter(line => line.trim().length > 0);
     const chunks: TitleChunk[] = [];
     
-    // Padrões para identificar títulos em editais
+    // Padrões EXPANDIDOS para identificar títulos em editais
     const titlePatterns = [
+      // Padrões tradicionais estruturados
       /^CAPÍTULO\s+[IVX\d]+[\s\-]+(.+)/i,
       /^SEÇÃO\s+[IVX\d]+[\s\-]+(.+)/i,
       /^TÍTULO\s+[IVX\d]+[\s\-]+(.+)/i,
-      /^ANEXO\s+[IVX\d]+[\s\-]+(.+)/i,
-      /^\d+\.\s*(.+)/,  // 1. Título, 2. Título, etc.
-      /^\d+\.\d+\s*(.+)/, // 1.1 Subtítulo, 1.2 Subtítulo, etc.
-      /^\d+\.\d+\.\d+\s*(.+)/, // 1.1.1 Sub-subtítulo
-      /^[A-Z\s]{10,}$/, // Títulos em MAIÚSCULA (mínimo 10 chars)
-      /^DO[S]?\s+[A-Z\s]+/i, // "DO CONCURSO", "DAS INSCRIÇÕES", etc.
-      /^DA[S]?\s+[A-Z\s]+/i, // "DA PROVA", "DAS CONDIÇÕES", etc.
+      /^ANEXO\s+[IVX\d]*[\s\-]*(.+)/i,
+      
+      // Numeração decimal (mais flexível)
+      /^\d+\.\s*(.+)/,
+      /^\d+\.\d+\s*(.+)/,
+      /^\d+\.\d+\.\d+\s*(.+)/,
+      /^\d+\.\d+\.\d+\.\d+\s*(.+)/,
+      
+      // Padrões comuns de editais
+      /^DO[S]?\s+[A-Z\s]{3,}/i,
+      /^DA[S]?\s+[A-Z\s]{3,}/i,
+      /^NO[S]?\s+[A-Z\s]{3,}/i,
+      /^NA[S]?\s+[A-Z\s]{3,}/i,
+      /^DE[S]?\s+[A-Z\s]{3,}/i,
+      
+      // Padrões específicos de concurso
+      /^DISPOSIÇÕES?\s+(GERAIS|FINAIS|PRELIMINARES)/i,
+      /^CRONOGRAMA/i,
+      /^RECURSOS?/i,
+      /^IMPUGNAÇÕES?/i,
+      /^INSCRIÇÕES?/i,
+      /^PROVAS?/i,
+      /^AVALIAÇÃO/i,
+      /^RESULTADO/i,
+      /^CLASSIFICAÇÃO/i,
+      /^NOMEAÇÃO/i,
+      /^HOMOLOGAÇÃO/i,
+      
+      // Títulos em maiúscula (mais flexível)
+      /^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][A-ZÁÀÂÃÉÊÍÓÔÕÚÇ\s\-]{8,}$/,
+      
+      // Padrões com pontuação
+      /^[A-Z\s]{5,}:$/,
+      /^[A-Z\s]{5,}\s*-\s*/,
     ];
     
     let currentChunkContent = '';
@@ -80,29 +109,12 @@ export class TitleBasedChunkingService {
       let titleText = '';
       let titleLevel = 1;
       
-      // Verificar se a linha é um título
-      for (const pattern of titlePatterns) {
-        const match = line.match(pattern);
-        if (match) {
-          isTitle = true;
-          titleText = match[1] || match[0];
-          
-          // Determinar nível do título
-          if (line.startsWith('CAPÍTULO') || line.startsWith('TÍTULO')) {
-            titleLevel = 1;
-          } else if (line.startsWith('SEÇÃO') || line.startsWith('ANEXO')) {
-            titleLevel = 2;
-          } else if (line.match(/^\d+\.\d+\.\d+/)) {
-            titleLevel = 4;
-          } else if (line.match(/^\d+\.\d+/)) {
-            titleLevel = 3;
-          } else if (line.match(/^\d+\./)) {
-            titleLevel = 2;
-          } else {
-            titleLevel = 2;
-          }
-          break;
-        }
+      // Verificar se a linha é um título (análise melhorada)
+      const titleAnalysis = this.analyzeTitlePattern(line, titlePatterns);
+      if (titleAnalysis.isTitle) {
+        isTitle = true;
+        titleText = titleAnalysis.titleText;
+        titleLevel = titleAnalysis.level;
       }
       
       if (isTitle && titleText && currentChunkContent.trim()) {
@@ -147,6 +159,174 @@ export class TitleBasedChunkingService {
     return chunks;
   }
   
+  /**
+   * Analisa padrões de título com lógica avançada
+   * NOVO: Método mais inteligente para detectar títulos
+   */
+  private analyzeTitlePattern(line: string, titlePatterns: RegExp[]): {
+    isTitle: boolean;
+    titleText: string;
+    level: number;
+  } {
+    const originalLine = line.trim();
+    
+    // Filtros básicos - não é título se...
+    if (originalLine.length < 3 || 
+        originalLine.length > 200 ||
+        /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/.test(originalLine) || // Datas
+        /^\d+[.,]\d+/.test(originalLine) || // Números decimais
+        /^[a-z]/.test(originalLine) && originalLine.length > 50) { // Texto comum longo
+      return { isTitle: false, titleText: '', level: 1 };
+    }
+    
+    // Verificar contra padrões tradicionais primeiro
+    for (const pattern of titlePatterns) {
+      const match = originalLine.match(pattern);
+      if (match) {
+        const titleText = match[1] || match[0];
+        const level = this.determineTitleLevel(originalLine, titleText);
+        
+        // Validação adicional para títulos detectados
+        if (this.validateTitleCandidate(titleText, originalLine)) {
+          return {
+            isTitle: true,
+            titleText: this.cleanTitleText(titleText),
+            level
+          };
+        }
+      }
+    }
+    
+    // Análise contextual para títulos não capturados pelos padrões
+    const contextualAnalysis = this.analyzeContextualTitle(originalLine);
+    if (contextualAnalysis.isTitle) {
+      return contextualAnalysis;
+    }
+    
+    return { isTitle: false, titleText: '', level: 1 };
+  }
+  
+  /**
+   * Determina o nível hierárquico do título
+   */
+  private determineTitleLevel(line: string, titleText: string): number {
+    // Nível 1: Títulos principais
+    if (line.match(/^(CAPÍTULO|TÍTULO|PARTE)\s+[IVX\d]+/i)) return 1;
+    
+    // Nível 2: Seções e anexos
+    if (line.match(/^(SEÇÃO|ANEXO|APÊNDICE)\s+[IVX\d]*/i)) return 2;
+    
+    // Baseado em numeração decimal
+    if (line.match(/^\d+\.\d+\.\d+\.\d+/)) return 5;
+    if (line.match(/^\d+\.\d+\.\d+/)) return 4;
+    if (line.match(/^\d+\.\d+/)) return 3;
+    if (line.match(/^\d+\./)) return 2;
+    
+    // Análise por padrões específicos
+    if (line.match(/^(DISPOSIÇÕES|CRONOGRAMA|RECURSOS|IMPUGNAÇÕES)/i)) return 2;
+    if (line.match(/^(DAS?|DOS?|NAS?|NOS?)\s+[A-Z\s]{3,}/i)) return 2;
+    
+    // Títulos em maiúscula - nível baseado no tamanho
+    if (line === line.toUpperCase() && line.length > 10) {
+      return line.length > 50 ? 3 : 2;
+    }
+    
+    return 2; // Nível padrão
+  }
+  
+  /**
+   * Valida se um candidato a título é realmente um título
+   */
+  private validateTitleCandidate(titleText: string, originalLine: string): boolean {
+    const cleanTitle = titleText.trim();
+    
+    // Muito curto ou muito longo
+    if (cleanTitle.length < 2 || cleanTitle.length > 150) return false;
+    
+    // Contém muitos números (provavelmente dados)
+    const numberCount = (cleanTitle.match(/\d/g) || []).length;
+    if (numberCount > cleanTitle.length * 0.3) return false;
+    
+    // Contém caracteres especiais demais
+    const specialCount = (cleanTitle.match(/[^\w\s\-\(\)\[\]]/g) || []).length;
+    if (specialCount > cleanTitle.length * 0.2) return false;
+    
+    // Parece uma frase completa (tem artigos, preposições, etc.)
+    const articles = ['a', 'o', 'as', 'os', 'um', 'uma', 'uns', 'umas'];
+    const prepositions = ['de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos', 'por', 'para'];
+    const words = cleanTitle.toLowerCase().split(/\s+/);
+    const commonWordsCount = words.filter(word => [...articles, ...prepositions].includes(word)).length;
+    
+    // Se tem muitas palavras comuns, pode ser texto comum, não título
+    if (words.length > 8 && commonWordsCount > words.length * 0.4) return false;
+    
+    return true;
+  }
+  
+  /**
+   * Análise contextual para títulos que podem não seguir padrões tradicionais
+   */
+  private analyzeContextualTitle(line: string): {
+    isTitle: boolean;
+    titleText: string;
+    level: number;
+  } {
+    const trimmed = line.trim();
+    
+    // Palavras-chave que indicam início de seção importante
+    const sectionKeywords = [
+      'EDITAL', 'CONCURSO', 'SELEÇÃO', 'PROCESSO SELETIVO',
+      'REQUISITOS', 'ATRIBUIÇÕES', 'REMUNERAÇÃO', 'SALÁRIO',
+      'INSCRIÇÃO', 'TAXA', 'DOCUMENTAÇÃO', 'CRONOGRAMA',
+      'PROVA', 'EXAME', 'AVALIAÇÃO', 'TESTE',
+      'RESULTADO', 'CLASSIFICAÇÃO', 'CONVOCAÇÃO',
+      'POSSE', 'EXERCÍCIO', 'LOTAÇÃO',
+      'IMPUGNAÇÃO', 'RECURSO', 'QUESTIONAMENTO'
+    ];
+    
+    // Verificar se contém palavras-chave importantes
+    const hasKeyword = sectionKeywords.some(keyword => 
+      trimmed.toUpperCase().includes(keyword)
+    );
+    
+    if (hasKeyword && 
+        trimmed.length >= 5 && 
+        trimmed.length <= 100 &&
+        !trimmed.match(/^\d+[.,]\d+/) && // Não é número
+        !trimmed.match(/\d{2}\/\d{2}\/\d{4}/)) { // Não é data
+      
+      return {
+        isTitle: true,
+        titleText: this.cleanTitleText(trimmed),
+        level: 2
+      };
+    }
+    
+    // Títulos que começam com letras maiúsculas seguidas de dois pontos
+    if (trimmed.match(/^[A-Z][A-Z\s\-]{5,}:$/) && trimmed.length <= 80) {
+      return {
+        isTitle: true,
+        titleText: this.cleanTitleText(trimmed.replace(':', '')),
+        level: 3
+      };
+    }
+    
+    return { isTitle: false, titleText: '', level: 1 };
+  }
+  
+  /**
+   * Limpa texto do título removendo elementos desnecessários
+   */
+  private cleanTitleText(text: string): string {
+    return text
+      .trim()
+      .replace(/^[-–—]+/, '') // Remove hífens do início
+      .replace(/[-–—]+$/, '') // Remove hífens do final
+      .replace(/^\d+\.?\s*/, '') // Remove numeração do início
+      .replace(/^(CAPÍTULO|SEÇÃO|TÍTULO|ANEXO)\s+[IVX\d]*\s*-?\s*/i, '') // Remove prefixos estruturais
+      .trim();
+  }
+
   /**
    * Limpa e padroniza títulos
    */
