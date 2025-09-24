@@ -153,6 +153,12 @@ export class TitleBasedChunkingService {
       });
     }
     
+    // NOVO: Se só temos 1 chunk (problema identificado), forçar divisão semântica
+    if (chunks.length <= 1) {
+      console.log('🔄 Detectado apenas 1 chunk - aplicando divisão semântica forçada...');
+      return this.forceSemanticChunking(text, chunks[0]);
+    }
+    
     // Definir relações pai-filho baseado nos níveis
     this.establishParentChildRelations(chunks);
     
@@ -340,6 +346,188 @@ export class TitleBasedChunkingService {
       .replace(/\b\w/g, char => char.toUpperCase()); // Capitaliza primeira letra de cada palavra
   }
   
+  /**
+   * NOVO: Força divisão semântica quando a detecção de títulos falha
+   * Divide o documento em seções lógicas baseadas em padrões de conteúdo
+   */
+  private forceSemanticChunking(fullText: string, originalChunk?: TitleChunk): TitleChunk[] {
+    console.log('🧠 Iniciando divisão semântica forçada...');
+    
+    const lines = fullText.split('\n').filter(line => line.trim().length > 0);
+    const chunks: TitleChunk[] = [];
+    const minChunkSize = 800; // Mínimo de caracteres por chunk
+    const maxChunkSize = 3000; // Máximo de caracteres por chunk
+    
+    // Identificar pontos de quebra semântica
+    const breakPoints: number[] = [0]; // Sempre começar do início
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Critérios mais agressivos para quebra semântica
+      const semanticBreakRules = [
+        // Mudança drástica de contexto (linhas totalmente maiúsculas)
+        line.length > 15 && line.length < 150 && line.toUpperCase() === line && /^[A-Z\s\-\(\)]{15,}/.test(line),
+        
+        // Início de nova seção numérica
+        /^\d+[\.\-]\s*[A-ZÁÊÍÓÔÂ]/.test(line) && line.length > 10,
+        
+        // Palavras-chave que SEMPRE indicam nova seção
+        /^(EDITAL|CONCURSO|ABERTURA|INSCRIÇÃO|INSCRIÇAO|PROVA|RESULTADO|CRONOGRAMA|DISPOSIÇÃO|ANEXO|CARGO|VAGA|REQUISITO|ATRIBUIÇ)/i.test(line),
+        
+        // Padrões específicos de edital 
+        /^(DO[S]?|DA[S]?|NO[S]?|NA[S]?)\s+[A-ZÁÊÍÓÔÂ]/i.test(line) && line.length > 10,
+        
+        // Padrões de legislação/referências
+        /^(LEI|DECRETO|PORTARIA|RESOLUÇÃO|INSTRUÇÃO)/i.test(line),
+        
+        // Quebras com contexto (linha anterior vazia + linha importante)
+        i > 0 && lines[i-1].trim() === '' && line.length > 20 && /^[A-ZÁÊÍÓÔÂ]/.test(line)
+      ];
+      
+      const shouldBreak = semanticBreakRules.some(rule => rule);
+      
+      // Forçar quebra se o chunk atual está ficando muito grande
+      const currentChunkSize = lines.slice(breakPoints[breakPoints.length - 1], i).join('\n').length;
+      const forceBreakBySize = currentChunkSize > maxChunkSize && line.length > 20;
+      
+      if ((shouldBreak || forceBreakBySize) && currentChunkSize > minChunkSize) {
+        breakPoints.push(i);
+      }
+    }
+    
+    // Adicionar ponto final
+    breakPoints.push(lines.length);
+    
+    console.log(`📊 Pontos de quebra semântica identificados: ${breakPoints.length - 1} seções`);
+    
+    // Criar chunks baseados nos pontos de quebra
+    let chunkIndex = 0;
+    let startPosition = 0;
+    
+    for (let i = 0; i < breakPoints.length - 1; i++) {
+      const startLine = breakPoints[i];
+      const endLine = breakPoints[i + 1];
+      const chunkLines = lines.slice(startLine, endLine);
+      const content = chunkLines.join('\n');
+      
+      // Pular chunks muito pequenos, exceto se é o último
+      if (content.trim().length < minChunkSize && i < breakPoints.length - 2) {
+        continue;
+      }
+      
+      // Inferir título da seção baseado no conteúdo
+      const inferredTitle = this.inferSectionTitle(chunkLines, chunkIndex);
+      
+      chunks.push({
+        id: `semantic_chunk_${chunkIndex}`,
+        title: inferredTitle,
+        level: chunkIndex === 0 ? 1 : 2, // Primeiro chunk nível 1, outros nível 2
+        content: content.trim(),
+        startPosition,
+        endPosition: startPosition + content.length
+      });
+      
+      startPosition += content.length;
+      chunkIndex++;
+    }
+    
+    // Garantir que temos pelo menos 3 seções para um edital completo
+    if (chunks.length < 3) {
+      console.log('🔄 Poucas seções detectadas - aplicando divisão por tamanho...');
+      return this.forceChunkingBySize(fullText, 4);
+    }
+    
+    console.log(`✅ Divisão semântica concluída: ${chunks.length} seções criadas`);
+    return chunks;
+  }
+  
+  /**
+   * Infere título de seção baseado no conteúdo
+   */
+  private inferSectionTitle(lines: string[], sectionIndex: number): string {
+    // Procurar por linha que pode ser título nas primeiras 10 linhas
+    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+      const line = lines[i].trim();
+      
+      // Linha que parece título
+      if (line.length > 10 && line.length < 120) {
+        // Contém palavras-chave importantes de edital
+        const keywords = ['EDITAL', 'CONCURSO', 'INSCRIÇÃO', 'INSCRIÇAO', 'PROVA', 'RESULTADO', 'CRONOGRAMA', 
+                         'DISPOSIÇÃO', 'DISPOSIÇÕES', 'ANEXO', 'REQUISITOS', 'ATRIBUIÇÕES', 'REMUNERAÇÃO',
+                         'CARGO', 'VAGA', 'SALÁRIO', 'BENEFÍCIO'];
+        
+        const hasKeyword = keywords.some(keyword => line.toUpperCase().includes(keyword));
+        if (hasKeyword) {
+          return this.cleanTitleText(line);
+        }
+        
+        // Linha em maiúscula que não é muito longa (possivelmente título)
+        if (line.toUpperCase() === line && line.length > 15 && line.length < 80) {
+          return this.cleanTitleText(line);
+        }
+        
+        // Padrões "DO/DA/DOS/DAS"
+        if (/^(DO[S]?|DA[S]?|NO[S]?|NA[S]?)\s+[A-Z\s]{3,}/i.test(line)) {
+          return this.cleanTitleText(line);
+        }
+      }
+    }
+    
+    // Fallback: título genérico baseado na posição
+    const defaultTitles = [
+      'Preâmbulo',
+      'Informações do Concurso', 
+      'Das Inscrições',
+      'Das Provas e Avaliação',
+      'Do Resultado e Classificação',
+      'Das Disposições Gerais',
+      'Anexos e Complementos'
+    ];
+    
+    return defaultTitles[sectionIndex] || `Seção ${sectionIndex + 1}`;
+  }
+  
+  /**
+   * Divisão forçada por tamanho como último recurso
+   */
+  private forceChunkingBySize(fullText: string, targetChunks: number): TitleChunk[] {
+    console.log(`🔢 Aplicando divisão forçada em ${targetChunks} seções por tamanho...`);
+    
+    const chunks: TitleChunk[] = [];
+    const lines = fullText.split('\n').filter(line => line.trim().length > 0);
+    
+    let currentPos = 0;
+    let chunkIndex = 0;
+    
+    for (let i = 0; i < targetChunks; i++) {
+      const startPos = Math.floor(i * (lines.length / targetChunks));
+      const endPos = i === targetChunks - 1 ? lines.length : Math.floor((i + 1) * (lines.length / targetChunks));
+      
+      const chunkLines = lines.slice(startPos, endPos);
+      const content = chunkLines.join('\n');
+      
+      if (content.trim().length === 0) continue;
+      
+      const title = this.inferSectionTitle(chunkLines, chunkIndex);
+      
+      chunks.push({
+        id: `size_chunk_${chunkIndex}`,
+        title,
+        level: chunkIndex === 0 ? 1 : 2,
+        content: content.trim(),
+        startPosition: currentPos,
+        endPosition: currentPos + content.length
+      });
+      
+      currentPos += content.length;
+      chunkIndex++;
+    }
+    
+    console.log(`✅ Divisão por tamanho concluída: ${chunks.length} seções`);
+    return chunks;
+  }
+
   /**
    * Estabelece relações hierárquicas entre chunks baseado nos níveis
    */
