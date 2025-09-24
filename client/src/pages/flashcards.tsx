@@ -655,24 +655,27 @@ export default function FlashcardsModernPage() {
                       ) : undefined}
                       subtitle={`${deck.totalCards || 0} cards • ${deck.studiedCards || 0} estudados`}
                       icon={<BookOpen className="w-5 h-5 text-primary" />}
-                      badge={
-                        (deck.totalCards || 0) > 0 ? (
-                          <Badge variant="secondary">
-                            {Math.round(((deck.studiedCards || 0) / (deck.totalCards || 1)) * 100)}% completo
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">Novo</Badge>
-                        )
-                      }
-                      actions={
-                        <Button 
-                          size="sm"
-                          onClick={() => handleDeckClick(deck)}
-                          data-testid={`button-study-${deck.id}`}
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          Estudar
-                        </Button>
+                      footer={
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-shrink-0">
+                            {(deck.totalCards || 0) > 0 ? (
+                              <Badge variant="secondary" className="rounded-md px-3 py-1.5 text-xs font-medium border border-border">
+                                {Math.round(((deck.studiedCards || 0) / (deck.totalCards || 1)) * 100)}% completo
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="rounded-md px-3 py-1.5 text-xs font-medium">Novo</Badge>
+                            )}
+                          </div>
+                          <Button 
+                            size="sm"
+                            onClick={() => handleDeckClick(deck)}
+                            data-testid={`button-study-${deck.id}`}
+                            className="flex-shrink-0"
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Estudar
+                          </Button>
+                        </div>
                       }
                       className="transition-all hover:shadow-lg"
                       data-testid={`deck-card-${deck.id}`}

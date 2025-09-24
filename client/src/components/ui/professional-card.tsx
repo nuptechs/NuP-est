@@ -91,10 +91,10 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
                     )}
                   </div>
                 )}
-                <div className="space-y-1 min-w-0 flex-1 pr-3">
+                <div className="space-y-1 min-w-0 flex-1">
                   {title && (
                     <CardTitle className={cn(
-                      "leading-none",
+                      "leading-tight truncate",
                       size === "sm" ? "text-base" : size === "lg" ? "text-xl" : "text-lg"
                     )}>
                       {title}
@@ -159,9 +159,7 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
           <>
             <Separator />
             <div className={cn(
-              "flex items-center justify-between",
-              sizeVariants[size],
-              "pt-4"
+              "flex items-center justify-between px-6 py-4"
             )}>
               {footer}
             </div>
