@@ -648,13 +648,17 @@ export default function FlashcardsModernPage() {
                     <ProfessionalCard
                       key={deck.id}
                       title={deck.title}
-                      description={deck.description}
-                      subtitle={`${deck.totalCards} cards • ${deck.studiedCards} estudados`}
+                      description={deck.description ? (
+                        deck.description.length > 60 
+                          ? deck.description.substring(0, 60) + '...'
+                          : deck.description
+                      ) : undefined}
+                      subtitle={`${deck.totalCards || 0} cards • ${deck.studiedCards || 0} estudados`}
                       icon={<BookOpen className="w-5 h-5 text-primary" />}
                       badge={
-                        deck.totalCards > 0 ? (
+                        (deck.totalCards || 0) > 0 ? (
                           <Badge variant="secondary">
-                            {Math.round((deck.studiedCards / deck.totalCards) * 100)}% completo
+                            {Math.round(((deck.studiedCards || 0) / (deck.totalCards || 1)) * 100)}% completo
                           </Badge>
                         ) : (
                           <Badge variant="outline">Novo</Badge>

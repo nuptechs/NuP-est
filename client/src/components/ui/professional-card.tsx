@@ -79,7 +79,7 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
             size === "sm" ? "p-4 pb-3" : size === "lg" ? "p-8 pb-6" : "p-6 pb-4"
           )}>
             <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-3">
+              <div className="flex items-start space-x-3 flex-1 min-w-0">
                 {icon && (
                   <div className="flex-shrink-0 mt-0.5">
                     {typeof icon === 'string' ? (
@@ -91,7 +91,7 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
                     )}
                   </div>
                 )}
-                <div className="space-y-1 min-w-0 flex-1">
+                <div className="space-y-1 min-w-0 flex-1 pr-3">
                   {title && (
                     <CardTitle className={cn(
                       "leading-none",
@@ -107,6 +107,7 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
                   )}
                   {description && (
                     <CardDescription className={cn(
+                      "leading-relaxed",
                       size === "sm" ? "text-xs" : "text-sm"
                     )}>
                       {description}
@@ -126,7 +127,7 @@ const ProfessionalCard = forwardRef<HTMLDivElement, ProfessionalCardProps>(
                 </div>
               </div>
               {actions && (
-                <div className="flex-shrink-0 ml-4">
+                <div className="flex-shrink-0 flex items-start pt-1">
                   {actions}
                 </div>
               )}
