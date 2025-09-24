@@ -138,7 +138,7 @@ export class AIManager implements IAIManager {
   getConsolidatedMetrics(): AIMetrics[] {
     const allMetrics: AIMetrics[] = [];
     
-    for (const provider of this.providers.values()) {
+    for (const provider of Array.from(this.providers.values())) {
       allMetrics.push(...provider.getMetrics());
     }
     
@@ -166,7 +166,7 @@ export class AIManager implements IAIManager {
       enabled: boolean;
     }> = [];
 
-    for (const provider of this.providers.values()) {
+    for (const provider of Array.from(this.providers.values())) {
       const metrics = provider.getMetrics();
       
       if (metrics.length === 0) {

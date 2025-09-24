@@ -106,6 +106,7 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
         hasSingleCargo: result.edital.hasSingleCargo,
         cargoName: result.edital.cargoName,
         cargos: result.edital.cargos,
+        smartSummary: result.edital.smartSummary || null,
         createdAt: result.edital.createdAt,
         processedAt: result.edital.processedAt
       },
