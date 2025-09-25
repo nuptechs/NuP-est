@@ -187,8 +187,19 @@ export const InteractiveSummary = ({ summary, className }: InteractiveSummaryPro
   };
 
   const getHierarchicalItems = () => {
+    // DEBUG: Log para diagnosticar problema
+    console.log(`📊 [DEBUG] Total summaryItems recebidos: ${summary.summaryItems.length}`);
+    console.log(`📊 [DEBUG] Dados summaryItems:`, summary.summaryItems.map(item => ({
+      id: item.id,
+      title: item.title,
+      parentId: item.parentId,
+      level: item.level
+    })));
+    
     // Organizar itens hierarquicamente 
     const topLevel = summary.summaryItems.filter(item => !item.parentId);
+    console.log(`📊 [DEBUG] Itens top level (sem parentId): ${topLevel.length}`, topLevel.map(item => item.title));
+    
     return topLevel.sort((a, b) => a.level - b.level);
   };
 
