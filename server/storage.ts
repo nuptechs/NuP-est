@@ -192,14 +192,33 @@ export class DatabaseStorage implements IStorage {
 
   async upsertUser(userData: UpsertUser): Promise<User> {
     try {
+      // First try to update by ID if user exists
+      if (userData.id) {
+        const [existingUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, userData.id));
+        
+        if (existingUser) {
+          // Update existing user by ID
+          const [updatedUser] = await db
+            .update(users)
+            .set({ ...userData, updatedAt: new Date() })
+            .where(eq(users.id, userData.id))
+            .returning();
+          return updatedUser;
+        }
+      }
+
+      // If user doesn't exist by ID, try upsert with conflict resolution
       const [user] = await db
         .insert(users)
         .values(userData)
         .onConflictDoUpdate({
-          target: users.email, // Use email as conflict target since it's unique
+          target: users.id, // Use ID as primary conflict target
           set: {
             ...userData,
-            updatedAt: new Date(), // Update timestamp on conflict
+            updatedAt: new Date(),
           },
         })
         .returning();
@@ -207,7 +226,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error in upsertUser:', error);
       
-      // If still fails, try to find existing user by email
+      // Fallback: try to find and update by email
       if (userData.email) {
         try {
           const [existingUser] = await db
@@ -216,7 +235,7 @@ export class DatabaseStorage implements IStorage {
             .where(eq(users.email, userData.email));
           
           if (existingUser) {
-            // Update existing user
+            // Update existing user by email
             const [updatedUser] = await db
               .update(users)
               .set({ ...userData, updatedAt: new Date() })
@@ -225,7 +244,7 @@ export class DatabaseStorage implements IStorage {
             return updatedUser;
           }
         } catch (findError) {
-          console.error('Error finding existing user:', findError);
+          console.error('Error finding existing user by email:', findError);
         }
       }
       

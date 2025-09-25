@@ -40,17 +40,9 @@ export class TitleBasedChunkingService {
   async processDocumentWithTitleChunking(filePath: string, fileName: string): Promise<DocumentSummary> {
     console.log(`🔍 Iniciando chunking baseado em títulos para: ${fileName}`);
     
-    // TESTE DIRETO: Se não há arquivo, usar texto de teste
-    let fullText: string;
-    if (filePath === null && fileName === 'test-normalization.pdf') {
-      // Texto de teste com problemas de quebra de linha
-      fullText = "EDITAL Nº 5 – SEFAZ/SE\r\nA Secretária de Estado\rda Administração do Estado de Sergipe\r\n1 DAS DISPOSIÇÕES PRELIMINARES\r\n1.1 O concurso público será regido\r\n2 DOS REQUISITOS\r\n2.1 São requisitos para investidura\r\n3 DAS INSCRIÇÕES\r\n3.1 As inscrições serão realizadas\r\n4 DAS PROVAS\r\n4.1 As provas objetivas";
-      console.log(`🧪 [TEST] Usando texto de teste com problemas de quebra de linha`);
-    } else {
-      // 1. Extrair texto do PDF normalmente
-      const extractedContent = await fileProcessorService.processFile(filePath, fileName);
-      fullText = extractedContent.text;
-    }
+    // 1. Extrair texto do PDF
+    const extractedContent = await fileProcessorService.processFile(filePath, fileName);
+    const fullText = extractedContent.text;
     
     console.log(`📄 Texto extraído: ${fullText.length} caracteres`);
     

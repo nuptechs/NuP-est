@@ -104,9 +104,6 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
         fileType: result.edital.fileType,
         concursoNome: result.edital.concursoNome,
         status: result.edital.status,
-        hasSingleCargo: result.edital.hasSingleCargo,
-        cargoName: result.edital.cargoName,
-        cargos: result.edital.cargos,
         smartSummary: result.edital.smartSummary || null,
         createdAt: result.edital.createdAt,
         processedAt: result.edital.processedAt
@@ -333,28 +330,6 @@ router.get('/info/formatos', (req, res) => {
   }
 });
 
-// ===== ENDPOINT DE TESTE DE DEBUG - Pipeline Completo =====
-router.get('/test-pipeline', async (req, res) => {
-  try {
-    // Importar função de teste
-    const { testEditalProcessingPipeline } = await import('../services/newEditalService.js');
-    
-    console.log(`🧪 [TEST-ROUTE] Executando teste completo do pipeline...`);
-    const result = await testEditalProcessingPipeline();
-    
-    res.json({
-      success: true,
-      testResult: result,
-      message: 'Teste do pipeline executado - verifique os logs do servidor para debug detalhado'
-    });
-  } catch (error) {
-    console.error('❌ [TEST-ROUTE] Erro:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
 
 // ENDPOINT DE TESTE - Testar normalização de linha
 router.get('/test-normalization', async (req, res) => {
@@ -370,7 +345,7 @@ router.get('/test-normalization', async (req, res) => {
     
     // Simular processamento direto
     const testResult = await titleBasedChunkingService.processDocumentWithTitleChunking(
-      null, // Não precisamos do arquivo
+      '/tmp/test', // Arquivo temporário de teste
       'test-normalization.pdf'
     );
     
@@ -396,7 +371,7 @@ router.get('/test-normalization', async (req, res) => {
     console.error('❌ [TEST] Erro no teste de normalização:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: (error as Error).message
     });
   }
 });
