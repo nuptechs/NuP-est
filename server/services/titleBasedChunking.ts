@@ -69,18 +69,8 @@ export class TitleBasedChunkingService {
   private identifyTitlesAndCreateChunks(text: string): TitleChunk[] {
     // CORREÇÃO CRÍTICA: Normalizar quebras de linha antes de processar
     const normalizedText = this.normalizeLineBreaks(text);
-    console.log(`📄 [TITLE-DEBUG] Texto normalizado: ${normalizedText.length} chars`);
     
     const lines = normalizedText.split('\n').filter(line => line.trim().length > 0);
-    console.log(`📝 [TITLE-DEBUG] Total de linhas após normalização: ${lines.length}`);
-    console.log(`🔍 [TITLE-DEBUG] Quebras de linha detectadas: ${(normalizedText.match(/\n/g) || []).length}`);
-    console.log(`🔍 [TITLE-DEBUG] Primeiros 500 chars do texto normalizado:`);
-    console.log(`"${normalizedText.substring(0, 500)}"`);
-    
-    // Log das primeiras linhas para debug
-    lines.slice(0, 10).forEach((line, i) => {
-      console.log(`  Linha ${i}: "${line.substring(0, 80)}..."`);
-    });
     const chunks: TitleChunk[] = [];
     
     // Padrões EXPANDIDOS para identificar títulos em editais
@@ -220,18 +210,15 @@ export class TitleBasedChunkingService {
         const titleText = match[1] || match[0];
         const level = this.determineTitleLevel(originalLine, titleText);
         
-        console.log(`🔍 [TITLE-DEBUG] Título detectado por padrão: "${titleText}" (linha: "${originalLine.substring(0, 50)}...")`);
         
         // Validação adicional para títulos detectados
         if (this.validateTitleCandidate(titleText, originalLine)) {
-          console.log(`✅ [TITLE-DEBUG] Título aceito: "${titleText}" (nível ${level})`);
           return {
             isTitle: true,
             titleText: this.cleanTitleText(titleText),
             level
           };
         } else {
-          console.log(`❌ [TITLE-DEBUG] Título rejeitado pela validação: "${titleText}"`);
         }
       }
     }
@@ -239,7 +226,6 @@ export class TitleBasedChunkingService {
     // Análise contextual para títulos não capturados pelos padrões
     const contextualAnalysis = this.analyzeContextualTitle(originalLine);
     if (contextualAnalysis.isTitle) {
-      console.log(`✅ [TITLE-DEBUG] Título contextual aceito: "${contextualAnalysis.titleText}" (nível ${contextualAnalysis.level})`);
       return contextualAnalysis;
     }
     
