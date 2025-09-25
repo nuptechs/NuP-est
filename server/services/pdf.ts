@@ -173,10 +173,10 @@ export class PDFService {
         .replace(/([a-zA-Z])(\d)/g, '$1 $2')
         // Adicionar espaços após números antes de letras
         .replace(/(\d)([a-zA-Z])/g, '$1 $2')
-        // Normalizar múltiplas quebras de linha
-        .replace(/\n\s*\n/g, '\n\n')
-        // Normalizar espaços múltiplos
-        .replace(/\s+/g, ' ');
+        // Normalizar múltiplas quebras de linha mas preservar simples
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+        // Normalizar espaços múltiplos mas preservar quebras de linha
+        .replace(/[ \t]+/g, ' ');
       
       result += chunk;
       
@@ -279,13 +279,22 @@ export class PDFService {
         for (let i = 0; i < text.length; i += chunkSize) {
           buffer = text.substring(i, i + chunkSize);
           
-          // Processar chunk com limpeza básica
+          // Processar chunk preservando quebras de linha importantes
           const cleanChunk = buffer
-            .replace(/\s+/g, ' ')
-            .replace(/[^\w\s\-.,;:()]/g, '')
-            .trim();
+            // Normalizar diferentes tipos de quebra de linha
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .replace(/\f/g, '\n')
+            // Preservar quebras de linha simples mas limpar múltiplas
+            .replace(/\n{3,}/g, '\n\n')
+            // Normalizar espaços múltiplos mas preservar quebras de linha
+            .replace(/[ \t]+/g, ' ')
+            // Remover caracteres especiais problemáticos mas preservar pontuação essencial
+            .replace(/[^\w\s\-.,;:()\n]/g, '');
+            // CRÍTICO: NÃO fazer .trim() que remove quebras de linha nas bordas!
           
-          processedText += cleanChunk + ' ';
+          // Concatenar sem forçar espaços - preservar estrutura original
+          processedText += cleanChunk;
           
           // Limpar buffer
           buffer = '';

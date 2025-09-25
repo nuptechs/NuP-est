@@ -73,9 +73,12 @@ export class TitleBasedChunkingService {
     
     const lines = normalizedText.split('\n').filter(line => line.trim().length > 0);
     console.log(`📝 [TITLE-DEBUG] Total de linhas após normalização: ${lines.length}`);
+    console.log(`🔍 [TITLE-DEBUG] Quebras de linha detectadas: ${(normalizedText.match(/\n/g) || []).length}`);
+    console.log(`🔍 [TITLE-DEBUG] Primeiros 500 chars do texto normalizado:`);
+    console.log(`"${normalizedText.substring(0, 500)}"`);
     
     // Log das primeiras linhas para debug
-    lines.slice(0, 5).forEach((line, i) => {
+    lines.slice(0, 10).forEach((line, i) => {
       console.log(`  Linha ${i}: "${line.substring(0, 80)}..."`);
     });
     const chunks: TitleChunk[] = [];
