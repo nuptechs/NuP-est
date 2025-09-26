@@ -25,7 +25,7 @@ import {
   insertFlashcardReviewSchema,
   insertKnowledgeBaseSchema
 } from "@shared/schema";
-import { pdfService } from "./services/pdf";
+import { pdf2jsonExtractor } from "./services/pdf2jsonExtractor";
 import { embeddingsService } from "./services/embeddings";
 import { knowledgeChunks } from "@shared/schema";
 import { db } from "./db";
@@ -1177,8 +1177,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Título é obrigatório' });
       }
 
-      // Processar o PDF
-      const pdfResult = await pdfService.processPDF(req.file.path);
+      // Processar o PDF com sistema hierárquico
+      const documentStructure = await pdf2jsonExtractor.extractDocumentStructure(req.file.path, req.file.originalname);
+      const hierarchicalChunks = pdf2jsonExtractor.convertToHierarchicalChunks(documentStructure);
+      
+      // Converter chunks para formato compatível com knowledge base
+      const textChunks = hierarchicalChunks.map(chunk => chunk.content);
+      const fullText = hierarchicalChunks.map(chunk => chunk.content).join('\n');
       
       // Criar entrada na base de conhecimento
       const documentData = {
@@ -1188,8 +1193,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category: category || 'Geral',
         filename: req.file.originalname,
         fileSize: req.file.size,
-        content: pdfResult.text,
-        chunks: pdfResult.chunks,
+        content: fullText,
+        chunks: textChunks,
         tags: tags ? JSON.parse(tags) : []
       };
 
@@ -1197,12 +1202,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const document = await storage.createKnowledgeDocument(validatedData);
 
       // Gerar embeddings para os chunks
-      if (pdfResult.chunks && pdfResult.chunks.length > 0) {
+      if (textChunks && textChunks.length > 0) {
         try {
-          console.log(`🔄 Gerando embeddings para ${pdfResult.chunks.length} chunks...`);
-          const embeddings = await embeddingsService.generateEmbeddings(pdfResult.chunks);
+          console.log(`🔄 Gerando embeddings para ${textChunks.length} chunks hierárquicos...`);
+          const embeddings = await embeddingsService.generateEmbeddings(textChunks);
           
-          const chunksWithEmbeddings = pdfResult.chunks.map((content, index) => ({
+          const chunksWithEmbeddings = textChunks.map((content, index) => ({
             knowledgeBaseId: document.id,
             chunkIndex: index,
             content: content,
@@ -1228,7 +1233,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Limpar arquivo temporário
-      pdfService.cleanupFile(req.file.path);
+      try {
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (cleanupError) {
+        console.error('Erro ao limpar arquivo temporário:', cleanupError);
+      }
 
       res.status(201).json(document);
     } catch (error) {
@@ -1236,7 +1247,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Limpar arquivo em caso de erro
       if (req.file) {
-        pdfService.cleanupFile(req.file.path);
+        try {
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+        } catch (cleanupError) {
+          console.error('Erro ao limpar arquivo temporário:', cleanupError);
+        }
       }
 
       if (error instanceof Error && error.message.includes('PDF')) {

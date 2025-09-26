@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { titleBasedChunkingService } from '../services/titleBasedChunking';
+import { hierarchicalChunker } from '../services/hierarchicalChunker';
 import fs from 'fs';
 import { newEditalService } from '../services/newEditalService';
 import { fileProcessorService } from '../services/fileProcessor';
@@ -343,11 +343,8 @@ router.get('/test-normalization', async (req, res) => {
     console.log(`📊 [TEST] Quebras \\r: ${(problematicText.match(/\r/g) || []).length}`);
     console.log(`📊 [TEST] Quebras \\n: ${(problematicText.match(/\n/g) || []).length}`);
     
-    // Simular processamento direto
-    const testResult = await titleBasedChunkingService.processDocumentWithTitleChunking(
-      '/tmp/test', // Arquivo temporário de teste
-      'test-normalization.pdf'
-    );
+    // Simular processamento direto com novo sistema hierárquico
+    const testResult = await hierarchicalChunker.processContent(problematicText);
     
     res.json({
       success: true,
@@ -358,11 +355,12 @@ router.get('/test-normalization', async (req, res) => {
         quebrasN: (problematicText.match(/\n/g) || []).length
       },
       resultado: {
-        totalChunks: testResult.totalChunks,
-        titulos: testResult.structure.map(chunk => ({
+        totalChunks: testResult.documentStructure.length,
+        titulos: testResult.documentStructure.map(chunk => ({
           titulo: chunk.title,
           nivel: chunk.level,
-          tamanho: chunk.content.length
+          tamanho: chunk.content.length,
+          confianca: Math.round(chunk.metadata.confidence * 100)
         }))
       }
     });

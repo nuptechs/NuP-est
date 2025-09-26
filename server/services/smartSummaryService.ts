@@ -1,5 +1,14 @@
 import OpenAI from 'openai';
-import { TitleChunk } from './titleBasedChunking.js';
+// Type compatibility - usando definição local para manter compatibilidade
+interface TitleChunk {
+  id: string;
+  title: string;
+  level: number;
+  content: string;
+  startPosition: number;
+  endPosition: number;
+  parentId?: string;
+}
 
 interface SummaryItem {
   id: string;

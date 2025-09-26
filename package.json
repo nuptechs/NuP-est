@@ -74,7 +74,6 @@
     "openid-client": "^6.7.1",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "pdf-parse": "^1.1.1",
     "pdf2json": "^3.2.2",
     "playwright": "^1.55.0",
     "playwright-chromium": "^1.55.0",

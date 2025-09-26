@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import * as XLSX from 'xlsx';
 import csv from 'csv-parser';
-import { pdfService } from './pdf';
+import { pdf2jsonExtractor } from './pdf2jsonExtractor';
 import mammoth from 'mammoth';
 
 export interface ExtractedContent {
@@ -106,15 +106,18 @@ export class FileProcessorService {
   }
 
   /**
-   * Processa arquivo PDF
+   * Processa arquivo PDF usando sistema hierárquico
    */
   private async processPDF(filePath: string): Promise<ExtractedContent> {
     try {
-      const result = await pdfService.processPDF(filePath);
+      const documentStructure = await pdf2jsonExtractor.extractDocumentStructure(filePath, 'document.pdf');
+      const hierarchicalChunks = pdf2jsonExtractor.convertToHierarchicalChunks(documentStructure);
+      const text = hierarchicalChunks.map(chunk => chunk.content).join('\n');
+      
       return {
-        text: result.text,
+        text,
         metadata: {
-          pageCount: result.pages
+          pageCount: documentStructure.totalPages
         }
       };
     } catch (error) {
