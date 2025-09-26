@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { fileProcessorService } from './fileProcessor';
 import { externalProcessingService } from './externalProcessingService';
-import { titleBasedChunkingService } from './titleBasedChunking';
+import { hierarchicalChunker } from './hierarchicalChunker';
 import { smartSummaryService } from './smartSummaryService';
 import { storage } from '../storage';
 import { ragOrchestrator } from './rag/index';
@@ -93,24 +93,27 @@ export class NewEditalService {
       let jobId = null;
 
       if (!processingResponse.success) {
-        console.log(`🔄 Aplicação externa indisponível, usando novo processamento baseado em títulos...`);
+        console.log(`🔄 Aplicação externa indisponível, usando processamento hierárquico avançado...`);
         useLocalProcessing = true;
         
         try {
-          // NOVO SISTEMA: Chunking baseado em títulos + Sumário inteligente
-          console.log(`🔍 Iniciando chunking baseado em títulos...`);
-          const documentSummary = await titleBasedChunkingService.processDocumentWithTitleChunking(
+          // NOVO SISTEMA AVANÇADO: Chunking hierárquico com preservação de layout
+          console.log(`🔍 Iniciando processamento hierárquico avançado...`);
+          const processedDocument = await hierarchicalChunker.processDocumentWithHierarchicalChunking(
             request.filePath, 
             request.fileName
           );
           
-          console.log(`📑 ${documentSummary.totalChunks} chunks criados baseados em títulos`);
+          console.log(`📑 ${processedDocument.totalChunks} chunks hierárquicos criados com qualidade: ${processedDocument.metadata.structureQuality}`);
+          
+          // Converter para formato compatível com smartSummaryService
+          const legacyFormat = hierarchicalChunker.convertToLegacyFormat(processedDocument);
           
           // Gerar sumário inteligente com IA
           console.log(`🧠 Gerando sumário inteligente com IA...`);
           const smartSummary = await smartSummaryService.generateSmartSummary(
-            documentSummary.structure,
-            documentSummary.documentName
+            legacyFormat.structure,
+            legacyFormat.documentName
           );
           
           console.log(`✅ Sumário inteligente gerado com ${smartSummary.totalSections} seções`);
@@ -122,15 +125,18 @@ export class NewEditalService {
             const ragDocumentId = `edital_${edital.id}`;
             const ragMetadata = {
               documentId: edital.id,
-              documentName: documentSummary.documentName,
+              documentName: processedDocument.documentName,
               concursoNome: request.concursoNome,
               processedAt: new Date().toISOString(),
-              totalChunks: documentSummary.totalChunks,
-              userId: request.userId
+              totalChunks: processedDocument.totalChunks,
+              userId: request.userId,
+              processingMethod: processedDocument.metadata.processingMethod,
+              structureQuality: processedDocument.metadata.structureQuality,
+              avgConfidence: processedDocument.metadata.avgConfidence
             };
             
             // Transformar chunks em formato RAGDocument para o domínio simulation
-            const ragPromises = documentSummary.structure.map(async (chunk, index) => {
+            const ragPromises = processedDocument.structure.map(async (chunk: any, index: number) => {
               const ragDocument = {
                 id: `${ragDocumentId}_chunk_${index}`,
                 userId: request.userId,
@@ -144,7 +150,10 @@ export class NewEditalService {
                   startPosition: chunk.startPosition,
                   endPosition: chunk.endPosition,
                   parentId: chunk.parentId,
-                  chunkIndex: index
+                  chunkIndex: index,
+                  confidence: chunk.metadata.confidence,
+                  sectionType: chunk.metadata.sectionType,
+                  wordCount: chunk.metadata.wordCount
                 }
               };
               
@@ -153,22 +162,22 @@ export class NewEditalService {
             });
             
             await Promise.all(ragPromises);
-            console.log(`✅ ${documentSummary.totalChunks} chunks armazenados no sistema RAG com ID: ${ragDocumentId}`);
+            console.log(`✅ ${processedDocument.totalChunks} chunks armazenados no sistema RAG com ID: ${ragDocumentId}`);
             
           } catch (ragError) {
             console.warn(`⚠️ Erro ao integrar com RAG (não crítico):`, ragError);
           }
           
           // Gerar um ID único para o processamento local
-          jobId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          jobId = `hierarchical_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           
           // Salvar novo sistema no banco
           await storage.updateEdital(edital.id, {
             status: 'summary_generated',
-            rawContent: documentSummary.structure.map(chunk => chunk.content).join('\n').substring(0, 50000),
-            titleChunks: JSON.stringify(documentSummary),
+            rawContent: processedDocument.structure.map((chunk: any) => chunk.content).join('\n').substring(0, 50000),
+            titleChunks: JSON.stringify(legacyFormat),
             smartSummary: JSON.stringify(smartSummary),
-            documentStructure: JSON.stringify(documentSummary.structure),
+            documentStructure: JSON.stringify(processedDocument),
             externalFileId: jobId,
             processedAt: new Date()
           });
@@ -176,13 +185,13 @@ export class NewEditalService {
           console.log(`✅ Novo sistema de sumário salvo. Job ID: ${jobId}`);
           
         } catch (localError) {
-          console.error(`❌ Erro no novo processamento baseado em títulos:`, localError);
+          console.error(`❌ Erro no processamento hierárquico avançado:`, localError);
           await storage.updateEdital(edital.id, {
             status: 'failed',
-            errorMessage: 'Falha no processamento baseado em títulos',
+            errorMessage: 'Falha no processamento hierárquico com preservação de layout',
             processedAt: new Date()
           });
-          throw new Error('Não foi possível processar o documento com o novo sistema');
+          throw new Error('Não foi possível processar o documento com o sistema hierárquico');
         }
         
       } else {
@@ -214,12 +223,12 @@ export class NewEditalService {
         success: true,
         edital: updatedEdital || edital,
         message: useLocalProcessing 
-          ? 'Arquivo processado com novo sistema baseado em títulos! Sumário inteligente gerado com sucesso.'
+          ? 'Arquivo processado com sistema hierárquico avançado! Estrutura preservada e sumário inteligente gerado.'
           : 'Arquivo indexado com sucesso! Análise de cargos em andamento...',
         details: {
           externalProcessingSuccess: !useLocalProcessing,
           processingMessage: useLocalProcessing 
-            ? 'Documento processado localmente (serviço externo indisponível)'
+            ? 'Documento processado com sistema hierárquico avançado (preservação de layout)'
             : 'Documento processado e indexado no Pinecone pela aplicação externa'
         }
       };
