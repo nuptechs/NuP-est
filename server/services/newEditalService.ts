@@ -163,6 +163,26 @@ export class NewEditalService {
             console.log(`⚠️ Prosseguindo sem sumário IA`);
           }
           
+          // Gerar embeddings e enviar para Pinecone
+          console.log(`🧮 Gerando embeddings e enviando para Pinecone...`);
+          try {
+            if (hierarchicalStructure.chunks && hierarchicalStructure.chunks.length > 0) {
+              await this.processDocumentEmbeddings(
+                hierarchicalStructure,
+                request.userId,
+                edital.id,
+                request.fileName
+              );
+              
+              console.log(`✅ Embeddings gerados e enviados para Pinecone com sucesso`);
+            } else {
+              console.warn(`⚠️ Nenhum chunk disponível para geração de embeddings`);
+            }
+          } catch (embeddingsError) {
+            console.error(`❌ Erro ao gerar embeddings:`, embeddingsError);
+            console.log(`⚠️ Prosseguindo sem embeddings`);
+          }
+          
         } catch (hierarchicalError) {
           console.error(`❌ Erro no processamento hierárquico de ${request.fileName}:`, hierarchicalError);
           console.log(`⚠️ Usando estrutura básica para ${request.fileName}`);
@@ -478,6 +498,53 @@ export class NewEditalService {
       documentName,
       structure: [fallbackChunk]
     };
+  }
+  
+  /**
+   * Processa embeddings do documento e envia para Pinecone
+   */
+  private async processDocumentEmbeddings(
+    hierarchicalStructure: HierarchicalStructure,
+    userId: string,
+    editalId: string,
+    fileName: string
+  ): Promise<void> {
+    console.log(`🧮 [EMBEDDINGS] Iniciando processamento de embeddings para ${hierarchicalStructure.chunks.length} chunks`);
+    
+    // Converter chunks hierárquicos para formato RAG
+    const ragDocuments = hierarchicalStructure.chunks.map((chunk, index) => ({
+      id: `edital-${editalId}-chunk-${index}`,
+      content: chunk.content,
+      metadata: {
+        userId,
+        editalId,
+        fileName,
+        title: chunk.title,
+        level: chunk.level,
+        chunkIndex: index,
+        source: 'edital_pdf',
+        processedAt: new Date().toISOString(),
+        documentName: hierarchicalStructure.documentName
+      }
+    }));
+    
+    console.log(`🧮 [EMBEDDINGS] ${ragDocuments.length} documentos RAG preparados`);
+    
+    // Processar através do Chat RAG (adequado para documentos gerais)
+    try {
+      console.log(`🧮 [EMBEDDINGS] Enviando documentos para Chat RAG...`);
+      
+      for (const document of ragDocuments) {
+        await chatRAG.processDocument(document);
+        console.log(`✅ [EMBEDDINGS] Documento processado: ${document.metadata.title.substring(0, 50)}...`);
+      }
+      
+      console.log(`✅ [EMBEDDINGS] Todos os ${ragDocuments.length} documentos processados com sucesso`);
+      
+    } catch (ragError) {
+      console.error(`❌ [EMBEDDINGS] Erro ao processar documentos via Chat RAG:`, ragError);
+      throw new Error(`Falha na geração de embeddings: ${ragError.message}`);
+    }
   }
 
   /**
