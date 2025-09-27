@@ -59,13 +59,18 @@ export class AdvancedDocumentProcessor {
   private processorId: string = 'form-parser'; // Processor padrão para análise geral
 
   constructor() {
-    // Configurar Google Document AI
+    // Configurar Google Document AI com autenticação robusta
     this.projectId = process.env.GOOGLE_CLOUD_PROJECT_ID!;
+    
+    const credentials = {
+      type: 'service_account',
+      project_id: process.env.GOOGLE_CLOUD_PROJECT_ID,
+      private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
+    };
+    
     this.documentAI = new DocumentProcessorServiceClient({
-      credentials: {
-        client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      },
+      credentials,
       projectId: this.projectId,
     });
 
