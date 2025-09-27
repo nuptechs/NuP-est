@@ -62,10 +62,26 @@ export class AdvancedDocumentProcessor {
     // Configurar Google Document AI
     this.projectId = process.env.GOOGLE_DOC_AI_PROJECT_ID!;
     
+    // Formatação robusta da chave privada
+    let privateKey = process.env.GOOGLE_DOC_AI_PRIVATE_KEY || '';
+    
+    // Limpar e reformatar a chave privada corretamente
+    privateKey = privateKey
+      .replace(/\\n/g, '\n')  // Converter \n literal para quebra de linha real
+      .replace(/\n\n+/g, '\n')  // Remover quebras duplas
+      .trim();
+    
+    // Garantir que tem as linhas BEGIN/END corretas
+    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      console.warn('⚠️ [DocumentAI] Chave privada pode estar mal formatada - não encontrou BEGIN PRIVATE KEY');
+    }
+    
+    console.log(`🔧 [DocumentAI] Chave privada configurada: ${privateKey.length} caracteres`);
+    
     const credentials = {
-      type: 'service_account',
+      type: 'service_account' as const,
       project_id: process.env.GOOGLE_DOC_AI_PROJECT_ID,
-      private_key: process.env.GOOGLE_DOC_AI_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      private_key: privateKey,
       client_email: process.env.GOOGLE_DOC_AI_CLIENT_EMAIL,
     };
     
