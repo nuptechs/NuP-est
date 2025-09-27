@@ -5,7 +5,7 @@ import { hierarchicalChunker } from './hierarchicalChunker';
 import { smartSummaryService } from './smartSummaryService';
 import { HybridPDFProcessor } from './hybridPDFProcessor';
 import { storage } from '../storage';
-import { ragOrchestrator } from './rag/index';
+import { chatRAG } from './rag/index';
 import type { Edital } from '@shared/schema';
 import type { DocumentStructure, LayoutElement } from './pdf2jsonExtractor';
 
