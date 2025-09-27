@@ -75,45 +75,77 @@ export class EnhancedEditalService {
         const isResultSatisfactory = this.validateDocumentStructure(advancedResult, request.originalName);
         
         if (isResultSatisfactory) {
-          // Converter para formato compatível
-          const processedDocument = advancedDocumentProcessor.convertToProcessedDocument(advancedResult);
+          // ETAPA A: Converter para formato compatível
+          let processedDocument;
+          try {
+            processedDocument = advancedDocumentProcessor.convertToProcessedDocument(advancedResult);
+            console.log(`✅ Documento convertido com sucesso`);
+          } catch (convertError) {
+            throw new Error(`Falha de processamento advancedDocumentProcessor.convertToProcessedDocument`);
+          }
           
-          // Gerar sumário inteligente
-          const titleChunks = processedDocument.structure.map((chunk, index) => ({
-            id: chunk.id,
-            title: chunk.title,
-            level: chunk.level,
-            content: chunk.content,
-            startPosition: chunk.startPosition,
-            endPosition: chunk.endPosition
-          }));
+          // ETAPA B: Gerar sumário inteligente  
+          let smartSummary;
+          try {
+            const titleChunks = processedDocument.structure.map((chunk, index) => ({
+              id: chunk.id,
+              title: chunk.title,
+              level: chunk.level,
+              content: chunk.content,
+              startPosition: chunk.startPosition,
+              endPosition: chunk.endPosition
+            }));
 
-          console.log(`🧠 Gerando sumário inteligente com ${titleChunks.length} seções...`);
-          const smartSummary = await smartSummaryService.generateSmartSummary(
-            titleChunks,
-            request.originalName
-          );
+            console.log(`🧠 Gerando sumário inteligente com ${titleChunks.length} seções...`);
+            smartSummary = await smartSummaryService.generateSmartSummary(
+              titleChunks,
+              request.originalName
+            );
+            console.log(`✅ Sumário gerado com ${smartSummary.totalSections} seções`);
+          } catch (summaryError) {
+            if (summaryError instanceof Error && (
+              summaryError.message.includes('API') || 
+              summaryError.message.includes('OpenAI') || 
+              summaryError.message.includes('GPT'))) {
+              throw new Error('Falha de integração com sistema de IA');
+            }
+            throw new Error(`Falha de processamento smartSummaryService.generateSmartSummary`);
+          }
 
-          // Atualizar edital com sumário
-          await storage.updateEdital(edital.id, {
-            smartSummary: JSON.stringify({
-              documentName: smartSummary.documentName,
-              overallSummary: smartSummary.overallSummary,
-              totalSections: smartSummary.totalSections,
-              summaryItems: smartSummary.summaryItems,
-              generatedAt: smartSummary.generatedAt
-            }),
-            status: 'summary_generated'
-          });
-
-          console.log(`✅ Sumário gerado com ${smartSummary.totalSections} seções`);
+          // ETAPA C: Atualizar edital com sumário
+          try {
+            await storage.updateEdital(edital.id, {
+              smartSummary: JSON.stringify({
+                documentName: smartSummary.documentName,
+                overallSummary: smartSummary.overallSummary,
+                totalSections: smartSummary.totalSections,
+                summaryItems: smartSummary.summaryItems,
+                generatedAt: smartSummary.generatedAt
+              }),
+              status: 'summary_generated'
+            });
+            console.log(`✅ Edital atualizado no banco com sumário`);
+          } catch (updateError) {
+            throw new Error(`Falha de processamento storage.updateEdital`);
+          }
 
           // Preparar para embeddings
           sectionsDetected = advancedResult.hierarchy.length;
           confidence = advancedResult.confidence;
 
-          // ETAPA 2: Gerar embeddings e enviar para Pinecone
-          await this.generateAndStoreEmbeddings(processedDocument, edital.id, request.userId);
+          // ETAPA D: Gerar embeddings e enviar para Pinecone
+          try {
+            await this.generateAndStoreEmbeddings(processedDocument, edital.id, request.userId);
+            console.log(`✅ Embeddings gerados com sucesso`);
+          } catch (embeddingError) {
+            if (embeddingError instanceof Error && (
+              embeddingError.message.includes('API') || 
+              embeddingError.message.includes('Pinecone') || 
+              embeddingError.message.includes('OpenAI'))) {
+              throw new Error('Falha de integração com sistema de IA');
+            }
+            throw new Error(`Falha de processamento generateAndStoreEmbeddings`);
+          }
 
         } else {
           throw new Error('Estrutura detectada pelo Google Document AI não atende aos critérios de qualidade');
@@ -122,13 +154,21 @@ export class EnhancedEditalService {
       } catch (advancedError) {
         console.error(`❌ [ERRO DETALHADO] Falha no processamento avançado:`, advancedError);
         
-        // Determinar tipo de erro e mensagem apropriada
+        // Preservar mensagem específica ou determinar tipo de erro
         let errorMessage: string;
         if (advancedError instanceof Error) {
-          if (advancedError.message.includes('API') || advancedError.message.includes('OpenAI') || 
+          // Se já é uma mensagem específica (nossos erros internos), preservar
+          if (advancedError.message.startsWith('Falha de integração') || 
+              advancedError.message.startsWith('Falha de processamento')) {
+            errorMessage = advancedError.message;
+          }
+          // Se contém palavras-chave de integração externa
+          else if (advancedError.message.includes('API') || advancedError.message.includes('OpenAI') || 
               advancedError.message.includes('Document AI') || advancedError.message.includes('GPT')) {
             errorMessage = 'Falha de integração com sistema de IA';
-          } else {
+          } 
+          // Casos genéricos que não foram capturados pelos internos
+          else {
             errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
           }
         } else {
