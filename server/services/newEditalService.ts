@@ -397,22 +397,77 @@ export class NewEditalService {
       return true;
     }
     
-    // Verificar mudança significativa de nível
-    if (Math.abs(element.level - currentChunk.level) > 1) {
+    // NOVA LÓGICA: Detectar títulos reais baseado no conteúdo
+    const elementText = element.text.trim();
+    
+    // Padrões que indicam início de nova seção principal
+    const isMajorSectionStart = this.detectMajorSectionStart(elementText);
+    if (isMajorSectionStart) {
+      console.log(`🎯 [CHUNK-DETECTION] Nova seção detectada: "${elementText.substring(0, 60)}..."`);
       return true;
     }
     
-    // Se já há muito conteúdo no chunk atual (>2000 caracteres)
+    // Verificar se é numeração sequencial (1., 2., 3., etc.)
+    const isSequentialNumbering = this.detectSequentialNumbering(elementText);
+    if (isSequentialNumbering) {
+      console.log(`📝 [CHUNK-DETECTION] Numeração sequencial detectada: "${elementText.substring(0, 40)}..."`);
+      return true;
+    }
+    
+    // Verificar mudança significativa de nível (mais restritivo)
+    if (Math.abs(element.level - currentChunk.level) > 2) {
+      return true;
+    }
+    
+    // Se já há muito conteúdo no chunk atual (>4000 caracteres para evitar fragmentação excessiva)
     const currentContentLength = currentChunk.contentElements
       .map((el: any) => el.text || '')
       .join(' ')
       .length;
     
-    if (currentContentLength > 2000) {
+    if (currentContentLength > 4000) {
+      console.log(`📏 [CHUNK-DETECTION] Chunk muito longo (${currentContentLength} chars), dividindo`);
       return true;
     }
     
     return false;
+  }
+  
+  /**
+   * Detecta início de seções principais
+   */
+  private detectMajorSectionStart(text: string): boolean {
+    // Remover espaços e normalizar
+    const normalized = text.trim().toUpperCase();
+    
+    // Padrões de títulos principais
+    const majorSectionPatterns = [
+      /^[A-Z\s]{10,}:/, // Texto em maiúsculas seguido de ":"
+      /^(ANEXO|CAPÍTULO|SEÇÃO|TÍTULO)\s+(I{1,3}|[IVX]+|\d+)/i, // ANEXO I, CAPÍTULO II, etc.
+      /^(DAS|DO|DA)\s+[A-Z]/i, // "DAS DISPOSIÇÕES", "DO CONCURSO", etc.
+      /^\d+\.\s*[A-Z][A-Z\s]{5,}/, // "1. INTRODUÇÃO", "2. REQUISITOS"
+      /^[A-Z][A-Z\s]{15,}$/, // Texto longo todo em maiúsculas
+    ];
+    
+    return majorSectionPatterns.some(pattern => pattern.test(normalized));
+  }
+  
+  /**
+   * Detecta numeração sequencial
+   */
+  private detectSequentialNumbering(text: string): boolean {
+    const normalized = text.trim();
+    
+    // Padrões de numeração
+    const numberingPatterns = [
+      /^\d+\.\d+/, // 1.1, 2.3, etc.
+      /^\d+\)\s/, // 1) texto
+      /^[a-z]\)\s/, // a) texto  
+      /^[IVX]+\.\s/, // I. II. III.
+      /^\d+\.[\d\.]+\s/, // 1.2.3 ou 1.2.3.4
+    ];
+    
+    return numberingPatterns.some(pattern => pattern.test(normalized));
   }
   
   /**
@@ -524,9 +579,9 @@ export class NewEditalService {
     // Converter chunks hierárquicos para formato RAG
     const ragDocuments = hierarchicalStructure.chunks.map((chunk, index) => ({
       id: `edital-${editalId}-chunk-${index}`,
+      userId: userId, // CORREÇÃO: userId deve estar no nível raiz
       content: chunk.content,
       metadata: {
-        userId,
         editalId,
         fileName,
         title: chunk.title,
