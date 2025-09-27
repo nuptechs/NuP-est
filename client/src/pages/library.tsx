@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
 import AreaForm from "@/components/knowledge-areas/area-form";
+import { EditalUploader } from "@/components/EditalUploader";
 import { 
   Search as SearchIcon, 
   Plus, 
@@ -28,8 +29,10 @@ import {
   Upload,
   ArrowLeft,
   Folder,
-  FolderOpen
+  FolderOpen,
+  GraduationCap
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // Professional components
 import ProfessionalShell from "@/components/ui/professional-shell";
 import { ProfessionalCard } from "@/components/ui/professional-card";
@@ -73,6 +76,8 @@ export default function Library() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<any>(null);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'materials' | 'editais'>('materials');
+  const [showEditalUploader, setShowEditalUploader] = useState(false);
 
   // Auth redirect
   useEffect(() => {
@@ -137,6 +142,12 @@ export default function Library() {
     enabled: isAuthenticated && navigation.level === 'materials' && !!navigation.selectedSubjectId,
   });
 
+  // Query para editais
+  const { data: editais = [], isLoading: editaisLoading } = useQuery<any[]>({
+    queryKey: ["/api/edital/lista"],
+    enabled: isAuthenticated && activeTab === 'editais',
+  });
+
   // Helper functions
   const navigateToLevel = (level: ViewLevel, id?: string, name?: string) => {
     if (level === 'subjects' && id && name) {
@@ -187,8 +198,12 @@ export default function Library() {
   };
 
   const handleCreateNew = (type: 'area' | 'subject' | 'material') => {
-    setCreateType(type);
-    setIsCreateModalOpen(true);
+    if (type === 'material' && activeTab === 'editais') {
+      setShowEditalUploader(true);
+    } else {
+      setCreateType(type);
+      setIsCreateModalOpen(true);
+    }
   };
 
   const handleEdit = (item: any) => {
@@ -261,7 +276,7 @@ export default function Library() {
     switch (navigation.level) {
       case 'areas': return 'Áreas de Conhecimento';
       case 'subjects': return 'Matérias';
-      case 'materials': return 'Materiais';
+      case 'materials': return activeTab === 'editais' ? 'Editais de Concurso' : 'Materiais';
       default: return 'Biblioteca';
     }
   };
@@ -271,7 +286,7 @@ export default function Library() {
     switch (navigation.level) {
       case 'areas': return 'Nova Área';
       case 'subjects': return 'Nova Matéria';
-      case 'materials': return 'Novo Material';
+      case 'materials': return activeTab === 'editais' ? 'Novo Edital' : 'Novo Material';
       default: return 'Adicionar';
     }
   };
@@ -289,7 +304,7 @@ export default function Library() {
     switch (navigation.level) {
       case 'areas': return 'Organize seus estudos por áreas de conhecimento';
       case 'subjects': return 'Gerencie as matérias desta área';
-      case 'materials': return 'Visualize e organize seus materiais de estudo';
+      case 'materials': return activeTab === 'editais' ? 'Gerencie seus editais de concurso com processamento avançado' : 'Visualize e organize seus materiais de estudo';
       default: return 'Sua biblioteca de conhecimento';
     }
   };
@@ -298,7 +313,7 @@ export default function Library() {
     switch (navigation.level) {
       case 'areas': return knowledgeAreas;
       case 'subjects': return subjects;
-      case 'materials': return materials;
+      case 'materials': return activeTab === 'editais' ? editais : materials;
       default: return [];
     }
   };
@@ -307,7 +322,7 @@ export default function Library() {
     switch (navigation.level) {
       case 'areas': return areasLoading;
       case 'subjects': return subjectsLoading;
-      case 'materials': return materialsLoading;
+      case 'materials': return activeTab === 'editais' ? editaisLoading : materialsLoading;
       default: return false;
     }
   };
@@ -386,12 +401,34 @@ export default function Library() {
           </Breadcrumb>
         </div>
 
+        {/* Tabs para Materiais vs Editais */}
+        {navigation.level === 'materials' && (
+          <div className="mb-6">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'materials' | 'editais')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="materials" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Materiais de Estudo
+                </TabsTrigger>
+                <TabsTrigger value="editais" className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  Editais de Concurso
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        )}
+
         {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder={navigation.level === 'areas' ? 'Buscar áreas...' : navigation.level === 'subjects' ? 'Buscar matérias...' : 'Buscar materiais...'}
+              placeholder={
+                navigation.level === 'areas' ? 'Buscar áreas...' : 
+                navigation.level === 'subjects' ? 'Buscar matérias...' : 
+                activeTab === 'editais' ? 'Buscar editais...' : 'Buscar materiais...'
+              }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               data-testid="search-input"
@@ -457,7 +494,7 @@ export default function Library() {
           <div className="mb-6" data-testid="content-header">
             <h2 className="text-lg font-semibold text-foreground mb-1">{getTitle()}</h2>
             <p className="text-sm text-muted-foreground">
-              {currentData.length} {navigation.level === 'areas' ? 'áreas' : navigation.level === 'subjects' ? 'matérias' : 'materiais'} encontrada{currentData.length !== 1 ? 's' : ''}
+              {currentData.length} {navigation.level === 'areas' ? 'áreas' : navigation.level === 'subjects' ? 'matérias' : activeTab === 'editais' ? 'editais' : 'materiais'} encontrada{currentData.length !== 1 ? 's' : ''}
             </p>
           </div>
           
@@ -474,15 +511,21 @@ export default function Library() {
             ) : currentData.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center" data-testid={`empty-${navigation.level}`}>
                 <div className="w-16 h-16 mb-4 text-muted-foreground">
-                  {React.createElement(getIcon(), { className: "w-full h-full" })}
+                  {React.createElement(activeTab === 'editais' ? GraduationCap : getIcon(), { className: "w-full h-full" })}
                 </div>
                 <h3 className="text-lg font-semibold mb-2">
-                  Nenhuma {navigation.level === 'areas' ? 'área' : navigation.level === 'subjects' ? 'matéria' : 'material'} encontrada
+                  Nenhuma {navigation.level === 'areas' ? 'área' : navigation.level === 'subjects' ? 'matéria' : activeTab === 'editais' ? 'edital' : 'material'} encontrada
                 </h3>
                 <p className="text-muted-foreground mb-6 max-w-md">
-                  Comece criando sua primeira {navigation.level === 'areas' ? 'área de conhecimento' : navigation.level === 'subjects' ? 'matéria' : 'material de estudo'}.
+                  {activeTab === 'editais' 
+                    ? 'Faça upload de seu primeiro edital para processamento avançado com Google Document AI.'
+                    : `Comece criando sua primeira ${navigation.level === 'areas' ? 'área de conhecimento' : navigation.level === 'subjects' ? 'matéria' : 'material de estudo'}.`
+                  }
                 </p>
-                <Button onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}>
+                <Button 
+                  onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
+                  data-testid="button-add-material"
+                >
                   {getCreateButtonText()}
                 </Button>
               </div>
@@ -580,6 +623,35 @@ export default function Library() {
             )}
           </div>
         </div>
+
+        {/* Edital Uploader Modal */}
+        <Dialog 
+          open={showEditalUploader} 
+          onOpenChange={setShowEditalUploader}
+        >
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5" />
+                Novo Edital de Concurso
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <EditalUploader
+                concursoNome="Concurso Padrão"
+                onEditalProcessed={(result) => {
+                  console.log('Edital processado:', result);
+                  setShowEditalUploader(false);
+                  queryClient.invalidateQueries({ queryKey: ['/api/edital/lista'] });
+                  toast({
+                    title: "✅ Edital processado!",
+                    description: `${result.fileName} foi processado com sucesso usando Google Document AI.`,
+                  });
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Create Modal */}
         <Dialog 
