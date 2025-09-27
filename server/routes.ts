@@ -26,6 +26,7 @@ import {
   insertKnowledgeBaseSchema
 } from "@shared/schema";
 import { pdf2jsonExtractor } from "./services/pdf2jsonExtractor";
+import { editalProcessingService } from "./services/editalProcessingService";
 import { embeddingsService } from "./services/embeddings";
 import { knowledgeChunks } from "@shared/schema";
 import { db } from "./db";
@@ -1152,6 +1153,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== EDITAL PROCESSING ROUTES ====================
+  
+  // Rota para testar processamento de PDF hierárquico
+  app.post('/api/edital/test-processing', isAuthenticated, pdfUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'Arquivo PDF é obrigatório para teste' });
+      }
+
+      console.log(`🧪 [TESTE] Iniciando processamento de teste: ${req.file.originalname}`);
+      const testResult = await editalProcessingService.testProcessing(req.file.path);
+      
+      // Limpar arquivo temporário
+      try {
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (cleanupError) {
+        console.error('Erro ao limpar arquivo temporário:', cleanupError);
+      }
+
+      res.json({
+        ...testResult,
+        fileName: req.file.originalname,
+        fileSize: req.file.size
+      });
+    } catch (error) {
+      console.error('Erro no teste de processamento:', error);
+      
+      // Limpar arquivo em caso de erro
+      if (req.file) {
+        try {
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+        } catch (cleanupError) {
+          console.error('Erro ao limpar arquivo temporário:', cleanupError);
+        }
+      }
+
+      res.status(500).json({ 
+        isWorking: false,
+        titlesDetected: 0,
+        structureQuality: 'poor',
+        error: error instanceof Error ? error.message : 'Erro no teste'
+      });
+    }
+  });
+
+  // Rota para extrair apenas índice/estrutura de documento
+  app.post('/api/edital/extract-index', isAuthenticated, pdfUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'Arquivo PDF é obrigatório' });
+      }
+
+      console.log(`📋 [ÍNDICE] Extraindo índice de: ${req.file.originalname}`);
+      const indexResult = await editalProcessingService.extractTableOfContents(req.file.path, req.file.originalname);
+      
+      // Limpar arquivo temporário
+      try {
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (cleanupError) {
+        console.error('Erro ao limpar arquivo temporário:', cleanupError);
+      }
+
+      res.json({
+        ...indexResult,
+        fileName: req.file.originalname,
+        fileSize: req.file.size
+      });
+    } catch (error) {
+      console.error('Erro na extração de índice:', error);
+      
+      // Limpar arquivo em caso de erro
+      if (req.file) {
+        try {
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+        } catch (cleanupError) {
+          console.error('Erro ao limpar arquivo temporário:', cleanupError);
+        }
+      }
+
+      res.status(500).json({ 
+        success: false,
+        titles: [],
+        totalTitles: 0,
+        error: error instanceof Error ? error.message : 'Erro na extração de índice'
+      });
+    }
+  });
+
   app.get('/api/knowledge-base', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1177,13 +1274,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Título é obrigatório' });
       }
 
-      // Processar o PDF com sistema hierárquico
-      const documentStructure = await pdf2jsonExtractor.extractDocumentStructure(req.file.path, req.file.originalname);
-      const hierarchicalChunks = pdf2jsonExtractor.convertToHierarchicalChunks(documentStructure);
+      // NOVO: Processar com serviço encapsulado melhorado
+      console.log(`🔄 Processando edital com sistema hierárquico: ${req.file.originalname}`);
+      const processedEdital = await editalProcessingService.processEditalPDF(req.file.path, req.file.originalname);
+      
+      if (!processedEdital.success) {
+        throw new Error(processedEdital.error || 'Falha no processamento hierárquico do PDF');
+      }
+      
+      console.log(`✅ Processamento concluído - Títulos: ${processedEdital.totalTitles}, Qualidade: ${processedEdital.structureQuality}`);
       
       // Converter chunks para formato compatível com knowledge base
-      const textChunks = hierarchicalChunks.map(chunk => chunk.content);
-      const fullText = hierarchicalChunks.map(chunk => chunk.content).join('\n');
+      const textChunks = processedEdital.hierarchicalChunks.map((chunk: any) => chunk.content);
+      const fullText = processedEdital.hierarchicalChunks.map((chunk: any) => chunk.content).join('\n');
       
       // Criar entrada na base de conhecimento
       const documentData = {
@@ -1207,7 +1310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`🔄 Gerando embeddings para ${textChunks.length} chunks hierárquicos...`);
           const embeddings = await embeddingsService.generateEmbeddings(textChunks);
           
-          const chunksWithEmbeddings = textChunks.map((content, index) => ({
+          const chunksWithEmbeddings = textChunks.map((content: any, index: number) => ({
             knowledgeBaseId: document.id,
             chunkIndex: index,
             content: content,

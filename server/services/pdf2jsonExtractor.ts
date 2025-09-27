@@ -59,34 +59,59 @@ export class PDF2JsonExtractor {
             throw new Error('PDF não contém páginas válidas');
           }
           
-          // Processar cada página
+          // Processar cada página com normalização de linhas
           pdfData.Pages.forEach((page: any, pageIndex: number) => {
             if (page.Texts) {
+              // CAPTURAR altura real da página
+              const pageHeight = page.Height || 20; // Usar altura real da página ou fallback
+              console.log(`📄 [PAGE ${pageIndex + 1}] Altura da página: ${pageHeight}`);
+              
+              // PASSO 1: Extrair todos os fragmentos de texto da página
+              const textFragments: Array<{
+                text: string;
+                fontInfo: any;
+                position: any;
+              }> = [];
+              
               page.Texts.forEach((textObj: any) => {
-                // Extrair texto decodificado
                 const decodedText = this.decodeText(textObj);
-                if (!decodedText || decodedText.trim().length < 2) return;
+                if (!decodedText || decodedText.trim().length < 1) return;
                 
-                // Analisar propriedades do texto para detectar hierarquia
-                const fontInfo = this.extractFontInfo(textObj);
-                const position = {
-                  page: pageIndex + 1,
-                  x: textObj.x || 0,
-                  y: textObj.y || 0,
-                  width: textObj.w || 0,
-                  height: textObj.h || 0
-                };
+                textFragments.push({
+                  text: decodedText,
+                  fontInfo: this.extractFontInfo(textObj),
+                  position: {
+                    page: pageIndex + 1,
+                    x: textObj.x || 0,
+                    y: textObj.y || 0,
+                    width: textObj.w || 0,
+                    height: textObj.h || 0
+                  }
+                });
+              });
+              
+              // PASSO 2: Agrupar fragmentos por linha (mesmo Y, X próximos)
+              const normalizedLines = this.normalizeTextByLines(textFragments);
+              
+              // PASSO 2.5: Calcular altura efetiva dos fragmentos de texto
+              const maxY = Math.max(...textFragments.map(f => f.position.y), 1);
+              const effectiveTextHeight = maxY; // Altura real dos fragmentos de texto
+              console.log(`📄 [PAGE ${pageIndex + 1}] Altura efetiva do texto: ${effectiveTextHeight} (vs página: ${pageHeight})`);
+              
+              // PASSO 3: Processar linhas normalizadas
+              normalizedLines.forEach((line: { text: string; fontInfo: any; position: any }) => {
+                if (!line.text || line.text.trim().length < 2) return;
                 
-                // Classificar elemento baseado em posição e formatação
-                const classification = this.classifyElement(decodedText, fontInfo, position);
+                // Classificar elemento com altura efetiva do texto
+                const classification = this.classifyElement(line.text, line.fontInfo, line.position, effectiveTextHeight);
                 
                 elements.push({
                   id: `element_${elementId++}`,
                   type: classification.type,
                   level: classification.level,
-                  text: decodedText,
-                  position,
-                  fontInfo
+                  text: line.text,
+                  position: line.position,
+                  fontInfo: line.fontInfo
                 });
               });
             }
@@ -186,14 +211,23 @@ export class PDF2JsonExtractor {
   private classifyElement(
     text: string, 
     fontInfo: { name: string; size: number; bold: boolean; italic: boolean },
-    position: { page: number; x: number; y: number; width: number; height: number }
+    position: { page: number; x: number; y: number; width: number; height: number },
+    pageHeight?: number
   ): { type: LayoutElement['type']; level: number } {
     
     const cleanText = text.trim();
     
-    // Filtrar headers e footers baseado na posição Y
-    if (position.y < 50 || position.y > 750) {
+    // CORREÇÃO FINAL: Usar altura real da página para thresholds
+    const effectivePageHeight = pageHeight || 20; // Usar altura real ou fallback
+    const headerThreshold = effectivePageHeight * 0.05; // 5% superior
+    const footerThreshold = effectivePageHeight * 0.95; // 5% inferior
+    
+    // Filtrar headers e footers com thresholds baseados na altura real
+    if (position.y < headerThreshold) {
       return { type: 'header', level: 0 };
+    }
+    if (position.y > footerThreshold) {
+      return { type: 'header', level: 0 }; // Manter consistência de tipo
     }
     
     // Detectar títulos principais por formatação
@@ -361,6 +395,109 @@ export class PDF2JsonExtractor {
     return {
       totalTitles,
       titleHierarchy
+    };
+  }
+  
+  /**
+   * Normaliza fragmentos de texto agrupando por linhas (mesmo Y aproximado)
+   */
+  private normalizeTextByLines(fragments: Array<{
+    text: string;
+    fontInfo: any;
+    position: any;
+  }>): Array<{
+    text: string;
+    fontInfo: any;
+    position: any;
+  }> {
+    if (fragments.length === 0) return [];
+    
+    // Ordenar fragmentos por página e Y
+    fragments.sort((a, b) => {
+      if (a.position.page !== b.position.page) {
+        return a.position.page - b.position.page;
+      }
+      return a.position.y - b.position.y;
+    });
+    
+    const normalizedLines: Array<{
+      text: string;
+      fontInfo: any;
+      position: any;
+    }> = [];
+    
+    let currentLine: Array<typeof fragments[0]> = [];
+    let currentY = fragments[0].position.y;
+    let currentPage = fragments[0].position.page;
+    const lineThreshold = 2; // Tolerância em pixels para considerar mesma linha
+    
+    for (const fragment of fragments) {
+      const yDifference = Math.abs(fragment.position.y - currentY);
+      const samePage = fragment.position.page === currentPage;
+      
+      // Se está na mesma linha (mesmo Y aproximado) e mesma página
+      if (samePage && yDifference <= lineThreshold) {
+        currentLine.push(fragment);
+      } else {
+        // Finalizar linha atual
+        if (currentLine.length > 0) {
+          normalizedLines.push(this.mergeLineFragments(currentLine));
+        }
+        
+        // Iniciar nova linha
+        currentLine = [fragment];
+        currentY = fragment.position.y;
+        currentPage = fragment.position.page;
+      }
+    }
+    
+    // Finalizar última linha
+    if (currentLine.length > 0) {
+      normalizedLines.push(this.mergeLineFragments(currentLine));
+    }
+    
+    return normalizedLines;
+  }
+  
+  /**
+   * Mescla fragmentos de uma linha em um único elemento
+   */
+  private mergeLineFragments(lineFragments: Array<{
+    text: string;
+    fontInfo: any;
+    position: any;
+  }>): {
+    text: string;
+    fontInfo: any;
+    position: any;
+  } {
+    // Ordenar fragmentos por posição X (esquerda para direita)
+    lineFragments.sort((a, b) => a.position.x - b.position.x);
+    
+    // Concatenar texto com espaços apropriados
+    const mergedText = lineFragments
+      .map(fragment => fragment.text.trim())
+      .filter(text => text.length > 0)
+      .join(' ');
+    
+    // Usar informações de fonte do primeiro fragmento (geralmente o mais significativo)
+    const primaryFragment = lineFragments[0];
+    
+    // Calcular posição e dimensões mescladas
+    const leftmostX = Math.min(...lineFragments.map(f => f.position.x));
+    const rightmostX = Math.max(...lineFragments.map(f => f.position.x + f.position.width));
+    const topY = Math.min(...lineFragments.map(f => f.position.y));
+    
+    return {
+      text: mergedText,
+      fontInfo: primaryFragment.fontInfo,
+      position: {
+        page: primaryFragment.position.page,
+        x: leftmostX,
+        y: topY,
+        width: rightmostX - leftmostX,
+        height: primaryFragment.position.height
+      }
     };
   }
   

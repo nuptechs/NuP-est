@@ -61,7 +61,14 @@ export class HierarchicalChunker {
         }
       };
       
-      // ETAPA 5: Log detalhado dos resultados
+      // ETAPA 5: Verificação de qualidade crítica (como sugerido pelo architect)
+      if (processedDocument.metadata.structureQuality === 'poor') {
+        const errorMsg = `❌ Qualidade de estrutura insuficiente para ${fileName}. Títulos e hierarquia não foram detectados corretamente.`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      // ETAPA 6: Log detalhado dos resultados
       this.logProcessingResults(processedDocument);
       
       return processedDocument;
