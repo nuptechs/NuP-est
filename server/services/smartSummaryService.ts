@@ -182,12 +182,117 @@ IMPORTANTE: Resposta deve ser JSON válido, sem texto adicional.
       });
       
       console.log(`✅ [PARSE-DEBUG] Parse bem-sucedido: ${result.length} summaryItems criados`);
-      return result;
+      
+      // Validar qualidade dos sumários e aplicar fallback se necessário
+      const validatedResult = this.validateSummaryQuality(result, chunks);
+      return validatedResult;
     } catch (error) {
       console.error('❌ [PARSE-ERROR] Erro ao fazer parse da resposta:', error);
       console.log(`🔄 [FALLBACK] Usando createFallbackSummaries para ${chunks.length} chunks`);
       return this.createFallbackSummaries(chunks);
     }
+  }
+  
+  /**
+   * Valida a qualidade dos sumários gerados e aplica fallback se necessário
+   */
+  private validateSummaryQuality(summaryItems: SummaryItem[], originalChunks: TitleChunk[]): SummaryItem[] {
+    console.log(`🔍 [QUALITY-CHECK] Validando qualidade de ${summaryItems.length} sumários`);
+    
+    const validatedItems: SummaryItem[] = [];
+    let fallbackCount = 0;
+    
+    for (let i = 0; i < summaryItems.length; i++) {
+      const item = summaryItems[i];
+      const originalChunk = originalChunks[i];
+      
+      const qualityScore = this.assessSummaryQuality(item, originalChunk);
+      
+      if (qualityScore >= 0.6) {
+        // Qualidade aceitável - usar sumário da IA
+        validatedItems.push(item);
+        console.log(`✅ [QUALITY-CHECK] Sumário "${item.title.substring(0, 30)}..." aprovado (score: ${qualityScore.toFixed(2)})`);
+      } else {
+        // Qualidade baixa - usar fallback
+        console.log(`⚠️ [QUALITY-CHECK] Sumário "${item.title.substring(0, 30)}..." rejeitado (score: ${qualityScore.toFixed(2)}) - usando fallback`);
+        const fallbackSummary = this.createSingleFallbackSummary(originalChunk);
+        validatedItems.push(fallbackSummary);
+        fallbackCount++;
+      }
+    }
+    
+    console.log(`📊 [QUALITY-CHECK] Validação concluída: ${summaryItems.length - fallbackCount} aprovados, ${fallbackCount} fallbacks aplicados`);
+    return validatedItems;
+  }
+  
+  /**
+   * Avalia a qualidade de um sumário individual
+   */
+  private assessSummaryQuality(summaryItem: SummaryItem, originalChunk: TitleChunk): number {
+    let qualityScore = 0.5; // Score inicial neutro
+    
+    // 1. Verificar se o sumário não é muito curto ou vazio (peso: 0.3)
+    const summaryLength = summaryItem.summary.trim().length;
+    if (summaryLength >= 50) {
+      qualityScore += 0.3;
+    } else if (summaryLength >= 20) {
+      qualityScore += 0.1;
+    } else {
+      qualityScore -= 0.3; // Penalizar sumários muito curtos
+    }
+    
+    // 2. Verificar se há pontos-chave relevantes (peso: 0.2)
+    const hasKeyPoints = summaryItem.keyPoints && summaryItem.keyPoints.length >= 2;
+    if (hasKeyPoints) {
+      qualityScore += 0.2;
+    }
+    
+    // 3. Verificar se o sumário não é genérico demais (peso: 0.3)
+    const genericPhrases = [
+      'resumo não disponível',
+      'seção aborda',
+      'esta parte trata',
+      'nesta seção',
+      'este capítulo'
+    ];
+    
+    const isGeneric = genericPhrases.some(phrase => 
+      summaryItem.summary.toLowerCase().includes(phrase.toLowerCase())
+    );
+    
+    if (!isGeneric) {
+      qualityScore += 0.3;
+    } else {
+      qualityScore -= 0.2;
+    }
+    
+    // 4. Verificar correlação com título original (peso: 0.2)
+    const titleWords = originalChunk.title.toLowerCase().split(/\s+/)
+      .filter(word => word.length > 3);
+    const summaryWords = summaryItem.summary.toLowerCase();
+    
+    const wordMatches = titleWords.filter(word => summaryWords.includes(word)).length;
+    const correlationRatio = titleWords.length > 0 ? wordMatches / titleWords.length : 0;
+    
+    qualityScore += correlationRatio * 0.2;
+    
+    return Math.max(0, Math.min(1, qualityScore));
+  }
+  
+  /**
+   * Cria um sumário fallback para um chunk individual
+   */
+  private createSingleFallbackSummary(chunk: TitleChunk): SummaryItem {
+    return {
+      id: `summary_${chunk.id}`,
+      title: chunk.title,
+      level: chunk.level,
+      summary: this.extractFirstSentences(chunk.content, 2),
+      keyPoints: this.extractKeyWords(chunk.content),
+      importance: 'medium' as const,
+      parentId: chunk.parentId,
+      originalChunkId: chunk.id
+    };
   }
   
   /**

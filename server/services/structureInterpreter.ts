@@ -59,12 +59,13 @@ export class StructureInterpreter {
   }
   
   /**
-   * Melhora classificação de elementos usando análise contextual
+   * Melhora classificação de elementos usando análise contextual e validação rigorosa
    */
   private enhanceElementClassification(elements: LayoutElement[]): LayoutElement[] {
     console.log(`🔍 Melhorando classificação de ${elements.length} elementos...`);
     
-    return elements.map((element, index) => {
+    // Primeira passada: aplicar heurísticas contextuais
+    const contextuallyEnhanced = elements.map((element, index) => {
       const enhanced = { ...element };
       
       // Analisar contexto (elementos vizinhos)
@@ -85,6 +86,93 @@ export class StructureInterpreter {
       
       return enhanced;
     });
+    
+    // Segunda passada: validação e correção de classificações incorretas
+    return this.validateAndCorrectClassifications(contextuallyEnhanced);
+  }
+  
+  /**
+   * Valida e corrige classificações incorretas usando análise de qualidade
+   */
+  private validateAndCorrectClassifications(elements: LayoutElement[]): LayoutElement[] {
+    console.log(`🔧 Validando e corrigindo classificações de ${elements.length} elementos...`);
+    
+    return elements.map((element, index) => {
+      const corrected = { ...element };
+      
+      // Validar se elementos classificados como título/subtítulo são realmente títulos
+      if (element.type === 'title' || element.type === 'subtitle') {
+        const qualityScore = this.assessTitleQuality(element, elements, index);
+        
+        // Se a qualidade é baixa, reclassificar
+        if (qualityScore < 0.5) {
+          console.log(`⚠️ Corrigindo classificação incorreta: "${element.text.substring(0, 50)}..." (score: ${qualityScore.toFixed(2)})`);
+          corrected.type = 'text';
+          corrected.level = 4;
+        }
+      }
+      
+      return corrected;
+    });
+  }
+  
+  /**
+   * Avalia a qualidade de um elemento classificado como título
+   */
+  private assessTitleQuality(
+    element: LayoutElement, 
+    allElements: LayoutElement[], 
+    index: number
+  ): number {
+    const text = element.text.trim();
+    let qualityScore = 0.5; // Score inicial neutro
+    
+    // 1. Análise de comprimento (peso: 0.3)
+    if (text.length <= 40) qualityScore += 0.3;
+    else if (text.length <= 80) qualityScore += 0.1;
+    else qualityScore -= 0.3; // Penalizar textos muito longos
+    
+    // 2. Análise de padrões de parágrafo (peso: 0.4)
+    const paragraphIndicators = [
+      /candidato.*dever[áa]/i,
+      /será.*considerado/i,
+      /de acordo com/i,
+      /conforme.*disposto/i,
+      /nos termos.*lei/i,
+      /para.*efeito/i,
+      /o.*presente/i,
+      /diploma.*devidamente/i
+    ];
+    
+    if (paragraphIndicators.some(pattern => pattern.test(text))) {
+      qualityScore -= 0.4; // Forte penalização para padrões de parágrafo
+    }
+    
+    // 3. Análise de posição e contexto (peso: 0.2)
+    const prevElement = index > 0 ? allElements[index - 1] : null;
+    const nextElement = index < allElements.length - 1 ? allElements[index + 1] : null;
+    
+    // Verificar se está isolado (indicativo de título)
+    const isIsolated = (
+      (!prevElement || prevElement.text.trim().length < 30) &&
+      (!nextElement || nextElement.text.trim().length < 30)
+    );
+    
+    if (isIsolated) qualityScore += 0.1;
+    
+    // 4. Análise de formato típico de título (peso: 0.1)
+    const titlePatterns = [
+      /^[A-ZÁÊÍÓÔÂ][A-ZÁÊÍÓÔÂ\s\-]{5,30}$/,  // Maiúsculas curtas
+      /^\d+\s*[-–]\s*[A-ZÁÊÍÓÔÂ]/,            // "1 - TÍTULO"
+      /^(CAPÍTULO|SEÇÃO|ANEXO|TÍTULO)/i,       // Estruturas formais
+      /^(EDITAL|CONCURSO|PROCESSO)/i           // Cabeçalhos principais
+    ];
+    
+    if (titlePatterns.some(pattern => pattern.test(text))) {
+      qualityScore += 0.1;
+    }
+    
+    return Math.max(0, Math.min(1, qualityScore));
   }
   
   /**
@@ -120,36 +208,47 @@ export class StructureInterpreter {
   }
   
   /**
-   * Verifica padrões específicos de editais
+   * Verifica padrões específicos de editais com validação rigorosa
    */
   private containsEditalPatterns(text: string): boolean {
+    const cleanText = text.trim();
+    
+    // Filtrar textos muito longos (provavelmente parágrafos)
+    if (cleanText.length > 80) {
+      return false;
+    }
+    
     const editalPatterns = [
-      // Padrões estruturais
+      // Padrões estruturais principais
       /^(CAPÍTULO|SEÇÃO|TÍTULO|ANEXO|APÊNDICE)\s+[IVX\d]/i,
       
-      // Numeração hierárquica
-      /^\d+(\.\d+)*[\.\s\-]/,
+      // Numeração hierárquica RESTRITA (apenas se texto é curto)
+      /^\d+\s*[-–]\s*[A-ZÁÊÍÓÔÂ]/,  // "1 - TÍTULO" 
+      /^\d+\.\s*[A-ZÁÊÍÓÔÂ][A-ZÁÊÍÓÔÂ\s]{2,20}$/,  // "1. OBJETIVO" mas não parágrafos longos
       
-      // Preposições estruturais
-      /^(DAS?|DOS?|NAS?|NOS?|DO)\s+[A-ZÁÊÍÓÔÂ]/i,
+      // Preposições estruturais (apenas se seguidas de texto em maiúsculas)
+      /^(DAS?|DOS?|NAS?|NOS?|DO)\s+[A-ZÁÊÍÓÔÂ][A-ZÁÊÍÓÔÂ\s]{5,30}$/i,
       
       // Seções típicas de edital
       /^(EDITAL|CONCURSO|PROCESSO|SELEÇÃO|ABERTURA)/i,
-      /^(REQUISITOS?|ATRIBUIÇÕES|REMUNERAÇÃO|SALÁRIO)/i,
-      /^(INSCRIÇÕES?|TAXAS?|DOCUMENTAÇÃO|COMPROVANTES)/i,
-      /^(PROVAS?|EXAMES?|AVALIAÇÃO|TESTES?|ETAPAS?)/i,
-      /^(RESULTADO|CLASSIFICAÇÃO|CONVOCAÇÃO|NOMEAÇÃO)/i,
-      /^(DISPOSIÇÕES|CRONOGRAMA|RECURSOS?|IMPUGNAÇÕES?)/i,
+      /^(REQUISITOS?|ATRIBUIÇÕES|REMUNERAÇÃO|SALÁRIO)$/i,
+      /^(INSCRIÇÕES?|TAXAS?|DOCUMENTAÇÃO|COMPROVANTES)$/i,
+      /^(PROVAS?|EXAMES?|AVALIAÇÃO|TESTES?|ETAPAS?)$/i,
+      /^(RESULTADO|CLASSIFICAÇÃO|CONVOCAÇÃO|NOMEAÇÃO)$/i,
+      /^(DISPOSIÇÕES|CRONOGRAMA|RECURSOS?|IMPUGNAÇÕES?)$/i,
       
-      // Cargos e vagas
-      /^(CARGO|FUNÇÃO|VAGA|POSTO|ESPECIALIDADE)/i,
-      /^(AUDITOR|FISCAL|TÉCNICO|ANALISTA|ASSISTENTE)/i,
+      // Cargos e vagas (apenas se começam a frase)
+      /^(CARGO|FUNÇÃO|VAGA|POSTO|ESPECIALIDADE)(\s+\d+)?:?\s*[A-ZÁÊÍÓÔÂ]/i,
+      /^(AUDITOR|FISCAL|TÉCNICO|ANALISTA|ASSISTENTE)\s*[A-ZÁÊÍÓÔÂ]/i,
       
       // Legislação
-      /^(LEI|DECRETO|PORTARIA|RESOLUÇÃO|INSTRUÇÃO)/i,
+      /^(LEI|DECRETO|PORTARIA|RESOLUÇÃO|INSTRUÇÃO)\s+N[º°]?\s*\d+/i,
+      
+      // Texto todo em maiúsculas (indicativo de título)
+      /^[A-ZÁÊÍÓÔÂ][A-ZÁÊÍÓÔÂ\s\-]{8,40}$/
     ];
     
-    return editalPatterns.some(pattern => pattern.test(text));
+    return editalPatterns.some(pattern => pattern.test(cleanText));
   }
   
   /**
