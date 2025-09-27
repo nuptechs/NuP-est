@@ -183,6 +183,13 @@ export class NewEditalService {
             console.log(`⚠️ Prosseguindo sem embeddings`);
           }
           
+          // Marcar processamento local como concluído
+          console.log(`✅ Processamento local completo, atualizando status para 'completed'`);
+          await storage.updateEdital(edital.id, {
+            status: 'completed',
+            processedAt: new Date()
+          });
+          
         } catch (hierarchicalError) {
           console.error(`❌ Erro no processamento hierárquico de ${request.fileName}:`, hierarchicalError);
           console.log(`⚠️ Usando estrutura básica para ${request.fileName}`);
@@ -211,9 +218,12 @@ export class NewEditalService {
 
       console.log(`✅ Edital processado com sucesso: ${edital.id}`);
       
+      // Buscar edital atualizado para garantir consistência do status
+      const updatedEdital = await storage.getEditalById(edital.id);
+      
       return {
         success: true,
-        edital: { ...edital, status: 'completed' },
+        edital: updatedEdital || edital,
         message: useLocalProcessing ? 
           'Edital processado com sistema local avançado' : 
           'Edital processado com aplicação externa',
