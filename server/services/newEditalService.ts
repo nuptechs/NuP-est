@@ -230,22 +230,253 @@ export class NewEditalService {
   }
 
   /**
-   * Converte DocumentStructure para formato hierárquico
+   * Converte DocumentStructure para formato hierárquico com agrupamento inteligente
    */
   private convertToHierarchicalFormat(documentStructure: DocumentStructure): HierarchicalStructure {
-    const chunks = documentStructure.elements
-      .filter(element => element.type === 'title' || element.type === 'subtitle' || element.type === 'text')
-      .map(element => ({
-        title: element.type === 'text' ? 'Conteúdo' : element.text,
-        content: element.text,
-        level: element.level,
-        children: []
-      }));
-
+    console.log(`🔄 [CONVERT] Convertendo ${documentStructure.elements.length} elementos para formato hierárquico`);
+    
+    if (documentStructure.elements.length === 0) {
+      console.warn(`⚠️ [CONVERT] Nenhum elemento encontrado para conversão`);
+      return {
+        chunks: [],
+        documentName: documentStructure.documentName,
+        structure: []
+      };
+    }
+    
+    // PASSO 1: Filtrar elementos relevantes para chunking
+    const relevantElements = documentStructure.elements.filter(element => {
+      // Incluir títulos, subtítulos e textos substanciais
+      const isRelevantType = ['title', 'subtitle', 'text', 'list'].includes(element.type);
+      const hasContent = element.text && element.text.trim().length >= 10; // Mínimo 10 caracteres
+      return isRelevantType && hasContent;
+    });
+    
+    console.log(`🔄 [CONVERT] ${relevantElements.length} elementos relevantes selecionados (de ${documentStructure.elements.length})`);
+    
+    if (relevantElements.length === 0) {
+      console.warn(`⚠️ [CONVERT] Nenhum elemento relevante encontrado`);
+      return this.createFallbackHierarchicalStructure(documentStructure.documentName);
+    }
+    
+    // PASSO 2: Agrupar elementos em chunks hierárquicos
+    const chunks = this.groupElementsIntoHierarchicalChunks(relevantElements);
+    console.log(`🔄 [CONVERT] ${chunks.length} chunks hierárquicos criados`);
+    
     return {
       chunks,
       documentName: documentStructure.documentName,
       structure: chunks
+    };
+  }
+  
+  /**
+   * Agrupa elementos em chunks hierárquicos baseado em título/conteúdo
+   */
+  private groupElementsIntoHierarchicalChunks(elements: Array<{
+    id: string;
+    type: 'title' | 'subtitle' | 'text' | 'table' | 'list' | 'header' | 'footer';
+    level: number;
+    text: string;
+    position: any;
+    fontInfo: any;
+    parentId?: string;
+  }>): Array<{
+    title: string;
+    content: string;
+    level: number;
+    children?: any[];
+  }> {
+    const chunks: Array<{
+      title: string;
+      content: string;
+      level: number;
+      children?: any[];
+    }> = [];
+    
+    let currentChunk: {
+      title: string;
+      content: string;
+      level: number;
+      titleElement?: any;
+      contentElements: any[];
+    } | null = null;
+    
+    for (let i = 0; i < elements.length; i++) {
+      const element = elements[i];
+      
+      // Determinar se este elemento deve iniciar um novo chunk
+      const shouldStartNewChunk = this.shouldStartNewChunk(element, currentChunk);
+      
+      if (shouldStartNewChunk) {
+        // Finalizar chunk anterior
+        if (currentChunk) {
+          chunks.push(this.finalizeChunk(currentChunk));
+        }
+        
+        // Iniciar novo chunk
+        currentChunk = {
+          title: this.extractChunkTitle(element),
+          content: '',
+          level: this.determineChunkLevel(element),
+          titleElement: element,
+          contentElements: []
+        };
+        
+        // Se não for apenas título, adicionar conteúdo também
+        if (element.type !== 'title' && element.type !== 'subtitle') {
+          currentChunk.contentElements.push(element);
+        }
+      } else if (currentChunk) {
+        // Adicionar ao chunk atual
+        currentChunk.contentElements.push(element);
+      } else {
+        // Caso especial: primeiro elemento não é título
+        currentChunk = {
+          title: this.extractChunkTitle(element),
+          content: '',
+          level: 1,
+          titleElement: null,
+          contentElements: [element]
+        };
+      }
+    }
+    
+    // Finalizar último chunk
+    if (currentChunk) {
+      chunks.push(this.finalizeChunk(currentChunk));
+    }
+    
+    return chunks;
+  }
+  
+  /**
+   * Determina se um elemento deve iniciar um novo chunk
+   */
+  private shouldStartNewChunk(
+    element: any, 
+    currentChunk: any
+  ): boolean {
+    // Sempre iniciar novo chunk para títulos e subtítulos
+    if (element.type === 'title' || element.type === 'subtitle') {
+      return true;
+    }
+    
+    // Se não há chunk atual, iniciar um
+    if (!currentChunk) {
+      return true;
+    }
+    
+    // Verificar mudança significativa de nível
+    if (Math.abs(element.level - currentChunk.level) > 1) {
+      return true;
+    }
+    
+    // Se já há muito conteúdo no chunk atual (>2000 caracteres)
+    const currentContentLength = currentChunk.contentElements
+      .map((el: any) => el.text || '')
+      .join(' ')
+      .length;
+    
+    if (currentContentLength > 2000) {
+      return true;
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Extrai título apropriado para o chunk
+   */
+  private extractChunkTitle(element: any): string {
+    if (element.type === 'title' || element.type === 'subtitle') {
+      return element.text.trim();
+    }
+    
+    // Para outros tipos, criar título baseado no conteúdo
+    const text = element.text.trim();
+    if (text.length <= 80) {
+      return text;
+    }
+    
+    // Usar primeiras palavras como título
+    const words = text.split(/\s+/);
+    const titleWords = [];
+    let length = 0;
+    
+    for (const word of words) {
+      if (length + word.length + 1 > 60) break;
+      titleWords.push(word);
+      length += word.length + 1;
+    }
+    
+    return titleWords.join(' ') + (titleWords.length < words.length ? '...' : '');
+  }
+  
+  /**
+   * Determina nível hierárquico do chunk
+   */
+  private determineChunkLevel(element: any): number {
+    // Usar nível do elemento, limitado entre 1-4
+    return Math.max(1, Math.min(4, element.level));
+  }
+  
+  /**
+   * Finaliza construção de um chunk
+   */
+  private finalizeChunk(chunkData: {
+    title: string;
+    content: string;
+    level: number;
+    titleElement?: any;
+    contentElements: any[];
+  }): {
+    title: string;
+    content: string;
+    level: number;
+    children?: any[];
+  } {
+    // Construir conteúdo do chunk
+    const contentParts = chunkData.contentElements.map(el => el.text.trim());
+    
+    // Se há título específico, não incluir no conteúdo
+    if (chunkData.titleElement && chunkData.titleElement.type !== 'text') {
+      chunkData.content = contentParts.join('\n\n');
+    } else {
+      // Se título foi extraído do conteúdo, incluir tudo
+      chunkData.content = contentParts.join('\n\n');
+    }
+    
+    // Garantir que há conteúdo mínimo
+    if (!chunkData.content || chunkData.content.trim().length < 5) {
+      chunkData.content = chunkData.title; // Usar título como conteúdo
+    }
+    
+    console.log(`✅ [CHUNK] "${chunkData.title.substring(0, 40)}..." (${chunkData.content.length} chars, level ${chunkData.level})`);
+    
+    return {
+      title: chunkData.title,
+      content: chunkData.content,
+      level: chunkData.level,
+      children: []
+    };
+  }
+  
+  /**
+   * Cria estrutura hierárquica de fallback
+   */
+  private createFallbackHierarchicalStructure(documentName: string): HierarchicalStructure {
+    const fallbackChunk = {
+      title: 'Documento sem estrutura detectada',
+      content: `O documento ${documentName} foi processado mas não foi possível detectar uma estrutura hierárquica clara.`,
+      level: 1,
+      children: []
+    };
+    
+    return {
+      chunks: [fallbackChunk],
+      documentName,
+      structure: [fallbackChunk]
     };
   }
 
