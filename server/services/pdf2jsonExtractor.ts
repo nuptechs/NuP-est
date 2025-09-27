@@ -91,7 +91,9 @@ export class PDF2JsonExtractor {
               });
               
               // PASSO 2: Agrupar fragmentos por linha (mesmo Y, X próximos)
+              console.log(`🔍 [NORM-DEBUG] Página ${pageIndex + 1}: ${textFragments.length} fragmentos extraídos`);
               const normalizedLines = this.normalizeTextByLines(textFragments);
+              console.log(`🔍 [NORM-DEBUG] Página ${pageIndex + 1}: ${normalizedLines.length} linhas normalizadas`);
               
               // PASSO 2.5: Calcular altura efetiva dos fragmentos de texto
               const maxY = Math.max(...textFragments.map(f => f.position.y), 1);
@@ -121,13 +123,19 @@ export class PDF2JsonExtractor {
             }
           });
           
+          // DEBUG: Contar elementos antes da filtragem
+          console.log(`🔍 [EXTRAÇÃO-DEBUG] Total de elementos antes da filtragem: ${elements.length}`);
+          if (elements.length > 0) {
+            console.log(`🔍 [EXTRAÇÃO-DEBUG] Primeira amostra: "${elements[0].text.substring(0, 50)}..." (tipo: ${elements[0].type})`);
+          }
+          
           // Pós-processar elementos para estabelecer hierarquia
           this.establishHierarchy(elements);
           
           // Filtrar elementos irrelevantes (headers, footers, etc.)
           const filteredElements = this.filterRelevantElements(elements);
           
-          console.log(`✅ Extraídos ${filteredElements.length} elementos estruturados`);
+          console.log(`✅ Extraídos ${filteredElements.length} elementos estruturados (de ${elements.length} originais)`);
           
           const result: DocumentStructure = {
             documentName: fileName,
