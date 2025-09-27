@@ -37,6 +37,7 @@ interface EditalResult {
   concursoNome: string;
   fileName: string;
   status: 'processing' | 'indexed' | 'completed' | 'failed' | 'summary_generated';
+  errorMessage?: string;
   hasSingleCargo?: boolean;
   cargoName?: string;
   cargos?: Array<{
