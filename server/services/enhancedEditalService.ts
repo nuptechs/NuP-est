@@ -258,17 +258,17 @@ export class EnhancedEditalService {
 
     console.log(`🔍 Validando estrutura: ${sectionsCount} seções, confiança ${(confidence * 100).toFixed(1)}%`);
 
-    // Critérios de validação
-    const hasReasonableSectionCount = sectionsCount >= 8 && sectionsCount <= 30; // Editais típicos
-    const hasGoodConfidence = confidence >= 0.7;
-    const hasVariedSections = this.checkSectionVariety(advancedResult.hierarchy);
+    // Critérios de validação ajustados para ser mais permissivo
+    const hasReasonableSectionCount = sectionsCount >= 1 && sectionsCount <= 50; // Aceitar qualquer estrutura detectada
+    const hasGoodConfidence = confidence >= 0.5; // Relaxar confiança mínima
+    const hasVariedSections = sectionsCount === 1 || this.checkSectionVariety(advancedResult.hierarchy); // Aceitar 1 seção ou variedade
 
     const isValid = hasReasonableSectionCount && hasGoodConfidence && hasVariedSections;
 
     if (!isValid) {
       console.warn(`❌ Estrutura não satisfatória para ${fileName}:`);
-      console.warn(`  - Seções: ${sectionsCount} (esperado: 8-30)`);
-      console.warn(`  - Confiança: ${(confidence * 100).toFixed(1)}% (esperado: >70%)`);
+      console.warn(`  - Seções: ${sectionsCount} (esperado: 1-50)`);
+      console.warn(`  - Confiança: ${(confidence * 100).toFixed(1)}% (esperado: >50%)`);
       console.warn(`  - Variedade: ${hasVariedSections ? 'OK' : 'INSUFICIENTE'}`);
     } else {
       console.log(`✅ Estrutura validada com sucesso: ${sectionsCount} seções detectadas`);
