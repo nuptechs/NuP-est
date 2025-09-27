@@ -2,7 +2,6 @@ import fs from 'fs';
 import { fileProcessorService } from './fileProcessor';
 import { smartSummaryService } from './smartSummaryService';
 import { advancedDocumentProcessor } from './advancedDocumentProcessor';
-import { HybridPDFProcessor } from './hybridPDFProcessor';
 import { storage } from '../storage';
 import { chatRAG } from './rag/index';
 import type { Edital } from '@shared/schema';
@@ -16,21 +15,19 @@ interface ProcessedResult {
     fileName: string;
     concurso: string;
     timestamp: string;
-    processingMethod: 'advanced_google_docai' | 'fallback_legacy';
+    processingMethod: 'document_ai' | 'ocr_image' | 'not_supported';
     sectionsDetected: number;
     confidence: number;
   };
 }
 
 export class EnhancedEditalService {
-  private hybridProcessor: HybridPDFProcessor;
-
-  constructor() {
-    this.hybridProcessor = new HybridPDFProcessor();
-  }
 
   /**
-   * Processa edital com Google Document AI + validação LLM
+   * Processa edital usando estratégia baseada no tipo de arquivo
+   * - PDFs: Document AI nativo (sem fallback híbrido)
+   * - Imagens: Pipeline OCR separado  
+   * - Outros: Erro transparente
    */
   async processEdital(request: {
     userId: string;
@@ -40,21 +37,24 @@ export class EnhancedEditalService {
     fileSize: number;
     concursoNome: string;
   }): Promise<ProcessedResult> {
-    console.log(`🚀 [EnhancedEditalService] Iniciando processamento avançado: ${request.originalName}`);
+    console.log(`🚀 [EnhancedEditalService] Iniciando processamento: ${request.originalName}`);
+
+    // Detectar tipo de arquivo correto
+    const fileType = fileProcessorService.detectFileType(request.originalName);
+    const fileCategory = fileProcessorService.getFileCategory(request.originalName);
+    
+    console.log(`📁 Arquivo detectado: tipo=${fileType}, categoria=${fileCategory}`);
 
     let edital: Edital | null = null;
-    let processingMethod: 'advanced_google_docai' | 'fallback_legacy' = 'advanced_google_docai';
-    let sectionsDetected = 0;
-    let confidence = 0;
 
     try {
-      // Criar edital no banco
+      // Criar edital no banco com tipo correto
       edital = await storage.createEdital({
         userId: request.userId,
         originalName: request.originalName,
         filePath: request.filePath,
         fileName: request.fileName,
-        fileType: 'pdf',
+        fileType: fileType, // Tipo real detectado, não hardcoded
         fileSize: request.fileSize,
         concursoNome: request.concursoNome,
         status: 'processing',
@@ -62,307 +62,38 @@ export class EnhancedEditalService {
         smartSummary: null
       });
 
-      console.log(`📝 Edital criado no banco: ${edital.id}`);
+      console.log(`📝 Edital criado no banco: ${edital.id} (tipo: ${fileType})`);
 
-      // ETAPA 1: Tentativa com Google Document AI
-      try {
-        console.log(`🧠 Tentando processamento avançado com Google Document AI...`);
-        console.log(`📂 Arquivo: ${request.filePath}`);
-        console.log(`📄 Nome: ${request.originalName}`);
-        
-        const advancedResult = await advancedDocumentProcessor.processDocument(
-          request.filePath, 
-          request.originalName
-        );
-
-        console.log(`✅ Google Document AI processou ${advancedResult.hierarchy.length} seções principais`);
-        console.log(`📊 Estrutura detectada:`, JSON.stringify(advancedResult.hierarchy.slice(0, 3), null, 2));
-        
-        // Validar se o resultado é satisfatório (14 ± 5 seções esperadas para editais)
-        const isResultSatisfactory = this.validateDocumentStructure(advancedResult, request.originalName);
-        
-        if (isResultSatisfactory) {
-          // ETAPA A: Converter para formato compatível
-          let processedDocument;
-          try {
-            processedDocument = advancedDocumentProcessor.convertToProcessedDocument(advancedResult);
-            console.log(`✅ Documento convertido com sucesso`);
-          } catch (convertError) {
-            throw new Error(`Falha de processamento advancedDocumentProcessor.convertToProcessedDocument`);
-          }
-          
-          // ETAPA B: Gerar sumário inteligente  
-          let smartSummary;
-          try {
-            const titleChunks = processedDocument.structure.map((chunk, index) => ({
-              id: chunk.id,
-              title: chunk.title,
-              level: chunk.level,
-              content: chunk.content,
-              startPosition: chunk.startPosition,
-              endPosition: chunk.endPosition
-            }));
-
-            console.log(`🧠 Gerando sumário inteligente com ${titleChunks.length} seções...`);
-            smartSummary = await smartSummaryService.generateSmartSummary(
-              titleChunks,
-              request.originalName
-            );
-            console.log(`✅ Sumário gerado com ${smartSummary.totalSections} seções`);
-          } catch (summaryError) {
-            if (summaryError instanceof Error && (
-              summaryError.message.includes('API') || 
-              summaryError.message.includes('OpenAI') || 
-              summaryError.message.includes('GPT'))) {
-              throw new Error('Falha de integração com sistema de IA');
-            }
-            throw new Error(`Falha de processamento smartSummaryService.generateSmartSummary`);
-          }
-
-          // ETAPA C: Atualizar edital com sumário
-          try {
-            await storage.updateEdital(edital.id, {
-              smartSummary: JSON.stringify({
-                documentName: smartSummary.documentName,
-                overallSummary: smartSummary.overallSummary,
-                totalSections: smartSummary.totalSections,
-                summaryItems: smartSummary.summaryItems,
-                generatedAt: smartSummary.generatedAt
-              }),
-              status: 'summary_generated'
-            });
-            console.log(`✅ Edital atualizado no banco com sumário`);
-          } catch (updateError) {
-            throw new Error(`Falha de processamento storage.updateEdital`);
-          }
-
-          // Preparar para embeddings
-          sectionsDetected = advancedResult.hierarchy.length;
-          confidence = advancedResult.confidence;
-
-          // ETAPA D: Gerar embeddings e enviar para Pinecone
-          try {
-            await this.generateAndStoreEmbeddings(processedDocument, edital.id, request.userId);
-            console.log(`✅ Embeddings gerados com sucesso`);
-          } catch (embeddingError) {
-            if (embeddingError instanceof Error && (
-              embeddingError.message.includes('API') || 
-              embeddingError.message.includes('Pinecone') || 
-              embeddingError.message.includes('OpenAI'))) {
-              throw new Error('Falha de integração com sistema de IA');
-            }
-            throw new Error(`Falha de processamento generateAndStoreEmbeddings`);
-          }
-
-        } else {
-          throw new Error('Estrutura detectada pelo Google Document AI não atende aos critérios de qualidade');
-        }
-
-      } catch (advancedError) {
-        console.error(`❌ [ERRO DETALHADO] Falha no processamento avançado:`, advancedError);
-        
-        // IMPLEMENTAR FALLBACK FUNCIONAL para problemas de credenciais Document AI
-        const isCredentialError = advancedError instanceof Error && 
-          (advancedError.message.includes('DECODER routines::unsupported') ||
-           advancedError.message.includes('Getting metadata from plugin failed') ||
-           advancedError.message.includes('authentication'));
-
-        if (isCredentialError) {
-          console.log(`🔄 Detectado erro de credenciais Document AI - tentando fallback funcional...`);
-          
-          try {
-            // FALLBACK: Usar processamento híbrido com estrutura simplificada
-            console.log(`🚀 Iniciando processamento híbrido alternativo...`);
-            
-            // Processar com híbrido (usa cloudVisionService que já funciona)
-            const hybridResult = await this.hybridProcessor.processDocument(request.filePath, request.originalName);
-            
-            if (!hybridResult.success || !hybridResult.documentStructure) {
-              throw new Error('Fallback híbrido também falhou');
-            }
-            
-            console.log(`✅ Processamento híbrido concluído: ${hybridResult.documentStructure.elements.length} elementos detectados`);
-
-            // Converter estrutura híbrida para formato compatível
-            // Criar estrutura simplificada baseada nos elementos detectados
-            const chunks: HierarchicalChunk[] = hybridResult.documentStructure.elements.map((element, index) => ({
-              id: `chunk_${index + 1}`,
-              title: element.text.substring(0, 100), // Primeiros 100 caracteres como título
-              content: element.text,
-              level: element.type === 'title' ? 1 : 2, // Títulos como nível 1, outros como nível 2
-              startPosition: index * 100,
-              endPosition: (index + 1) * 100,
-              children: []
-            }));
-
-            const processedDocument = {
-              fileName: request.originalName,
-              content: hybridResult.documentStructure.elements.map(el => el.text).join(' '),
-              structure: chunks
-            };
-            
-            // Converter estrutura para formato compatível
-            const titleChunks = processedDocument.structure.map((chunk: HierarchicalChunk, index: number) => ({
-              id: chunk.id,
-              title: chunk.title,
-              level: chunk.level,
-              content: chunk.content,
-              startPosition: chunk.startPosition,
-              endPosition: chunk.endPosition
-            }));
-
-            console.log(`🧠 Gerando sumário inteligente com ${titleChunks.length} seções (fallback)...`);
-            
-            let smartSummary;
-            try {
-              smartSummary = await smartSummaryService.generateSmartSummary(
-                titleChunks,
-                request.originalName
-              );
-              console.log(`✅ Sumário gerado com ${smartSummary.totalSections} seções (fallback)`);
-            } catch (summaryError) {
-              if (summaryError instanceof Error && (
-                summaryError.message.includes('API') || 
-                summaryError.message.includes('OpenAI') || 
-                summaryError.message.includes('GPT'))) {
-                throw new Error('Falha de integração com sistema de IA');
-              }
-              throw new Error(`Falha de processamento smartSummaryService.generateSmartSummary`);
-            }
-
-            // Gerar e armazenar embeddings
-            try {
-              await this.generateAndStoreEmbeddings(processedDocument, edital.id, request.userId);
-              console.log(`✅ Embeddings gerados e armazenados (fallback)`);
-            } catch (embeddingError) {
-              if (embeddingError instanceof Error && (
-                embeddingError.message.includes('API') || 
-                embeddingError.message.includes('OpenAI') || 
-                embeddingError.message.includes('GPT') ||
-                embeddingError.message.includes('Pinecone'))) {
-                throw new Error('Falha de integração com sistema de IA');
-              }
-              throw new Error(`Falha de processamento generateAndStoreEmbeddings`);
-            }
-
-            // Atualizar edital com sucesso usando fallback
-            await storage.updateEdital(edital.id, {
-              status: 'completed',
-              smartSummary: JSON.stringify(smartSummary),
-              processedAt: new Date()
-            });
-
-            processingMethod = 'fallback_legacy';
-            sectionsDetected = titleChunks.length;
-            confidence = 0.7; // Confiança padrão para fallback
-
-            console.log(`✅ Processamento fallback concluído com sucesso - ${sectionsDetected} seções detectadas`);
-
-            // Continuar para finalização normal do processamento
-          } catch (fallbackError) {
-            console.error(`❌ Fallback também falhou:`, fallbackError);
-            
-            // Determinar mensagem de erro para fallback
-            let errorMessage: string;
-            if (fallbackError instanceof Error) {
-              if (fallbackError.message.startsWith('Falha de integração') || 
-                  fallbackError.message.startsWith('Falha de processamento')) {
-                errorMessage = fallbackError.message;
-              } else {
-                errorMessage = 'Falha de processamento fallback';
-              }
-            } else {
-              errorMessage = 'Falha de processamento fallback';
-            }
-
-            await storage.updateEdital(edital.id, {
-              status: 'failed',
-              errorMessage: errorMessage
-            });
-
-            throw new Error(errorMessage);
-          }
-        } else {
-          // Erro não é de credenciais - usar lógica de erro original
-          let errorMessage: string;
-          if (advancedError instanceof Error) {
-            if (advancedError.message.startsWith('Falha de integração') || 
-                advancedError.message.startsWith('Falha de processamento')) {
-              errorMessage = advancedError.message;
-            } else if (advancedError.message.includes('API') || advancedError.message.includes('OpenAI') || 
-                advancedError.message.includes('Document AI') || advancedError.message.includes('GPT')) {
-              errorMessage = 'Falha de integração com sistema de IA';
-            } else {
-              errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
-            }
-          } else {
-            errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
-          }
-
-          await storage.updateEdital(edital.id, {
-            status: 'failed',
-            errorMessage: errorMessage
-          });
-
-          throw new Error(errorMessage);
-        }
+      // Processar baseado no tipo de arquivo
+      if (fileCategory === 'document') {
+        return await this.processDocumentFile(edital, request);
+      } else if (fileCategory === 'image') {
+        return await this.processImageFile(edital, request);
+      } else {
+        throw new Error(`Tipo de arquivo não suportado para processamento de editais: ${fileType}`);
       }
-
-      // Finalizar processamento
-      await storage.updateEdital(edital.id, {
-        status: 'completed',
-        processedAt: new Date()
-      });
-
-      console.log(`✅ Processamento completo: ${edital.id} (${processingMethod})`);
-
-      // Limpar arquivo temporário
-      if (fs.existsSync(request.filePath)) {
-        fs.unlinkSync(request.filePath);
-        console.log(`🗑️ Arquivo temporário removido: ${request.filePath}`);
-      }
-
-      return {
-        success: true,
-        edital,
-        message: processingMethod === 'advanced_google_docai' 
-          ? 'Processamento avançado com Google Document AI concluído com sucesso'
-          : 'Processamento concluído com sistema de fallback',
-        details: {
-          fileName: request.originalName,
-          concurso: request.concursoNome,
-          timestamp: new Date().toISOString(),
-          processingMethod,
-          sectionsDetected,
-          confidence
-        }
-      };
 
     } catch (error) {
-      console.error(`❌ Erro crítico no processamento de ${request.originalName}:`, error);
-      
-      // Atualizar status de erro
+      console.error(`❌ Erro no processamento:`, error);
+
+      // Atualizar status no banco com erro transparente
       if (edital) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido no processamento';
         await storage.updateEdital(edital.id, {
           status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Erro desconhecido'
+          errorMessage: errorMessage
         });
-      }
-
-      // Limpar arquivo em caso de erro
-      if (fs.existsSync(request.filePath)) {
-        fs.unlinkSync(request.filePath);
       }
 
       return {
         success: false,
-        edital: edital || {} as Edital,
-        message: 'Falha no processamento do edital',
+        edital: edital!,
+        message: error instanceof Error ? error.message : 'Falha no processamento do edital',
         details: {
           fileName: request.originalName,
           concurso: request.concursoNome,
           timestamp: new Date().toISOString(),
-          processingMethod: 'fallback_legacy',
+          processingMethod: 'not_supported',
           sectionsDetected: 0,
           confidence: 0
         }
@@ -371,61 +102,162 @@ export class EnhancedEditalService {
   }
 
   /**
-   * Valida se a estrutura detectada é satisfatória para um edital
+   * Processa documentos nativos (PDF, DOCX, DOC) usando Document AI
    */
-  private validateDocumentStructure(
-    advancedResult: any, 
-    fileName: string
-  ): boolean {
-    const sectionsCount = advancedResult.hierarchy.length;
-    const confidence = advancedResult.confidence;
+  private async processDocumentFile(edital: Edital, request: {
+    userId: string;
+    filePath: string;
+    fileName: string;
+    originalName: string;
+    fileSize: number;
+    concursoNome: string;
+  }): Promise<ProcessedResult> {
+    
+    console.log(`📄 Processando documento nativo com Document AI: ${request.originalName}`);
 
-    console.log(`🔍 Validando estrutura: ${sectionsCount} seções, confiança ${(confidence * 100).toFixed(1)}%`);
+    try {
+      // ETAPA 1: Processar com Google Document AI
+      const advancedResult = await advancedDocumentProcessor.processDocument(
+        request.filePath, 
+        request.originalName
+      );
 
-    // Critérios de validação ajustados para ser mais permissivo
-    const hasReasonableSectionCount = sectionsCount >= 1 && sectionsCount <= 50; // Aceitar qualquer estrutura detectada
-    const hasGoodConfidence = confidence >= 0.5; // Relaxar confiança mínima
-    const hasVariedSections = sectionsCount === 1 || this.checkSectionVariety(advancedResult.hierarchy); // Aceitar 1 seção ou variedade
+      console.log(`✅ Document AI processou ${advancedResult.hierarchy.length} seções principais`);
+      
+      // Validar qualidade do resultado
+      const isResultSatisfactory = this.validateDocumentStructure(advancedResult, request.originalName);
+      
+      if (!isResultSatisfactory) {
+        throw new Error(`Document AI não conseguiu extrair estrutura hierárquica adequada do documento. Possíveis causas: PDF com imagens escaneadas, formatação inadequada, ou documento não estruturado.`);
+      }
 
-    const isValid = hasReasonableSectionCount && hasGoodConfidence && hasVariedSections;
+      // ETAPA 2: Converter para formato compatível
+      const processedDocument = advancedDocumentProcessor.convertToProcessedDocument(advancedResult);
+      console.log(`✅ Documento convertido: ${processedDocument.structure.length} chunks`);
+      
+      // ETAPA 3: Gerar sumário inteligente  
+      const titleChunks = processedDocument.structure.map((chunk) => ({
+        id: chunk.id,
+        title: chunk.title,
+        level: chunk.level,
+        content: chunk.content,
+        startPosition: chunk.startPosition,
+        endPosition: chunk.endPosition
+      }));
 
-    if (!isValid) {
-      console.warn(`❌ Estrutura não satisfatória para ${fileName}:`);
-      console.warn(`  - Seções: ${sectionsCount} (esperado: 1-50)`);
-      console.warn(`  - Confiança: ${(confidence * 100).toFixed(1)}% (esperado: >50%)`);
-      console.warn(`  - Variedade: ${hasVariedSections ? 'OK' : 'INSUFICIENTE'}`);
-    } else {
-      console.log(`✅ Estrutura validada com sucesso: ${sectionsCount} seções detectadas`);
+      console.log(`🧠 Gerando sumário inteligente com ${titleChunks.length} seções...`);
+      const smartSummary = await smartSummaryService.generateSmartSummary(
+        titleChunks,
+        request.originalName
+      );
+      console.log(`✅ Sumário gerado com ${smartSummary.totalSections} seções`);
+
+      // ETAPA 4: Atualizar edital com sumário
+      await storage.updateEdital(edital.id, {
+        smartSummary: JSON.stringify({
+          documentName: smartSummary.documentName,
+          overallSummary: smartSummary.overallSummary,
+          totalSections: smartSummary.totalSections,
+          summaryItems: smartSummary.summaryItems,
+          generatedAt: smartSummary.generatedAt
+        }),
+        status: 'summary_generated'
+      });
+
+      // ETAPA 5: Gerar e armazenar embeddings
+      await this.generateAndStoreEmbeddings(processedDocument, edital.id, request.userId);
+      console.log(`✅ Embeddings gerados e armazenados`);
+
+      // Atualizar status final
+      await storage.updateEdital(edital.id, {
+        status: 'completed',
+        processedAt: new Date().toISOString()
+      });
+
+      console.log(`🎉 Processamento concluído com sucesso: ${edital.id}`);
+
+      return {
+        success: true,
+        edital: edital,
+        message: 'Edital processado com sucesso usando Document AI',
+        details: {
+          fileName: request.originalName,
+          concurso: request.concursoNome,
+          timestamp: new Date().toISOString(),
+          processingMethod: 'document_ai',
+          sectionsDetected: advancedResult.hierarchy.length,
+          confidence: advancedResult.confidence
+        }
+      };
+
+    } catch (documentAIError) {
+      console.error(`❌ Falha no Document AI:`, documentAIError);
+      
+      // Reportar erro transparente baseado no tipo
+      let errorMessage: string;
+      
+      if (documentAIError instanceof Error) {
+        if (documentAIError.message.includes('DECODER routines::unsupported') ||
+            documentAIError.message.includes('Getting metadata from plugin failed') ||
+            documentAIError.message.includes('authentication')) {
+          errorMessage = 'Falha de autenticação com Google Document AI. Verifique as credenciais do serviço.';
+        } else if (documentAIError.message.includes('API')) {
+          errorMessage = 'Falha de integração com Google Document AI. Tente novamente em alguns minutos.';
+        } else {
+          errorMessage = documentAIError.message;
+        }
+      } else {
+        errorMessage = 'Falha desconhecida no processamento do documento';
+      }
+
+      // Não usar fallback - reportar erro transparente
+      throw new Error(errorMessage);
     }
-
-    return isValid;
   }
 
   /**
-   * Verifica se as seções detectadas têm variedade suficiente
+   * Processa arquivos de imagem usando OCR
+   * NOTA: OCR de imagens tem limitações para detectar hierarquia
    */
-  private checkSectionVariety(hierarchy: any[]): boolean {
-    const titles = hierarchy.map(section => section.title.toLowerCase());
+  private async processImageFile(edital: Edital, request: {
+    userId: string;
+    filePath: string;
+    fileName: string;
+    originalName: string;
+    fileSize: number;
+    concursoNome: string;
+  }): Promise<ProcessedResult> {
     
-    // Verificar se há títulos típicos de edital
-    const expectedKeywords = [
-      'objeto', 'cargo', 'requisito', 'inscri', 'prova', 
-      'cronograma', 'conteudo', 'conhecimento', 'anexo'
-    ];
-
-    const foundKeywords = expectedKeywords.filter(keyword => 
-      titles.some(title => title.includes(keyword))
-    );
-
-    const hasGoodVariety = foundKeywords.length >= 3;
+    console.log(`🖼️ Processamento de imagem solicitado: ${request.originalName}`);
     
-    if (!hasGoodVariety) {
-      console.warn(`⚠️ Variedade insuficiente de seções. Encontrados: ${foundKeywords.join(', ')}`);
-    }
-
-    return hasGoodVariety;
+    // Por enquanto, retornar erro informativo sobre limitações do OCR
+    throw new Error(`Processamento de imagens ainda não implementado. Limitações do OCR: não consegue identificar títulos, subtítulos e hierarquia adequadamente. Use arquivos PDF nativos para melhor resultado.`);
+    
+    // TODO: Implementar ImageOCRService quando necessário
+    // return await this.processWithOCR(edital, request);
   }
 
+  /**
+   * Valida se a estrutura extraída pelo Document AI é satisfatória
+   */
+  private validateDocumentStructure(advancedResult: any, fileName: string): boolean {
+    const sectionsCount = advancedResult.hierarchy?.length || 0;
+    const confidence = advancedResult.confidence || 0;
+    
+    console.log(`📊 Validação estrutural: ${sectionsCount} seções, confiança: ${(confidence * 100).toFixed(1)}%`);
+    
+    // Critérios para edital: pelo menos 5 seções principais, confiança > 0.3
+    const hasMinimumSections = sectionsCount >= 5;
+    const hasMinimumConfidence = confidence > 0.3;
+    
+    const isValid = hasMinimumSections && hasMinimumConfidence;
+    
+    if (!isValid) {
+      console.warn(`⚠️ Estrutura não atende critérios: seções=${sectionsCount} (min=5), confiança=${confidence} (min=0.3)`);
+    }
+    
+    return isValid;
+  }
 
   /**
    * Gera embeddings e armazena no Pinecone
@@ -436,68 +268,35 @@ export class EnhancedEditalService {
     userId: string
   ): Promise<void> {
     console.log(`🧮 Gerando embeddings para ${processedDocument.structure.length} chunks...`);
-
+    
     try {
-      // Preparar documentos para RAG
-      const ragDocuments = processedDocument.structure.map((chunk: any, index: number) => ({
-        id: `edital-${editalId}-chunk-${index}`,
+      // Preparar dados para indexação no RAG
+      const documentsForRAG = processedDocument.structure.map((chunk: any) => ({
+        id: `${editalId}_${chunk.id}`,
         content: chunk.content,
         metadata: {
+          editalId: editalId,
+          userId: userId,
+          chunkId: chunk.id,
           title: chunk.title,
           level: chunk.level,
-          editalId,
-          userId,
-          createdAt: new Date()
+          documentName: processedDocument.fileName
         }
       }));
 
-      console.log(`📤 Enviando ${ragDocuments.length} documentos para Chat RAG...`);
+      // Indexar no sistema RAG
+      await chatRAG.indexDocuments(documentsForRAG, {
+        source: 'edital_upload',
+        userId: userId,
+        editalId: editalId
+      });
 
-      // Enviar para Chat RAG
-      for (const ragDoc of ragDocuments) {
-        await chatRAG.processDocument(ragDoc);
-      }
-
-      console.log(`✅ Embeddings gerados e enviados para Pinecone com sucesso`);
-
+      console.log(`✅ ${documentsForRAG.length} chunks indexados no RAG`);
+      
     } catch (error) {
-      console.error(`❌ Erro na geração de embeddings:`, error);
-      throw new Error(`Falha na geração de embeddings: ${error instanceof Error ? error.message : error}`);
+      console.error(`❌ Falha na geração de embeddings:`, error);
+      throw new Error('Falha na geração de embeddings para busca inteligente');
     }
-  }
-
-  /**
-   * Obter edital por ID
-   */
-  async getEdital(editalId: string): Promise<Edital | null> {
-    const edital = await storage.getEdital(editalId);
-    return edital || null;
-  }
-
-  /**
-   * Listar editais do usuário
-   */
-  async listUserEditais(userId: string): Promise<Edital[]> {
-    return await storage.getUserEditais(userId);
-  }
-
-  /**
-   * Deletar edital
-   */
-  async deleteEdital(editalId: string, userId: string): Promise<boolean> {
-    const edital = await storage.getEdital(editalId);
-    
-    if (!edital || edital.userId !== userId) {
-      return false;
-    }
-
-    // Remover arquivo se existir
-    if (edital.filePath && fs.existsSync(edital.filePath)) {
-      fs.unlinkSync(edital.filePath);
-    }
-
-    await storage.deleteEdital(editalId);
-    return true;
   }
 }
 

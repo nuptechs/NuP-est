@@ -31,6 +31,11 @@ export class FileProcessorService {
     ['.csv', { extension: '.csv', mimeType: 'text/csv', supported: true }],
     ['.json', { extension: '.json', mimeType: 'application/json', supported: true }],
     ['.txt', { extension: '.txt', mimeType: 'text/plain', supported: true }],
+    ['.png', { extension: '.png', mimeType: 'image/png', supported: true }],
+    ['.jpg', { extension: '.jpg', mimeType: 'image/jpeg', supported: true }],
+    ['.jpeg', { extension: '.jpeg', mimeType: 'image/jpeg', supported: true }],
+    ['.tiff', { extension: '.tiff', mimeType: 'image/tiff', supported: true }],
+    ['.tif', { extension: '.tif', mimeType: 'image/tiff', supported: true }],
   ]);
 
   /**
@@ -53,7 +58,7 @@ export class FileProcessorService {
   /**
    * Detecta o tipo de arquivo baseado na extensão
    */
-  detectFileType(filename: string): 'pdf' | 'docx' | 'doc' | 'xlsx' | 'xls' | 'csv' | 'json' | 'txt' | 'unknown' {
+  detectFileType(filename: string): 'pdf' | 'docx' | 'doc' | 'xlsx' | 'xls' | 'csv' | 'json' | 'txt' | 'png' | 'jpg' | 'jpeg' | 'tiff' | 'tif' | 'unknown' {
     const extension = path.extname(filename).toLowerCase();
     
     switch (extension) {
@@ -65,8 +70,43 @@ export class FileProcessorService {
       case '.csv': return 'csv';
       case '.json': return 'json';
       case '.txt': return 'txt';
+      case '.png': return 'png';
+      case '.jpg': return 'jpg';
+      case '.jpeg': return 'jpeg';
+      case '.tiff': return 'tiff';
+      case '.tif': return 'tif';
       default: return 'unknown';
     }
+  }
+
+  /**
+   * Verifica se o arquivo é uma imagem que requer OCR
+   */
+  isImageFile(filename: string): boolean {
+    const fileType = this.detectFileType(filename);
+    return ['png', 'jpg', 'jpeg', 'tiff', 'tif'].includes(fileType);
+  }
+
+  /**
+   * Verifica se o arquivo é um documento que pode ser processado nativamente
+   */
+  isNativeDocumentFile(filename: string): boolean {
+    const fileType = this.detectFileType(filename);
+    return ['pdf', 'docx', 'doc'].includes(fileType);
+  }
+
+  /**
+   * Classifica arquivo por categoria de processamento
+   */
+  getFileCategory(filename: string): 'document' | 'image' | 'spreadsheet' | 'text' | 'unknown' {
+    const fileType = this.detectFileType(filename);
+    
+    if (['pdf', 'docx', 'doc'].includes(fileType)) return 'document';
+    if (['png', 'jpg', 'jpeg', 'tiff', 'tif'].includes(fileType)) return 'image';
+    if (['xlsx', 'xls', 'csv'].includes(fileType)) return 'spreadsheet';
+    if (['txt', 'json'].includes(fileType)) return 'text';
+    
+    return 'unknown';
   }
 
   /**
