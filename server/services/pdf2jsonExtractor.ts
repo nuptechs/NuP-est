@@ -511,24 +511,52 @@ export class PDF2JsonExtractor {
   }
   
   /**
-   * Filtra elementos relevantes removendo headers/footers/ruído
+   * Filtra elementos relevantes removendo apenas ruído real
    */
   private filterRelevantElements(elements: LayoutElement[]): LayoutElement[] {
-    return elements.filter(element => {
-      // Remover headers e footers
-      if (element.type === 'header' || element.type === 'footer') return false;
+    console.log(`🔍 [FILTRO-DEBUG] Analisando ${elements.length} elementos para filtragem`);
+    
+    const filtered = elements.filter(element => {
+      // DEBUG: Log elementos sendo analisados
+      const preview = element.text.substring(0, 50);
+      console.log(`🔍 [FILTRO] "${preview}..." tipo=${element.type} len=${element.text.length}`);
+      
+      // MANTER headers importantes (podem ser títulos de documentos)
+      if (element.type === 'header' && element.text.length > 10) {
+        console.log(`✅ [FILTRO] Mantendo header importante: "${preview}..."`);
+        return true;
+      }
+      
+      // Remover footers apenas
+      if (element.type === 'footer') {
+        console.log(`❌ [FILTRO] Removendo footer: "${preview}..."`);
+        return false;
+      }
       
       // Remover textos muito curtos (provavelmente ruído)
-      if (element.text.length < 3) return false;
+      if (element.text.length < 3) {
+        console.log(`❌ [FILTRO] Removendo texto curto: "${preview}..."`);
+        return false;
+      }
       
       // Remover números de página isolados
-      if (/^\d+$/.test(element.text.trim())) return false;
+      if (/^\d+$/.test(element.text.trim())) {
+        console.log(`❌ [FILTRO] Removendo número de página: "${preview}..."`);
+        return false;
+      }
       
       // Remover datas isoladas
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(element.text.trim())) return false;
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(element.text.trim())) {
+        console.log(`❌ [FILTRO] Removendo data isolada: "${preview}..."`);
+        return false;
+      }
       
+      console.log(`✅ [FILTRO] Mantendo elemento: "${preview}..."`);
       return true;
     });
+    
+    console.log(`🔍 [FILTRO-DEBUG] Resultado: ${filtered.length} de ${elements.length} elementos mantidos`);
+    return filtered;
   }
   
   /**
@@ -582,7 +610,7 @@ export class PDF2JsonExtractor {
     let currentLine: Array<typeof fragments[0]> = [];
     let currentY = fragments[0].position.y;
     let currentPage = fragments[0].position.page;
-    const lineThreshold = 2; // Tolerância em pixels para considerar mesma linha
+    const lineThreshold = 0.5; // Tolerância mais restritiva para linhas distintas
     
     for (const fragment of fragments) {
       const yDifference = Math.abs(fragment.position.y - currentY);

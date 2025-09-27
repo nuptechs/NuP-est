@@ -25,14 +25,6 @@ interface ProcessedEditalResult {
   details?: {
     externalProcessingSuccess: boolean;
     processingMessage?: string;
-    cargoAnalysis?: {
-      totalCargos: number;
-      hasSingleCargo: boolean;
-      cargos: Array<{
-        nome: string;
-        conteudoProgramatico?: string[];
-      }>;
-    };
   };
 }
 
