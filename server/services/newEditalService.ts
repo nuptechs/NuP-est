@@ -124,104 +124,59 @@ export class NewEditalService {
           const hierarchicalStructure = this.convertToHierarchicalFormat(hybridResult.documentStructure);
           console.log(`📑 ${hierarchicalStructure.chunks?.length || 0} chunks hierárquicos criados`);
           
-          // Converter para formato compatível com smartSummaryService
-          const legacyFormat = this.convertToLegacyFormat(hierarchicalStructure);
+          // Converter para formato compatível com smartSummaryService (TitleChunk[])
+          const titleChunks = hierarchicalStructure.chunks?.map((chunk, index) => ({
+            id: `chunk_${index}`,
+            title: chunk.title,
+            level: chunk.level,
+            content: chunk.content,
+            startPosition: index * 1000,
+            endPosition: (index + 1) * 1000,
+            parentId: undefined
+          })) || [];
           
           // Gerar sumário inteligente com IA
           console.log(`🧠 Gerando sumário inteligente com IA...`);
-          const smartSummary = await smartSummaryService.generateSmartSummary(
-            legacyFormat.structure,
-            legacyFormat.documentName
-          );
-          
-          console.log(`✅ Sumário inteligente gerado com ${smartSummary.totalSections} seções`);
-          
-          // NOVO: Integrar com arquitetura RAG para embeddings semânticos
-          console.log(`🔗 Integrando chunks com arquitetura RAG...`);
           try {
-            // Preparar dados para o RAG
-            const ragDocumentId = `edital_${edital.id}`;
-            
-            const ragChunks = hierarchicalStructure.chunks?.map((chunk, index) => ({
-              id: `${ragDocumentId}_chunk_${index}`,
-              content: chunk.content,
-              metadata: {
-                title: chunk.title,
-                level: chunk.level,
-                editalId: edital!.id,
-                chunkIndex: index,
-                fileName: request.fileName
-              }
-            })) || [];
-
-            const ragResult = await ragOrchestrator.processDocument('simulation', {
-              documentId: ragDocumentId,
-              chunks: ragChunks,
-              metadata: {
-                editalId: edital.id,
-                fileName: request.fileName,
-                concursoNome: request.concursoNome,
-                processedAt: new Date().toISOString()
-              }
-            });
-            
-            console.log(`✅ ${ragResult.chunksProcessed} chunks armazenados no sistema RAG com ID: ${ragDocumentId}`);
-            
-            // Salvar sumário no sistema novo (hierarchical)
-            const newJobId = await hierarchicalChunker.saveHierarchicalSummary(
-              edital.id,
-              smartSummary.summaryStructure,
-              'hierarchical'
+            const smartSummary = await smartSummaryService.generateSmartSummary(
+              titleChunks,
+              request.fileName
             );
             
-            jobId = newJobId;
-            console.log(`✅ Novo sistema de sumário salvo. Job ID: ${jobId}`);
+            console.log(`✅ Sumário inteligente gerado com ${smartSummary.totalSections} seções`);
+            console.log(`✅ Sumário inteligente processado com ${smartSummary.summaryItems.length} itens`);
             
-          } catch (ragError) {
-            console.error('❌ Erro na integração RAG:', ragError);
-            // Continuar mesmo se RAG falhar
+            // Salvar sumário no edital
+            await storage.updateEdital(edital.id, {
+              smartSummary: JSON.stringify({
+                documentName: smartSummary.documentName,
+                overallSummary: smartSummary.overallSummary,
+                totalSections: smartSummary.totalSections,
+                summaryItems: smartSummary.summaryItems,
+                generatedAt: smartSummary.generatedAt
+              }),
+              status: 'summary_generated'
+            });
+            
+          } catch (summaryError) {
+            console.error(`❌ Erro ao gerar sumário inteligente:`, summaryError);
+            console.log(`⚠️ Prosseguindo sem sumário IA`);
           }
           
         } catch (hierarchicalError) {
           console.error(`❌ Erro no processamento hierárquico de ${request.fileName}:`, hierarchicalError);
-          
-          // Fallback: criar estrutura básica
-          console.log(`⚠️ Criando estrutura fallback para ${request.fileName}`);
-          const fallbackChunks = [{
-            title: 'Documento (Estrutura não detectada)',
-            content: `Documento ${request.originalName} processado mas estrutura não foi detectada corretamente.`,
-            level: 1,
-            children: []
-          }];
-          
-          console.log(`📑 ${fallbackChunks.length} chunks hierárquicos criados com qualidade: poor`);
-          
-          // Gerar sumário básico
-          const fallbackSummary = await smartSummaryService.generateSmartSummary(
-            fallbackChunks,
-            request.fileName
-          );
-          
-          // Salvar sumário fallback
-          jobId = await hierarchicalChunker.saveHierarchicalSummary(
-            edital.id,
-            fallbackSummary.summaryStructure,
-            'hierarchical'
-          );
-          
-          console.log(`✅ Estrutura fallback salva. Job ID: ${jobId}`);
+          console.log(`⚠️ Usando estrutura básica para ${request.fileName}`);
         }
       } else {
         // Processamento externo foi bem-sucedido
         console.log(`✅ Processamento externo concluído com sucesso`);
-        jobId = processingResponse.jobId || 'external_processing_success';
+        jobId = processingResponse.job_id || 'external_processing_success';
       }
 
       // 5. Salvar Job ID no edital (se disponível)
       if (jobId) {
         console.log(`💾 Job ID salvo: ${jobId}`);
         await storage.updateEdital(edital.id, {
-          jobId: jobId,
           status: 'completed',
           processedAt: new Date()
         });
