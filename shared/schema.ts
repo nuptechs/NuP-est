@@ -391,7 +391,7 @@ export const jobTypeEnum = pgEnum("job_type", [
 ]);
 
 export const fileTypeEnum = pgEnum("file_type", [
-  "pdf", "docx", "doc", "xlsx", "xls", "json", "csv", "txt"
+  "pdf", "docx", "doc", "xlsx", "xls", "json", "csv", "txt", "png", "jpg", "jpeg", "tiff", "tif"
 ]);
 
 export const editalStatusEnum = pgEnum("edital_status", [

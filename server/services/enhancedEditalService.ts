@@ -54,7 +54,7 @@ export class EnhancedEditalService {
         originalName: request.originalName,
         filePath: request.filePath,
         fileName: request.fileName,
-        fileType: fileType, // Tipo real detectado, não hardcoded
+        fileType: fileType === 'unknown' ? 'pdf' : fileType, // Fallback para PDF se tipo desconhecido
         fileSize: request.fileSize,
         concursoNome: request.concursoNome,
         status: 'processing',
@@ -171,7 +171,7 @@ export class EnhancedEditalService {
       // Atualizar status final
       await storage.updateEdital(edital.id, {
         status: 'completed',
-        processedAt: new Date().toISOString()
+        processedAt: new Date()
       });
 
       console.log(`🎉 Processamento concluído com sucesso: ${edital.id}`);
@@ -270,32 +270,58 @@ export class EnhancedEditalService {
     console.log(`🧮 Gerando embeddings para ${processedDocument.structure.length} chunks...`);
     
     try {
-      // Preparar dados para indexação no RAG
-      const documentsForRAG = processedDocument.structure.map((chunk: any) => ({
-        id: `${editalId}_${chunk.id}`,
-        content: chunk.content,
-        metadata: {
-          editalId: editalId,
+      // Processar cada chunk individualmente no RAG
+      for (const chunk of processedDocument.structure) {
+        const ragDocument = {
+          id: `${editalId}_${chunk.id}`,
+          content: chunk.content,
+          metadata: {
+            editalId: editalId,
+            chunkId: chunk.id,
+            title: chunk.title,
+            level: chunk.level,
+            documentName: processedDocument.fileName,
+            source: 'edital_upload'
+          },
           userId: userId,
-          chunkId: chunk.id,
-          title: chunk.title,
-          level: chunk.level,
-          documentName: processedDocument.fileName
-        }
-      }));
+          createdAt: new Date()
+        };
 
-      // Indexar no sistema RAG
-      await chatRAG.indexDocuments(documentsForRAG, {
-        source: 'edital_upload',
-        userId: userId,
-        editalId: editalId
-      });
+        // Processar documento individual no Chat RAG
+        await chatRAG.processDocument(ragDocument);
+      }
 
-      console.log(`✅ ${documentsForRAG.length} chunks indexados no RAG`);
+      console.log(`✅ ${processedDocument.structure.length} chunks indexados no RAG`);
       
     } catch (error) {
       console.error(`❌ Falha na geração de embeddings:`, error);
       throw new Error('Falha na geração de embeddings para busca inteligente');
+    }
+  }
+
+  /**
+   * Busca um edital pelo ID
+   */
+  async getEdital(editalId: string): Promise<{ success: boolean; edital?: any; error?: string }> {
+    try {
+      const edital = await storage.getEdital(editalId);
+      if (!edital) {
+        return {
+          success: false,
+          error: 'Edital não encontrado'
+        };
+      }
+
+      return {
+        success: true,
+        edital: edital
+      };
+    } catch (error) {
+      console.error(`❌ Erro ao buscar edital ${editalId}:`, error);
+      return {
+        success: false,
+        error: 'Falha ao buscar edital'
+      };
     }
   }
 }
