@@ -106,10 +106,15 @@ export class PDF2JsonExtractor {
               
               // PASSO 3: Processar linhas normalizadas
               normalizedLines.forEach((line: { text: string; fontInfo: any; position: any }) => {
-                if (!line.text || line.text.trim().length < 2) return;
+                if (!line.text || line.text.trim().length < 2) {
+                  console.log(`⚠️ [LINHA-SKIP] Linha muito curta: "${line.text}"`);
+                  return;
+                }
                 
                 // Classificar elemento com altura efetiva do texto e estatísticas de fonte
                 const classification = this.classifyElement(line.text, line.fontInfo, line.position, effectiveTextHeight, fontStats);
+                
+                console.log(`📝 [ELEMENTO] "${line.text.substring(0, 40)}..." → ${classification.type} (level ${classification.level})`);
                 
                 elements.push({
                   id: `element_${elementId++}`,
