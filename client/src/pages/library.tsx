@@ -134,6 +134,13 @@ export default function Library() {
 
   const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
     queryKey: ["/api/subjects", navigation.selectedAreaId],
+    queryFn: async () => {
+      const response = await fetch(`/api/subjects?areaId=${navigation.selectedAreaId}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch subjects');
+      return response.json();
+    },
     enabled: isAuthenticated && navigation.level === 'subjects' && !!navigation.selectedAreaId,
   });
 
@@ -145,6 +152,14 @@ export default function Library() {
   // Query para editais
   const { data: editais = [], isLoading: editaisLoading } = useQuery<any[]>({
     queryKey: ["/api/edital/lista"],
+    queryFn: async () => {
+      const response = await fetch('/api/edital/lista', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch editais');
+      const data = await response.json();
+      return data.editais || []; // Extrair apenas o array editais da resposta
+    },
     enabled: isAuthenticated && activeTab === 'editais',
   });
 
@@ -313,7 +328,7 @@ export default function Library() {
     switch (navigation.level) {
       case 'areas': return knowledgeAreas;
       case 'subjects': return subjects;
-      case 'materials': return activeTab === 'editais' ? editais : materials;
+      case 'materials': return activeTab === 'editais' ? (editais || []) : materials;
       default: return [];
     }
   };
