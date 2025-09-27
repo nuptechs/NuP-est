@@ -580,7 +580,7 @@ export class PDF2JsonExtractor {
   }
   
   /**
-   * Normaliza fragmentos de texto agrupando por linhas (mesmo Y aproximado)
+   * Normaliza fragmentos de texto agrupando por linhas usando espaçamento dinâmico relativo
    */
   private normalizeTextByLines(fragments: Array<{
     text: string;
@@ -593,51 +593,157 @@ export class PDF2JsonExtractor {
   }> {
     if (fragments.length === 0) return [];
     
-    // Ordenar fragmentos por página e Y
+    // Ordenar fragmentos por página, depois por Y, depois por X
     fragments.sort((a, b) => {
       if (a.position.page !== b.position.page) {
         return a.position.page - b.position.page;
       }
-      return a.position.y - b.position.y;
+      if (Math.abs(a.position.y - b.position.y) > 0.5) {
+        return a.position.y - b.position.y;
+      }
+      return a.position.x - b.position.x;
     });
     
+    console.log(`🔍 [NORM-V2] Processando ${fragments.length} fragmentos com novo algoritmo`);
+    
+    // Agrupar por página
+    const pageGroups = this.groupFragmentsByPage(fragments);
     const normalizedLines: Array<{
       text: string;
       fontInfo: any;
       position: any;
     }> = [];
     
-    let currentLine: Array<typeof fragments[0]> = [];
-    let currentY = fragments[0].position.y;
-    let currentPage = fragments[0].position.page;
-    const lineThreshold = 0.1; // Tolerância muito restritiva para evitar agrupamento incorreto
-    
-    for (const fragment of fragments) {
-      const yDifference = Math.abs(fragment.position.y - currentY);
-      const samePage = fragment.position.page === currentPage;
+    // Processar cada página separadamente
+    for (const [pageNum, pageFragments] of Array.from(pageGroups.entries())) {
+      console.log(`🔍 [NORM-V2] Página ${pageNum}: ${pageFragments.length} fragmentos`);
       
-      // Se está na mesma linha (mesmo Y aproximado) e mesma página
-      if (samePage && yDifference <= lineThreshold) {
-        currentLine.push(fragment);
-      } else {
-        // Finalizar linha atual
-        if (currentLine.length > 0) {
-          normalizedLines.push(this.mergeLineFragments(currentLine));
+      // Calcular espaçamento dinâmico para esta página
+      const lineSpacing = this.calculateDynamicLineSpacing(pageFragments);
+      console.log(`🔍 [NORM-V2] Página ${pageNum}: espaçamento calculado = ${lineSpacing.toFixed(3)}`);
+      
+      // Agrupar fragmentos em linhas usando clustering hierárquico
+      const pageLines = this.clusterFragmentsIntoLines(pageFragments, lineSpacing);
+      console.log(`🔍 [NORM-V2] Página ${pageNum}: ${pageLines.length} linhas detectadas`);
+      
+      // Mesclar cada linha
+      for (const lineFragments of pageLines) {
+        if (lineFragments.length > 0) {
+          normalizedLines.push(this.mergeLineFragments(lineFragments));
         }
-        
-        // Iniciar nova linha
-        currentLine = [fragment];
-        currentY = fragment.position.y;
-        currentPage = fragment.position.page;
       }
     }
     
-    // Finalizar última linha
-    if (currentLine.length > 0) {
-      normalizedLines.push(this.mergeLineFragments(currentLine));
+    console.log(`🔍 [NORM-V2] Total final: ${normalizedLines.length} linhas normalizadas`);
+    return normalizedLines;
+  }
+  
+  /**
+   * Agrupa fragmentos por página
+   */
+  private groupFragmentsByPage(fragments: Array<{
+    text: string;
+    fontInfo: any;
+    position: any;
+  }>): Map<number, Array<typeof fragments[0]>> {
+    const pageGroups = new Map<number, Array<typeof fragments[0]>>();
+    
+    for (const fragment of fragments) {
+      const page = fragment.position.page;
+      if (!pageGroups.has(page)) {
+        pageGroups.set(page, []);
+      }
+      pageGroups.get(page)!.push(fragment);
     }
     
-    return normalizedLines;
+    return pageGroups;
+  }
+  
+  /**
+   * Calcula espaçamento dinâmico de linha baseado na distribuição Y dos fragmentos
+   */
+  private calculateDynamicLineSpacing(pageFragments: Array<{
+    text: string;
+    fontInfo: any;
+    position: any;
+  }>): number {
+    if (pageFragments.length < 2) return 0.5; // Fallback
+    
+    // Extrair todas as posições Y únicas
+    const yPositions = Array.from(new Set(pageFragments.map(f => f.position.y))).sort((a, b) => a - b);
+    
+    if (yPositions.length < 2) return 0.5; // Fallback
+    
+    // Calcular distâncias entre posições Y consecutivas
+    const yDistances = [];
+    for (let i = 1; i < yPositions.length; i++) {
+      const distance = yPositions[i] - yPositions[i - 1];
+      if (distance > 0.01) { // Ignorar diferenças muito pequenas
+        yDistances.push(distance);
+      }
+    }
+    
+    if (yDistances.length === 0) return 0.5; // Fallback
+    
+    // Calcular espaçamento mediano (mais robusto que média)
+    yDistances.sort((a, b) => a - b);
+    const medianSpacing = yDistances[Math.floor(yDistances.length / 2)];
+    
+    // Usar 30% do espaçamento mediano como threshold
+    const dynamicThreshold = medianSpacing * 0.3;
+    
+    console.log(`🔍 [SPACING] Posições Y: ${yPositions.length}, Distâncias: ${yDistances.length}, Mediana: ${medianSpacing.toFixed(3)}, Threshold: ${dynamicThreshold.toFixed(3)}`);
+    
+    return Math.max(0.05, Math.min(2.0, dynamicThreshold)); // Limitar entre 0.05 e 2.0
+  }
+  
+  /**
+   * Agrupa fragmentos em linhas usando clustering baseado em distância Y
+   */
+  private clusterFragmentsIntoLines(pageFragments: Array<{
+    text: string;
+    fontInfo: any;
+    position: any;
+  }>, lineThreshold: number): Array<Array<typeof pageFragments[0]>> {
+    if (pageFragments.length === 0) return [];
+    
+    // Ordenar por Y primeiro, depois por X
+    pageFragments.sort((a, b) => {
+      const yDiff = a.position.y - b.position.y;
+      if (Math.abs(yDiff) > lineThreshold) {
+        return yDiff;
+      }
+      return a.position.x - b.position.x;
+    });
+    
+    const lines: Array<Array<typeof pageFragments[0]>> = [];
+    let currentLine: Array<typeof pageFragments[0]> = [pageFragments[0]];
+    let currentY = pageFragments[0].position.y;
+    
+    for (let i = 1; i < pageFragments.length; i++) {
+      const fragment = pageFragments[i];
+      const yDistance = Math.abs(fragment.position.y - currentY);
+      
+      if (yDistance <= lineThreshold) {
+        // Mesmo linha - adicionar ao grupo atual
+        currentLine.push(fragment);
+      } else {
+        // Nova linha - finalizar grupo atual e iniciar novo
+        if (currentLine.length > 0) {
+          lines.push([...currentLine]);
+        }
+        
+        currentLine = [fragment];
+        currentY = fragment.position.y;
+      }
+    }
+    
+    // Adicionar última linha
+    if (currentLine.length > 0) {
+      lines.push(currentLine);
+    }
+    
+    return lines;
   }
   
   /**
