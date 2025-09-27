@@ -339,7 +339,7 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
               </div>
 
               {/* Sumário Interativo quando gerado via novo sistema */}
-              {result.status === 'summary_generated' && result.smartSummary && (
+              {(result.status === 'summary_generated' || result.status === 'completed') && result.smartSummary && (
                 <div className="mt-6">
                   <InteractiveSummary 
                     summary={result.smartSummary} 
