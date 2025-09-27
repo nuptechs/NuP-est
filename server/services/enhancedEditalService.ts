@@ -120,16 +120,28 @@ export class EnhancedEditalService {
         }
 
       } catch (advancedError) {
-        console.error(`❌ [ERRO DETALHADO] Falha no Google Document AI:`, advancedError);
-        console.error(`📋 Stack trace:`, advancedError instanceof Error ? advancedError.stack : 'N/A');
-        console.error(`🔍 Tipo de erro:`, typeof advancedError);
-        console.warn(`⚠️ Fallback: Usando sistema legado...`);
-        processingMethod = 'fallback_legacy';
+        console.error(`❌ [ERRO DETALHADO] Falha no processamento avançado:`, advancedError);
         
-        // Fallback para sistema legado
-        const fallbackResult = await this.processWithLegacySystem(request, edital.id);
-        sectionsDetected = fallbackResult.sectionsDetected;
-        confidence = fallbackResult.confidence;
+        // Determinar tipo de erro e mensagem apropriada
+        let errorMessage: string;
+        if (advancedError instanceof Error) {
+          if (advancedError.message.includes('API') || advancedError.message.includes('OpenAI') || 
+              advancedError.message.includes('Document AI') || advancedError.message.includes('GPT')) {
+            errorMessage = 'Falha de integração com sistema de IA';
+          } else {
+            errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
+          }
+        } else {
+          errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
+        }
+
+        // Atualizar status de falha sem dados fictícios
+        await storage.updateEdital(edital.id, {
+          status: 'failed',
+          errorMessage: errorMessage
+        });
+
+        throw new Error(errorMessage);
       }
 
       // Finalizar processamento
@@ -250,132 +262,6 @@ export class EnhancedEditalService {
     return hasGoodVariety;
   }
 
-  /**
-   * Processa com sistema legado (fallback) - GERA SUMÁRIO BÁSICO
-   */
-  private async processWithLegacySystem(
-    request: any,
-    editalId: string
-  ): Promise<{ sectionsDetected: number; confidence: number }> {
-    console.log(`🔄 Executando processamento legado com GERAÇÃO DE SUMÁRIO para ${request.originalName}...`);
-
-    try {
-      // Gerar sumário básico estruturado para garantir que apareça na interface
-      const basicSummary = this.generateBasicSummary(request.originalName, request.concursoNome);
-      
-      console.log(`🧠 Sumário básico gerado com ${basicSummary.totalSections} seções padrão`);
-
-      // Atualizar edital com sumário básico E status correto
-      await storage.updateEdital(editalId, {
-        smartSummary: JSON.stringify(basicSummary),
-        status: 'summary_generated'
-      });
-
-      console.log(`✅ Processamento legado concluído com sumário disponível: ${basicSummary.totalSections} seções`);
-
-      return {
-        sectionsDetected: basicSummary.totalSections,
-        confidence: 0.6 // Confidence moderada para fallback
-      };
-
-    } catch (error) {
-      console.error(`❌ Erro no processamento legado:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Gera sumário básico estruturado (fallback para quando processamento avançado falha)
-   */
-  private generateBasicSummary(fileName: string, concursoNome: string): any {
-    console.log(`📝 Gerando sumário básico para ${fileName}...`);
-
-    // Seções típicas de edital estruturadas hierarquicamente
-    const basicSections = [
-      { title: "1. DO OBJETO", level: 1, type: "objeto", importance: "high" },
-      { title: "2. DOS CARGOS", level: 1, type: "cargos", importance: "high" },
-      { title: "2.1. Requisitos Mínimos", level: 2, type: "requisitos", importance: "high" },
-      { title: "2.2. Atribuições do Cargo", level: 2, type: "atribuicoes", importance: "medium" },
-      { title: "3. DAS VAGAS", level: 1, type: "vagas", importance: "high" },
-      { title: "4. DOS REQUISITOS BÁSICOS", level: 1, type: "requisitos", importance: "high" },
-      { title: "5. DAS INSCRIÇÕES", level: 1, type: "inscricoes", importance: "high" },
-      { title: "5.1. Período de Inscrição", level: 2, type: "cronograma", importance: "high" },
-      { title: "5.2. Taxa de Inscrição", level: 2, type: "taxa", importance: "medium" },
-      { title: "6. DAS PROVAS", level: 1, type: "provas", importance: "high" },
-      { title: "6.1. Tipos de Prova", level: 2, type: "tipos_prova", importance: "high" },
-      { title: "6.2. Critérios de Avaliação", level: 2, type: "avaliacao", importance: "medium" },
-      { title: "7. DO CONTEÚDO PROGRAMÁTICO", level: 1, type: "conteudo", importance: "high" },
-      { title: "8. DO CRONOGRAMA", level: 1, type: "cronograma", importance: "high" },
-      { title: "9. DOS RECURSOS", level: 1, type: "recursos", importance: "medium" },
-      { title: "10. DISPOSIÇÕES FINAIS", level: 1, type: "disposicoes", importance: "low" }
-    ];
-
-    const summaryItems = basicSections.map((section, index) => ({
-      id: `basic-${index + 1}`,
-      title: section.title,
-      level: section.level,
-      summary: this.generateSectionSummary(section.type, concursoNome),
-      keyPoints: this.generateKeyPoints(section.type),
-      importance: section.importance as 'high' | 'medium' | 'low',
-      originalChunkId: `chunk-${index + 1}`
-    }));
-
-    return {
-      documentName: fileName,
-      overallSummary: `Edital do concurso ${concursoNome} processado automaticamente. Este documento contém informações essenciais sobre ${basicSections.length} aspectos principais do concurso, incluindo objeto, cargos, requisitos, inscrições, provas e cronograma. As informações foram organizadas hierarquicamente para facilitar o estudo.`,
-      totalSections: basicSections.length,
-      summaryItems,
-      generatedAt: new Date()
-    };
-  }
-
-  /**
-   * Gera resumo específico para cada tipo de seção
-   */
-  private generateSectionSummary(type: string, concurso: string): string {
-    const summaries: { [key: string]: string } = {
-      objeto: `Define o objeto do concurso ${concurso}, especificando a finalidade e objetivos do processo seletivo.`,
-      cargos: `Detalha os cargos disponíveis no concurso ${concurso}, incluindo denominações e características.`,
-      requisitos: `Estabelece os requisitos mínimos necessários para participação no concurso ${concurso}.`,
-      atribuicoes: `Descreve as principais atribuições e responsabilidades dos cargos oferecidos.`,
-      vagas: `Apresenta o número de vagas disponíveis e sua distribuição por cargo e/ou região.`,
-      inscricoes: `Define os procedimentos, prazos e condições para inscrição no concurso.`,
-      cronograma: `Estabelece as datas importantes do concurso, desde inscrições até resultado final.`,
-      taxa: `Informa sobre valores das taxas de inscrição e formas de pagamento.`,
-      provas: `Detalha as etapas avaliativas, tipos de prova e critérios de avaliação.`,
-      tipos_prova: `Especifica os tipos de prova que serão aplicadas no concurso.`,
-      avaliacao: `Define os critérios e métodos de avaliação das provas e títulos.`,
-      conteudo: `Apresenta o conteúdo programático que será cobrado nas provas.`,
-      recursos: `Estabelece os procedimentos para interposição de recursos e prazos.`,
-      disposicoes: `Contém as disposições gerais e finais aplicáveis ao concurso.`
-    };
-
-    return summaries[type] || `Seção do edital ${concurso} com informações específicas sobre ${type}.`;
-  }
-
-  /**
-   * Gera pontos-chave para cada tipo de seção
-   */
-  private generateKeyPoints(type: string): string[] {
-    const keyPoints: { [key: string]: string[] } = {
-      objeto: ["Finalidade do concurso", "Órgão responsável", "Legislação aplicável"],
-      cargos: ["Denominação dos cargos", "Nível de escolaridade", "Área de atuação"],
-      requisitos: ["Idade mínima", "Escolaridade", "Experiência profissional"],
-      atribuicoes: ["Principais funções", "Responsabilidades", "Competências necessárias"],
-      vagas: ["Total de vagas", "Vagas imediatas", "Cadastro de reserva"],
-      inscricoes: ["Período de inscrição", "Documentos necessários", "Procedimentos online"],
-      cronograma: ["Data das provas", "Resultado preliminar", "Resultado final"],
-      taxa: ["Valor da taxa", "Formas de pagamento", "Isenções disponíveis"],
-      provas: ["Tipos de prova", "Duração", "Pontuação mínima"],
-      tipos_prova: ["Prova objetiva", "Prova discursiva", "Avaliação de títulos"],
-      avaliacao: ["Critérios de correção", "Pesos das provas", "Desempate"],
-      conteudo: ["Disciplinas cobradas", "Bibliografia sugerida", "Níveis de conhecimento"],
-      recursos: ["Prazo para recursos", "Documentos necessários", "Análise das solicitações"],
-      disposicoes: ["Validade do concurso", "Normas gerais", "Casos omissos"]
-    };
-
-    return keyPoints[type] || ["Informações gerais", "Procedimentos específicos", "Observações importantes"];
-  }
 
   /**
    * Gera embeddings e armazena no Pinecone

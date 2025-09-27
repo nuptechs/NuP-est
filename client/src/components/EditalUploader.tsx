@@ -81,7 +81,9 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
         } else if (data.success && data.edital.status === 'failed') {
           clearInterval(interval);
           setPollingInterval(null);
-          setError('Falha no processamento do edital');
+          // Usar mensagem de erro específica do backend
+          const errorMessage = data.edital.errorMessage || 'Falha no processamento do edital';
+          setError(errorMessage);
         }
       } catch (error) {
         console.error('Erro no polling:', error);
@@ -363,13 +365,22 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
               )}
 
               
-              {/* Fallback quando sumário não foi gerado ou há erro */}
-              {result.status === 'summary_generated' && !result.smartSummary && (
-                <Alert>
+              {/* Exibição de erro específico quando falha */}
+              {result.status === 'failed' && result.errorMessage && (
+                <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    O edital foi processado mas o sumário não pôde ser carregado.
-                    Tente recarregar a página ou contate o suporte.
+                    {result.errorMessage}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Fallback quando sumário não foi gerado */}
+              {result.status === 'summary_generated' && !result.smartSummary && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Falha de processamento durante geração do sumário
                   </AlertDescription>
                 </Alert>
               )}
