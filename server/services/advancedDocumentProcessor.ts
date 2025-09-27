@@ -1,6 +1,6 @@
-import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { OpenAI } from 'openai';
 import fs from 'fs';
+import { CloudVisionService, OCRResult } from './cloudVisionService';
 import { ProcessedDocument } from './hierarchicalChunker';
 import { HierarchicalChunk } from './structureInterpreter';
 
@@ -52,50 +52,38 @@ interface HierarchicalNode {
 }
 
 export class AdvancedDocumentProcessor {
-  private documentAI: DocumentProcessorServiceClient;
+  private cloudVision: CloudVisionService;
   private openai: OpenAI;
-  private projectId: string;
-  private location: string = 'us'; // ou 'eu' dependendo da região
-  private processorId: string = 'form-parser'; // Processor padrão para análise geral
 
   constructor() {
-    // Configurar Google Document AI com autenticação robusta
-    this.projectId = process.env.GOOGLE_CLOUD_PROJECT_ID!;
-    
-    const credentials = {
-      type: 'service_account',
-      project_id: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
-    };
-    
-    this.documentAI = new DocumentProcessorServiceClient({
-      credentials,
-      projectId: this.projectId,
-    });
+    // Configurar Google Cloud Vision (OCR) - já tem credenciais corretas
+    this.cloudVision = new CloudVisionService();
 
     // Configurar OpenAI para validação
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    console.log('🧠 [AdvancedProcessor] Processador avançado inicializado');
+    console.log('🧠 [AdvancedProcessor] Processador avançado inicializado (usando Cloud Vision OCR)');
   }
 
   /**
-   * Processa um documento PDF usando Google Document AI + validação LLM
+   * Processa um documento PDF usando Google Cloud Vision OCR + validação LLM
    */
   async processDocument(filePath: string, fileName: string): Promise<AdvancedDocumentStructure> {
     console.log(`🔬 [AdvancedProcessor] Iniciando análise avançada: ${fileName}`);
 
     try {
-      // 1. Extrair elementos com Google Document AI
-      const documentAnalysis = await this.analyzeWithDocumentAI(filePath);
+      // 1. Extrair texto com Google Cloud Vision (OCR)
+      const ocrResult = await this.cloudVision.extractTextFromPDF(filePath);
       
-      // 2. Construir hierarquia inteligente
+      // 2. Converter resultado OCR para elementos estruturados
+      const documentAnalysis = this.convertOCRToElements(ocrResult);
+      
+      // 3. Construir hierarquia inteligente
       const hierarchy = await this.buildIntelligentHierarchy(documentAnalysis);
       
-      // 3. Validar e corrigir com LLM
+      // 4. Validar e corrigir com LLM
       const validatedHierarchy = await this.validateHierarchyWithLLM(hierarchy, fileName);
       
       const result: AdvancedDocumentStructure = {
