@@ -1,7 +1,8 @@
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { OpenAI } from 'openai';
 import fs from 'fs';
-import { HierarchicalStructure, DocumentChunk } from './hierarchicalChunker';
+import { ProcessedDocument } from './hierarchicalChunker';
+import { HierarchicalChunk } from './structureInterpreter';
 
 interface DocumentElement {
   type: 'title' | 'subtitle' | 'paragraph' | 'list_item';
@@ -626,8 +627,8 @@ Responda APENAS em JSON no formato:
   /**
    * Converte estrutura avançada para formato compatível com sistema atual
    */
-  convertToHierarchicalStructure(advancedStructure: AdvancedDocumentStructure): HierarchicalStructure {
-    const chunks: DocumentChunk[] = [];
+  convertToProcessedDocument(advancedStructure: AdvancedDocumentStructure): ProcessedDocument {
+    const chunks: HierarchicalChunk[] = [];
 
     for (const node of advancedStructure.hierarchy) {
       // Chunk principal da seção
@@ -636,9 +637,16 @@ Responda APENAS em JSON no formato:
         title: node.title,
         content: node.content,
         level: node.level,
-        page: node.pageRange.start,
-        wordCount: node.content.split(/\s+/).length,
-        type: 'section'
+        startPosition: 0,
+        endPosition: node.content.length,
+        parentId: undefined,
+        metadata: {
+          wordCount: node.content.split(/\s+/).length,
+          hasNumbers: /\d/.test(node.title),
+          hasSpecialTerms: /(?:edital|concurso|prova|cargo|requisito)/i.test(node.content),
+          confidence: 0.9,
+          sectionType: this.classifySectionType(node.title)
+        }
       });
 
       // Chunks das subseções
@@ -648,24 +656,51 @@ Responda APENAS em JSON no formato:
           title: child.title,
           content: child.content,
           level: child.level,
-          page: child.pageRange.start,
-          wordCount: child.content.split(/\s+/).length,
-          type: 'subsection'
+          startPosition: 0,
+          endPosition: child.content.length,
+          parentId: node.id,
+          metadata: {
+            wordCount: child.content.split(/\s+/).length,
+            hasNumbers: /\d/.test(child.title),
+            hasSpecialTerms: /(?:edital|concurso|prova|cargo|requisito)/i.test(child.content),
+            confidence: 0.9,
+            sectionType: this.classifySectionType(child.title)
+          }
         });
       }
     }
 
     return {
       documentName: advancedStructure.documentName,
-      chunks,
-      totalPages: advancedStructure.totalPages,
-      processingMetadata: {
-        processor: 'AdvancedDocumentProcessor',
-        confidence: advancedStructure.confidence,
-        timestamp: new Date(),
-        version: '2.0'
+      totalChunks: chunks.length,
+      structure: chunks,
+      extractedAt: new Date(),
+      metadata: {
+        structureQuality: advancedStructure.confidence > 0.8 ? 'excellent' : 'good',
+        processingMethod: 'pdf2json_enhanced',
+        totalPages: advancedStructure.totalPages,
+        avgConfidence: advancedStructure.confidence,
+        detectedSections: advancedStructure.hierarchy.map(h => h.title),
+        recommendations: []
       }
     };
+  }
+
+  /**
+   * Classifica o tipo de seção baseado no título
+   */
+  private classifySectionType(title: string): 'preambulo' | 'inscricoes' | 'provas' | 'requisitos' | 'resultado' | 'disposicoes' | 'anexo' | 'outros' {
+    const titleUpper = title.toUpperCase();
+    
+    if (titleUpper.includes('ANEXO')) return 'anexo';
+    if (titleUpper.includes('INSCRIÇ') || titleUpper.includes('INSCRICAO')) return 'inscricoes';
+    if (titleUpper.includes('PROVA') || titleUpper.includes('EXAME')) return 'provas';
+    if (titleUpper.includes('REQUISITO') || titleUpper.includes('CARGO')) return 'requisitos';
+    if (titleUpper.includes('RESULTADO') || titleUpper.includes('CLASSIF')) return 'resultado';
+    if (titleUpper.includes('DISPOSIÇ') || titleUpper.includes('FINAL')) return 'disposicoes';
+    if (titleUpper.includes('PREÂMBULO') || titleUpper.includes('OBJETO')) return 'preambulo';
+    
+    return 'outros';
   }
 }
 

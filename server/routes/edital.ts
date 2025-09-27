@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { hierarchicalChunker } from '../services/hierarchicalChunker';
 import fs from 'fs';
 import { newEditalService } from '../services/newEditalService';
+import { enhancedEditalService } from '../services/enhancedEditalService';
 import { fileProcessorService } from '../services/fileProcessor';
 import { UploadConfig } from '../config/uploadConfig';
 import { storage } from '../storage';
@@ -69,10 +70,10 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
       });
     }
     
-    // Processar arquivo diretamente com a nova arquitetura
-    console.log(`🚀 Iniciando processamento síncrono com DeepSeek R1...`);
+    // Processar arquivo diretamente com Google Document AI + validação LLM
+    console.log(`🚀 Iniciando processamento avançado com Google Document AI...`);
     
-    const result = await newEditalService.processEdital({
+    const result = await enhancedEditalService.processEdital({
       userId,
       filePath: req.file.path,
       fileName: req.file.filename,
@@ -210,7 +211,7 @@ router.get('/:editalId', async (req, res) => {
       });
     }
 
-    const edital = await newEditalService.getEdital(editalId);
+    const edital = await enhancedEditalService.getEdital(editalId);
     
     if (!edital) {
       return res.status(404).json({
@@ -278,7 +279,7 @@ router.delete('/:editalId', async (req, res) => {
     }
 
     // Verificar se o edital existe e pertence ao usuário
-    const edital = await newEditalService.getEdital(editalId);
+    const edital = await enhancedEditalService.getEdital(editalId);
     if (!edital) {
       return res.status(404).json({
         success: false,
