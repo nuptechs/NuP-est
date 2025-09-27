@@ -2,9 +2,11 @@ import fs from 'fs';
 import { fileProcessorService } from './fileProcessor';
 import { smartSummaryService } from './smartSummaryService';
 import { advancedDocumentProcessor } from './advancedDocumentProcessor';
+import { HybridPDFProcessor } from './hybridPDFProcessor';
 import { storage } from '../storage';
 import { chatRAG } from './rag/index';
 import type { Edital } from '@shared/schema';
+import type { HierarchicalChunk } from './structureInterpreter';
 
 interface ProcessedResult {
   success: boolean;
@@ -21,6 +23,11 @@ interface ProcessedResult {
 }
 
 export class EnhancedEditalService {
+  private hybridProcessor: HybridPDFProcessor;
+
+  constructor() {
+    this.hybridProcessor = new HybridPDFProcessor();
+  }
 
   /**
    * Processa edital com Google Document AI + validação LLM
@@ -154,34 +161,151 @@ export class EnhancedEditalService {
       } catch (advancedError) {
         console.error(`❌ [ERRO DETALHADO] Falha no processamento avançado:`, advancedError);
         
-        // Preservar mensagem específica ou determinar tipo de erro
-        let errorMessage: string;
-        if (advancedError instanceof Error) {
-          // Se já é uma mensagem específica (nossos erros internos), preservar
-          if (advancedError.message.startsWith('Falha de integração') || 
-              advancedError.message.startsWith('Falha de processamento')) {
-            errorMessage = advancedError.message;
-          }
-          // Se contém palavras-chave de integração externa
-          else if (advancedError.message.includes('API') || advancedError.message.includes('OpenAI') || 
-              advancedError.message.includes('Document AI') || advancedError.message.includes('GPT')) {
-            errorMessage = 'Falha de integração com sistema de IA';
-          } 
-          // Casos genéricos que não foram capturados pelos internos
-          else {
-            errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
+        // IMPLEMENTAR FALLBACK FUNCIONAL para problemas de credenciais Document AI
+        const isCredentialError = advancedError instanceof Error && 
+          (advancedError.message.includes('DECODER routines::unsupported') ||
+           advancedError.message.includes('Getting metadata from plugin failed') ||
+           advancedError.message.includes('authentication'));
+
+        if (isCredentialError) {
+          console.log(`🔄 Detectado erro de credenciais Document AI - tentando fallback funcional...`);
+          
+          try {
+            // FALLBACK: Usar processamento híbrido com estrutura simplificada
+            console.log(`🚀 Iniciando processamento híbrido alternativo...`);
+            
+            // Processar com híbrido (usa cloudVisionService que já funciona)
+            const hybridResult = await this.hybridProcessor.processDocument(request.filePath, request.originalName);
+            
+            if (!hybridResult.success || !hybridResult.documentStructure) {
+              throw new Error('Fallback híbrido também falhou');
+            }
+            
+            console.log(`✅ Processamento híbrido concluído: ${hybridResult.documentStructure.elements.length} elementos detectados`);
+
+            // Converter estrutura híbrida para formato compatível
+            // Criar estrutura simplificada baseada nos elementos detectados
+            const chunks: HierarchicalChunk[] = hybridResult.documentStructure.elements.map((element, index) => ({
+              id: `chunk_${index + 1}`,
+              title: element.text.substring(0, 100), // Primeiros 100 caracteres como título
+              content: element.text,
+              level: element.type === 'title' ? 1 : 2, // Títulos como nível 1, outros como nível 2
+              startPosition: index * 100,
+              endPosition: (index + 1) * 100,
+              children: []
+            }));
+
+            const processedDocument = {
+              fileName: request.originalName,
+              content: hybridResult.documentStructure.elements.map(el => el.text).join(' '),
+              structure: chunks
+            };
+            
+            // Converter estrutura para formato compatível
+            const titleChunks = processedDocument.structure.map((chunk: HierarchicalChunk, index: number) => ({
+              id: chunk.id,
+              title: chunk.title,
+              level: chunk.level,
+              content: chunk.content,
+              startPosition: chunk.startPosition,
+              endPosition: chunk.endPosition
+            }));
+
+            console.log(`🧠 Gerando sumário inteligente com ${titleChunks.length} seções (fallback)...`);
+            
+            let smartSummary;
+            try {
+              smartSummary = await smartSummaryService.generateSmartSummary(
+                titleChunks,
+                request.originalName
+              );
+              console.log(`✅ Sumário gerado com ${smartSummary.totalSections} seções (fallback)`);
+            } catch (summaryError) {
+              if (summaryError instanceof Error && (
+                summaryError.message.includes('API') || 
+                summaryError.message.includes('OpenAI') || 
+                summaryError.message.includes('GPT'))) {
+                throw new Error('Falha de integração com sistema de IA');
+              }
+              throw new Error(`Falha de processamento smartSummaryService.generateSmartSummary`);
+            }
+
+            // Gerar e armazenar embeddings
+            try {
+              await this.generateAndStoreEmbeddings(processedDocument, edital.id, request.userId);
+              console.log(`✅ Embeddings gerados e armazenados (fallback)`);
+            } catch (embeddingError) {
+              if (embeddingError instanceof Error && (
+                embeddingError.message.includes('API') || 
+                embeddingError.message.includes('OpenAI') || 
+                embeddingError.message.includes('GPT') ||
+                embeddingError.message.includes('Pinecone'))) {
+                throw new Error('Falha de integração com sistema de IA');
+              }
+              throw new Error(`Falha de processamento generateAndStoreEmbeddings`);
+            }
+
+            // Atualizar edital com sucesso usando fallback
+            await storage.updateEdital(edital.id, {
+              status: 'completed',
+              smartSummary: JSON.stringify(smartSummary),
+              processedAt: new Date()
+            });
+
+            processingMethod = 'fallback_legacy';
+            sectionsDetected = titleChunks.length;
+            confidence = 0.7; // Confiança padrão para fallback
+
+            console.log(`✅ Processamento fallback concluído com sucesso - ${sectionsDetected} seções detectadas`);
+
+            // Continuar para finalização normal do processamento
+          } catch (fallbackError) {
+            console.error(`❌ Fallback também falhou:`, fallbackError);
+            
+            // Determinar mensagem de erro para fallback
+            let errorMessage: string;
+            if (fallbackError instanceof Error) {
+              if (fallbackError.message.startsWith('Falha de integração') || 
+                  fallbackError.message.startsWith('Falha de processamento')) {
+                errorMessage = fallbackError.message;
+              } else {
+                errorMessage = 'Falha de processamento fallback';
+              }
+            } else {
+              errorMessage = 'Falha de processamento fallback';
+            }
+
+            await storage.updateEdital(edital.id, {
+              status: 'failed',
+              errorMessage: errorMessage
+            });
+
+            throw new Error(errorMessage);
           }
         } else {
-          errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
+          // Erro não é de credenciais - usar lógica de erro original
+          let errorMessage: string;
+          if (advancedError instanceof Error) {
+            if (advancedError.message.startsWith('Falha de integração') || 
+                advancedError.message.startsWith('Falha de processamento')) {
+              errorMessage = advancedError.message;
+            } else if (advancedError.message.includes('API') || advancedError.message.includes('OpenAI') || 
+                advancedError.message.includes('Document AI') || advancedError.message.includes('GPT')) {
+              errorMessage = 'Falha de integração com sistema de IA';
+            } else {
+              errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
+            }
+          } else {
+            errorMessage = `Falha de processamento advancedDocumentProcessor.processDocument`;
+          }
+
+          await storage.updateEdital(edital.id, {
+            status: 'failed',
+            errorMessage: errorMessage
+          });
+
+          throw new Error(errorMessage);
         }
-
-        // Atualizar status de falha sem dados fictícios
-        await storage.updateEdital(edital.id, {
-          status: 'failed',
-          errorMessage: errorMessage
-        });
-
-        throw new Error(errorMessage);
       }
 
       // Finalizar processamento

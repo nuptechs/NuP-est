@@ -71,12 +71,28 @@ export class AdvancedDocumentProcessor {
       .replace(/\n\n+/g, '\n')  // Remover quebras duplas
       .trim();
     
-    // Garantir que tem as linhas BEGIN/END corretas
+    // Verificação detalhada da chave privada
     if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
       console.warn('⚠️ [DocumentAI] Chave privada pode estar mal formatada - não encontrou BEGIN PRIVATE KEY');
     }
     
+    if (!privateKey.includes('-----END PRIVATE KEY-----')) {
+      console.warn('⚠️ [DocumentAI] Chave privada pode estar mal formatada - não encontrou END PRIVATE KEY');
+    }
+    
+    // Log detalhado para debug
     console.log(`🔧 [DocumentAI] Chave privada configurada: ${privateKey.length} caracteres`);
+    console.log(`🔧 [DocumentAI] Primeira linha: ${privateKey.split('\n')[0]}`);
+    console.log(`🔧 [DocumentAI] Última linha: ${privateKey.split('\n').slice(-2).join(' ')}`);
+    
+    // Verificar se a chave contém caracteres válidos base64
+    const keyContent = privateKey.replace(/-----BEGIN PRIVATE KEY-----/g, '')
+                                 .replace(/-----END PRIVATE KEY-----/g, '')
+                                 .replace(/\n/g, '');
+    
+    if (keyContent.length < 1000) {
+      console.warn(`⚠️ [DocumentAI] Conteúdo da chave muito curto: ${keyContent.length} caracteres`);
+    }
     
     const credentials = {
       type: 'service_account' as const,
