@@ -219,7 +219,7 @@ export class NewEditalService {
       console.log(`✅ Edital processado com sucesso: ${edital.id}`);
       
       // Buscar edital atualizado para garantir consistência do status
-      const updatedEdital = await storage.getEditalById(edital.id);
+      const updatedEdital = await storage.getEdital(edital.id);
       
       return {
         success: true,
@@ -574,6 +574,11 @@ export class NewEditalService {
     editalId: string,
     fileName: string
   ): Promise<void> {
+    if (!hierarchicalStructure.chunks || hierarchicalStructure.chunks.length === 0) {
+      console.warn(`🧮 [EMBEDDINGS] Nenhum chunk disponível para processamento`);
+      return;
+    }
+    
     console.log(`🧮 [EMBEDDINGS] Iniciando processamento de embeddings para ${hierarchicalStructure.chunks.length} chunks`);
     
     // Converter chunks hierárquicos para formato RAG
@@ -581,6 +586,7 @@ export class NewEditalService {
       id: `edital-${editalId}-chunk-${index}`,
       userId: userId, // CORREÇÃO: userId deve estar no nível raiz
       content: chunk.content,
+      createdAt: new Date(), // CORREÇÃO: Campo obrigatório adicionado
       metadata: {
         editalId,
         fileName,
@@ -608,7 +614,8 @@ export class NewEditalService {
       
     } catch (ragError) {
       console.error(`❌ [EMBEDDINGS] Erro ao processar documentos via Chat RAG:`, ragError);
-      throw new Error(`Falha na geração de embeddings: ${ragError.message}`);
+      const errorMessage = ragError instanceof Error ? ragError.message : 'Erro desconhecido';
+      throw new Error(`Falha na geração de embeddings: ${errorMessage}`);
     }
   }
 

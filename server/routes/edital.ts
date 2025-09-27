@@ -104,7 +104,10 @@ router.post('/upload', upload.single('edital'), async (req, res) => {
         fileType: result.edital.fileType,
         concursoNome: result.edital.concursoNome,
         status: result.edital.status,
-        smartSummary: result.edital.smartSummary || null,
+        smartSummary: result.edital.smartSummary ? 
+          (typeof result.edital.smartSummary === 'string' 
+            ? JSON.parse(result.edital.smartSummary) 
+            : result.edital.smartSummary) : null,
         createdAt: result.edital.createdAt,
         processedAt: result.edital.processedAt
       },
@@ -223,6 +226,18 @@ router.get('/:editalId', async (req, res) => {
       });
     }
 
+    // Parse smartSummary se for string JSON
+    let parsedSmartSummary = null;
+    if (edital.smartSummary) {
+      try {
+        parsedSmartSummary = typeof edital.smartSummary === 'string' 
+          ? JSON.parse(edital.smartSummary) 
+          : edital.smartSummary;
+      } catch (error) {
+        console.warn(`⚠️ Erro ao parsear smartSummary para edital ${edital.id}:`, error);
+      }
+    }
+
     res.json({
       success: true,
       edital: {
@@ -232,7 +247,7 @@ router.get('/:editalId', async (req, res) => {
         fileSize: edital.fileSize,
         concursoNome: edital.concursoNome,
         status: edital.status,
-        smartSummary: edital.smartSummary || null,
+        smartSummary: parsedSmartSummary,
         errorMessage: edital.errorMessage,
         createdAt: edital.createdAt,
         processedAt: edital.processedAt,
