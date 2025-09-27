@@ -85,6 +85,18 @@ export class EnhancedEditalService {
         });
       }
 
+      // Determinar método de processamento tentado baseado na categoria
+      let attemptedMethod: 'document_ai' | 'ocr_image' | 'not_supported';
+      const fileCategory = fileProcessorService.getFileCategory(request.originalName);
+      
+      if (fileCategory === 'document') {
+        attemptedMethod = 'document_ai';
+      } else if (fileCategory === 'image') {
+        attemptedMethod = 'ocr_image';
+      } else {
+        attemptedMethod = 'not_supported';
+      }
+
       return {
         success: false,
         edital: edital!,
@@ -93,7 +105,7 @@ export class EnhancedEditalService {
           fileName: request.originalName,
           concurso: request.concursoNome,
           timestamp: new Date().toISOString(),
-          processingMethod: 'not_supported',
+          processingMethod: attemptedMethod,
           sectionsDetected: 0,
           confidence: 0
         }
@@ -102,7 +114,7 @@ export class EnhancedEditalService {
   }
 
   /**
-   * Processa documentos nativos (PDF, DOCX, DOC) usando Document AI
+   * Processa documentos PDF usando Document AI (SOMENTE PDFs suportados)
    */
   private async processDocumentFile(edital: Edital, request: {
     userId: string;
@@ -113,7 +125,13 @@ export class EnhancedEditalService {
     concursoNome: string;
   }): Promise<ProcessedResult> {
     
-    console.log(`📄 Processando documento nativo com Document AI: ${request.originalName}`);
+    console.log(`📄 Processando documento com Document AI: ${request.originalName}`);
+    
+    // VERIFICAÇÃO: Document AI só suporta PDFs
+    const fileType = fileProcessorService.detectFileType(request.originalName);
+    if (fileType !== 'pdf') {
+      throw new Error(`Document AI suporta apenas arquivos PDF. Arquivo recebido: ${fileType.toUpperCase()}. Para arquivos Word (.doc/.docx), converta para PDF primeiro.`);
+    }
 
     try {
       // ETAPA 1: Processar com Google Document AI

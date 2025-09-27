@@ -80,10 +80,8 @@ export class AdvancedDocumentProcessor {
       console.warn('⚠️ [DocumentAI] Chave privada pode estar mal formatada - não encontrou END PRIVATE KEY');
     }
     
-    // Log detalhado para debug
+    // Log seguro (SEM EXPOSIÇÃO DE DADOS SENSÍVEIS)
     console.log(`🔧 [DocumentAI] Chave privada configurada: ${privateKey.length} caracteres`);
-    console.log(`🔧 [DocumentAI] Primeira linha: ${privateKey.split('\n')[0]}`);
-    console.log(`🔧 [DocumentAI] Última linha: ${privateKey.split('\n').slice(-2).join(' ')}`);
     
     // Verificar se a chave contém caracteres válidos base64
     const keyContent = privateKey.replace(/-----BEGIN PRIVATE KEY-----/g, '')
