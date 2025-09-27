@@ -610,7 +610,7 @@ export class PDF2JsonExtractor {
     let currentLine: Array<typeof fragments[0]> = [];
     let currentY = fragments[0].position.y;
     let currentPage = fragments[0].position.page;
-    const lineThreshold = 0.5; // Tolerância mais restritiva para linhas distintas
+    const lineThreshold = 0.1; // Tolerância muito restritiva para evitar agrupamento incorreto
     
     for (const fragment of fragments) {
       const yDifference = Math.abs(fragment.position.y - currentY);

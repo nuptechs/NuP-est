@@ -336,18 +336,6 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                   {result.status === 'summary_generated' && <span className="text-blue-600"> 📚 Sumário gerado</span>}
                   {result.status === 'failed' && <span className="text-red-600"> ❌ Erro no processamento</span>}
                 </div>
-                {result.status === 'completed' && (
-                  <>
-                    <div>
-                      <strong>Único cargo:</strong> {result.hasSingleCargo ? 'Sim' : 'Não'}
-                    </div>
-                    {result.cargoName && (
-                      <div>
-                        <strong>Nome do cargo:</strong> {result.cargoName}
-                      </div>
-                    )}
-                  </>
-                )}
               </div>
 
               {/* Sumário Interativo quando gerado via novo sistema */}
@@ -360,36 +348,13 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                 </div>
               )}
 
-              {/* Exibe cargos e conhecimentos quando análise está completa */}
-              {result.status === 'completed' && result.cargos && result.cargos.length > 0 && (
-                <div className="mt-6 space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      👥 Cargos Identificados ({result.cargos.length})
-                    </h3>
-                    <div className="space-y-4">
-                      {result.cargos.map((cargo, index) => (
-                        <div key={index}>
-                          {renderCargoDetails(cargo)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {result.conteudoProgramatico && result.conteudoProgramatico.length > 0 && (
-                    <div>
-                      {renderConteudoProgramatico(result.conteudoProgramatico)}
-                    </div>
-                  )}
-                </div>
-              )}
               
-              {/* Placeholder durante análise */}
+              {/* Placeholder durante processamento */}
               {result.status === 'indexed' && (
                 <div className="mt-6 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-blue-500" />
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Analisando cargos e organizando conhecimentos...
+                    Processando conteúdo do edital...
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Isso pode levar alguns segundos
@@ -397,15 +362,6 @@ export function EditalUploader({ concursoNome, onEditalProcessed }: EditalUpload
                 </div>
               )}
 
-              {result.status === 'completed' && (!result.cargos || result.cargos.length === 0) && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Não foi possível identificar informações específicas sobre cargos neste edital.
-                    O conteúdo foi indexado e está disponível para consultas via RAG.
-                  </AlertDescription>
-                </Alert>
-              )}
               
               {/* Fallback quando sumário não foi gerado ou há erro */}
               {result.status === 'summary_generated' && !result.smartSummary && (
