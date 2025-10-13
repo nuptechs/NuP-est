@@ -140,6 +140,7 @@ export default function FlashcardsModernPage() {
     mutationFn: async (data: CreateDeckFormData) => {
       const response = await apiRequest("POST", "/api/flashcard-decks", {
         ...data,
+        subjectId: data.subjectId || null, // Convert empty string to null
         totalCards: 0,
         studiedCards: 0,
       });
@@ -170,7 +171,7 @@ export default function FlashcardsModernPage() {
       formData.append('file', data.file);
       formData.append('title', data.title);
       formData.append('description', data.description || '');
-      formData.append('subjectId', data.subjectId || '');
+      if (data.subjectId) formData.append('subjectId', data.subjectId); // Only append if not empty
       formData.append('count', data.count.toString());
 
       const response = await fetch('/api/flashcard-decks/generate-from-file', {
@@ -206,7 +207,10 @@ export default function FlashcardsModernPage() {
   // Generate from material mutation
   const generateFromMaterialMutation = useMutation({
     mutationFn: async (data: MaterialFlashcardFormData) => {
-      const response = await apiRequest("POST", "/api/flashcard-decks/generate-from-material", data);
+      const response = await apiRequest("POST", "/api/flashcard-decks/generate-from-material", {
+        ...data,
+        subjectId: data.subjectId || null, // Convert empty string to null
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -620,7 +624,7 @@ export default function FlashcardsModernPage() {
 
               {/* Decks Grid */}
               {decksLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Card key={i}>
                       <CardHeader>
@@ -643,7 +647,7 @@ export default function FlashcardsModernPage() {
                   </AlertDescription>
                 </Alert>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                   {decks.map((deck) => (
                     <ProfessionalCard
                       key={deck.id}
@@ -656,8 +660,8 @@ export default function FlashcardsModernPage() {
                       subtitle={`${deck.totalCards || 0} cards • ${deck.studiedCards || 0} estudados`}
                       icon={<BookOpen className="w-5 h-5 text-primary" />}
                       footer={
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline" className="rounded-md px-2 py-1 text-xs font-medium">
                               {deck.totalCards || 0} cards
                             </Badge>
@@ -673,7 +677,7 @@ export default function FlashcardsModernPage() {
                             size="sm"
                             onClick={() => handleDeckClick(deck)}
                             data-testid={`button-study-${deck.id}`}
-                            className="flex-shrink-0"
+                            className="w-full"
                           >
                             <Play className="w-4 h-4 mr-2" />
                             Estudar
