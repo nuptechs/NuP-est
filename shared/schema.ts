@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { relations } from 'drizzle-orm';
 import {
   index,
+  uniqueIndex,
   jsonb,
   pgTable,
   timestamp,
@@ -52,9 +53,8 @@ export const users = pgTable("users", {
   age: integer("age"),
   studyProfile: varchar("study_profile").default("average"), // disciplined, undisciplined, average
   
-  // ===== DIFICULDADES DE APRENDIZADO =====
-  learningDifficulties: learningDifficultyEnum("learning_difficulties").array().default(sql`'{}'::learning_difficulty[]`),
-  customDifficulties: text("custom_difficulties"), // dificuldades personalizadas
+  // ===== DIFICULDADES DE APRENDIZADO (deprecated - migrated to relational tables) =====
+  customDifficulties: text("custom_difficulties"), // dificuldades personalizadas não categorizadas
   
   // ===== OBJETIVOS E CONTEXTO =====
   studyObjective: text("study_objective"), // concurso, vestibular, ENEM, etc.
@@ -479,6 +479,33 @@ export const learningDifficultiesCatalog = pgTable("learning_difficulties_catalo
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Tabela de junção: dificuldades de aprendizado dos usuários
+export const userLearningDifficulties = pgTable("user_learning_difficulties", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  difficultyId: varchar("difficulty_id").notNull().references(() => learningDifficultiesCatalog.id, { onDelete: "cascade" }),
+  severity: varchar("severity").default("moderate"), // "mild", "moderate", "severe"
+  diagnosedBy: varchar("diagnosed_by"), // "professional", "self_reported", "system_detected"
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_user_difficulties").on(table.userId, table.difficultyId),
+  uniqueIndex("unique_user_difficulty").on(table.userId, table.difficultyId),
+]);
+
+// Tabela de junção: dificuldades de aprendizado dos perfis
+export const profileLearningDifficulties = pgTable("profile_learning_difficulties", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  profileId: varchar("profile_id").notNull().references(() => studentLearningProfiles.id, { onDelete: "cascade" }),
+  difficultyId: varchar("difficulty_id").notNull().references(() => learningDifficultiesCatalog.id, { onDelete: "cascade" }),
+  impactLevel: decimal("impact_level", { precision: 3, scale: 2 }), // 0-1: quanto esta dificuldade afeta este perfil
+  adaptationsApplied: jsonb("adaptations_applied"), // Quais adaptações estão sendo usadas
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_profile_difficulties").on(table.profileId, table.difficultyId),
+  uniqueIndex("unique_profile_difficulty").on(table.profileId, table.difficultyId),
+]);
+
 // Perfis de aprendizado dos estudantes com versionamento
 export const studentLearningProfiles = pgTable("student_learning_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -486,8 +513,7 @@ export const studentLearningProfiles = pgTable("student_learning_profiles", {
   version: integer("version").notNull().default(1), // Versionamento do perfil
   isActive: boolean("is_active").default(true), // Apenas um perfil ativo por vez
   
-  // Dificuldades de aprendizado (referências ao catálogo)
-  learningDifficulties: varchar("learning_difficulties").array().default(sql`'{}'::varchar[]`), // IDs do catálogo
+  // Dificuldades de aprendizado (gerenciadas via tabela de junção profile_learning_difficulties)
   customDifficulties: text("custom_difficulties"), // Dificuldades personalizadas não no catálogo
   
   // Forças e fraquezas descobertas
@@ -787,6 +813,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   assessmentResults: many(assessmentResults),
   editais: many(editais),
   // === RELAÇÕES DO SISTEMA DE ASSISTENTES PERSONALIZADOS ===
+  userLearningDifficulties: many(userLearningDifficulties),
   learningProfiles: many(studentLearningProfiles),
   personalizedAssistants: many(personalizedAssistants),
   studentStrategies: many(studentStrategies),
@@ -1016,11 +1043,39 @@ export const editaisRelations = relations(editais, ({ one }) => ({
 }));
 
 // === RELAÇÕES DO SISTEMA DE ASSISTENTES PERSONALIZADOS ===
+export const learningDifficultiesCatalogRelations = relations(learningDifficultiesCatalog, ({ many }) => ({
+  userDifficulties: many(userLearningDifficulties),
+  profileDifficulties: many(profileLearningDifficulties),
+}));
+
+export const userLearningDifficultiesRelations = relations(userLearningDifficulties, ({ one }) => ({
+  user: one(users, {
+    fields: [userLearningDifficulties.userId],
+    references: [users.id],
+  }),
+  difficulty: one(learningDifficultiesCatalog, {
+    fields: [userLearningDifficulties.difficultyId],
+    references: [learningDifficultiesCatalog.id],
+  }),
+}));
+
+export const profileLearningDifficultiesRelations = relations(profileLearningDifficulties, ({ one }) => ({
+  profile: one(studentLearningProfiles, {
+    fields: [profileLearningDifficulties.profileId],
+    references: [studentLearningProfiles.id],
+  }),
+  difficulty: one(learningDifficultiesCatalog, {
+    fields: [profileLearningDifficulties.difficultyId],
+    references: [learningDifficultiesCatalog.id],
+  }),
+}));
+
 export const studentLearningProfilesRelations = relations(studentLearningProfiles, ({ one, many }) => ({
   user: one(users, {
     fields: [studentLearningProfiles.userId],
     references: [users.id],
   }),
+  learningDifficulties: many(profileLearningDifficulties),
   assistants: many(personalizedAssistants),
   strategies: many(studentStrategies),
   assessments: many(adaptiveAssessments),
@@ -1263,6 +1318,16 @@ export const insertLearningDifficultyCatalogSchema = createInsertSchema(learning
   updatedAt: true,
 });
 
+export const insertUserLearningDifficultySchema = createInsertSchema(userLearningDifficulties).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProfileLearningDifficultySchema = createInsertSchema(profileLearningDifficulties).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertStudentLearningProfileSchema = createInsertSchema(studentLearningProfiles).omit({
   id: true,
   createdAt: true,
@@ -1367,6 +1432,10 @@ export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
 // === TIPOS DO SISTEMA DE ASSISTENTES PERSONALIZADOS ===
 export type LearningDifficultyCatalog = typeof learningDifficultiesCatalog.$inferSelect;
 export type InsertLearningDifficultyCatalog = z.infer<typeof insertLearningDifficultyCatalogSchema>;
+export type UserLearningDifficulty = typeof userLearningDifficulties.$inferSelect;
+export type InsertUserLearningDifficulty = z.infer<typeof insertUserLearningDifficultySchema>;
+export type ProfileLearningDifficulty = typeof profileLearningDifficulties.$inferSelect;
+export type InsertProfileLearningDifficulty = z.infer<typeof insertProfileLearningDifficultySchema>;
 export type StudentLearningProfile = typeof studentLearningProfiles.$inferSelect;
 export type InsertStudentLearningProfile = z.infer<typeof insertStudentLearningProfileSchema>;
 export type PersonalizedAssistant = typeof personalizedAssistants.$inferSelect;
