@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import * as XLSX from 'xlsx';
 import csv from 'csv-parser';
-import { pdf2jsonExtractor } from './pdf2jsonExtractor';
 import mammoth from 'mammoth';
+import { advancedDocumentProcessor } from './advancedDocumentProcessor';
 
 export interface ExtractedContent {
   text: string;
@@ -146,18 +146,31 @@ export class FileProcessorService {
   }
 
   /**
-   * Processa arquivo PDF usando sistema hierárquico
+   * Processa arquivo PDF usando processador avançado
    */
   private async processPDF(filePath: string): Promise<ExtractedContent> {
     try {
-      const documentStructure = await pdf2jsonExtractor.extractDocumentStructure(filePath, 'document.pdf');
-      const hierarchicalChunks = pdf2jsonExtractor.convertToHierarchicalChunks(documentStructure);
-      const text = hierarchicalChunks.map(chunk => chunk.content).join('\n');
+      const fileName = path.basename(filePath);
+      const structure = await advancedDocumentProcessor.processDocument(filePath, fileName);
+      
+      // Extrair texto da hierarquia
+      const extractTextFromHierarchy = (nodes: any[]): string => {
+        return nodes.map(node => {
+          let text = node.title ? `${node.title}\n` : '';
+          text += node.content || '';
+          if (node.children && node.children.length > 0) {
+            text += '\n' + extractTextFromHierarchy(node.children);
+          }
+          return text;
+        }).join('\n');
+      };
+      
+      const text = extractTextFromHierarchy(structure.hierarchy);
       
       return {
         text,
         metadata: {
-          pageCount: documentStructure.totalPages
+          pageCount: structure.totalPages
         }
       };
     } catch (error) {
