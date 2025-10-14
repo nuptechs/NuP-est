@@ -464,6 +464,308 @@ export const editais = pgTable("editais", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ===== SISTEMA DE ASSISTENTES PERSONALIZADOS =====
+
+// Catálogo dinâmico de dificuldades de aprendizado (não enum-based)
+export const learningDifficultiesCatalog = pgTable("learning_difficulties_catalog", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(), // e.g., "ADHD", "Dyslexia", "Autism"
+  displayName: varchar("display_name").notNull(), // Nome amigável
+  description: text("description"), // Descrição detalhada
+  category: varchar("category").notNull(), // neurological, cognitive, sensory, emotional
+  commonStrategies: text("common_strategies").array().default(sql`'{}'::text[]`), // Estratégias comuns
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Perfis de aprendizado dos estudantes com versionamento
+export const studentLearningProfiles = pgTable("student_learning_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  version: integer("version").notNull().default(1), // Versionamento do perfil
+  isActive: boolean("is_active").default(true), // Apenas um perfil ativo por vez
+  
+  // Dificuldades de aprendizado (referências ao catálogo)
+  learningDifficulties: varchar("learning_difficulties").array().default(sql`'{}'::varchar[]`), // IDs do catálogo
+  customDifficulties: text("custom_difficulties"), // Dificuldades personalizadas não no catálogo
+  
+  // Forças e fraquezas descobertas
+  strengths: jsonb("strengths"), // { "visual_learning": 0.9, "pattern_recognition": 0.85, ... }
+  weaknesses: jsonb("weaknesses"), // { "sustained_attention": 0.3, "working_memory": 0.4, ... }
+  
+  // Padrões de estudo descobertos
+  optimalStudyDuration: integer("optimal_study_duration"), // minutos ideais de estudo
+  bestStudyTimes: text("best_study_times").array().default(sql`'{}'::text[]`), // ["morning", "evening"]
+  preferredContentTypes: text("preferred_content_types").array().default(sql`'{}'::text[]`), // ["video", "text", "interactive"]
+  
+  // Objetivos e contexto
+  primaryGoal: text("primary_goal").notNull(), // "Concurso Público", "Vestibular", "ENEM"
+  secondaryGoals: text("secondary_goals").array().default(sql`'{}'::text[]`),
+  targetDate: timestamp("target_date"),
+  availableHoursPerDay: decimal("available_hours_per_day", { precision: 3, scale: 1 }),
+  
+  // Motivação e preferências emocionais
+  motivationLevel: decimal("motivation_level", { precision: 3, scale: 2 }), // 0-1
+  needsEncouragement: boolean("needs_encouragement").default(false),
+  respondsToGamification: boolean("responds_to_gamification").default(false),
+  prefersStructuredPlan: boolean("prefers_structured_plan").default(true),
+  
+  // Metadados de descoberta
+  discoverySource: varchar("discovery_source").notNull(), // "initial_assessment", "continuous_observation", "teacher_input"
+  confidenceScore: decimal("confidence_score", { precision: 3, scale: 2 }), // Quão confiável é este perfil
+  totalInteractions: integer("total_interactions").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Assistentes personalizados de ensino
+export const personalizedAssistants = pgTable("personalized_assistants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  profileId: varchar("profile_id").notNull().references(() => studentLearningProfiles.id, { onDelete: "cascade" }),
+  
+  // Configuração do assistente
+  name: varchar("name").notNull(), // Nome do assistente
+  personality: varchar("personality").notNull(), // "encouraging", "professional", "friendly", "strict"
+  communicationStyle: varchar("communication_style").notNull(), // "simple", "detailed", "visual", "step_by_step"
+  
+  // Sistema de memória
+  shortTermMemory: jsonb("short_term_memory"), // Últimas interações e contexto imediato
+  longTermMemory: jsonb("long_term_memory"), // Padrões e insights de longo prazo
+  
+  // Adaptações ativas
+  currentAdaptations: jsonb("current_adaptations"), // Adaptações aplicadas baseadas no perfil
+  
+  // Estado do assistente
+  isActive: boolean("is_active").default(true),
+  lastInteraction: timestamp("last_interaction"),
+  totalInteractions: integer("total_interactions").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Estratégias de ensino disponíveis
+export const teachingStrategies = pgTable("teaching_strategies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(),
+  displayName: varchar("display_name").notNull(),
+  description: text("description").notNull(),
+  category: varchar("category").notNull(), // "content_delivery", "assessment", "motivation", "organization"
+  
+  // Compatibilidade com dificuldades
+  effectiveFor: varchar("effective_for").array().default(sql`'{}'::varchar[]`), // IDs de dificuldades
+  notRecommendedFor: varchar("not_recommended_for").array().default(sql`'{}'::varchar[]`),
+  
+  // Configuração da estratégia
+  implementationGuide: text("implementation_guide"), // Como implementar esta estratégia
+  parameters: jsonb("parameters"), // Parâmetros configuráveis
+  
+  // Metadados
+  evidenceLevel: varchar("evidence_level").default("research_based"), // "research_based", "expert_opinion", "experimental"
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Estratégias aplicadas a estudantes específicos
+export const studentStrategies = pgTable("student_strategies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  profileId: varchar("profile_id").notNull().references(() => studentLearningProfiles.id, { onDelete: "cascade" }),
+  strategyId: varchar("strategy_id").notNull().references(() => teachingStrategies.id, { onDelete: "cascade" }),
+  
+  // Status da aplicação
+  status: varchar("status").notNull().default("active"), // "active", "testing", "paused", "discontinued"
+  
+  // Configuração personalizada
+  customParameters: jsonb("custom_parameters"), // Parâmetros ajustados para este estudante
+  
+  // Efetividade
+  effectivenessScore: decimal("effectiveness_score", { precision: 3, scale: 2 }), // 0-1
+  totalApplications: integer("total_applications").default(0),
+  successfulApplications: integer("successful_applications").default(0),
+  
+  // Observações
+  observations: text("observations"), // Notas sobre como está funcionando
+  
+  startedAt: timestamp("started_at").defaultNow(),
+  lastApplied: timestamp("last_applied"),
+  discontinuedAt: timestamp("discontinued_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Avaliações adaptativas (sessões de avaliação)
+export const adaptiveAssessments = pgTable("adaptive_assessments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  profileId: varchar("profile_id").references(() => studentLearningProfiles.id, { onDelete: "set null" }),
+  assistantId: varchar("assistant_id").references(() => personalizedAssistants.id, { onDelete: "set null" }),
+  
+  // Tipo de avaliação
+  assessmentType: varchar("assessment_type").notNull(), // "initial_mapping", "subject_diagnostic", "progress_check", "continuous"
+  subjectArea: varchar("subject_area"), // Área sendo avaliada
+  
+  // Configuração adaptativa
+  initialDifficulty: varchar("initial_difficulty").default("medium"), // "easy", "medium", "hard"
+  adaptiveAlgorithm: varchar("adaptive_algorithm").default("irt"), // "irt", "cat", "simple"
+  
+  // Progresso
+  totalQuestions: integer("total_questions").default(0),
+  currentQuestion: integer("current_question").default(0),
+  isComplete: boolean("is_complete").default(false),
+  
+  // Resultados
+  estimatedAbility: decimal("estimated_ability", { precision: 5, scale: 2 }), // Habilidade estimada (IRT)
+  confidenceLevel: decimal("confidence_level", { precision: 3, scale: 2 }), // Confiança na estimativa
+  identifiedStrengths: text("identified_strengths").array().default(sql`'{}'::text[]`),
+  identifiedWeaknesses: text("identified_weaknesses").array().default(sql`'{}'::text[]`),
+  
+  // Descobertas
+  discoveries: jsonb("discoveries"), // Insights sobre o estudante
+  recommendedStrategies: varchar("recommended_strategies").array().default(sql`'{}'::varchar[]`), // IDs de estratégias
+  
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Questões de avaliação adaptativa
+export const assessmentQuestions = pgTable("assessment_questions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Conteúdo da questão
+  question: text("question").notNull(),
+  questionType: varchar("question_type").notNull(), // "multiple_choice", "true_false", "open_ended", "practical"
+  options: jsonb("options"), // Para múltipla escolha
+  correctAnswer: text("correct_answer").notNull(),
+  explanation: text("explanation"),
+  
+  // Classificação
+  subjectArea: varchar("subject_area").notNull(),
+  topic: varchar("topic"),
+  subtopic: varchar("subtopic"),
+  
+  // Parâmetros IRT (Item Response Theory)
+  difficulty: decimal("difficulty", { precision: 5, scale: 2 }), // Parâmetro b (dificuldade)
+  discrimination: decimal("discrimination", { precision: 5, scale: 2 }), // Parâmetro a (discriminação)
+  guessing: decimal("guessing", { precision: 3, scale: 2 }), // Parâmetro c (acerto ao acaso)
+  
+  // Metadados adaptativos
+  skillsTested: text("skills_tested").array().default(sql`'{}'::text[]`), // Habilidades testadas
+  prerequisiteKnowledge: text("prerequisite_knowledge").array().default(sql`'{}'::text[]`),
+  
+  // Adaptações para dificuldades
+  adaptationsAvailable: jsonb("adaptations_available"), // { "dyslexia": {...}, "adhd": {...} }
+  
+  // Qualidade
+  timesUsed: integer("times_used").default(0),
+  averageTimeSpent: integer("average_time_spent"), // segundos
+  successRate: decimal("success_rate", { precision: 3, scale: 2 }),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  qualityScore: decimal("quality_score", { precision: 3, scale: 2 }), // 0-1
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Tentativas de questões em avaliações adaptativas
+export const studentAssessmentAttempts = pgTable("student_assessment_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assessmentId: varchar("assessment_id").notNull().references(() => adaptiveAssessments.id, { onDelete: "cascade" }),
+  questionId: varchar("question_id").notNull().references(() => assessmentQuestions.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // Resposta
+  userAnswer: text("user_answer").notNull(),
+  isCorrect: boolean("is_correct").notNull(),
+  timeSpent: integer("time_spent"), // segundos
+  
+  // Adaptações aplicadas nesta questão
+  adaptationsUsed: jsonb("adaptations_used"), // Quais adaptações foram aplicadas
+  
+  // Análise da tentativa
+  difficultyPresentedAt: decimal("difficulty_presented_at", { precision: 5, scale: 2 }), // Dificuldade da questão no momento
+  abilityEstimateAfter: decimal("ability_estimate_after", { precision: 5, scale: 2 }), // Habilidade estimada após esta resposta
+  confidenceAfter: decimal("confidence_after", { precision: 3, scale: 2 }),
+  
+  // Observações comportamentais
+  hintsRequested: integer("hints_requested").default(0),
+  attemptChanges: integer("attempt_changes").default(0), // Quantas vezes mudou a resposta
+  engagementLevel: varchar("engagement_level"), // "high", "medium", "low", "frustrated"
+  
+  attemptedAt: timestamp("attempted_at").defaultNow(),
+});
+
+// Logs de interação para descoberta contínua
+export const interactionLogs = pgTable("interaction_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  assistantId: varchar("assistant_id").references(() => personalizedAssistants.id, { onDelete: "set null" }),
+  profileId: varchar("profile_id").references(() => studentLearningProfiles.id, { onDelete: "set null" }),
+  
+  // Tipo de interação
+  interactionType: varchar("interaction_type").notNull(), // "question", "teaching", "assessment", "chat", "hint_request"
+  context: varchar("context"), // "study_session", "quiz", "chat", "onboarding"
+  
+  // Conteúdo
+  userInput: text("user_input"),
+  assistantResponse: text("assistant_response"),
+  
+  // Análise comportamental
+  emotionalState: varchar("emotional_state"), // "confident", "frustrated", "confused", "engaged", "bored"
+  engagementLevel: decimal("engagement_level", { precision: 3, scale: 2 }), // 0-1
+  comprehensionLevel: decimal("comprehension_level", { precision: 3, scale: 2 }), // 0-1 estimado
+  
+  // Descobertas desta interação
+  discoveries: jsonb("discoveries"), // Novos insights sobre o estudante
+  patternsDetected: text("patterns_detected").array().default(sql`'{}'::text[]`),
+  
+  // Metadados
+  sessionDuration: integer("session_duration"), // duração da sessão em segundos
+  deviceType: varchar("device_type"), // "mobile", "desktop", "tablet"
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Memória contextual do assistente
+export const assistantMemory = pgTable("assistant_memory", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assistantId: varchar("assistant_id").notNull().references(() => personalizedAssistants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // Tipo de memória
+  memoryType: varchar("memory_type").notNull(), // "fact", "preference", "pattern", "milestone", "concern"
+  category: varchar("category").notNull(), // "learning", "behavior", "progress", "personal"
+  
+  // Conteúdo
+  key: varchar("key").notNull(), // Chave da memória (e.g., "preferred_explanation_style")
+  value: jsonb("value").notNull(), // Valor da memória
+  confidence: decimal("confidence", { precision: 3, scale: 2 }), // Confiança nesta memória
+  
+  // Contexto temporal
+  isRecent: boolean("is_recent").default(true), // Se é memória recente (short-term)
+  importance: decimal("importance", { precision: 3, scale: 2 }), // Importância desta memória
+  
+  // Rastreamento de uso
+  timesAccessed: integer("times_accessed").default(0),
+  lastAccessed: timestamp("last_accessed"),
+  
+  // Fonte e validade
+  source: varchar("source").notNull(), // "observation", "assessment", "direct_input", "inference"
+  validUntil: timestamp("valid_until"), // Quando esta memória expira
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_assistant_memory_lookup").on(table.assistantId, table.key),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   knowledgeAreas: many(knowledgeAreas),
@@ -484,6 +786,14 @@ export const usersRelations = relations(users, ({ many }) => ({
   learningHistory: many(learningHistory),
   assessmentResults: many(assessmentResults),
   editais: many(editais),
+  // === RELAÇÕES DO SISTEMA DE ASSISTENTES PERSONALIZADOS ===
+  learningProfiles: many(studentLearningProfiles),
+  personalizedAssistants: many(personalizedAssistants),
+  studentStrategies: many(studentStrategies),
+  adaptiveAssessments: many(adaptiveAssessments),
+  assessmentAttempts: many(studentAssessmentAttempts),
+  interactionLogs: many(interactionLogs),
+  assistantMemories: many(assistantMemory),
 }));
 
 export const knowledgeAreasRelations = relations(knowledgeAreas, ({ one, many }) => ({
@@ -705,6 +1015,111 @@ export const editaisRelations = relations(editais, ({ one }) => ({
   }),
 }));
 
+// === RELAÇÕES DO SISTEMA DE ASSISTENTES PERSONALIZADOS ===
+export const studentLearningProfilesRelations = relations(studentLearningProfiles, ({ one, many }) => ({
+  user: one(users, {
+    fields: [studentLearningProfiles.userId],
+    references: [users.id],
+  }),
+  assistants: many(personalizedAssistants),
+  strategies: many(studentStrategies),
+  assessments: many(adaptiveAssessments),
+}));
+
+export const personalizedAssistantsRelations = relations(personalizedAssistants, ({ one, many }) => ({
+  user: one(users, {
+    fields: [personalizedAssistants.userId],
+    references: [users.id],
+  }),
+  profile: one(studentLearningProfiles, {
+    fields: [personalizedAssistants.profileId],
+    references: [studentLearningProfiles.id],
+  }),
+  assessments: many(adaptiveAssessments),
+  interactionLogs: many(interactionLogs),
+  memories: many(assistantMemory),
+}));
+
+export const teachingStrategiesRelations = relations(teachingStrategies, ({ many }) => ({
+  studentStrategies: many(studentStrategies),
+}));
+
+export const studentStrategiesRelations = relations(studentStrategies, ({ one }) => ({
+  user: one(users, {
+    fields: [studentStrategies.userId],
+    references: [users.id],
+  }),
+  profile: one(studentLearningProfiles, {
+    fields: [studentStrategies.profileId],
+    references: [studentLearningProfiles.id],
+  }),
+  strategy: one(teachingStrategies, {
+    fields: [studentStrategies.strategyId],
+    references: [teachingStrategies.id],
+  }),
+}));
+
+export const adaptiveAssessmentsRelations = relations(adaptiveAssessments, ({ one, many }) => ({
+  user: one(users, {
+    fields: [adaptiveAssessments.userId],
+    references: [users.id],
+  }),
+  profile: one(studentLearningProfiles, {
+    fields: [adaptiveAssessments.profileId],
+    references: [studentLearningProfiles.id],
+  }),
+  assistant: one(personalizedAssistants, {
+    fields: [adaptiveAssessments.assistantId],
+    references: [personalizedAssistants.id],
+  }),
+  attempts: many(studentAssessmentAttempts),
+}));
+
+export const assessmentQuestionsRelations = relations(assessmentQuestions, ({ many }) => ({
+  attempts: many(studentAssessmentAttempts),
+}));
+
+export const studentAssessmentAttemptsRelations = relations(studentAssessmentAttempts, ({ one }) => ({
+  user: one(users, {
+    fields: [studentAssessmentAttempts.userId],
+    references: [users.id],
+  }),
+  assessment: one(adaptiveAssessments, {
+    fields: [studentAssessmentAttempts.assessmentId],
+    references: [adaptiveAssessments.id],
+  }),
+  question: one(assessmentQuestions, {
+    fields: [studentAssessmentAttempts.questionId],
+    references: [assessmentQuestions.id],
+  }),
+}));
+
+export const interactionLogsRelations = relations(interactionLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [interactionLogs.userId],
+    references: [users.id],
+  }),
+  assistant: one(personalizedAssistants, {
+    fields: [interactionLogs.assistantId],
+    references: [personalizedAssistants.id],
+  }),
+  profile: one(studentLearningProfiles, {
+    fields: [interactionLogs.profileId],
+    references: [studentLearningProfiles.id],
+  }),
+}));
+
+export const assistantMemoryRelations = relations(assistantMemory, ({ one }) => ({
+  user: one(users, {
+    fields: [assistantMemory.userId],
+    references: [users.id],
+  }),
+  assistant: one(personalizedAssistants, {
+    fields: [assistantMemory.assistantId],
+    references: [personalizedAssistants.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -841,6 +1256,66 @@ export const insertEditalSchema = createInsertSchema(editais).omit({
   processedAt: true,
 });
 
+// === INSERT SCHEMAS DO SISTEMA DE ASSISTENTES PERSONALIZADOS ===
+export const insertLearningDifficultyCatalogSchema = createInsertSchema(learningDifficultiesCatalog).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentLearningProfileSchema = createInsertSchema(studentLearningProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPersonalizedAssistantSchema = createInsertSchema(personalizedAssistants).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTeachingStrategySchema = createInsertSchema(teachingStrategies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentStrategySchema = createInsertSchema(studentStrategies).omit({
+  id: true,
+  startedAt: true,
+  updatedAt: true,
+});
+
+export const insertAdaptiveAssessmentSchema = createInsertSchema(adaptiveAssessments).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+  updatedAt: true,
+});
+
+export const insertAssessmentQuestionSchema = createInsertSchema(assessmentQuestions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentAssessmentAttemptSchema = createInsertSchema(studentAssessmentAttempts).omit({
+  id: true,
+  attemptedAt: true,
+});
+
+export const insertInteractionLogSchema = createInsertSchema(interactionLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAssistantMemorySchema = createInsertSchema(assistantMemory).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -888,3 +1363,25 @@ export type SiteSearchType = typeof siteSearchTypes.$inferSelect;
 export type InsertSiteSearchType = z.infer<typeof insertSiteSearchTypeSchema>;
 export type ProcessingJob = typeof processingJobs.$inferSelect;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
+
+// === TIPOS DO SISTEMA DE ASSISTENTES PERSONALIZADOS ===
+export type LearningDifficultyCatalog = typeof learningDifficultiesCatalog.$inferSelect;
+export type InsertLearningDifficultyCatalog = z.infer<typeof insertLearningDifficultyCatalogSchema>;
+export type StudentLearningProfile = typeof studentLearningProfiles.$inferSelect;
+export type InsertStudentLearningProfile = z.infer<typeof insertStudentLearningProfileSchema>;
+export type PersonalizedAssistant = typeof personalizedAssistants.$inferSelect;
+export type InsertPersonalizedAssistant = z.infer<typeof insertPersonalizedAssistantSchema>;
+export type TeachingStrategy = typeof teachingStrategies.$inferSelect;
+export type InsertTeachingStrategy = z.infer<typeof insertTeachingStrategySchema>;
+export type StudentStrategy = typeof studentStrategies.$inferSelect;
+export type InsertStudentStrategy = z.infer<typeof insertStudentStrategySchema>;
+export type AdaptiveAssessment = typeof adaptiveAssessments.$inferSelect;
+export type InsertAdaptiveAssessment = z.infer<typeof insertAdaptiveAssessmentSchema>;
+export type AssessmentQuestion = typeof assessmentQuestions.$inferSelect;
+export type InsertAssessmentQuestion = z.infer<typeof insertAssessmentQuestionSchema>;
+export type StudentAssessmentAttempt = typeof studentAssessmentAttempts.$inferSelect;
+export type InsertStudentAssessmentAttempt = z.infer<typeof insertStudentAssessmentAttemptSchema>;
+export type InteractionLog = typeof interactionLogs.$inferSelect;
+export type InsertInteractionLog = z.infer<typeof insertInteractionLogSchema>;
+export type AssistantMemory = typeof assistantMemory.$inferSelect;
+export type InsertAssistantMemory = z.infer<typeof insertAssistantMemorySchema>;
