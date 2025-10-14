@@ -56,6 +56,42 @@ import {
   editais,
   type Edital,
   type InsertEdital,
+  learningDifficultiesCatalog,
+  userLearningDifficulties,
+  profileLearningDifficulties,
+  studentLearningProfiles,
+  personalizedAssistants,
+  teachingStrategies,
+  studentStrategies,
+  adaptiveAssessments,
+  assessmentQuestions,
+  studentAssessmentAttempts,
+  interactionLogs,
+  assistantMemory,
+  type LearningDifficultyCatalog,
+  type InsertLearningDifficultyCatalog,
+  type UserLearningDifficulty,
+  type InsertUserLearningDifficulty,
+  type ProfileLearningDifficulty,
+  type InsertProfileLearningDifficulty,
+  type StudentLearningProfile,
+  type InsertStudentLearningProfile,
+  type PersonalizedAssistant,
+  type InsertPersonalizedAssistant,
+  type TeachingStrategy,
+  type InsertTeachingStrategy,
+  type StudentStrategy,
+  type InsertStudentStrategy,
+  type AdaptiveAssessment,
+  type InsertAdaptiveAssessment,
+  type AssessmentQuestion,
+  type InsertAssessmentQuestion,
+  type StudentAssessmentAttempt,
+  type InsertStudentAssessmentAttempt,
+  type InteractionLog,
+  type InsertInteractionLog,
+  type AssistantMemory,
+  type InsertAssistantMemory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, or, isNotNull } from "drizzle-orm";
@@ -176,6 +212,86 @@ export interface IStorage {
   updateEdital(id: string, updates: Partial<Edital>): Promise<Edital>;
   deleteEdital(id: string): Promise<void>;
   getEditalByFilename(userId: string, fileName: string): Promise<Edital | undefined>;
+
+  // === PERSONALIZED ASSISTANT SYSTEM OPERATIONS ===
+  
+  // Learning Difficulties Catalog operations
+  getLearningDifficultiesCatalog(): Promise<LearningDifficultyCatalog[]>;
+  getLearningDifficulty(id: string): Promise<LearningDifficultyCatalog | undefined>;
+  createLearningDifficulty(difficulty: InsertLearningDifficultyCatalog): Promise<LearningDifficultyCatalog>;
+  updateLearningDifficulty(id: string, updates: Partial<InsertLearningDifficultyCatalog>): Promise<LearningDifficultyCatalog>;
+  deleteLearningDifficulty(id: string): Promise<void>;
+  
+  // User Learning Difficulties operations (junction table)
+  getUserLearningDifficulties(userId: string): Promise<UserLearningDifficulty[]>;
+  addUserLearningDifficulty(difficulty: InsertUserLearningDifficulty): Promise<UserLearningDifficulty>;
+  updateUserLearningDifficulty(id: string, updates: Partial<InsertUserLearningDifficulty>): Promise<UserLearningDifficulty>;
+  removeUserLearningDifficulty(id: string): Promise<void>;
+  
+  // Student Learning Profiles operations
+  getStudentProfiles(userId: string): Promise<StudentLearningProfile[]>;
+  getActiveStudentProfile(userId: string): Promise<StudentLearningProfile | undefined>;
+  getStudentProfile(id: string): Promise<StudentLearningProfile | undefined>;
+  createStudentProfile(profile: InsertStudentLearningProfile): Promise<StudentLearningProfile>;
+  updateStudentProfile(id: string, updates: Partial<InsertStudentLearningProfile>): Promise<StudentLearningProfile>;
+  deleteStudentProfile(id: string): Promise<void>;
+  
+  // Profile Learning Difficulties operations (junction table)
+  getProfileLearningDifficulties(profileId: string): Promise<ProfileLearningDifficulty[]>;
+  addProfileLearningDifficulty(difficulty: InsertProfileLearningDifficulty): Promise<ProfileLearningDifficulty>;
+  updateProfileLearningDifficulty(id: string, updates: Partial<InsertProfileLearningDifficulty>): Promise<ProfileLearningDifficulty>;
+  removeProfileLearningDifficulty(id: string): Promise<void>;
+  
+  // Personalized Assistant operations
+  getPersonalizedAssistants(userId: string): Promise<PersonalizedAssistant[]>;
+  getActiveAssistant(userId: string): Promise<PersonalizedAssistant | undefined>;
+  getPersonalizedAssistant(id: string): Promise<PersonalizedAssistant | undefined>;
+  createPersonalizedAssistant(assistant: InsertPersonalizedAssistant): Promise<PersonalizedAssistant>;
+  updatePersonalizedAssistant(id: string, updates: Partial<InsertPersonalizedAssistant>): Promise<PersonalizedAssistant>;
+  deletePersonalizedAssistant(id: string): Promise<void>;
+  
+  // Teaching Strategies operations
+  getTeachingStrategies(): Promise<TeachingStrategy[]>;
+  getTeachingStrategy(id: string): Promise<TeachingStrategy | undefined>;
+  createTeachingStrategy(strategy: InsertTeachingStrategy): Promise<TeachingStrategy>;
+  updateTeachingStrategy(id: string, updates: Partial<InsertTeachingStrategy>): Promise<TeachingStrategy>;
+  deleteTeachingStrategy(id: string): Promise<void>;
+  
+  // Student Strategies operations (junction table)
+  getStudentStrategies(userId: string): Promise<StudentStrategy[]>;
+  addStudentStrategy(strategy: InsertStudentStrategy): Promise<StudentStrategy>;
+  updateStudentStrategy(id: string, updates: Partial<InsertStudentStrategy>): Promise<StudentStrategy>;
+  removeStudentStrategy(id: string): Promise<void>;
+  
+  // Adaptive Assessment operations
+  getAdaptiveAssessments(userId: string, profileId?: string): Promise<AdaptiveAssessment[]>;
+  getAdaptiveAssessment(id: string): Promise<AdaptiveAssessment | undefined>;
+  createAdaptiveAssessment(assessment: InsertAdaptiveAssessment): Promise<AdaptiveAssessment>;
+  updateAdaptiveAssessment(id: string, updates: Partial<InsertAdaptiveAssessment>): Promise<AdaptiveAssessment>;
+  deleteAdaptiveAssessment(id: string): Promise<void>;
+  
+  // Assessment Questions operations
+  getAssessmentQuestions(assessmentId?: string, difficulty?: string): Promise<AssessmentQuestion[]>;
+  getAssessmentQuestion(id: string): Promise<AssessmentQuestion | undefined>;
+  createAssessmentQuestion(question: InsertAssessmentQuestion): Promise<AssessmentQuestion>;
+  updateAssessmentQuestion(id: string, updates: Partial<InsertAssessmentQuestion>): Promise<AssessmentQuestion>;
+  deleteAssessmentQuestion(id: string): Promise<void>;
+  
+  // Student Assessment Attempts operations
+  getStudentAssessmentAttempts(userId: string, assessmentId?: string): Promise<StudentAssessmentAttempt[]>;
+  createStudentAssessmentAttempt(attempt: InsertStudentAssessmentAttempt): Promise<StudentAssessmentAttempt>;
+  updateStudentAssessmentAttempt(id: string, updates: Partial<InsertStudentAssessmentAttempt>): Promise<StudentAssessmentAttempt>;
+  
+  // Interaction Logs operations
+  getInteractionLogs(userId: string, assistantId?: string, limit?: number): Promise<InteractionLog[]>;
+  createInteractionLog(log: InsertInteractionLog): Promise<InteractionLog>;
+  
+  // Assistant Memory operations
+  getAssistantMemory(assistantId: string, memoryType?: string): Promise<AssistantMemory[]>;
+  getAssistantMemoryItem(id: string): Promise<AssistantMemory | undefined>;
+  createAssistantMemory(memory: InsertAssistantMemory): Promise<AssistantMemory>;
+  updateAssistantMemory(id: string, updates: Partial<InsertAssistantMemory>): Promise<AssistantMemory>;
+  deleteAssistantMemory(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1115,6 +1231,494 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     return edital;
+  }
+
+  // === PERSONALIZED ASSISTANT SYSTEM IMPLEMENTATIONS ===
+  
+  // Learning Difficulties Catalog
+  async getLearningDifficultiesCatalog(): Promise<LearningDifficultyCatalog[]> {
+    return await db
+      .select()
+      .from(learningDifficultiesCatalog)
+      .orderBy(learningDifficultiesCatalog.category, learningDifficultiesCatalog.name);
+  }
+
+  async getLearningDifficulty(id: string): Promise<LearningDifficultyCatalog | undefined> {
+    const [difficulty] = await db
+      .select()
+      .from(learningDifficultiesCatalog)
+      .where(eq(learningDifficultiesCatalog.id, id))
+      .limit(1);
+    return difficulty;
+  }
+
+  async createLearningDifficulty(difficulty: InsertLearningDifficultyCatalog): Promise<LearningDifficultyCatalog> {
+    const [newDifficulty] = await db
+      .insert(learningDifficultiesCatalog)
+      .values(difficulty)
+      .returning();
+    return newDifficulty;
+  }
+
+  async updateLearningDifficulty(id: string, updates: Partial<InsertLearningDifficultyCatalog>): Promise<LearningDifficultyCatalog> {
+    const [updated] = await db
+      .update(learningDifficultiesCatalog)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(learningDifficultiesCatalog.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteLearningDifficulty(id: string): Promise<void> {
+    await db
+      .delete(learningDifficultiesCatalog)
+      .where(eq(learningDifficultiesCatalog.id, id));
+  }
+
+  // User Learning Difficulties (junction table)
+  async getUserLearningDifficulties(userId: string): Promise<UserLearningDifficulty[]> {
+    return await db
+      .select()
+      .from(userLearningDifficulties)
+      .where(eq(userLearningDifficulties.userId, userId))
+      .orderBy(desc(userLearningDifficulties.createdAt));
+  }
+
+  async addUserLearningDifficulty(difficulty: InsertUserLearningDifficulty): Promise<UserLearningDifficulty> {
+    const [newDifficulty] = await db
+      .insert(userLearningDifficulties)
+      .values(difficulty)
+      .returning();
+    return newDifficulty;
+  }
+
+  async updateUserLearningDifficulty(id: string, updates: Partial<InsertUserLearningDifficulty>): Promise<UserLearningDifficulty> {
+    const [updated] = await db
+      .update(userLearningDifficulties)
+      .set(updates)
+      .where(eq(userLearningDifficulties.id, id))
+      .returning();
+    return updated;
+  }
+
+  async removeUserLearningDifficulty(id: string): Promise<void> {
+    await db
+      .delete(userLearningDifficulties)
+      .where(eq(userLearningDifficulties.id, id));
+  }
+
+  // Student Learning Profiles
+  async getStudentProfiles(userId: string): Promise<StudentLearningProfile[]> {
+    return await db
+      .select()
+      .from(studentLearningProfiles)
+      .where(eq(studentLearningProfiles.userId, userId))
+      .orderBy(desc(studentLearningProfiles.version));
+  }
+
+  async getActiveStudentProfile(userId: string): Promise<StudentLearningProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(studentLearningProfiles)
+      .where(and(
+        eq(studentLearningProfiles.userId, userId),
+        eq(studentLearningProfiles.isActive, true)
+      ))
+      .limit(1);
+    return profile;
+  }
+
+  async getStudentProfile(id: string): Promise<StudentLearningProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(studentLearningProfiles)
+      .where(eq(studentLearningProfiles.id, id))
+      .limit(1);
+    return profile;
+  }
+
+  async createStudentProfile(profile: InsertStudentLearningProfile): Promise<StudentLearningProfile> {
+    const [newProfile] = await db
+      .insert(studentLearningProfiles)
+      .values(profile)
+      .returning();
+    return newProfile;
+  }
+
+  async updateStudentProfile(id: string, updates: Partial<InsertStudentLearningProfile>): Promise<StudentLearningProfile> {
+    const [updated] = await db
+      .update(studentLearningProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(studentLearningProfiles.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteStudentProfile(id: string): Promise<void> {
+    await db
+      .delete(studentLearningProfiles)
+      .where(eq(studentLearningProfiles.id, id));
+  }
+
+  // Profile Learning Difficulties (junction table)
+  async getProfileLearningDifficulties(profileId: string): Promise<ProfileLearningDifficulty[]> {
+    return await db
+      .select()
+      .from(profileLearningDifficulties)
+      .where(eq(profileLearningDifficulties.profileId, profileId))
+      .orderBy(desc(profileLearningDifficulties.impactLevel));
+  }
+
+  async addProfileLearningDifficulty(difficulty: InsertProfileLearningDifficulty): Promise<ProfileLearningDifficulty> {
+    const [newDifficulty] = await db
+      .insert(profileLearningDifficulties)
+      .values(difficulty)
+      .returning();
+    return newDifficulty;
+  }
+
+  async updateProfileLearningDifficulty(id: string, updates: Partial<InsertProfileLearningDifficulty>): Promise<ProfileLearningDifficulty> {
+    const [updated] = await db
+      .update(profileLearningDifficulties)
+      .set(updates)
+      .where(eq(profileLearningDifficulties.id, id))
+      .returning();
+    return updated;
+  }
+
+  async removeProfileLearningDifficulty(id: string): Promise<void> {
+    await db
+      .delete(profileLearningDifficulties)
+      .where(eq(profileLearningDifficulties.id, id));
+  }
+
+  // Personalized Assistants
+  async getPersonalizedAssistants(userId: string): Promise<PersonalizedAssistant[]> {
+    return await db
+      .select()
+      .from(personalizedAssistants)
+      .where(eq(personalizedAssistants.userId, userId))
+      .orderBy(desc(personalizedAssistants.createdAt));
+  }
+
+  async getActiveAssistant(userId: string): Promise<PersonalizedAssistant | undefined> {
+    const [assistant] = await db
+      .select()
+      .from(personalizedAssistants)
+      .where(and(
+        eq(personalizedAssistants.userId, userId),
+        eq(personalizedAssistants.isActive, true)
+      ))
+      .limit(1);
+    return assistant;
+  }
+
+  async getPersonalizedAssistant(id: string): Promise<PersonalizedAssistant | undefined> {
+    const [assistant] = await db
+      .select()
+      .from(personalizedAssistants)
+      .where(eq(personalizedAssistants.id, id))
+      .limit(1);
+    return assistant;
+  }
+
+  async createPersonalizedAssistant(assistant: InsertPersonalizedAssistant): Promise<PersonalizedAssistant> {
+    const [newAssistant] = await db
+      .insert(personalizedAssistants)
+      .values(assistant)
+      .returning();
+    return newAssistant;
+  }
+
+  async updatePersonalizedAssistant(id: string, updates: Partial<InsertPersonalizedAssistant>): Promise<PersonalizedAssistant> {
+    const [updated] = await db
+      .update(personalizedAssistants)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(personalizedAssistants.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deletePersonalizedAssistant(id: string): Promise<void> {
+    await db
+      .delete(personalizedAssistants)
+      .where(eq(personalizedAssistants.id, id));
+  }
+
+  // Teaching Strategies
+  async getTeachingStrategies(): Promise<TeachingStrategy[]> {
+    return await db
+      .select()
+      .from(teachingStrategies)
+      .orderBy(teachingStrategies.category, teachingStrategies.name);
+  }
+
+  async getTeachingStrategy(id: string): Promise<TeachingStrategy | undefined> {
+    const [strategy] = await db
+      .select()
+      .from(teachingStrategies)
+      .where(eq(teachingStrategies.id, id))
+      .limit(1);
+    return strategy;
+  }
+
+  async createTeachingStrategy(strategy: InsertTeachingStrategy): Promise<TeachingStrategy> {
+    const [newStrategy] = await db
+      .insert(teachingStrategies)
+      .values(strategy)
+      .returning();
+    return newStrategy;
+  }
+
+  async updateTeachingStrategy(id: string, updates: Partial<InsertTeachingStrategy>): Promise<TeachingStrategy> {
+    const [updated] = await db
+      .update(teachingStrategies)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(teachingStrategies.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTeachingStrategy(id: string): Promise<void> {
+    await db
+      .delete(teachingStrategies)
+      .where(eq(teachingStrategies.id, id));
+  }
+
+  // Student Strategies (junction table)
+  async getStudentStrategies(userId: string): Promise<StudentStrategy[]> {
+    return await db
+      .select()
+      .from(studentStrategies)
+      .where(eq(studentStrategies.userId, userId))
+      .orderBy(desc(studentStrategies.effectivenessScore));
+  }
+
+  async addStudentStrategy(strategy: InsertStudentStrategy): Promise<StudentStrategy> {
+    const [newStrategy] = await db
+      .insert(studentStrategies)
+      .values(strategy)
+      .returning();
+    return newStrategy;
+  }
+
+  async updateStudentStrategy(id: string, updates: Partial<InsertStudentStrategy>): Promise<StudentStrategy> {
+    const [updated] = await db
+      .update(studentStrategies)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(studentStrategies.id, id))
+      .returning();
+    return updated;
+  }
+
+  async removeStudentStrategy(id: string): Promise<void> {
+    await db
+      .delete(studentStrategies)
+      .where(eq(studentStrategies.id, id));
+  }
+
+  // Adaptive Assessments
+  async getAdaptiveAssessments(userId: string, profileId?: string): Promise<AdaptiveAssessment[]> {
+    const conditions = [eq(adaptiveAssessments.userId, userId)];
+    
+    if (profileId) {
+      conditions.push(eq(adaptiveAssessments.profileId, profileId));
+    }
+
+    return await db
+      .select()
+      .from(adaptiveAssessments)
+      .where(and(...conditions))
+      .orderBy(desc(adaptiveAssessments.startedAt));
+  }
+
+  async getAdaptiveAssessment(id: string): Promise<AdaptiveAssessment | undefined> {
+    const [assessment] = await db
+      .select()
+      .from(adaptiveAssessments)
+      .where(eq(adaptiveAssessments.id, id))
+      .limit(1);
+    return assessment;
+  }
+
+  async createAdaptiveAssessment(assessment: InsertAdaptiveAssessment): Promise<AdaptiveAssessment> {
+    const [newAssessment] = await db
+      .insert(adaptiveAssessments)
+      .values(assessment)
+      .returning();
+    return newAssessment;
+  }
+
+  async updateAdaptiveAssessment(id: string, updates: Partial<InsertAdaptiveAssessment>): Promise<AdaptiveAssessment> {
+    const [updated] = await db
+      .update(adaptiveAssessments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(adaptiveAssessments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAdaptiveAssessment(id: string): Promise<void> {
+    await db
+      .delete(adaptiveAssessments)
+      .where(eq(adaptiveAssessments.id, id));
+  }
+
+  // Assessment Questions
+  async getAssessmentQuestions(assessmentId?: string, difficulty?: string): Promise<AssessmentQuestion[]> {
+    const conditions = [];
+    
+    // Note: assessmentQuestions don't have assessmentId - they're independent
+    // Questions are linked to assessments via studentAssessmentAttempts
+    
+    if (difficulty) {
+      conditions.push(eq(assessmentQuestions.difficulty, difficulty));
+    }
+
+    const query = db
+      .select()
+      .from(assessmentQuestions);
+
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions));
+    }
+
+    return await query;
+  }
+
+  async getAssessmentQuestion(id: string): Promise<AssessmentQuestion | undefined> {
+    const [question] = await db
+      .select()
+      .from(assessmentQuestions)
+      .where(eq(assessmentQuestions.id, id))
+      .limit(1);
+    return question;
+  }
+
+  async createAssessmentQuestion(question: InsertAssessmentQuestion): Promise<AssessmentQuestion> {
+    const [newQuestion] = await db
+      .insert(assessmentQuestions)
+      .values(question)
+      .returning();
+    return newQuestion;
+  }
+
+  async updateAssessmentQuestion(id: string, updates: Partial<InsertAssessmentQuestion>): Promise<AssessmentQuestion> {
+    const [updated] = await db
+      .update(assessmentQuestions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(assessmentQuestions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAssessmentQuestion(id: string): Promise<void> {
+    await db
+      .delete(assessmentQuestions)
+      .where(eq(assessmentQuestions.id, id));
+  }
+
+  // Student Assessment Attempts
+  async getStudentAssessmentAttempts(userId: string, assessmentId?: string): Promise<StudentAssessmentAttempt[]> {
+    const conditions = [eq(studentAssessmentAttempts.userId, userId)];
+    
+    if (assessmentId) {
+      conditions.push(eq(studentAssessmentAttempts.assessmentId, assessmentId));
+    }
+
+    return await db
+      .select()
+      .from(studentAssessmentAttempts)
+      .where(and(...conditions))
+      .orderBy(desc(studentAssessmentAttempts.attemptedAt));
+  }
+
+  async createStudentAssessmentAttempt(attempt: InsertStudentAssessmentAttempt): Promise<StudentAssessmentAttempt> {
+    const [newAttempt] = await db
+      .insert(studentAssessmentAttempts)
+      .values(attempt)
+      .returning();
+    return newAttempt;
+  }
+
+  async updateStudentAssessmentAttempt(id: string, updates: Partial<InsertStudentAssessmentAttempt>): Promise<StudentAssessmentAttempt> {
+    const [updated] = await db
+      .update(studentAssessmentAttempts)
+      .set(updates)
+      .where(eq(studentAssessmentAttempts.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Interaction Logs
+  async getInteractionLogs(userId: string, assistantId?: string, limit: number = 100): Promise<InteractionLog[]> {
+    const conditions = [eq(interactionLogs.userId, userId)];
+    
+    if (assistantId) {
+      conditions.push(eq(interactionLogs.assistantId, assistantId));
+    }
+
+    return await db
+      .select()
+      .from(interactionLogs)
+      .where(and(...conditions))
+      .orderBy(desc(interactionLogs.createdAt))
+      .limit(limit);
+  }
+
+  async createInteractionLog(log: InsertInteractionLog): Promise<InteractionLog> {
+    const [newLog] = await db
+      .insert(interactionLogs)
+      .values(log)
+      .returning();
+    return newLog;
+  }
+
+  // Assistant Memory
+  async getAssistantMemory(assistantId: string, memoryType?: string): Promise<AssistantMemory[]> {
+    const conditions = [eq(assistantMemory.assistantId, assistantId)];
+    
+    if (memoryType) {
+      conditions.push(eq(assistantMemory.memoryType, memoryType));
+    }
+
+    return await db
+      .select()
+      .from(assistantMemory)
+      .where(and(...conditions))
+      .orderBy(desc(assistantMemory.lastAccessed));
+  }
+
+  async getAssistantMemoryItem(id: string): Promise<AssistantMemory | undefined> {
+    const [memory] = await db
+      .select()
+      .from(assistantMemory)
+      .where(eq(assistantMemory.id, id))
+      .limit(1);
+    return memory;
+  }
+
+  async createAssistantMemory(memory: InsertAssistantMemory): Promise<AssistantMemory> {
+    const [newMemory] = await db
+      .insert(assistantMemory)
+      .values(memory)
+      .returning();
+    return newMemory;
+  }
+
+  async updateAssistantMemory(id: string, updates: Partial<InsertAssistantMemory>): Promise<AssistantMemory> {
+    const [updated] = await db
+      .update(assistantMemory)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(assistantMemory.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAssistantMemory(id: string): Promise<void> {
+    await db
+      .delete(assistantMemory)
+      .where(eq(assistantMemory.id, id));
   }
 }
 
