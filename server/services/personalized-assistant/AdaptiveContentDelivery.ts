@@ -4,7 +4,7 @@ import type {
   StudentLearningProfile,
   ProfileLearningDifficulty
 } from '../../../shared/schema';
-import { AIManager } from '../ai/manager';
+import type { IAIManager } from '../ai/interfaces';
 
 /**
  * Adaptive Content Delivery Service
@@ -15,7 +15,7 @@ import { AIManager } from '../ai/manager';
 export class AdaptiveContentDelivery {
   constructor(
     private storage: IStorage,
-    private aiManager: AIManager
+    private aiManager: IAIManager
   ) {}
 
   /**

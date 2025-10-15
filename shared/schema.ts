@@ -1454,3 +1454,40 @@ export type InteractionLog = typeof interactionLogs.$inferSelect;
 export type InsertInteractionLog = z.infer<typeof insertInteractionLogSchema>;
 export type AssistantMemory = typeof assistantMemory.$inferSelect;
 export type InsertAssistantMemory = z.infer<typeof insertAssistantMemorySchema>;
+
+// === API REQUEST VALIDATION SCHEMAS ===
+export const generateQuestionRequestSchema = z.object({
+  assistantId: z.string(),
+  topic: z.string(),
+  difficulty: z.number().min(-3).max(3).optional().default(0),
+});
+
+export const generateHintRequestSchema = z.object({
+  assistantId: z.string(),
+  questionId: z.string(),
+  currentAnswer: z.string().optional(),
+  hintLevel: z.number().min(1).max(4),
+});
+
+export const generateExplanationRequestSchema = z.object({
+  assistantId: z.string(),
+  concept: z.string(),
+  context: z.string().optional(),
+});
+
+export const chatRequestSchema = z.object({
+  assistantId: z.string(),
+  message: z.string(),
+  context: z.object({
+    currentTopic: z.string().optional(),
+    recentQuestions: z.array(z.string()).optional(),
+  }).optional(),
+});
+
+export const updateProfileInteractionRequestSchema = z.object({
+  assistantId: z.string(),
+  interactionType: z.enum(['question', 'teaching', 'assessment', 'chat', 'hint_request']),
+  interactionData: z.record(z.any()),
+  engagement: z.string().optional(), // "high", "medium", "low"
+  comprehension: z.string().optional(), // "high", "medium", "low"
+});

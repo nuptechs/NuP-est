@@ -21,7 +21,12 @@ import {
   insertFlashcardDeckSchema,
   insertFlashcardSchema,
   insertFlashcardReviewSchema,
-  insertKnowledgeBaseSchema
+  insertKnowledgeBaseSchema,
+  generateQuestionRequestSchema,
+  generateHintRequestSchema,
+  generateExplanationRequestSchema,
+  chatRequestSchema,
+  updateProfileInteractionRequestSchema
 } from "@shared/schema";
 import { embeddingsService } from "./services/embeddings";
 import { knowledgeChunks } from "@shared/schema";
@@ -30,6 +35,13 @@ import { UploadConfig } from "./config/uploadConfig";
 
 // Sistema de IA com injeção de dependência
 import { aiAnalyze, getAIManager } from './services/ai/index';
+
+// Serviços personalizados de AI
+import { AdaptiveContentDelivery } from './services/personalized-assistant/AdaptiveContentDelivery';
+import { PersonalizedAssistantCore } from './services/personalized-assistant/PersonalizedAssistantCore';
+import { ContinuousDiscoveryService } from './services/personalized-assistant/ContinuousDiscoveryService';
+import { AdaptiveAssessmentService } from './services/personalized-assistant/AdaptiveAssessmentService';
+import { StudentProfileGenerator } from './services/personalized-assistant/StudentProfileGenerator';
 
 // Usar configurações centralizadas
 const upload = UploadConfig.createMaterialUpload();
@@ -1703,6 +1715,260 @@ Responda em JSON no formato:
     } catch (error) {
       console.error('Error saving quiz result:', error);
       res.status(500).json({ message: 'Failed to save quiz result' });
+    }
+  });
+
+  // ===== PERSONALIZED AI ASSISTANT ROUTES =====
+  
+  // Endpoint: Generate adaptive question
+  app.post('/api/assistant/question', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = generateQuestionRequestSchema.parse(req.body);
+      
+      // Get assistant and verify ownership
+      const assistant = await storage.getPersonalizedAssistant(validatedData.assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Initialize service
+      const aiManager = getAIManager();
+      const contentDelivery = new AdaptiveContentDelivery(storage, aiManager);
+      
+      // Generate question
+      const question = await contentDelivery.generateQuestion(
+        validatedData.assistantId,
+        validatedData.topic,
+        validatedData.difficulty
+      );
+      
+      res.json(question);
+    } catch (error: any) {
+      console.error("Error generating question:", error);
+      res.status(500).json({ message: "Failed to generate question: " + error.message });
+    }
+  });
+  
+  // Endpoint: Generate progressive hint
+  app.post('/api/assistant/hint', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = generateHintRequestSchema.parse(req.body);
+      
+      // Get assistant and verify ownership
+      const assistant = await storage.getPersonalizedAssistant(validatedData.assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Get question
+      const question = await storage.getAssessmentQuestion(validatedData.questionId);
+      if (!question) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+      
+      // Initialize service
+      const aiManager = getAIManager();
+      const contentDelivery = new AdaptiveContentDelivery(storage, aiManager);
+      
+      // Generate hint (calculate previousHints from hintLevel)
+      // TODO: Store and retrieve actual hint history from assistant_memory or interaction_logs
+      // Currently using placeholders which limits progressive hint effectiveness
+      const previousHints: string[] = [];
+      for (let i = 0; i < validatedData.hintLevel - 1; i++) {
+        previousHints.push(`Hint ${i + 1}`); // Placeholder - should be actual previous hints
+      }
+      
+      const hint = await contentDelivery.generateHints(
+        validatedData.assistantId,
+        question.question,
+        question.correctAnswer,
+        validatedData.currentAnswer,
+        previousHints
+      );
+      
+      res.json(hint);
+    } catch (error: any) {
+      console.error("Error generating hint:", error);
+      res.status(500).json({ message: "Failed to generate hint: " + error.message });
+    }
+  });
+  
+  // Endpoint: Generate personalized explanation
+  app.post('/api/assistant/explanation', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = generateExplanationRequestSchema.parse(req.body);
+      
+      // Get assistant and verify ownership
+      const assistant = await storage.getPersonalizedAssistant(validatedData.assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Initialize service
+      const aiManager = getAIManager();
+      const contentDelivery = new AdaptiveContentDelivery(storage, aiManager);
+      
+      // Generate explanation
+      const explanation = await contentDelivery.generateExplanation(
+        validatedData.assistantId,
+        validatedData.concept,
+        validatedData.context
+      );
+      
+      res.json(explanation);
+    } catch (error: any) {
+      console.error("Error generating explanation:", error);
+      res.status(500).json({ message: "Failed to generate explanation: " + error.message });
+    }
+  });
+  
+  // Endpoint: Chat with personalized assistant  
+  app.post('/api/assistant/chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = chatRequestSchema.parse(req.body);
+      
+      // Get assistant and verify ownership
+      const assistant = await storage.getPersonalizedAssistant(validatedData.assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Initialize service
+      const assistantCore = new PersonalizedAssistantCore(storage);
+      
+      // Build conversation context
+      const context = await assistantCore.buildConversationContext(validatedData.assistantId);
+      
+      // For now, return the context. Full chat implementation needs AI integration
+      res.json({ 
+        message: "Chat endpoint requires full AI integration",
+        context,
+        userMessage: validatedData.message
+      });
+    } catch (error: any) {
+      console.error("Error in assistant chat:", error);
+      res.status(500).json({ message: "Failed to process chat: " + error.message });
+    }
+  });
+  
+  // Endpoint: Update profile based on interaction
+  app.post('/api/profile/interaction', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = updateProfileInteractionRequestSchema.parse(req.body);
+      
+      // Get assistant and verify ownership
+      const assistant = await storage.getPersonalizedAssistant(validatedData.assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Log interaction
+      const interaction = await storage.createInteractionLog({
+        userId,
+        assistantId: validatedData.assistantId,
+        interactionType: validatedData.interactionType,
+        discoveries: validatedData.interactionData,
+        engagementLevel: validatedData.engagement || null,
+        comprehensionLevel: validatedData.comprehension || null,
+      });
+      
+      // Initialize service with StudentProfileGenerator
+      const profileGenerator = new StudentProfileGenerator();
+      const discoveryService = new ContinuousDiscoveryService(storage, profileGenerator);
+      
+      // Log interaction with proper structure
+      const result = await discoveryService.logInteraction(
+        userId,
+        validatedData.assistantId,
+        {
+          interactionType: validatedData.interactionType,
+          discoveries: validatedData.interactionData,
+          engagementLevel: validatedData.engagement ? parseFloat(validatedData.engagement) : undefined,
+          comprehensionLevel: validatedData.comprehension ? parseFloat(validatedData.comprehension) : undefined,
+        }
+      );
+      
+      res.json({ 
+        success: true,
+        interaction
+      });
+    } catch (error: any) {
+      console.error("Error updating profile from interaction:", error);
+      res.status(500).json({ message: "Failed to update profile: " + error.message });
+    }
+  });
+  
+  // Endpoint: Start adaptive assessment
+  app.post('/api/assessment/adaptive', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { assistantId, subjectId, topicId } = req.body;
+      
+      if (!assistantId || !subjectId) {
+        return res.status(400).json({ message: "assistantId and subjectId are required" });
+      }
+      
+      // Get assistant and verify ownership
+      const assistant = await storage.getPersonalizedAssistant(assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Create adaptive assessment
+      const assessment = await storage.createAdaptiveAssessment({
+        userId,
+        assessmentType: 'adaptive',
+        subjectArea: subjectId, // Store subjectId as subjectArea
+        profileId: assistant.profileId,
+        assistantId,
+        initialDifficulty: 'medium',
+        totalQuestions: 0,
+        currentQuestion: 0,
+        isComplete: false,
+      });
+      
+      // Initialize service
+      const assessmentService = new AdaptiveAssessmentService();
+      
+      // Get next question for the assessment
+      const questionResult = await assessmentService.getNextQuestion(
+        assessment.id,
+        userId
+      );
+      
+      res.json({ 
+        assessment: questionResult.assessment,
+        nextQuestion: questionResult.question,
+        message: questionResult.question ? 
+          "Assessment started successfully" : 
+          "No questions available for this assessment"
+      });
+    } catch (error: any) {
+      console.error("Error creating adaptive assessment:", error);
+      res.status(500).json({ message: "Failed to create assessment: " + error.message });
     }
   });
 
