@@ -16,7 +16,16 @@ The client is built with **React 18** and **TypeScript**, using **Vite** as the 
 
 ## Backend Architecture
 
-The server is built with **Express.js** and **TypeScript** in ESM format. It uses **Drizzle ORM** for type-safe PostgreSQL database interactions and **Replit Auth** with Passport.js for authentication. **express-session** with **connect-pg-simple** manages sessions, and **multer** handles file uploads. The API is RESTful with consistent error handling. Core services include adaptive assessment, student profile generation and versioning, continuous interaction discovery, and a personalized AI assistant core with context and memory management.
+The server is built with **Express.js** and **TypeScript** in ESM format. It uses **Drizzle ORM** for type-safe PostgreSQL database interactions and **Replit Auth** with Passport.js for authentication. **express-session** with **connect-pg-simple** manages sessions, and **multer** handles file uploads. The API is RESTful with consistent error handling. 
+
+**Core AI Services (Phase 3 Complete):**
+1. **AdaptiveAssessmentService** - IRT-based question selection with ability estimation, optimal difficulty targeting, and zero-attempt guards
+2. **StudentProfileGenerator** - Analyzes assessments/interactions to create versioned student profiles with categorical-to-numeric mapping and behavioral analysis
+3. **ContinuousDiscoveryService** - Real-time interaction tracking with topic discovery, numeric engagement/comprehension parsing, and automatic profile updates
+4. **PersonalizedAssistantCore** - Context management with short/long-term memory systems, session state tracking, and profile-aware adaptations
+5. **AdaptiveContentDelivery** - AI-powered content generation with profile-aware questions, progressive hints (4 levels), personalized explanations, and safe difficulty adaptation
+
+All services integrate with AIManager using proper AIRequest/AIResponse types, include Portuguese language support, handle edge cases (zero division, null values), and are architect-approved for production.
 
 ## Data Architecture
 
