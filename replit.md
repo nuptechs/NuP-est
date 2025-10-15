@@ -27,6 +27,16 @@ The server is built with **Express.js** and **TypeScript** in ESM format. It use
 
 All services integrate with AIManager using proper AIRequest/AIResponse types, include Portuguese language support, handle edge cases (zero division, null values), and are architect-approved for production.
 
+**AI Assistant API Endpoints (Phase 4 Complete):**
+1. **POST /api/assistant/question** - Generate adaptive questions with profile-aware difficulty
+2. **POST /api/assistant/hint** - Progressive hint system with 4 levels (Note: currently uses placeholder hint history, future enhancement needed for persisted hints)
+3. **POST /api/assistant/explanation** - Personalized explanations adapted to learning profile
+4. **POST /api/assistant/chat** - Conversational assistant with context management
+5. **POST /api/profile/interaction** - Log interactions and trigger profile updates
+6. **POST /api/assessment/adaptive** - Start adaptive assessments with IRT-based question selection
+
+All endpoints include authentication, ownership verification, Zod validation, and consistent error handling.
+
 ## Data Architecture
 
 The project uses a **PostgreSQL** database managed by **Drizzle ORM**. The schema includes tables for users, subjects, topics, study materials, goals, study sessions, and AI-related data (questions, attempts). A key feature is the comprehensive schema for the personalized AI teaching assistant, including tables for learning difficulties, versioned student learning profiles, personalized assistant instances, teaching strategies, adaptive assessments, and detailed interaction logs. This schema supports referential integrity, junction tables for many-to-many relationships, and versioning for student profiles.
