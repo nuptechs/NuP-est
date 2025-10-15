@@ -44,6 +44,11 @@ class IRTCalculator {
       guessing: number;
     }>
   ): { ability: number; confidence: number } {
+    // Guard against empty responses - return baseline
+    if (responses.length === 0) {
+      return { ability: 0, confidence: 0 };
+    }
+
     let theta = 0; // Start with average ability
     const maxIterations = 50;
     const tolerance = 0.001;
@@ -67,11 +72,19 @@ class IRTCalculator {
         secondDerivative -= response.discrimination * response.discrimination * p * q;
       }
 
+      // Guard against near-zero or zero second derivative
+      if (Math.abs(secondDerivative) < 0.0001) {
+        break; // Stop iteration to prevent NaN
+      }
+
       // Newton-Raphson update
       const delta = -firstDerivative / secondDerivative;
-      theta += delta;
+      
+      // Cap delta to prevent extreme jumps
+      const cappedDelta = Math.max(-2, Math.min(2, delta));
+      theta += cappedDelta;
 
-      if (Math.abs(delta) < tolerance) break;
+      if (Math.abs(cappedDelta) < tolerance) break;
     }
 
     // Calculate confidence using Fisher Information
@@ -329,11 +342,10 @@ export class AdaptiveAssessmentService {
     // Update assessment as complete
     const completedAssessment = await storage.updateAdaptiveAssessment(assessmentId, {
       isComplete: true,
-      completedAt: new Date(),
       identifiedStrengths: strengths,
       identifiedWeaknesses: weaknesses,
       discoveries,
-    });
+    } as any); // completedAt is auto-set by database
 
     return {
       assessment: completedAssessment,
