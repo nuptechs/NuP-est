@@ -1746,7 +1746,13 @@ Responda em JSON no formato:
         validatedData.difficulty
       );
       
-      res.json(question);
+      // Add unique question ID for tracking hints/explanations
+      const questionWithId = {
+        ...question,
+        questionId: `q-${validatedData.assistantId}-${Date.now()}`,
+      };
+      
+      res.json(questionWithId);
     } catch (error: any) {
       console.error("Error generating question:", error);
       res.status(500).json({ message: "Failed to generate question: " + error.message });

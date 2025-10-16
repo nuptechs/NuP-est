@@ -43,6 +43,7 @@ const navigationSections: NavigationSection[] = [
     items: [
       { name: "Dashboard", href: "/", icon: Home, description: "Seu hub central" },
       { name: "AI Assistant", href: "/ai-assistant", icon: Bot, description: "Assistente inteligente" },
+      { name: "Assistente Personalizado", href: "/personalized-assistant", icon: Brain, description: "Estudo adaptativo" },
       { name: "Busca Global", href: "/search", icon: Search, description: "Encontre qualquer coisa" },
     ],
     defaultOpen: true

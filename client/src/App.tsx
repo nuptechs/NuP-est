@@ -21,6 +21,7 @@ import GoalBuilder from "@/pages/goal-builder";
 import AdminSearchConfig from "@/pages/admin-search-config";
 import IntegratedSearch from "@/pages/search-integrated";
 import AiAssistant from "@/components/dashboard/ai-assistant";
+import PersonalizedAssistant from "@/pages/personalized-assistant";
 
 // Componente para redirecionamento adequado usando wouter
 function Redirect({ to }: { to: string }) {
@@ -51,6 +52,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/onboarding" component={Onboarding} />
           <Route path="/ai-assistant" component={AiAssistant} />
+          <Route path="/personalized-assistant" component={PersonalizedAssistant} />
           
           {/* Nova biblioteca unificada */}
           <Route path="/library" component={Library} />
