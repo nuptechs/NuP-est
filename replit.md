@@ -35,7 +35,17 @@ All services integrate with AIManager using proper AIRequest/AIResponse types, i
 5. **POST /api/profile/interaction** - Log interactions and trigger profile updates
 6. **POST /api/assessment/adaptive** - Start adaptive assessments with IRT-based question selection
 
-All endpoints include authentication, ownership verification, Zod validation, and consistent error handling.
+All endpoints include authentication, ownership verification, Zod validation, and consistent error handling. Questions are persisted with database-generated IDs for hint/explanation tracking.
+
+**Frontend Integration (Phase 5 Complete):**
+1. **usePersonalizedAssistant hook** - Auto-fetches/creates assistant and profile, provides mutations for configuration
+2. **PersonalizedAssistantPage** - Main page with subject/topic selection, tabbed interface (Questions, Assessment, Chat, Profile)
+3. **AdaptiveQuestions component** - Full question flow with progressive 4-level hints, answer submission, explanations, statistics tracking
+4. **AdaptiveAssessment component** - IRT-based adaptive assessment with real-time ability estimation, results with strengths/weaknesses/strategies
+5. **AssistantChat component** - Real-time chat interface with markdown rendering, context-aware responses
+6. **StudentProfileView component** - Comprehensive profile visualization with cognitive abilities, learning style, study patterns
+
+All components include proper data-testid attributes, error handling, loading states, and integrate seamlessly with Phase 4 backend endpoints.
 
 ## Data Architecture
 
@@ -48,6 +58,10 @@ Authentication is handled via **Replit OAuth** (OpenID Connect). The system uses
 ## AI Integration
 
 The system integrates **OpenRouter** (DeepSeek R1 model) for advanced AI capabilities. AI interactions are profile-aware, adapting to user study profiles (disciplined, undisciplined, average). Key AI features include context-aware question generation, intelligent hints, personalized feedback, adaptive difficulty for questions and content, and smart recommendations for study strategies. The system processes uploaded study materials (PDF, DOC, DOCX, TXT, MD) to generate relevant content and questions.
+
+**Known Limitations:**
+- AI provider response times can be 15-30s for complex requests (OpenRouter latency)
+- Hint endpoint uses placeholder previousHints array (future enhancement: persist hints in assistant_memory or interaction_logs)
 
 # External Dependencies
 
