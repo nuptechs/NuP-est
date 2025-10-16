@@ -1918,6 +1918,123 @@ Responda em JSON no formato:
     }
   });
   
+  // Endpoint: Get user's personalized assistant
+  app.get('/api/assistant/my-assistant', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get or create assistant for user
+      let assistant = await storage.getActiveAssistant(userId);
+      
+      if (!assistant) {
+        // Get or create default profile first
+        const profiles = await storage.getStudentProfiles(userId);
+        let profile = profiles.length > 0 ? profiles[0] : null;
+        
+        if (!profile) {
+          profile = await storage.createStudentProfile({
+            userId,
+            version: 1,
+            primaryGoal: "Estudos Gerais",
+            strengths: {},
+            weaknesses: {},
+            discoverySource: "system_generated",
+          });
+        }
+        
+        // Create default assistant linked to profile
+        assistant = await storage.createPersonalizedAssistant({
+          userId,
+          profileId: profile.id,
+          name: "Meu Assistente IA",
+          personality: "friendly",
+          communicationStyle: "simple",
+          isActive: true,
+        });
+      }
+      
+      // Get profile
+      const profile = assistant.profileId 
+        ? await storage.getStudentProfile(assistant.profileId)
+        : null;
+      
+      res.json({ assistant, profile });
+    } catch (error: any) {
+      console.error("Error getting assistant:", error);
+      res.status(500).json({ message: "Failed to get assistant: " + error.message });
+    }
+  });
+
+  // Endpoint: Create personalized assistant
+  app.post('/api/assistant/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { name, personality, communicationStyle } = req.body;
+      
+      // Get or create profile
+      const profiles = await storage.getStudentProfiles(userId);
+      let profile = profiles.length > 0 ? profiles[0] : null;
+      
+      if (!profile) {
+        profile = await storage.createStudentProfile({
+          userId,
+          version: 1,
+          primaryGoal: "Estudos Gerais",
+          strengths: {},
+          weaknesses: {},
+          discoverySource: "system_generated",
+        });
+      }
+      
+      const assistant = await storage.createPersonalizedAssistant({
+        userId,
+        profileId: profile.id,
+        name: name || "Meu Assistente IA",
+        personality: personality || "friendly",
+        communicationStyle: communicationStyle || "simple",
+        isActive: true,
+      });
+      
+      res.json(assistant);
+    } catch (error: any) {
+      console.error("Error creating assistant:", error);
+      res.status(500).json({ message: "Failed to create assistant: " + error.message });
+    }
+  });
+
+  // Endpoint: Update assistant configuration
+  app.patch('/api/assistant/configure', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { assistantId, name, personality, communicationStyle } = req.body;
+      
+      if (!assistantId) {
+        return res.status(400).json({ message: "assistantId is required" });
+      }
+      
+      // Verify ownership
+      const assistant = await storage.getPersonalizedAssistant(assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const updates: any = {};
+      if (name) updates.name = name;
+      if (personality) updates.personality = personality;
+      if (communicationStyle) updates.communicationStyle = communicationStyle;
+      
+      const updated = await storage.updatePersonalizedAssistant(assistantId, updates);
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating assistant:", error);
+      res.status(500).json({ message: "Failed to update assistant: " + error.message });
+    }
+  });
+
   // Endpoint: Start adaptive assessment
   app.post('/api/assessment/adaptive', isAuthenticated, async (req: any, res) => {
     try {
