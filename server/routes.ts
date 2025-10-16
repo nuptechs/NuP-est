@@ -1746,13 +1746,31 @@ Responda em JSON no formato:
         validatedData.difficulty
       );
       
-      // Add unique question ID for tracking hints/explanations
-      const questionWithId = {
-        ...question,
-        questionId: `q-${validatedData.assistantId}-${Date.now()}`,
-      };
+      // Save question to database for hint/explanation tracking
+      const savedQuestion = await storage.createAssessmentQuestion({
+        question: question.question,
+        questionType: "open_ended", // Default type, could be enhanced later
+        options: question.options ? { options: question.options } : null,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation,
+        subjectArea: validatedData.topic,
+        topic: validatedData.topic,
+        difficulty: validatedData.difficulty ? String(validatedData.difficulty) : "0.5",
+        discrimination: "1.0",
+        guessing: "0.25",
+        isActive: true,
+      });
       
-      res.json(questionWithId);
+      // Return question with database ID for tracking
+      res.json({
+        questionId: savedQuestion.id,
+        question: question.question,
+        options: question.options,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation,
+        difficulty: savedQuestion.difficulty,
+        questionType: savedQuestion.questionType,
+      });
     } catch (error: any) {
       console.error("Error generating question:", error);
       res.status(500).json({ message: "Failed to generate question: " + error.message });
