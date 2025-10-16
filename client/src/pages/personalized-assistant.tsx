@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 import type { Subject } from "@shared/schema";
 import AdaptiveQuestions from "@/components/personalized-assistant/adaptive-questions";
+import AdaptiveAssessment from "@/components/personalized-assistant/adaptive-assessment";
+import AssistantChat from "@/components/personalized-assistant/assistant-chat";
+import StudentProfileView from "@/components/personalized-assistant/student-profile-view";
 
 export default function PersonalizedAssistantPage() {
   const { toast } = useToast();
@@ -283,13 +286,7 @@ function AdaptiveAssessmentPanel({ assistantId, subjectId, topicId }: {
   subjectId: string; 
   topicId?: string; 
 }) {
-  return (
-    <Card data-testid="card-adaptive-assessment">
-      <CardContent className="pt-6">
-        <p className="text-muted-foreground">Componente de Avaliação Adaptativa em construção...</p>
-      </CardContent>
-    </Card>
-  );
+  return <AdaptiveAssessment assistantId={assistantId} subjectId={subjectId} topicId={topicId} />;
 }
 
 // Componente de Chat com Assistente
@@ -297,100 +294,10 @@ function AssistantChatPanel({ assistantId, subjectId }: {
   assistantId: string; 
   subjectId: string; 
 }) {
-  return (
-    <Card data-testid="card-assistant-chat">
-      <CardContent className="pt-6">
-        <p className="text-muted-foreground">Componente de Chat em construção...</p>
-      </CardContent>
-    </Card>
-  );
+  return <AssistantChat assistantId={assistantId} subjectId={subjectId} />;
 }
 
 // Componente de Visualização de Perfil
 function StudentProfilePanel({ profile }: { profile: any }) {
-  if (!profile) {
-    return (
-      <Card data-testid="card-no-profile">
-        <CardContent className="pt-6">
-          <p className="text-muted-foreground">Nenhum perfil disponível</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card data-testid="card-student-profile-detail">
-      <CardHeader>
-        <CardTitle>Detalhes do Perfil</CardTitle>
-        <CardDescription>Informações sobre seu perfil de aprendizado</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-semibold mb-2">Informações Básicas</h4>
-            <div className="space-y-2">
-              <div>
-                <span className="text-sm text-muted-foreground">Objetivo: </span>
-                <span className="font-medium" data-testid="text-profile-goal">{profile.primaryGoal}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Versão: </span>
-                <span className="font-medium" data-testid="text-profile-version-detail">v{profile.version}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Fonte: </span>
-                <span className="font-medium" data-testid="text-profile-source">{profile.discoverySource}</span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-2">Estatísticas</h4>
-            <div className="space-y-2">
-              <div>
-                <span className="text-sm text-muted-foreground">Interações: </span>
-                <span className="font-medium" data-testid="text-profile-interactions">
-                  {profile.totalInteractions || 0}
-                </span>
-              </div>
-              {profile.confidenceScore && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Confiança: </span>
-                  <span className="font-medium" data-testid="text-profile-confidence">
-                    {(Number(profile.confidenceScore) * 100).toFixed(0)}%
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {(profile.strengths && Object.keys(profile.strengths).length > 0) && (
-          <div>
-            <h4 className="font-semibold mb-2">Pontos Fortes</h4>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(profile.strengths).map(([key, value]: [string, any]) => (
-                <Badge key={key} variant="default" data-testid={`badge-strength-${key}`}>
-                  {key}: {(value * 100).toFixed(0)}%
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(profile.weaknesses && Object.keys(profile.weaknesses).length > 0) && (
-          <div>
-            <h4 className="font-semibold mb-2">Áreas de Melhoria</h4>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(profile.weaknesses).map(([key, value]: [string, any]) => (
-                <Badge key={key} variant="destructive" data-testid={`badge-weakness-${key}`}>
-                  {key}: {(value * 100).toFixed(0)}%
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+  return <StudentProfileView profile={profile} />;
 }
