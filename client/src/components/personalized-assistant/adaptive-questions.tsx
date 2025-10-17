@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,10 +17,41 @@ import {
   Send,
   Eye,
   Loader2,
-  Sparkles
+  Sparkles,
+  Clock
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+// Componente de loading com timer
+function AILoadingState({ message, showTimer = true }: { message: string; showTimer?: boolean }) {
+  const [elapsed, setElapsed] = useState(0);
+  
+  useEffect(() => {
+    if (!showTimer) return;
+    
+    const interval = setInterval(() => {
+      setElapsed(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [showTimer]);
+  
+  return (
+    <div className="flex flex-col items-center gap-3 py-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="text-center">
+        <p className="text-sm font-medium">{message}</p>
+        {showTimer && (
+          <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+            <Clock className="h-3 w-3" />
+            {elapsed}s {elapsed > 30 && "(a IA pode demorar até 45s)"}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface AdaptiveQuestionsProps {
   assistantId: string;
@@ -261,23 +292,17 @@ export default function AdaptiveQuestions({ assistantId, subjectId, topicId }: A
             <p className="text-muted-foreground text-center max-w-md mb-6">
               Clique no botão abaixo para gerar sua primeira pergunta adaptativa
             </p>
-            <Button 
-              onClick={handleNextQuestion} 
-              disabled={generateQuestion.isPending}
-              data-testid="button-generate-question"
-            >
-              {generateQuestion.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Gerando...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Gerar Pergunta
-                </>
-              )}
-            </Button>
+            {generateQuestion.isPending ? (
+              <AILoadingState message="Gerando pergunta adaptada ao seu perfil..." />
+            ) : (
+              <Button 
+                onClick={handleNextQuestion} 
+                data-testid="button-generate-question"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Gerar Pergunta
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -363,16 +388,14 @@ export default function AdaptiveQuestions({ assistantId, subjectId, topicId }: A
                     disabled={currentHintLevel >= 4 || getHint.isPending}
                     data-testid="button-request-hint"
                   >
-                    {getHint.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Lightbulb className="mr-2 h-4 w-4" />
-                        Dica ({currentHintLevel}/4)
-                      </>
-                    )}
+                    <Lightbulb className="mr-2 h-4 w-4" />
+                    Dica ({currentHintLevel}/4)
                   </Button>
                 </div>
+                
+                {getHint.isPending && (
+                  <AILoadingState message="Gerando dica progressiva..." showTimer={false} />
+                )}
               </div>
             )}
 
@@ -408,24 +431,18 @@ export default function AdaptiveQuestions({ assistantId, subjectId, topicId }: A
                   </Card>
                 )}
 
-                <Button
-                  onClick={handleNextQuestion}
-                  className="w-full"
-                  disabled={generateQuestion.isPending}
-                  data-testid="button-next-question"
-                >
-                  {generateQuestion.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Gerando...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Próxima Pergunta
-                    </>
-                  )}
-                </Button>
+                {generateQuestion.isPending ? (
+                  <AILoadingState message="Gerando próxima pergunta adaptativa..." />
+                ) : (
+                  <Button
+                    onClick={handleNextQuestion}
+                    className="w-full"
+                    data-testid="button-next-question"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Próxima Pergunta
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>

@@ -3,6 +3,52 @@ import { AIRequest, AIResponse, AIMetrics, AIProviderConfig } from '../types';
 import { AppError, errorMessages } from '../../../utils/ErrorHandler';
 
 /**
+ * Helper: Fetch with timeout and retry logic
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  timeoutMs = 45000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+      
+    } catch (error: any) {
+      lastError = error;
+      
+      // Se foi timeout ou erro de rede, tentar novamente com backoff exponencial
+      if (error.name === 'AbortError' || error.message?.includes('fetch')) {
+        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        console.log(`⏳ OpenRouter: Tentativa ${attempt}/${maxRetries} falhou. Aguardando ${waitTime}ms...`);
+        
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+      }
+      
+      // Erro não recuperável, lançar imediatamente
+      throw error;
+    }
+  }
+  
+  throw lastError || new Error('Fetch failed after retries');
+}
+
+/**
  * Implementação do provedor OpenRouter
  * Suporta múltiplos modelos através do OpenRouter
  */
@@ -41,22 +87,27 @@ export class OpenRouterProvider implements IAIProvider {
     try {
       console.log(`🔗 OpenRouter: Fazendo requisição para ${model}`);
       
-      const response = await fetch(`${this.config.baseURL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.REPLIT_DOMAIN || 'localhost',
-          'X-Title': 'NuP-est Study Assistant'
+      const response = await fetchWithRetry(
+        `${this.config.baseURL}/chat/completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.REPLIT_DOMAIN || 'localhost',
+            'X-Title': 'NuP-est Study Assistant'
+          },
+          body: JSON.stringify({
+            model,
+            messages: request.messages,
+            temperature: request.temperature || 0.7,
+            max_tokens: request.maxTokens || 1500,
+            top_p: request.topP || 0.9,
+          })
         },
-        body: JSON.stringify({
-          model,
-          messages: request.messages,
-          temperature: request.temperature || 0.7,
-          max_tokens: request.maxTokens || 1500,
-          top_p: request.topP || 0.9,
-        })
-      });
+        3, // maxRetries
+        45000 // timeout 45s
+      );
 
       if (!response.ok) {
         const errorText = await response.text();

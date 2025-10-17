@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Send, Bot, User, Loader2 } from "lucide-react";
+import { MessageCircle, Send, Bot, User, Loader2, Clock } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -27,6 +27,7 @@ interface ChatMessage {
 export default function AssistantChat({ assistantId, subjectId, topicId }: AssistantChatProps) {
   const { toast } = useToast();
   const [inputMessage, setInputMessage] = useState("");
+  const [loadingTime, setLoadingTime] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Query para carregar histórico de mensagens
@@ -72,6 +73,20 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
       });
     },
   });
+
+  // Timer para loading state (after mutation declaration)
+  useEffect(() => {
+    if (!sendMessage.isPending) {
+      setLoadingTime(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setLoadingTime(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [sendMessage.isPending]);
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
@@ -170,10 +185,18 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
                     </AvatarFallback>
                   </Avatar>
                   <div className="bg-muted rounded-lg px-4 py-2">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <div className="flex gap-1 items-center">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                      {loadingTime > 10 && (
+                        <span className="ml-3 text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {loadingTime}s {loadingTime > 30 && "(a IA pode demorar até 45s)"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
