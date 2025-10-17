@@ -204,14 +204,14 @@ export default function PersonalizedAssistantPage() {
         </Card>
 
         {/* Tabs de funcionalidades */}
-        {selectedSubject && assistant?.id && (
+        {assistant?.id && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="questions" data-testid="tab-questions">
+              <TabsTrigger value="questions" data-testid="tab-questions" disabled={!selectedSubject}>
                 <HelpCircle className="h-4 w-4 mr-2" />
                 Perguntas
               </TabsTrigger>
-              <TabsTrigger value="assessment" data-testid="tab-assessment">
+              <TabsTrigger value="assessment" data-testid="tab-assessment" disabled={!selectedSubject}>
                 <GraduationCap className="h-4 w-4 mr-2" />
                 Avaliação
               </TabsTrigger>
@@ -226,19 +226,37 @@ export default function PersonalizedAssistantPage() {
             </TabsList>
 
             <TabsContent value="questions" className="mt-6">
-              <AdaptiveQuestionsPanel 
-                assistantId={assistant?.id || ""}
-                subjectId={selectedSubject}
-                topicId={selectedTopic}
-              />
+              {selectedSubject ? (
+                <AdaptiveQuestionsPanel 
+                  assistantId={assistant?.id || ""}
+                  subjectId={selectedSubject}
+                  topicId={selectedTopic}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <HelpCircle className="h-16 w-16 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Selecione uma matéria para gerar perguntas</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="assessment" className="mt-6">
-              <AdaptiveAssessmentPanel
-                assistantId={assistant?.id || ""}
-                subjectId={selectedSubject}
-                topicId={selectedTopic}
-              />
+              {selectedSubject ? (
+                <AdaptiveAssessmentPanel
+                  assistantId={assistant?.id || ""}
+                  subjectId={selectedSubject}
+                  topicId={selectedTopic}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <GraduationCap className="h-16 w-16 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Selecione uma matéria para iniciar avaliação</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="chat" className="mt-6">

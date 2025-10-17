@@ -1865,17 +1865,26 @@ Responda em JSON no formato:
       const { assistantId } = req.params;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
       
+      console.log(`[Chat Messages] GET request - assistantId: ${assistantId}, userId: ${userId}, limit: ${limit}`);
+      
       // Get assistant and verify ownership
       const assistant = await storage.getPersonalizedAssistant(assistantId);
       if (!assistant) {
+        console.log(`[Chat Messages] Assistant not found: ${assistantId}`);
         return res.status(404).json({ message: "Assistant not found" });
       }
       if (assistant.userId !== userId) {
+        console.log(`[Chat Messages] Unauthorized - assistant.userId: ${assistant.userId}, request.userId: ${userId}`);
         return res.status(403).json({ message: "Unauthorized" });
       }
       
       // Get chat messages
       const messages = await storage.getChatMessages(assistantId, limit);
+      console.log(`[Chat Messages] Found ${messages.length} messages for assistant ${assistantId}`);
+      if (messages.length > 0) {
+        console.log(`[Chat Messages] First message: ${messages[0].role} - ${messages[0].content.substring(0, 50)}...`);
+      }
+      
       res.json(messages);
     } catch (error: any) {
       console.error("Error fetching chat messages:", error);
@@ -1900,7 +1909,7 @@ Responda em JSON no formato:
       }
       
       // Save user message
-      await storage.createChatMessage({
+      const userMessage = await storage.createChatMessage({
         assistantId: validatedData.assistantId,
         userId,
         role: "user",
@@ -1908,6 +1917,7 @@ Responda em JSON no formato:
         subjectId: validatedData.subjectId || null,
         topicId: validatedData.topicId || null,
       });
+      console.log(`[Chat] User message saved - assistantId: ${validatedData.assistantId}, messageId: ${userMessage.id}`);
       
       // Initialize services
       const assistantCore = new PersonalizedAssistantCore(storage);
@@ -1957,6 +1967,7 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         model: aiResponse.model || undefined,
         processingTime,
       });
+      console.log(`[Chat] Assistant message saved - assistantId: ${validatedData.assistantId}, messageId: ${savedMessage.id}, content preview: "${aiResponse.content.substring(0, 50)}..."`);
       
       res.json({ 
         message: savedMessage,

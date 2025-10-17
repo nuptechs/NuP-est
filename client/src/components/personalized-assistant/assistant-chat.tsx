@@ -30,14 +30,10 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
   const [loadingTime, setLoadingTime] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Query para carregar histórico de mensagens
+  // Query para carregar histórico de mensagens (usa default queryFn com credentials)
+  const chatMessagesQueryKey = ['/api/assistant', assistantId, 'messages?limit=100'];
   const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
-    queryKey: ['/api/assistant', assistantId, 'messages'],
-    queryFn: async () => {
-      const response = await fetch(`/api/assistant/${assistantId}/messages?limit=100`);
-      if (!response.ok) throw new Error('Falha ao carregar mensagens');
-      return response.json();
-    },
+    queryKey: chatMessagesQueryKey,
     enabled: !!assistantId,
   });
 
@@ -60,9 +56,9 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
       return await response.json();
     },
     onSuccess: () => {
-      // Invalidar query para recarregar mensagens
+      // Invalidar query para recarregar mensagens (usa queryKey exato)
       import('@/lib/queryClient').then(({ queryClient }) => {
-        queryClient.invalidateQueries({ queryKey: ['/api/assistant', assistantId, 'messages'] });
+        queryClient.invalidateQueries({ queryKey: chatMessagesQueryKey });
       });
     },
     onError: (error: any) => {
