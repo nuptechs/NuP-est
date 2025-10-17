@@ -1858,11 +1858,37 @@ Responda em JSON no formato:
     }
   });
   
+  // Endpoint: Get chat message history
+  app.get('/api/assistant/:assistantId/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { assistantId } = req.params;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      
+      // Get assistant and verify ownership
+      const assistant = await storage.getPersonalizedAssistant(assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Get chat messages
+      const messages = await storage.getChatMessages(assistantId, limit);
+      res.json(messages);
+    } catch (error: any) {
+      console.error("Error fetching chat messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages: " + error.message });
+    }
+  });
+  
   // Endpoint: Chat with personalized assistant  
   app.post('/api/assistant/chat', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = chatRequestSchema.parse(req.body);
+      const startTime = Date.now();
       
       // Get assistant and verify ownership
       const assistant = await storage.getPersonalizedAssistant(validatedData.assistantId);
@@ -1873,17 +1899,68 @@ Responda em JSON no formato:
         return res.status(403).json({ message: "Unauthorized" });
       }
       
-      // Initialize service
-      const assistantCore = new PersonalizedAssistantCore(storage);
+      // Save user message
+      await storage.createChatMessage({
+        assistantId: validatedData.assistantId,
+        userId,
+        role: "user",
+        content: validatedData.message,
+        subjectId: validatedData.subjectId || null,
+        topicId: validatedData.topicId || null,
+      });
       
-      // Build conversation context
+      // Initialize services
+      const assistantCore = new PersonalizedAssistantCore(storage);
+      const aiManager = getAIManager();
+      
+      // Build conversation context with recent messages
       const context = await assistantCore.buildConversationContext(validatedData.assistantId);
       
-      // For now, return the context. Full chat implementation needs AI integration
+      // Get recent chat history for AI context
+      const recentMessages = await storage.getChatMessages(validatedData.assistantId, 10);
+      const conversationHistory = recentMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      
+      // Build system message with context
+      const systemMessage = `Você é um assistente de estudos personalizado com a seguinte personalidade: ${assistant.personality}.
+${assistant.name ? `Nome: ${assistant.name}` : ''}
+${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
+
+      // Build messages array for AI
+      const messages = [
+        { role: 'system' as const, content: systemMessage },
+        ...conversationHistory.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content
+        })),
+        { role: 'user' as const, content: validatedData.message }
+      ];
+
+      // Generate AI response
+      const aiResponse = await aiManager.request({
+        messages,
+        temperature: 0.7,
+      });
+      
+      const processingTime = Date.now() - startTime;
+      
+      // Save assistant response
+      const savedMessage = await storage.createChatMessage({
+        assistantId: validatedData.assistantId,
+        userId,
+        role: "assistant",
+        content: aiResponse.content,
+        subjectId: validatedData.subjectId || null,
+        topicId: validatedData.topicId || null,
+        model: aiResponse.model || undefined,
+        processingTime,
+      });
+      
       res.json({ 
-        message: "Chat endpoint requires full AI integration",
-        context,
-        userMessage: validatedData.message
+        message: savedMessage,
+        response: aiResponse.content
       });
     } catch (error: any) {
       console.error("Error in assistant chat:", error);

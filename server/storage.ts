@@ -68,6 +68,7 @@ import {
   studentAssessmentAttempts,
   interactionLogs,
   assistantMemory,
+  chatMessages,
   type LearningDifficultyCatalog,
   type InsertLearningDifficultyCatalog,
   type UserLearningDifficulty,
@@ -92,6 +93,8 @@ import {
   type InsertInteractionLog,
   type AssistantMemory,
   type InsertAssistantMemory,
+  type ChatMessage,
+  type InsertChatMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, or, isNotNull } from "drizzle-orm";
@@ -292,6 +295,10 @@ export interface IStorage {
   createAssistantMemory(memory: InsertAssistantMemory): Promise<AssistantMemory>;
   updateAssistantMemory(id: string, updates: Partial<InsertAssistantMemory>): Promise<AssistantMemory>;
   deleteAssistantMemory(id: string): Promise<void>;
+  
+  // Chat Messages operations
+  getChatMessages(assistantId: string, limit?: number): Promise<ChatMessage[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1719,6 +1726,28 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(assistantMemory)
       .where(eq(assistantMemory.id, id));
+  }
+
+  // Chat Messages
+  async getChatMessages(assistantId: string, limit: number = 100): Promise<ChatMessage[]> {
+    // Order DESC to get most recent messages, then reverse to return chronological order
+    const messages = await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.assistantId, assistantId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+    
+    // Reverse to return in chronological order (oldest first)
+    return messages.reverse();
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [newMessage] = await db
+      .insert(chatMessages)
+      .values(message)
+      .returning();
+    return newMessage;
   }
 }
 

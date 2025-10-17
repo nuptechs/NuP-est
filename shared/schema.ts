@@ -792,6 +792,31 @@ export const assistantMemory = pgTable("assistant_memory", {
   index("idx_assistant_memory_lookup").on(table.assistantId, table.key),
 ]);
 
+// Mensagens de chat do assistente (histórico de conversação)
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assistantId: varchar("assistant_id").notNull().references(() => personalizedAssistants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // Identificação da mensagem
+  role: varchar("role").notNull(), // "user" | "assistant"
+  content: text("content").notNull(),
+  
+  // Contexto da conversa
+  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  topicId: varchar("topic_id").references(() => topics.id, { onDelete: "set null" }),
+  
+  // Metadata
+  tokenCount: integer("token_count"), // Tokens usados nesta mensagem
+  model: varchar("model"), // Modelo de IA usado (se role = assistant)
+  processingTime: integer("processing_time"), // Tempo de processamento em ms
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_chat_messages_assistant").on(table.assistantId, table.createdAt),
+  index("idx_chat_messages_user").on(table.userId, table.createdAt),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   knowledgeAreas: many(knowledgeAreas),
@@ -821,6 +846,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   assessmentAttempts: many(studentAssessmentAttempts),
   interactionLogs: many(interactionLogs),
   assistantMemories: many(assistantMemory),
+  chatMessages: many(chatMessages),
 }));
 
 export const knowledgeAreasRelations = relations(knowledgeAreas, ({ one, many }) => ({
@@ -1093,6 +1119,7 @@ export const personalizedAssistantsRelations = relations(personalizedAssistants,
   assessments: many(adaptiveAssessments),
   interactionLogs: many(interactionLogs),
   memories: many(assistantMemory),
+  chatMessages: many(chatMessages),
 }));
 
 export const teachingStrategiesRelations = relations(teachingStrategies, ({ many }) => ({
@@ -1172,6 +1199,25 @@ export const assistantMemoryRelations = relations(assistantMemory, ({ one }) => 
   assistant: one(personalizedAssistants, {
     fields: [assistantMemory.assistantId],
     references: [personalizedAssistants.id],
+  }),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  user: one(users, {
+    fields: [chatMessages.userId],
+    references: [users.id],
+  }),
+  assistant: one(personalizedAssistants, {
+    fields: [chatMessages.assistantId],
+    references: [personalizedAssistants.id],
+  }),
+  subject: one(subjects, {
+    fields: [chatMessages.subjectId],
+    references: [subjects.id],
+  }),
+  topic: one(topics, {
+    fields: [chatMessages.topicId],
+    references: [topics.id],
   }),
 }));
 
@@ -1381,6 +1427,11 @@ export const insertAssistantMemorySchema = createInsertSchema(assistantMemory).o
   updatedAt: true,
 });
 
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -1454,6 +1505,8 @@ export type InteractionLog = typeof interactionLogs.$inferSelect;
 export type InsertInteractionLog = z.infer<typeof insertInteractionLogSchema>;
 export type AssistantMemory = typeof assistantMemory.$inferSelect;
 export type InsertAssistantMemory = z.infer<typeof insertAssistantMemorySchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
 // === API REQUEST VALIDATION SCHEMAS ===
 export const generateQuestionRequestSchema = z.object({
@@ -1478,6 +1531,8 @@ export const generateExplanationRequestSchema = z.object({
 export const chatRequestSchema = z.object({
   assistantId: z.string(),
   message: z.string(),
+  subjectId: z.string().optional(),
+  topicId: z.string().optional(),
   context: z.object({
     currentTopic: z.string().optional(),
     recentQuestions: z.array(z.string()).optional(),

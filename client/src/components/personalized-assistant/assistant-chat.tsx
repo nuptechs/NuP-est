@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,20 +14,31 @@ import remarkGfm from 'remark-gfm';
 interface AssistantChatProps {
   assistantId: string;
   subjectId?: string;
+  topicId?: string;
 }
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  createdAt: string;
 }
 
-export default function AssistantChat({ assistantId, subjectId }: AssistantChatProps) {
+export default function AssistantChat({ assistantId, subjectId, topicId }: AssistantChatProps) {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Query para carregar histórico de mensagens
+  const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
+    queryKey: ['/api/assistant', assistantId, 'messages'],
+    queryFn: async () => {
+      const response = await fetch(`/api/assistant/${assistantId}/messages?limit=100`);
+      if (!response.ok) throw new Error('Falha ao carregar mensagens');
+      return response.json();
+    },
+    enabled: !!assistantId,
+  });
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -41,19 +52,17 @@ export default function AssistantChat({ assistantId, subjectId }: AssistantChatP
     mutationFn: async (message: string) => {
       const response = await apiRequest("POST", "/api/assistant/chat", {
         assistantId,
-        userMessage: message,
-        context: subjectId ? { subjectId } : undefined,
+        message,
+        subjectId,
+        topicId,
       });
       return await response.json();
     },
-    onSuccess: (data) => {
-      // Adicionar resposta do assistente
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: data.response,
-        timestamp: new Date(),
-      }]);
+    onSuccess: () => {
+      // Invalidar query para recarregar mensagens
+      import('@/lib/queryClient').then(({ queryClient }) => {
+        queryClient.invalidateQueries({ queryKey: ['/api/assistant', assistantId, 'messages'] });
+      });
     },
     onError: (error: any) => {
       toast({
@@ -66,15 +75,7 @@ export default function AssistantChat({ assistantId, subjectId }: AssistantChatP
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: inputMessage,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    
     sendMessage.mutate(inputMessage);
     setInputMessage("");
   };
@@ -97,7 +98,11 @@ export default function AssistantChat({ assistantId, subjectId }: AssistantChatP
       <CardContent className="flex-1 flex flex-col p-0">
         {/* Área de mensagens */}
         <ScrollArea className="flex-1 px-4" ref={scrollRef}>
-          {messages.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <Bot className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="font-semibold mb-2">Olá! Como posso ajudar?</h3>
@@ -108,9 +113,9 @@ export default function AssistantChat({ assistantId, subjectId }: AssistantChatP
             </div>
           ) : (
             <div className="space-y-4 py-4">
-              {messages.map((message) => (
+              {messages.map((message, index) => (
                 <div
-                  key={message.id}
+                  key={message.id || index}
                   className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   data-testid={`message-${message.role}`}
                 >
@@ -139,7 +144,7 @@ export default function AssistantChat({ assistantId, subjectId }: AssistantChatP
                     <p className={`text-xs mt-1 ${
                       message.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
                     }`}>
-                      {message.timestamp.toLocaleTimeString('pt-BR', { 
+                      {new Date(message.createdAt).toLocaleTimeString('pt-BR', { 
                         hour: '2-digit', 
                         minute: '2-digit' 
                       })}
