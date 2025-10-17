@@ -31,18 +31,19 @@ All services integrate with AIManager using proper AIRequest/AIResponse types, i
 1. **POST /api/assistant/question** - Generate adaptive questions with profile-aware difficulty
 2. **POST /api/assistant/hint** - Progressive hint system with 4 levels (Note: currently uses placeholder hint history, future enhancement needed for persisted hints)
 3. **POST /api/assistant/explanation** - Personalized explanations adapted to learning profile
-4. **POST /api/assistant/chat** - Conversational assistant with context management
-5. **POST /api/profile/interaction** - Log interactions and trigger profile updates
-6. **POST /api/assessment/adaptive** - Start adaptive assessments with IRT-based question selection
+4. **POST /api/assistant/chat** - Conversational assistant with context management, saves user and AI messages to chatMessages table
+5. **GET /api/assistant/:id/messages** - Retrieve chat history with pagination (default 100 messages)
+6. **POST /api/profile/interaction** - Log interactions and trigger profile updates
+7. **POST /api/assessment/adaptive** - Start adaptive assessments with IRT-based question selection
 
-All endpoints include authentication, ownership verification, Zod validation, and consistent error handling. Questions are persisted with database-generated IDs for hint/explanation tracking.
+All endpoints include authentication, ownership verification, Zod validation, and consistent error handling. Questions are persisted with database-generated IDs for hint/explanation tracking. Chat messages are persisted with full conversation history.
 
 **Frontend Integration (Phase 5 Complete):**
 1. **usePersonalizedAssistant hook** - Auto-fetches/creates assistant and profile, provides mutations for configuration
-2. **PersonalizedAssistantPage** - Main page with subject/topic selection, tabbed interface (Questions, Assessment, Chat, Profile)
-3. **AdaptiveQuestions component** - Full question flow with progressive 4-level hints, answer submission, explanations, statistics tracking
+2. **PersonalizedAssistantPage** - Main page with subject/topic selection, tabbed interface (Questions, Assessment, Chat, Profile). Chat and Profile tabs always available, Questions/Assessment require subject selection.
+3. **AdaptiveQuestions component** - Full question flow with progressive 4-level hints, answer submission, explanations, statistics tracking. Enhanced timeout handling with visual timer (shows after 10s, warning after 30s).
 4. **AdaptiveAssessment component** - IRT-based adaptive assessment with real-time ability estimation, results with strengths/weaknesses/strategies
-5. **AssistantChat component** - Real-time chat interface with markdown rendering, context-aware responses
+5. **AssistantChat component** - Real-time chat interface with markdown rendering, context-aware responses, persistent message history. Uses singleton queryClient with shared queryKey for reliable cache invalidation.
 6. **StudentProfileView component** - Comprehensive profile visualization with cognitive abilities, learning style, study patterns
 
 All components include proper data-testid attributes, error handling, loading states, and integrate seamlessly with Phase 4 backend endpoints.
@@ -60,8 +61,15 @@ Authentication is handled via **Replit OAuth** (OpenID Connect). The system uses
 The system integrates **OpenRouter** (DeepSeek R1 model) for advanced AI capabilities. AI interactions are profile-aware, adapting to user study profiles (disciplined, undisciplined, average). Key AI features include context-aware question generation, intelligent hints, personalized feedback, adaptive difficulty for questions and content, and smart recommendations for study strategies. The system processes uploaded study materials (PDF, DOC, DOCX, TXT, MD) to generate relevant content and questions.
 
 **Known Limitations:**
-- AI provider response times can be 15-30s for complex requests (OpenRouter latency)
+- AI provider response times can be 15-30s for complex requests (OpenRouter latency with retry mechanism: timeout 45s + exponential backoff 1s→2s→4s)
 - Hint endpoint uses placeholder previousHints array (future enhancement: persist hints in assistant_memory or interaction_logs)
+
+**Production Readiness (October 2025):**
+- ✅ Gap #1 Chat Persistence: Full implementation with chatMessages table, GET/POST endpoints, persistent conversation history
+- ✅ Gap #2 AI Timeouts: 45s timeout + retry with exponential backoff, visual loading timers (10s/30s warnings)
+- ✅ Gap #3 Migration Script: Idempotent script `scripts/migrate-learning-difficulties.ts` ready for production deployment
+- ✅ UX Improvements: Chat/Profile tabs always accessible, Questions/Assessment require subject selection
+- ⚠️ Manual Testing Required: E2E playwright tests blocked by OIDC mock authentication (browser testing recommended)
 
 # External Dependencies
 
