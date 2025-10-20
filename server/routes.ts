@@ -42,6 +42,7 @@ import { PersonalizedAssistantCore } from './services/personalized-assistant/Per
 import { ContinuousDiscoveryService } from './services/personalized-assistant/ContinuousDiscoveryService';
 import { AdaptiveAssessmentService } from './services/personalized-assistant/AdaptiveAssessmentService';
 import { StudentProfileGenerator } from './services/personalized-assistant/StudentProfileGenerator';
+import { DailyStudyPlannerService } from './services/study-planner/DailyStudyPlannerService';
 
 // Usar configurações centralizadas
 const upload = UploadConfig.createMaterialUpload();
@@ -2147,6 +2148,45 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
     }
   });
 
+  // ========== DAILY STUDY PLANNER ENDPOINTS ==========
+  
+  // Get today's study plan
+  app.get('/api/study-planner/today', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const plannerService = new DailyStudyPlannerService(storage);
+      const dailyPlan = await plannerService.generateDailyPlan(userId);
+      
+      res.json(dailyPlan);
+    } catch (error: any) {
+      console.error("Error generating daily plan:", error);
+      res.status(500).json({ message: "Failed to generate daily plan: " + error.message });
+    }
+  });
+  
+  // Complete a study task
+  app.post('/api/study-planner/complete-task', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { taskId, timeSpent, notes } = req.body;
+      
+      if (!taskId || timeSpent === undefined) {
+        return res.status(400).json({ message: "taskId and timeSpent are required" });
+      }
+      
+      const plannerService = new DailyStudyPlannerService(storage);
+      await plannerService.completeTask(userId, taskId, timeSpent, notes);
+      
+      res.json({ message: "Task completed successfully" });
+    } catch (error: any) {
+      console.error("Error completing task:", error);
+      res.status(500).json({ message: "Failed to complete task: " + error.message });
+    }
+  });
+
+  // ========== ADAPTIVE ASSESSMENT ENDPOINTS ==========
+  
   // Endpoint: Start adaptive assessment
   app.post('/api/assessment/adaptive', isAuthenticated, async (req: any, res) => {
     try {

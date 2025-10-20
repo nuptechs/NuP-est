@@ -22,6 +22,7 @@ import AdminSearchConfig from "@/pages/admin-search-config";
 import IntegratedSearch from "@/pages/search-integrated";
 import AiAssistant from "@/components/dashboard/ai-assistant";
 import PersonalizedAssistant from "@/pages/personalized-assistant";
+import GuidedStudy from "@/pages/guided-study";
 
 // Componente para redirecionamento adequado usando wouter
 function Redirect({ to }: { to: string }) {
@@ -53,6 +54,7 @@ function Router() {
           <Route path="/onboarding" component={Onboarding} />
           <Route path="/ai-assistant" component={AiAssistant} />
           <Route path="/personalized-assistant" component={PersonalizedAssistant} />
+          <Route path="/guided-study" component={GuidedStudy} />
           
           {/* Nova biblioteca unificada */}
           <Route path="/library" component={Library} />
