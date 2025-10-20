@@ -6,7 +6,7 @@ NuP-est is an AI-powered adaptive study management platform that creates persona
 
 Preferred communication style: Simple, everyday language.
 User Experience Focus: Intuitive, guided workflows with minimal cognitive load.
-Design Philosophy: Clean, minimalist interfaces that prioritize user flow over feature complexity.
+Design Philosophy: Clean, minimalist interfaces that prioritize user flow over feature complexity. Modern UX inspired by best-in-class apps (Notion, Linear, Figma) - avoid "AI-generated" appearance through generous spacing, clear hierarchy, and intentional design choices.
 
 # System Architecture
 
@@ -40,7 +40,12 @@ All endpoints include authentication, ownership verification, Zod validation, an
 
 **Frontend Integration (Phase 5 Complete):**
 1. **usePersonalizedAssistant hook** - Auto-fetches/creates assistant and profile, provides mutations for configuration
-2. **PersonalizedAssistantPage** - Main page with subject/topic selection, tabbed interface (Questions, Assessment, Chat, Profile). Chat and Profile tabs always available, Questions/Assessment require subject selection.
+2. **PersonalizedAssistantPage (Redesigned October 2025)** - Modern sidebar-based layout with:
+   - **Sidebar (320px)**: Assistant header with gradient icon, subject/topic selectors with uppercase labels, vertical navigation (Chat, Questions, Assessment, Profile), contextual footer hints
+   - **Main Content Area**: Clean header with title/description/badges, full-height content rendering, contextual empty states
+   - **Mobile Responsive**: Toggle button with smooth slide-in/out animations, auto-close after navigation, dark backdrop overlay
+   - **Smart Navigation**: Chat and Profile always available, Questions/Assessment disabled without subject selection with visual hints
+   - **Modern UX**: Inspired by Notion/Linear/Figma - generous spacing, clear hierarchy, gradient accents, subtle backgrounds, no "AI-generated" appearance
 3. **AdaptiveQuestions component** - Full question flow with progressive 4-level hints, answer submission, explanations, statistics tracking. Enhanced timeout handling with visual timer (shows after 10s, warning after 30s).
 4. **AdaptiveAssessment component** - IRT-based adaptive assessment with real-time ability estimation, results with strengths/weaknesses/strategies
 5. **AssistantChat component** - Real-time chat interface with markdown rendering, context-aware responses, persistent message history. Uses singleton queryClient with shared queryKey for reliable cache invalidation.
@@ -69,6 +74,7 @@ The system integrates **OpenRouter** (DeepSeek R1 model) for advanced AI capabil
 - ✅ Gap #2 AI Timeouts: 45s timeout + retry with exponential backoff, visual loading timers (10s/30s warnings)
 - ✅ Gap #3 Migration Script: Idempotent script `scripts/migrate-learning-difficulties.ts` ready for production deployment
 - ✅ UX Improvements: Chat/Profile tabs always accessible, Questions/Assessment require subject selection
+- ✅ UI Redesign (October 2025): PersonalizedAssistantPage completely redesigned with modern sidebar layout, responsive mobile support, clean visual hierarchy
 - ⚠️ Manual Testing Required: E2E playwright tests blocked by OIDC mock authentication (browser testing recommended)
 
 # External Dependencies
