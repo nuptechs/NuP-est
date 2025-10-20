@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Send, Bot, User, Loader2, Clock } from "lucide-react";
+import { Send, Bot, User, Loader2, Clock } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -97,16 +96,10 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
   };
 
   return (
-    <Card className="flex flex-col h-[600px]" data-testid="card-chat">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Chat com Assistente
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0">
-        {/* Área de mensagens */}
-        <ScrollArea className="flex-1 px-4" ref={scrollRef}>
+    <div className="flex flex-col h-full" data-testid="card-chat">
+      {/* Área de mensagens */}
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full px-6 py-4" ref={scrollRef}>
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -198,34 +191,34 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
             </div>
           )}
         </ScrollArea>
+      </div>
 
-        {/* Área de input */}
-        <div className="border-t p-4">
-          <div className="flex gap-2">
-            <Textarea
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
-              className="min-h-[60px] max-h-[120px]"
-              data-testid="textarea-message"
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!inputMessage.trim() || sendMessage.isPending}
-              size="icon"
-              className="h-[60px] w-[60px]"
-              data-testid="button-send-message"
-            >
-              {sendMessage.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+      {/* Input de mensagem */}
+      <div className="border-t p-6 bg-background">
+        <div className="flex gap-3 max-w-5xl mx-auto">
+          <Textarea
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+            className="min-h-[80px] max-h-[160px] flex-1"
+            data-testid="textarea-message"
+          />
+          <Button
+            onClick={handleSendMessage}
+            disabled={!inputMessage.trim() || sendMessage.isPending}
+            size="icon"
+            className="h-[80px] w-[80px] flex-shrink-0"
+            data-testid="button-send-message"
+          >
+            {sendMessage.isPending ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
