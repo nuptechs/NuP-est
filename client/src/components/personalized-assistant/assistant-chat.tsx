@@ -133,18 +133,18 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
                     className={`max-w-[80%] rounded-lg px-4 py-2 ${
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                        : "bg-secondary/30 dark:bg-secondary/50 border border-border/50"
                     }`}
                   >
                     <div className={`prose prose-sm max-w-none ${
-                      message.role === "user" ? "prose-invert" : ""
+                      message.role === "user" ? "prose-invert" : "dark:prose-invert"
                     }`}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {message.content}
                       </ReactMarkdown>
                     </div>
-                    <p className={`text-xs mt-1 ${
-                      message.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                    <p className={`text-xs mt-1 opacity-70 ${
+                      message.role === "user" ? "text-primary-foreground" : "text-foreground"
                     }`}>
                       {new Date(message.createdAt).toLocaleTimeString('pt-BR', { 
                         hour: '2-digit', 
@@ -171,15 +171,15 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
                       <Bot className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="bg-muted rounded-lg px-4 py-2">
+                  <div className="bg-secondary/30 dark:bg-secondary/50 border border-border/50 rounded-lg px-4 py-2">
                     <div className="flex gap-1 items-center">
                       <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        <div className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <div className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                       </div>
                       {loadingTime > 10 && (
-                        <span className="ml-3 text-xs text-muted-foreground flex items-center gap-1">
+                        <span className="ml-3 text-xs text-foreground/70 flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {loadingTime}s {loadingTime > 30 && "(a IA pode demorar até 45s)"}
                         </span>
