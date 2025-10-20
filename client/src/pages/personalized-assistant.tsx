@@ -20,9 +20,7 @@ import {
   Target,
   Loader2,
   Sparkles,
-  ChevronRight,
-  Menu,
-  X
+  ChevronRight
 } from "lucide-react";
 import type { Subject } from "@shared/schema";
 import AdaptiveQuestions from "@/components/personalized-assistant/adaptive-questions";
@@ -36,7 +34,7 @@ export default function PersonalizedAssistantPage() {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"questions" | "assessment" | "chat" | "profile">("chat");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!assistantLoading && !hasAssistant && !createAssistant.isPending) {
@@ -79,15 +77,6 @@ export default function PersonalizedAssistantPage() {
   return (
     <AppShell title="Assistente Personalizado">
       <div className="flex h-[calc(100vh-4rem)] relative">
-        {/* Mobile Toggle */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed top-20 left-4 z-50 p-2 rounded-lg bg-background border shadow-lg"
-          data-testid="button-sidebar-toggle"
-        >
-          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-
         {/* Sidebar - Navegação e Seleção */}
         <div className={`
           w-80 border-r bg-muted/20 flex flex-col
@@ -249,18 +238,31 @@ export default function PersonalizedAssistantPage() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Content Header */}
-          <div className="border-b bg-background px-8 py-4">
+          <div className="border-b bg-background px-4 lg:px-8 py-4">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold">
-                  {navigationItems.find(i => i.id === activeTab)?.label}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {activeTab === "chat" && "Converse com seu assistente personalizado"}
-                  {activeTab === "questions" && "Pratique com perguntas adaptativas"}
-                  {activeTab === "assessment" && "Avalie seu conhecimento com IRT"}
-                  {activeTab === "profile" && "Visualize seu perfil de aprendizado"}
-                </p>
+              <div className="flex items-center gap-3">
+                {/* Mobile Sidebar Toggle */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden"
+                  data-testid="button-open-sidebar"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    {navigationItems.find(i => i.id === activeTab)?.label}
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {activeTab === "chat" && "Converse com seu assistente personalizado"}
+                    {activeTab === "questions" && "Pratique com perguntas adaptativas"}
+                    {activeTab === "assessment" && "Avalie seu conhecimento com IRT"}
+                    {activeTab === "profile" && "Visualize seu perfil de aprendizado"}
+                  </p>
+                </div>
               </div>
               
               {selectedSubjectData && (activeTab === "questions" || activeTab === "assessment") && (
