@@ -5,9 +5,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import AppShell from "@/components/layout/app-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Brain, 
@@ -18,7 +18,11 @@ import {
   User,
   BookOpen,
   Target,
-  Loader2
+  Loader2,
+  Sparkles,
+  ChevronRight,
+  Menu,
+  X
 } from "lucide-react";
 import type { Subject } from "@shared/schema";
 import AdaptiveQuestions from "@/components/personalized-assistant/adaptive-questions";
@@ -31,21 +35,19 @@ export default function PersonalizedAssistantPage() {
   const { assistant, profile, isLoading: assistantLoading, hasAssistant, createAssistant } = usePersonalizedAssistant();
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedTopic, setSelectedTopic] = useState<string>("");
-  const [activeTab, setActiveTab] = useState("questions");
+  const [activeTab, setActiveTab] = useState<"questions" | "assessment" | "chat" | "profile">("chat");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Auto-create assistant if it doesn't exist
   useEffect(() => {
     if (!assistantLoading && !hasAssistant && !createAssistant.isPending) {
       createAssistant.mutate({});
     }
   }, [assistantLoading, hasAssistant, createAssistant]);
 
-  // Buscar matérias do usuário
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ['/api/subjects'],
   });
 
-  // Buscar tópicos da matéria selecionada
   const { data: topics = [] } = useQuery<any[]>({
     queryKey: ['/api/topics', selectedSubject],
     enabled: !!selectedSubject,
@@ -64,118 +66,101 @@ export default function PersonalizedAssistantPage() {
     );
   }
 
+  const selectedSubjectData = subjects.find(s => s.id === selectedSubject);
+  const selectedTopicData = topics.find((t: any) => t.id === selectedTopic);
+
+  const navigationItems = [
+    { id: "chat", label: "Chat", icon: MessageSquare, disabled: false },
+    { id: "questions", label: "Perguntas", icon: HelpCircle, disabled: !selectedSubject },
+    { id: "assessment", label: "Avaliação", icon: GraduationCap, disabled: !selectedSubject },
+    { id: "profile", label: "Perfil", icon: User, disabled: false },
+  ] as const;
+
   return (
     <AppShell title="Assistente Personalizado">
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Header com informações do assistente */}
-        <Card data-testid="card-assistant-header">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Brain className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl" data-testid="text-assistant-name">
-                    {assistant?.name || "Meu Assistente IA"}
-                  </CardTitle>
-                  <CardDescription data-testid="text-assistant-description">
-                    Personalizado para seu estilo de aprendizado
-                  </CardDescription>
-                </div>
+      <div className="flex h-[calc(100vh-4rem)] relative">
+        {/* Mobile Toggle */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="lg:hidden fixed top-20 left-4 z-50 p-2 rounded-lg bg-background border shadow-lg"
+          data-testid="button-sidebar-toggle"
+        >
+          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
+        {/* Sidebar - Navegação e Seleção */}
+        <div className={`
+          w-80 border-r bg-muted/20 flex flex-col
+          lg:relative absolute inset-y-0 left-0 z-40
+          transform transition-transform duration-200 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
+          {/* Header do Assistente */}
+          <div className="p-6 border-b">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <div className="flex gap-2">
-                <Badge variant="outline" data-testid="badge-personality">
-                  {assistant?.personality || "friendly"}
-                </Badge>
-                <Badge variant="outline" data-testid="badge-communication-style">
-                  {assistant?.communicationStyle || "simple"}
-                </Badge>
+              <div>
+                <h2 className="font-semibold text-sm" data-testid="text-assistant-name">
+                  {assistant?.name || "Meu Assistente"}
+                </h2>
+                <p className="text-xs text-muted-foreground">Seu tutor pessoal</p>
               </div>
             </div>
-          </CardHeader>
-        </Card>
 
-        {/* Perfil do estudante */}
-        {profile && (
-          <Card data-testid="card-student-profile">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Seu Perfil de Aprendizado
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Objetivo Principal</p>
-                  <p className="text-lg font-semibold" data-testid="text-primary-goal">
-                    {profile.primaryGoal}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Versão do Perfil</p>
-                  <p className="text-lg font-semibold" data-testid="text-profile-version">
-                    v{profile.version}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <Badge variant={profile.isActive ? "default" : "secondary"} data-testid="badge-profile-status">
-                    {profile.isActive ? "Ativo" : "Inativo"}
-                  </Badge>
-                </div>
+            {profile && (
+              <div className="flex items-center gap-2 text-xs">
+                <Badge variant="secondary" className="text-xs" data-testid="badge-primary-goal">
+                  {profile.primaryGoal}
+                </Badge>
+                <Badge variant="outline" className="text-xs" data-testid="badge-profile-status">
+                  v{profile.version}
+                </Badge>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </div>
 
-        {/* Seleção de Matéria/Tópico */}
-        <Card data-testid="card-subject-selection">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Selecione o Conteúdo
-            </CardTitle>
-            <CardDescription>
-              Escolha a matéria e tópico para estudar com seu assistente
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Seleção de Conteúdo */}
+          <div className="p-6 border-b space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wide">
+                Matéria
+              </label>
+              <Select
+                value={selectedSubject}
+                onValueChange={(value) => {
+                  setSelectedSubject(value);
+                  setSelectedTopic("");
+                }}
+              >
+                <SelectTrigger className="h-9" data-testid="select-subject">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id} data-testid={`select-item-subject-${subject.id}`}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedSubject && topics.length > 0 && (
               <div>
-                <label className="text-sm font-medium mb-2 block">Matéria</label>
-                <Select
-                  value={selectedSubject}
-                  onValueChange={(value) => {
-                    setSelectedSubject(value);
-                    setSelectedTopic("");
-                  }}
-                >
-                  <SelectTrigger data-testid="select-subject">
-                    <SelectValue placeholder="Selecione uma matéria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((subject) => (
-                      <SelectItem key={subject.id} value={subject.id} data-testid={`select-item-subject-${subject.id}`}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">Tópico (opcional)</label>
+                <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wide">
+                  Tópico (opcional)
+                </label>
                 <Select
                   value={selectedTopic}
                   onValueChange={setSelectedTopic}
-                  disabled={!selectedSubject}
                 >
-                  <SelectTrigger data-testid="select-topic">
-                    <SelectValue placeholder="Selecione um tópico" />
+                  <SelectTrigger className="h-9" data-testid="select-topic">
+                    <SelectValue placeholder="Todos os tópicos" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">Todos os tópicos</SelectItem>
                     {topics.map((topic: any) => (
                       <SelectItem key={topic.id} value={topic.id} data-testid={`select-item-topic-${topic.id}`}>
                         {topic.name}
@@ -184,138 +169,198 @@ export default function PersonalizedAssistantPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            )}
 
-            {selectedSubject && (
-              <div className="flex gap-2 pt-2">
-                <Badge variant="secondary" data-testid="badge-selected-subject">
-                  <BookOpen className="h-3 w-3 mr-1" />
-                  {subjects.find(s => s.id === selectedSubject)?.name}
-                </Badge>
-                {selectedTopic && (
-                  <Badge variant="secondary" data-testid="badge-selected-topic">
-                    <Target className="h-3 w-3 mr-1" />
-                    {topics.find((t: any) => t.id === selectedTopic)?.name}
-                  </Badge>
+            {selectedSubjectData && (
+              <div className="pt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <BookOpen className="h-3 w-3" />
+                <span>{selectedSubjectData.name}</span>
+                {selectedTopicData && (
+                  <>
+                    <ChevronRight className="h-3 w-3" />
+                    <span>{selectedTopicData.name}</span>
+                  </>
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Tabs de funcionalidades */}
-        {assistant?.id && (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="questions" data-testid="tab-questions" disabled={!selectedSubject}>
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Perguntas
-              </TabsTrigger>
-              <TabsTrigger value="assessment" data-testid="tab-assessment" disabled={!selectedSubject}>
-                <GraduationCap className="h-4 w-4 mr-2" />
-                Avaliação
-              </TabsTrigger>
-              <TabsTrigger value="chat" data-testid="tab-chat">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Chat
-              </TabsTrigger>
-              <TabsTrigger value="profile" data-testid="tab-profile">
-                <User className="h-4 w-4 mr-2" />
-                Perfil
-              </TabsTrigger>
-            </TabsList>
+          {/* Navegação */}
+          <nav className="flex-1 p-4 space-y-1">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              const isDisabled = item.disabled;
 
-            <TabsContent value="questions" className="mt-6">
-              {selectedSubject ? (
-                <AdaptiveQuestionsPanel 
-                  assistantId={assistant?.id || ""}
-                  subjectId={selectedSubject}
-                  topicId={selectedTopic}
-                />
-              ) : (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <HelpCircle className="h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Selecione uma matéria para gerar perguntas</p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (!isDisabled) {
+                      setActiveTab(item.id as any);
+                      // Auto-close sidebar on mobile after navigation
+                      if (window.innerWidth < 1024) {
+                        setSidebarOpen(false);
+                      }
+                    }
+                  }}
+                  disabled={isDisabled}
+                  data-testid={`nav-${item.id}`}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                    transition-all
+                    ${isActive 
+                      ? 'bg-primary text-primary-foreground shadow-sm' 
+                      : isDisabled
+                        ? 'text-muted-foreground/40 cursor-not-allowed'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }
+                  `}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                  {isDisabled && (
+                    <span className="ml-auto text-xs opacity-50">Selecione matéria</span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
 
-            <TabsContent value="assessment" className="mt-6">
-              {selectedSubject ? (
-                <AdaptiveAssessmentPanel
-                  assistantId={assistant?.id || ""}
-                  subjectId={selectedSubject}
-                  topicId={selectedTopic}
-                />
-              ) : (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <GraduationCap className="h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Selecione uma matéria para iniciar avaliação</p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            <TabsContent value="chat" className="mt-6">
-              <AssistantChatPanel
-                assistantId={assistant?.id || ""}
-                subjectId={selectedSubject}
-              />
-            </TabsContent>
-
-            <TabsContent value="profile" className="mt-6">
-              <StudentProfilePanel profile={profile} />
-            </TabsContent>
-          </Tabs>
-        )}
-
-        {/* Mensagem quando não há matéria selecionada */}
-        {!selectedSubject && (
-          <Card data-testid="card-no-subject-selected">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Lightbulb className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Selecione uma Matéria</h3>
-              <p className="text-muted-foreground text-center max-w-md">
-                Escolha uma matéria acima para começar a estudar com seu assistente personalizado
+          {/* Footer com dica */}
+          <div className="p-4 border-t bg-muted/30">
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <p>
+                Selecione uma matéria para acessar perguntas e avaliações personalizadas.
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Backdrop for mobile */}
+        {sidebarOpen && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Content Header */}
+          <div className="border-b bg-background px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">
+                  {navigationItems.find(i => i.id === activeTab)?.label}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {activeTab === "chat" && "Converse com seu assistente personalizado"}
+                  {activeTab === "questions" && "Pratique com perguntas adaptativas"}
+                  {activeTab === "assessment" && "Avalie seu conhecimento com IRT"}
+                  {activeTab === "profile" && "Visualize seu perfil de aprendizado"}
+                </p>
+              </div>
+              
+              {selectedSubjectData && (activeTab === "questions" || activeTab === "assessment") && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" data-testid="badge-selected-subject">
+                    <BookOpen className="h-3 w-3 mr-1" />
+                    {selectedSubjectData.name}
+                  </Badge>
+                  {selectedTopicData && (
+                    <Badge variant="outline" data-testid="badge-selected-topic">
+                      <Target className="h-3 w-3 mr-1" />
+                      {selectedTopicData.name}
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Content Body */}
+          <div className="flex-1 overflow-y-auto bg-muted/10">
+            <div className="h-full">
+              {activeTab === "questions" && (
+                selectedSubject ? (
+                  <AdaptiveQuestions 
+                    assistantId={assistant?.id || ""} 
+                    subjectId={selectedSubject} 
+                    topicId={selectedTopic} 
+                  />
+                ) : (
+                  <EmptyState
+                    icon={HelpCircle}
+                    title="Selecione uma matéria"
+                    description="Escolha uma matéria na barra lateral para começar a praticar com perguntas adaptativas."
+                  />
+                )
+              )}
+
+              {activeTab === "assessment" && (
+                selectedSubject ? (
+                  <AdaptiveAssessment 
+                    assistantId={assistant?.id || ""} 
+                    subjectId={selectedSubject} 
+                    topicId={selectedTopic} 
+                  />
+                ) : (
+                  <EmptyState
+                    icon={GraduationCap}
+                    title="Selecione uma matéria"
+                    description="Escolha uma matéria na barra lateral para iniciar uma avaliação adaptativa."
+                  />
+                )
+              )}
+
+              {activeTab === "chat" && (
+                <AssistantChat 
+                  assistantId={assistant?.id || ""} 
+                  subjectId={selectedSubject} 
+                />
+              )}
+
+              {activeTab === "profile" && (
+                profile ? (
+                  <div className="p-8">
+                    <StudentProfileView profile={profile} />
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={User}
+                    title="Perfil não disponível"
+                    description="Seu perfil de aprendizado será gerado automaticamente conforme você interage com o assistente."
+                  />
+                )
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </AppShell>
   );
 }
 
-// Componente de Perguntas Adaptativas
-function AdaptiveQuestionsPanel({ assistantId, subjectId, topicId }: { 
-  assistantId: string; 
-  subjectId: string; 
-  topicId?: string; 
+function EmptyState({ 
+  icon: Icon, 
+  title, 
+  description 
+}: { 
+  icon: any; 
+  title: string; 
+  description: string;
 }) {
-  return <AdaptiveQuestions assistantId={assistantId} subjectId={subjectId} topicId={topicId} />;
-}
-
-// Componente de Avaliação Adaptativa
-function AdaptiveAssessmentPanel({ assistantId, subjectId, topicId }: { 
-  assistantId: string; 
-  subjectId: string; 
-  topicId?: string; 
-}) {
-  return <AdaptiveAssessment assistantId={assistantId} subjectId={subjectId} topicId={topicId} />;
-}
-
-// Componente de Chat com Assistente
-function AssistantChatPanel({ assistantId, subjectId }: { 
-  assistantId: string; 
-  subjectId: string; 
-}) {
-  return <AssistantChat assistantId={assistantId} subjectId={subjectId} />;
-}
-
-// Componente de Visualização de Perfil
-function StudentProfilePanel({ profile }: { profile: any }) {
-  return <StudentProfileView profile={profile} />;
+  return (
+    <div className="flex items-center justify-center h-full p-8">
+      <div className="text-center max-w-md">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+          <Icon className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        <p className="text-muted-foreground text-sm">{description}</p>
+      </div>
+    </div>
+  );
 }
