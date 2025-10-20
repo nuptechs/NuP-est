@@ -196,20 +196,23 @@ export default function PersonalizedAssistantPage() {
                   disabled={isDisabled}
                   data-testid={`nav-${item.id}`}
                   className={`
-                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-                    transition-all
+                    w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                    transition-all relative
                     ${isActive 
                       ? 'bg-primary text-primary-foreground shadow-sm' 
                       : isDisabled
-                        ? 'text-muted-foreground/40 cursor-not-allowed'
+                        ? 'text-muted-foreground/30 cursor-not-allowed bg-muted/20 border border-dashed border-muted-foreground/20'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     }
                   `}
+                  title={isDisabled ? "Selecione uma matéria primeiro" : undefined}
                 >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-4 w-4 ${isDisabled ? 'opacity-30' : ''}`} />
+                    <span className={isDisabled ? 'opacity-50' : ''}>{item.label}</span>
+                  </div>
                   {isDisabled && (
-                    <span className="ml-auto text-xs opacity-50">Selecione matéria</span>
+                    <span className="text-[10px] opacity-40 font-normal">🔒</span>
                   )}
                 </button>
               );
