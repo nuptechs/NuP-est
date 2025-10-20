@@ -207,24 +207,37 @@ export default function FlashcardsModernPage() {
   // Generate from material mutation
   const generateFromMaterialMutation = useMutation({
     mutationFn: async (data: MaterialFlashcardFormData) => {
-      const response = await apiRequest("POST", "/api/flashcard-decks/generate-from-material", {
-        ...data,
-        subjectId: data.subjectId || null, // Convert empty string to null
-      });
-      return response.json();
+      console.log("[Flashcards] Gerando flashcards do material:", data);
+      
+      try {
+        // apiRequest handles errors and returns Response object
+        const response = await apiRequest("POST", "/api/flashcard-decks/generate-from-material", {
+          ...data,
+          subjectId: data.subjectId || null, // Convert empty string to null
+        });
+        
+        const result = await response.json();
+        console.log("[Flashcards] Flashcards gerados com sucesso:", result);
+        return result;
+      } catch (error) {
+        console.error("[Flashcards] Erro ao gerar flashcards:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("[Flashcards] onSuccess called with:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/flashcard-decks"] });
       toast({
-        title: "Sucesso",
-        description: "Flashcards gerados com sucesso a partir do material!",
+        title: "✅ Sucesso!",
+        description: `${data.flashcards?.length || 0} flashcards gerados com sucesso!`,
       });
       setMaterialModalOpen(false);
       materialForm.reset();
     },
     onError: (error: any) => {
+      console.error("[Flashcards] onError called with:", error);
       toast({
-        title: "Erro",
+        title: "❌ Erro",
         description: error.message || "Erro ao gerar flashcards do material",
         variant: "destructive",
       });
