@@ -2,7 +2,24 @@ import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { OpenAI } from 'openai';
 import fs from 'fs';
 import { ProcessedDocument } from './hierarchicalChunker';
-import { HierarchicalChunk } from './structureInterpreter';
+
+// Tipo local para chunks hierárquicos
+interface HierarchicalChunk {
+  id: string;
+  title: string;
+  content: string;
+  level: number;
+  startPosition: number;
+  endPosition: number;
+  parentId: string | undefined;
+  metadata: {
+    wordCount: number;
+    hasNumbers: boolean;
+    hasSpecialTerms: boolean;
+    confidence: number;
+    sectionType: string;
+  };
+}
 
 interface DocumentElement {
   type: 'title' | 'subtitle' | 'paragraph' | 'list_item';

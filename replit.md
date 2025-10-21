@@ -65,29 +65,37 @@ Authentication is handled via **Replit OAuth** (OpenID Connect). The system uses
 
 The system integrates **OpenRouter** (DeepSeek R1 model) for advanced AI capabilities. AI interactions are profile-aware, adapting to user study profiles (disciplined, undisciplined, average). Key AI features include context-aware question generation, intelligent hints, personalized feedback, adaptive difficulty for questions and content, and smart recommendations for study strategies. The system processes uploaded study materials (PDF, DOC, DOCX, TXT, MD) to generate relevant content and questions.
 
-**Integration Architecture (October 2025 - REFACTORED):**
+**Integration Architecture (October 2025 - REFACTORED + IMPROVED):**
 
 All external service integrations are now centralized in `server/integrations/`:
 ```
 server/integrations/
-├── openai/           # ✅ MIGRADO - OpenAI/OpenRouter/DeepSeek
-├── document-ai/      # 🚧 Estrutura criada
-├── pinecone/         # 🚧 Estrutura criada
+├── openai/           # ✅ MIGRADO + Circuit Breaker + Rate Limit Handling
+├── document-ai/      # 🚧 Estrutura criada (aguardando migração)
+├── pinecone/         # ✅ MIGRADO + Batch Otimizado + Retry Logic
 └── README.md         # Documentação completa de gaps
 ```
 
-**OpenAI/OpenRouter Integration:**
-- ✅ **AIClient** centralizado com retry/timeout/logging
+**OpenAI/OpenRouter Integration (Enhanced):**
+- ✅ **AIClient** centralizado com retry/timeout/logging/circuit breaker
+- ✅ **Circuit Breaker**: Previne cascatas de falhas (5 falhas → OPEN por 60s, auto-recuperação)
+- ✅ **Rate Limit Detection**: Detecta 429 e usa Retry-After header para backoff inteligente
+- ✅ **Health Metrics**: Rastreia success rate, circuit state, falhas consecutivas
 - ✅ Usado por: OpenRouterProvider, DeepSeekService, SmartSummaryService, AIService
-- ✅ Benefícios: Retry exponencial (1s→2s→4s), timeout 45s, logging detalhado
 - ✅ Zero dependências diretas em services
-- 📝 **Gaps Documentados**: Ver `server/integrations/README.md`
+
+**Pinecone Integration (Enhanced):**
+- ✅ **PineconeClient** completo com batch upsert otimizado (100 vetores/batch automático)
+- ✅ **Retry Logic**: Exponential backoff para rate limits e erros de rede
+- ✅ **Namespace Support**: Flexível via parâmetro (não hardcoded)
+- ✅ **Full Operations**: upsert, query, delete, deleteAll, getStats, healthCheck
+- ✅ Type-safe com TypeScript completo
 
 **Known Limitations:**
 - AI provider response times can be 15-30s for complex requests (OpenRouter latency with retry mechanism: timeout 45s + exponential backoff 1s→2s→4s)
 - Hint endpoint uses placeholder previousHints array (future enhancement: persist hints in assistant_memory or interaction_logs)
 - Timeout pode exceder 45s em requests muito complexos
-- Retry exponencial pode ser insuficiente para rate limits intensos
+- Métricas de circuit breaker não persistidas (reset em restart)
 
 **Production Readiness (October 2025):**
 - ✅ Gap #1 Chat Persistence: Full implementation with chatMessages table, GET/POST endpoints, persistent conversation history
