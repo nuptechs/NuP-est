@@ -23,6 +23,7 @@ import IntegratedSearch from "@/pages/search-integrated";
 import AiAssistant from "@/components/dashboard/ai-assistant";
 import PersonalizedAssistant from "@/pages/personalized-assistant";
 import GuidedStudy from "@/pages/guided-study";
+import Topics from "@/pages/topics";
 
 // Componente para redirecionamento adequado usando wouter
 function Redirect({ to }: { to: string }) {
@@ -70,6 +71,7 @@ function Router() {
           <Route path="/quiz" component={Quiz} />
           <Route path="/goals" component={Goals} />
           <Route path="/goal-builder" component={GoalBuilder} />
+          <Route path="/topics" component={Topics} />
           <Route path="/admin/search-config" component={AdminSearchConfig} />
           <Route path="/search" component={IntegratedSearch} />
           

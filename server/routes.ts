@@ -327,6 +327,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/topics/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const topic = await storage.updateTopic(id, updates);
+      res.json(topic);
+    } catch (error) {
+      console.error("Error updating topic:", error);
+      res.status(400).json({ message: "Failed to update topic" });
+    }
+  });
+
+  app.delete('/api/topics/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteTopic(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting topic:", error);
+      res.status(500).json({ message: "Failed to delete topic" });
+    }
+  });
+
   // Material routes
   app.get('/api/materials', isAuthenticated, async (req: any, res) => {
     try {
