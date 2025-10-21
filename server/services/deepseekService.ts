@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { createAIClient, AIClient } from '../integrations/openai';
 
 interface ChunkGenerationRequest {
   content: string;
@@ -52,14 +52,19 @@ interface ConteudoProgramaticoResponse {
 }
 
 export class DeepSeekService {
-  private openai: OpenAI;
+  private aiClient: AIClient;
 
   constructor() {
-    // Usar OpenRouter para acessar DeepSeek R1
-    this.openai = new OpenAI({
+    // Usar cliente integrado para acessar DeepSeek R1 via OpenRouter
+    this.aiClient = createAIClient({
+      provider: 'openrouter',
+      apiKey: process.env.OPENROUTER_API_KEY || '',
       baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPENROUTER_API_KEY,
+      models: {
+        default: "deepseek/deepseek-r1"
+      }
     });
+    console.log('✅ [DeepSeekService] Inicializado com cliente integrado');
   }
 
   /**
@@ -72,7 +77,7 @@ export class DeepSeekService {
     try {
       const prompt = this.buildChunkGenerationPrompt(request);
       
-      const completion = await this.openai.chat.completions.create({
+      const aiResponse = await this.aiClient.sendRequest({
         model: "deepseek/deepseek-r1",
         messages: [
           {
@@ -85,10 +90,10 @@ export class DeepSeekService {
           }
         ],
         temperature: 0.1,
-        max_tokens: 1200, // Reduzido para caber no limite de créditos disponível
+        maxTokens: 1200, // Reduzido para caber no limite de créditos disponível
       });
 
-      const response = completion.choices[0].message.content;
+      const response = aiResponse.content;
       
       if (!response) {
         throw new Error('DeepSeek R1 não retornou resposta válida');
@@ -120,7 +125,7 @@ export class DeepSeekService {
     try {
       const prompt = this.buildCargoAnalysisPrompt(request);
       
-      const completion = await this.openai.chat.completions.create({
+      const aiResponse = await this.aiClient.sendRequest({
         model: "deepseek/deepseek-r1",
         messages: [
           {
@@ -133,10 +138,10 @@ export class DeepSeekService {
           }
         ],
         temperature: 0.1,
-        max_tokens: 1000,
+        maxTokens: 1000,
       });
 
-      const response = completion.choices[0].message.content;
+      const response = aiResponse.content;
       
       if (!response) {
         throw new Error('DeepSeek R1 não retornou resposta válida para análise de cargos');
@@ -162,7 +167,7 @@ export class DeepSeekService {
     try {
       const prompt = this.buildConteudoProgramaticoPrompt(request);
       
-      const completion = await this.openai.chat.completions.create({
+      const aiResponse = await this.aiClient.sendRequest({
         model: "deepseek/deepseek-r1",
         messages: [
           {
@@ -175,10 +180,10 @@ export class DeepSeekService {
           }
         ],
         temperature: 0.1,
-        max_tokens: 800, // Reduzido para otimizar uso de créditos
+        maxTokens: 800, // Reduzido para otimizar uso de créditos
       });
 
-      const response = completion.choices[0].message.content;
+      const response = aiResponse.content;
       
       if (!response) {
         throw new Error('DeepSeek R1 não retornou resposta válida para extração de conteúdo');

@@ -1,4 +1,5 @@
-import OpenAI from 'openai';
+import { createAIClient, AIClient } from '../integrations/openai';
+
 // Type compatibility - usando definição local para manter compatibilidade
 interface TitleChunk {
   id: string;
@@ -30,13 +31,18 @@ interface SmartSummary {
 }
 
 export class SmartSummaryService {
-  private openai: OpenAI;
+  private aiClient: AIClient;
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
+    this.aiClient = createAIClient({
+      provider: 'openrouter',
+      apiKey: process.env.OPENROUTER_API_KEY || '',
       baseURL: 'https://openrouter.ai/api/v1',
+      models: {
+        default: 'deepseek/deepseek-r1'
+      }
     });
+    console.log('✅ [SmartSummaryService] Inicializado com cliente integrado');
   }
 
   /**
@@ -80,7 +86,7 @@ export class SmartSummaryService {
     
     try {
       console.log(`🚀 [OPENROUTER-DEBUG] Fazendo chamada para deepseek/deepseek-r1...`);
-      const response = await this.openai.chat.completions.create({
+      const aiResponse = await this.aiClient.sendRequest({
         model: 'deepseek/deepseek-r1',
         messages: [
           {
@@ -93,10 +99,10 @@ export class SmartSummaryService {
           }
         ],
         temperature: 0.3,
-        max_tokens: 2000
+        maxTokens: 2000
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = aiResponse.content;
       console.log(`📥 [OPENROUTER-DEBUG] Resposta recebida (${content?.length || 0} chars):`, content?.substring(0, 200) + '...');
       
       if (!content) {
@@ -374,7 +380,7 @@ Responda apenas com o texto do resumo, sem formatação adicional.
 `;
 
     try {
-      const response = await this.openai.chat.completions.create({
+      const aiResponse = await this.aiClient.sendRequest({
         model: 'deepseek/deepseek-r1',
         messages: [
           {
@@ -387,10 +393,10 @@ Responda apenas com o texto do resumo, sem formatação adicional.
           }
         ],
         temperature: 0.3,
-        max_tokens: 300
+        maxTokens: 300
       });
 
-      return response.choices[0]?.message?.content || 'Resumo geral não disponível.';
+      return aiResponse.content || 'Resumo geral não disponível.';
     } catch (error) {
       console.error('Erro ao gerar resumo geral:', error);
       return `Este documento contém ${summaryItems.length} seções organizadas hierarquicamente, abordando diversos aspectos do edital ${documentName}.`;
