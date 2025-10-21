@@ -121,6 +121,7 @@ export interface IStorage {
 
   // Topic operations
   getTopics(subjectId: string): Promise<Topic[]>;
+  getTopic(id: string): Promise<Topic | undefined>;
   createTopic(topic: InsertTopic): Promise<Topic>;
   updateTopic(id: string, updates: Partial<InsertTopic>): Promise<Topic>;
   deleteTopic(id: string): Promise<void>;
@@ -472,6 +473,11 @@ export class DatabaseStorage implements IStorage {
       .from(topics)
       .where(eq(topics.subjectId, subjectId))
       .orderBy(topics.order);
+  }
+
+  async getTopic(id: string): Promise<Topic | undefined> {
+    const [topic] = await db.select().from(topics).where(eq(topics.id, id));
+    return topic;
   }
 
   async createTopic(topic: InsertTopic): Promise<Topic> {

@@ -330,9 +330,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/topics/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user.claims.sub;
       const updates = req.body;
-      const topic = await storage.updateTopic(id, updates);
-      res.json(topic);
+      
+      // Verify ownership: topic must belong to a subject owned by the user
+      const topic = await storage.getTopic(id);
+      if (!topic) {
+        return res.status(404).json({ message: "Topic not found" });
+      }
+      
+      const subject = await storage.getSubject(topic.subjectId);
+      if (!subject || subject.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden: You don't own this topic" });
+      }
+      
+      // If subjectId is being changed, verify the new subject also belongs to the user
+      if (updates.subjectId && updates.subjectId !== topic.subjectId) {
+        const newSubject = await storage.getSubject(updates.subjectId);
+        if (!newSubject || newSubject.userId !== userId) {
+          return res.status(403).json({ message: "Forbidden: Target subject doesn't belong to you" });
+        }
+      }
+      
+      const updatedTopic = await storage.updateTopic(id, updates);
+      res.json(updatedTopic);
     } catch (error) {
       console.error("Error updating topic:", error);
       res.status(400).json({ message: "Failed to update topic" });
@@ -342,6 +363,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/topics/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Verify ownership: topic must belong to a subject owned by the user
+      const topic = await storage.getTopic(id);
+      if (!topic) {
+        return res.status(404).json({ message: "Topic not found" });
+      }
+      
+      const subject = await storage.getSubject(topic.subjectId);
+      if (!subject || subject.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden: You don't own this topic" });
+      }
+      
       await storage.deleteTopic(id);
       res.status(204).send();
     } catch (error) {
