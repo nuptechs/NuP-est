@@ -30,7 +30,7 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Query para carregar histórico de mensagens (usa default queryFn com credentials)
-  const chatMessagesQueryKey = ['/api/assistant', assistantId, 'messages?limit=100'];
+  const chatMessagesQueryKey = [`/api/assistant/${assistantId}/messages?limit=100`];
   const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
     queryKey: chatMessagesQueryKey,
     enabled: !!assistantId,

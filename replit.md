@@ -45,7 +45,7 @@ All endpoints include authentication, ownership verification, Zod validation, an
 - ✅ **submitAnswerRequestSchema**: Type-safe request validation without client-controlled completion fields
 - ✅ **Question Ownership**: Validates question belongs to assessment's subject area before processing
 
-**Frontend Integration (Phase 5 Complete):**
+**Frontend Integration (Phase 5 Complete + Bug Fix October 2025):**
 1. **usePersonalizedAssistant hook** - Auto-fetches/creates assistant and profile, provides mutations for configuration
 2. **PersonalizedAssistantPage (Redesigned October 2025)** - Modern sidebar-based layout with:
    - **Sidebar (320px)**: Assistant header with gradient icon, subject/topic selectors with uppercase labels, vertical navigation (Chat, Questions, Assessment, Profile), contextual footer hints
@@ -55,7 +55,7 @@ All endpoints include authentication, ownership verification, Zod validation, an
    - **Modern UX**: Inspired by Notion/Linear/Figma - generous spacing, clear hierarchy, gradient accents, subtle backgrounds, no "AI-generated" appearance
 3. **AdaptiveQuestions component** - Full question flow with progressive 4-level hints, answer submission, explanations, statistics tracking. Enhanced timeout handling with visual timer (shows after 10s, warning after 30s).
 4. **AdaptiveAssessment component** - IRT-based adaptive assessment with real-time ability estimation, results with strengths/weaknesses/strategies
-5. **AssistantChat component** - Real-time chat interface with markdown rendering, context-aware responses, persistent message history. Uses singleton queryClient with shared queryKey for reliable cache invalidation.
+5. **AssistantChat component (Fixed October 2025)** - Real-time chat interface with markdown rendering, context-aware responses, persistent message history. Fixed queryKey bug that prevented history loading. Uses singleton queryClient with shared queryKey for reliable cache invalidation.
 6. **StudentProfileView component** - Comprehensive profile visualization with cognitive abilities, learning style, study patterns
 
 All components include proper data-testid attributes, error handling, loading states, and integrate seamlessly with Phase 4 backend endpoints.
