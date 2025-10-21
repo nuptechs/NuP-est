@@ -125,7 +125,11 @@ server/integrations/
 - ✅ UX Improvements: Chat/Profile tabs always accessible, Questions/Assessment require subject selection
 - ✅ UI Redesign (October 2025): PersonalizedAssistantPage completely redesigned with modern sidebar layout, responsive mobile support, clean visual hierarchy
 - ✅ CRUD Completion (October 2025): Materials UPDATE/DELETE integrated in Library page with edit mode in MaterialUpload; Targets DELETE implemented in Goals page
-- ✅ API Cleanup (October 2025): Redundant PUT /api/knowledge-base/:id removed, only PATCH remains for consistency
+- ✅ API Cleanup (October 2025): 
+  - Redundant PUT /api/knowledge-base/:id removed (use PATCH)
+  - Redundant POST /api/flashcard-decks/generate-from-material removed (use /api/ai/generate-flashcards-from-material)
+  - Redundant POST /api/flashcard-decks/generate-from-file removed (use /api/ai/generate-flashcards with embeddings)
+  - Frontend updated to use consolidated AI endpoints
 - ⚠️ Manual Testing Required: E2E playwright tests blocked by OIDC mock authentication (browser testing recommended)
 
 # External Dependencies
