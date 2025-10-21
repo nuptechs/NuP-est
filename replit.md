@@ -124,12 +124,20 @@ server/integrations/
 - ✅ Gap #4 Integration Architecture: Todas as integrações externas centralizadas em `server/integrations/`, gaps documentados
 - ✅ UX Improvements: Chat/Profile tabs always accessible, Questions/Assessment require subject selection
 - ✅ UI Redesign (October 2025): PersonalizedAssistantPage completely redesigned with modern sidebar layout, responsive mobile support, clean visual hierarchy
-- ✅ CRUD Completion (October 2025): Materials UPDATE/DELETE integrated in Library page with edit mode in MaterialUpload; Targets DELETE implemented in Goals page
+- ✅ CRUD Completion (October 2025): 
+  - Materials UPDATE/DELETE integrated in Library page with edit mode in MaterialUpload
+  - Targets DELETE implemented in Goals page
+  - Topics full CRUD with dedicated management page (/topics)
 - ✅ API Cleanup (October 2025): 
   - Redundant PUT /api/knowledge-base/:id removed (use PATCH)
   - Redundant POST /api/flashcard-decks/generate-from-material removed (use /api/ai/generate-flashcards-from-material)
   - Redundant POST /api/flashcard-decks/generate-from-file removed (use /api/ai/generate-flashcards with embeddings)
   - Frontend updated to use consolidated AI endpoints
+- ✅ Topics Management (October 2025):
+  - New page `/topics` with full CRUD interface
+  - Backend endpoints: GET, POST, PATCH, DELETE with dual ownership validation
+  - Security: Topic ownership validated through subject relationship; PATCH validates both current and target subjects
+  - Features: Filter by subject, search, drag-order, edit/delete actions
 - ⚠️ Manual Testing Required: E2E playwright tests blocked by OIDC mock authentication (browser testing recommended)
 
 # External Dependencies
