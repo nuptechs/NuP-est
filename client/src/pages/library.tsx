@@ -742,6 +742,17 @@ export default function Library() {
                   }} 
                 />
               )}
+              {navigation.level === 'materials' && itemToEdit && (
+                <MaterialUpload 
+                  material={itemToEdit}
+                  subjectId={navigation.selectedSubjectId}
+                  onSuccess={() => {
+                    setIsEditModalOpen(false);
+                    setItemToEdit(null);
+                    queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+                  }} 
+                />
+              )}
             </div>
           </DialogContent>
         </Dialog>

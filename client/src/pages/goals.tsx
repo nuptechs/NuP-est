@@ -239,6 +239,31 @@ export default function Goals() {
     },
   });
 
+  const deleteTargetMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/targets/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/targets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
+      toast({
+        title: "Objetivo removido",
+        description: "Objetivo removido com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      if (error.status === 401) {
+        window.location.href = "/api/login";
+        return;
+      }
+      toast({
+        title: "Erro",
+        description: "Falha ao remover objetivo",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Helper functions
   const resetGoalForm = () => {
     setGoalFormData({
@@ -619,11 +644,22 @@ export default function Goals() {
                                         </div>
                                       </div>
                                       
-                                      {(target.targetValue || target.unit) && (
-                                        <Badge variant="secondary">
-                                          {target.targetValue} {target.unit}
-                                        </Badge>
-                                      )}
+                                      <div className="flex items-center gap-2">
+                                        {(target.targetValue || target.unit) && (
+                                          <Badge variant="secondary">
+                                            {target.targetValue} {target.unit}
+                                          </Badge>
+                                        )}
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => deleteTargetMutation.mutate(target.id)}
+                                          data-testid={`button-delete-target-${target.id}`}
+                                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </div>
                                     </div>
                                   </Card>
                                 ))}

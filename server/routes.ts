@@ -1455,25 +1455,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/knowledge-base/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const { title, description, tags, isActive } = req.body;
-      
-      const updates: any = {};
-      if (title !== undefined) updates.title = title;
-      if (description !== undefined) updates.description = description;
-      if (tags !== undefined) updates.tags = tags;
-      if (isActive !== undefined) updates.isActive = isActive;
-
-      const document = await storage.updateKnowledgeDocument(id, updates);
-      res.json(document);
-    } catch (error) {
-      console.error('Error updating knowledge document:', error);
-      res.status(500).json({ message: 'Failed to update document' });
-    }
-  });
-
+  // DEPRECATED: PUT endpoint removed - use PATCH instead (RESTful best practice)
+  // Previously: app.put('/api/knowledge-base/:id') - redundant with PATCH below
+  
   app.patch('/api/knowledge-base/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

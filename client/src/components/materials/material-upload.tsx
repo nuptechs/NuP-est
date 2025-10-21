@@ -15,6 +15,7 @@ import { Upload, FileText, Link, Video, File as FileIcon } from "lucide-react";
 import type { Subject } from "@shared/schema";
 
 interface MaterialUploadProps {
+  material?: any | null;
   onSuccess: () => void;
   subjectId?: string;
 }
@@ -24,7 +25,7 @@ const formSchema = insertMaterialSchema.omit({ userId: true }).extend({
   type: z.string().min(1, "Tipo é obrigatório"),
 });
 
-export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadProps) {
+export default function MaterialUpload({ material, onSuccess, subjectId }: MaterialUploadProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -37,26 +38,29 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      subjectId: subjectId || "",
-      type: "",
-      url: "",
-      content: "",
+      title: material?.title || "",
+      description: material?.description || "",
+      subjectId: material?.subjectId || subjectId || "",
+      type: material?.type || "",
+      url: material?.url || "",
+      content: material?.content || "",
     },
   });
 
   const uploadMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/materials", {
-        method: "POST",
+      const url = material ? `/api/materials/${material.id}` : "/api/materials";
+      const method = material ? "PATCH" : "POST";
+      
+      const response = await fetch(url, {
+        method,
         body: data,
         credentials: "include",
       });
 
       if (!response.ok) {
         const error = await response.text();
-        throw new Error(error || "Failed to upload material");
+        throw new Error(error || `Failed to ${material ? 'update' : 'upload'} material`);
       }
 
       return response.json();
@@ -64,8 +68,8 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
       
-      if (subjectId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/materials", subjectId] });
+      if (subjectId || material?.subjectId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/materials", subjectId || material.subjectId] });
       }
       
       queryClient.invalidateQueries({ 
@@ -76,14 +80,14 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
       
       toast({
         title: "Sucesso",
-        description: "Material adicionado com sucesso!",
+        description: material ? "Material atualizado com sucesso!" : "Material adicionado com sucesso!",
       });
       onSuccess();
     },
     onError: (error) => {
       toast({
         title: "Erro",
-        description: "Falha ao adicionar material: " + error.message,
+        description: `Falha ao ${material ? 'atualizar' : 'adicionar'} material: ` + error.message,
         variant: "destructive",
       });
     },
@@ -301,7 +305,7 @@ export default function MaterialUpload({ onSuccess, subjectId }: MaterialUploadP
               Salvando...
             </div>
           ) : (
-            "Adicionar"
+            material ? "Atualizar" : "Adicionar"
           )}
         </Button>
       </div>
