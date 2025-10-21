@@ -26,7 +26,8 @@ import {
   generateHintRequestSchema,
   generateExplanationRequestSchema,
   chatRequestSchema,
-  updateProfileInteractionRequestSchema
+  updateProfileInteractionRequestSchema,
+  submitAnswerRequestSchema
 } from "@shared/schema";
 import { embeddingsService } from "./services/embeddings";
 import { knowledgeChunks } from "@shared/schema";
@@ -2375,7 +2376,7 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
   app.post('/api/assessment/adaptive', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { assistantId, subjectId, topicId } = req.body;
+      const { assistantId, subjectId, topicId, totalQuestions } = req.body;
       
       if (!assistantId || !subjectId) {
         return res.status(400).json({ message: "assistantId and subjectId are required" });
@@ -2390,6 +2391,11 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         return res.status(403).json({ message: "Unauthorized" });
       }
       
+      // Backend-controlled expected total questions (use client value or default to 10)
+      const expectedTotalQuestions = typeof totalQuestions === 'number' && totalQuestions > 0 
+        ? Math.min(totalQuestions, 50) // Cap at 50 for safety
+        : 10;
+      
       // Create adaptive assessment
       const assessment = await storage.createAdaptiveAssessment({
         userId,
@@ -2398,7 +2404,8 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         profileId: assistant.profileId,
         assistantId,
         initialDifficulty: 'medium',
-        totalQuestions: 0,
+        expectedTotalQuestions, // Store expected total (backend-controlled)
+        totalQuestions: 0, // Start at 0 answered questions
         currentQuestion: 0,
         isComplete: false,
       });
@@ -2422,6 +2429,93 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
     } catch (error: any) {
       console.error("Error creating adaptive assessment:", error);
       res.status(500).json({ message: "Failed to create assessment: " + error.message });
+    }
+  });
+  
+  // Endpoint: Submit answer to adaptive assessment
+  app.post('/api/assessment/submit-answer', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Validate request with Zod
+      const validatedData = submitAnswerRequestSchema.parse(req.body);
+      const { assessmentId, questionId, answer, timeSpent, hintsRequested } = validatedData;
+      
+      // Verify assessment ownership
+      const assessment = await storage.getAdaptiveAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ message: "Assessment not found" });
+      }
+      if (assessment.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Verify question exists and get its details for validation
+      const question = await storage.getAssessmentQuestion(questionId);
+      if (!question) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+      
+      // Defense in depth: Verify question belongs to the same subject area as assessment
+      if (assessment.subjectArea && question.subjectArea !== assessment.subjectArea) {
+        return res.status(400).json({ 
+          message: "Question does not belong to this assessment's subject area" 
+        });
+      }
+      
+      // Initialize service
+      const assessmentService = new AdaptiveAssessmentService();
+      
+      // Submit answer and get attempt result
+      const attempt = await assessmentService.submitAnswer({
+        assessmentId,
+        questionId,
+        userId,
+        userAnswer: answer,
+        timeSpent,
+        hintsRequested,
+      });
+      
+      // Get next question or complete assessment
+      const updatedAssessment = await storage.getAdaptiveAssessment(assessmentId);
+      if (!updatedAssessment) {
+        return res.status(404).json({ message: "Assessment not found after update" });
+      }
+      
+      const currentQuestions = updatedAssessment.totalQuestions || 0;
+      const expectedTotal = updatedAssessment.expectedTotalQuestions || 10; // Backend-controlled
+      
+      let nextQuestion = null;
+      let result = null;
+      
+      if (currentQuestions >= expectedTotal) {
+        // Assessment complete - generate results
+        const completionResult = await assessmentService.completeAssessment(assessmentId, userId);
+        const attempts = await storage.getStudentAssessmentAttempts(userId, assessmentId);
+        result = {
+          finalAbility: completionResult.finalAbility,
+          confidence: completionResult.confidence,
+          strengths: completionResult.strengths,
+          weaknesses: completionResult.weaknesses,
+          totalQuestions: currentQuestions,
+          correctCount: attempts.filter(a => a.isCorrect).length,
+        };
+      } else {
+        // Get next question
+        const questionResult = await assessmentService.getNextQuestion(assessmentId, userId);
+        nextQuestion = questionResult.question;
+      }
+      
+      res.json({
+        isCorrect: attempt.isCorrect,
+        abilityEstimate: parseFloat(attempt.abilityEstimateAfter || '0'),
+        confidence: parseFloat(attempt.confidenceAfter || '0'),
+        nextQuestion,
+        result,
+      });
+    } catch (error: any) {
+      console.error("Error submitting answer:", error);
+      res.status(500).json({ message: "Failed to submit answer: " + error.message });
     }
   });
 

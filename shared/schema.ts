@@ -640,7 +640,8 @@ export const adaptiveAssessments = pgTable("adaptive_assessments", {
   adaptiveAlgorithm: varchar("adaptive_algorithm").default("irt"), // "irt", "cat", "simple"
   
   // Progresso
-  totalQuestions: integer("total_questions").default(0),
+  expectedTotalQuestions: integer("expected_total_questions").default(10), // Número esperado de questões (backend-controlled)
+  totalQuestions: integer("total_questions").default(0), // Questões respondidas até agora
   currentQuestion: integer("current_question").default(0),
   isComplete: boolean("is_complete").default(false),
   
@@ -1545,4 +1546,12 @@ export const updateProfileInteractionRequestSchema = z.object({
   interactionData: z.record(z.any()),
   engagement: z.string().optional(), // "high", "medium", "low"
   comprehension: z.string().optional(), // "high", "medium", "low"
+});
+
+export const submitAnswerRequestSchema = z.object({
+  assessmentId: z.string(),
+  questionId: z.string(),
+  answer: z.string(),
+  timeSpent: z.number().optional(),
+  hintsRequested: z.number().optional(),
 });
