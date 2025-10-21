@@ -174,7 +174,7 @@ export default function FlashcardsModernPage() {
       if (data.subjectId) formData.append('subjectId', data.subjectId); // Only append if not empty
       formData.append('count', data.count.toString());
 
-      const response = await fetch('/api/flashcard-decks/generate-from-file', {
+      const response = await fetch('/api/ai/generate-flashcards', {
         method: 'POST',
         body: formData,
       });
@@ -211,7 +211,7 @@ export default function FlashcardsModernPage() {
       
       try {
         // apiRequest handles errors and returns Response object
-        const response = await apiRequest("POST", "/api/flashcard-decks/generate-from-material", {
+        const response = await apiRequest("POST", "/api/ai/generate-flashcards-from-material", {
           ...data,
           subjectId: data.subjectId || null, // Convert empty string to null
         });
