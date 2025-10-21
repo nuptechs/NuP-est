@@ -21,14 +21,24 @@ integrations/
 
 ## 📊 Status das Integrações
 
-### ✅ OpenAI/OpenRouter
-- **Status**: Base implementada
+### ✅ OpenAI/OpenRouter (MIGRADO)
+- **Status**: ✅ Completamente implementado e em produção
 - **Arquivo**: `openai/client.ts`
 - **Responsável**: Comunicação com APIs de IA
+- **Services Usando**:
+  - ✅ OpenRouterProvider (via AIManager)
+  - ✅ DeepSeekService
+  - ✅ SmartSummaryService
+  - ✅ AIService (via funções de conveniência)
+- **Benefícios**:
+  - ✅ Retry automático com exponential backoff (1s→2s→4s)
+  - ✅ Timeout configurável (45s)
+  - ✅ Logging detalhado
+  - ✅ Zero dependências diretas em services
 - **Gaps Conhecidos**:
-  - [ ] Timeout pode exceder 45s em requests complexos
-  - [ ] Retry exponencial insuficiente para rate limits
-  - [ ] Falta circuit breaker
+  - [ ] Timeout pode exceder 45s em requests muito complexos
+  - [ ] Retry exponencial pode ser insuficiente para rate limits intensos
+  - [ ] Falta circuit breaker para múltiplas falhas consecutivas
 
 ### 🚧 Google Document AI
 - **Status**: Estrutura criada, aguardando migração

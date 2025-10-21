@@ -65,14 +65,35 @@ Authentication is handled via **Replit OAuth** (OpenID Connect). The system uses
 
 The system integrates **OpenRouter** (DeepSeek R1 model) for advanced AI capabilities. AI interactions are profile-aware, adapting to user study profiles (disciplined, undisciplined, average). Key AI features include context-aware question generation, intelligent hints, personalized feedback, adaptive difficulty for questions and content, and smart recommendations for study strategies. The system processes uploaded study materials (PDF, DOC, DOCX, TXT, MD) to generate relevant content and questions.
 
+**Integration Architecture (October 2025 - REFACTORED):**
+
+All external service integrations are now centralized in `server/integrations/`:
+```
+server/integrations/
+├── openai/           # ✅ MIGRADO - OpenAI/OpenRouter/DeepSeek
+├── document-ai/      # 🚧 Estrutura criada
+├── pinecone/         # 🚧 Estrutura criada
+└── README.md         # Documentação completa de gaps
+```
+
+**OpenAI/OpenRouter Integration:**
+- ✅ **AIClient** centralizado com retry/timeout/logging
+- ✅ Usado por: OpenRouterProvider, DeepSeekService, SmartSummaryService, AIService
+- ✅ Benefícios: Retry exponencial (1s→2s→4s), timeout 45s, logging detalhado
+- ✅ Zero dependências diretas em services
+- 📝 **Gaps Documentados**: Ver `server/integrations/README.md`
+
 **Known Limitations:**
 - AI provider response times can be 15-30s for complex requests (OpenRouter latency with retry mechanism: timeout 45s + exponential backoff 1s→2s→4s)
 - Hint endpoint uses placeholder previousHints array (future enhancement: persist hints in assistant_memory or interaction_logs)
+- Timeout pode exceder 45s em requests muito complexos
+- Retry exponencial pode ser insuficiente para rate limits intensos
 
 **Production Readiness (October 2025):**
 - ✅ Gap #1 Chat Persistence: Full implementation with chatMessages table, GET/POST endpoints, persistent conversation history
 - ✅ Gap #2 AI Timeouts: 45s timeout + retry with exponential backoff, visual loading timers (10s/30s warnings)
 - ✅ Gap #3 Migration Script: Idempotent script `scripts/migrate-learning-difficulties.ts` ready for production deployment
+- ✅ Gap #4 Integration Architecture: Todas as integrações externas centralizadas em `server/integrations/`, gaps documentados
 - ✅ UX Improvements: Chat/Profile tabs always accessible, Questions/Assessment require subject selection
 - ✅ UI Redesign (October 2025): PersonalizedAssistantPage completely redesigned with modern sidebar layout, responsive mobile support, clean visual hierarchy
 - ⚠️ Manual Testing Required: E2E playwright tests blocked by OIDC mock authentication (browser testing recommended)
