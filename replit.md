@@ -27,16 +27,23 @@ The server is built with **Express.js** and **TypeScript** in ESM format. It use
 
 All services integrate with AIManager using proper AIRequest/AIResponse types, include Portuguese language support, handle edge cases (zero division, null values), and are architect-approved for production.
 
-**AI Assistant API Endpoints (Phase 4 Complete):**
+**AI Assistant API Endpoints (Phase 4 Complete + Security Hardening):**
 1. **POST /api/assistant/question** - Generate adaptive questions with profile-aware difficulty
 2. **POST /api/assistant/hint** - Progressive hint system with 4 levels (Note: currently uses placeholder hint history, future enhancement needed for persisted hints)
 3. **POST /api/assistant/explanation** - Personalized explanations adapted to learning profile
 4. **POST /api/assistant/chat** - Conversational assistant with context management, saves user and AI messages to chatMessages table
 5. **GET /api/assistant/:id/messages** - Retrieve chat history with pagination (default 100 messages)
 6. **POST /api/profile/interaction** - Log interactions and trigger profile updates
-7. **POST /api/assessment/adaptive** - Start adaptive assessments with IRT-based question selection
+7. **POST /api/assessment/adaptive** - Start adaptive assessments with IRT-based question selection, backend-controlled expectedTotalQuestions (capped at 50)
+8. **POST /api/assessment/submit-answer** - Submit answer with IRT-based ability estimation, automatic next question selection, backend-controlled completion
 
 All endpoints include authentication, ownership verification, Zod validation, and consistent error handling. Questions are persisted with database-generated IDs for hint/explanation tracking. Chat messages are persisted with full conversation history.
+
+**Security Features (October 2025):**
+- ✅ **Backend-Controlled Assessment Completion**: Assessment total questions stored in `expectedTotalQuestions` field (capped 1-50), preventing client-controlled completion attacks
+- ✅ **Layered Validation**: Zod schema validation → ownership checks → question existence → subject area match (defense in depth)
+- ✅ **submitAnswerRequestSchema**: Type-safe request validation without client-controlled completion fields
+- ✅ **Question Ownership**: Validates question belongs to assessment's subject area before processing
 
 **Frontend Integration (Phase 5 Complete):**
 1. **usePersonalizedAssistant hook** - Auto-fetches/creates assistant and profile, provides mutations for configuration
