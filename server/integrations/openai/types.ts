@@ -12,12 +12,15 @@ export interface AIRequest {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  topP?: number;
   responseFormat?: 'text' | 'json';
 }
 
 export interface AIResponse {
   content: string;
   model: string;
+  provider: string;
+  requestId?: string;
   usage?: {
     promptTokens: number;
     completionTokens: number;
@@ -38,7 +41,7 @@ export type AIProvider = 'openai' | 'openrouter' | 'deepseek';
 export interface ProviderConfig {
   provider: AIProvider;
   apiKey: string;
-  baseURL?: string;
+  baseURL: string;
   models: {
     default: string;
     chat?: string;

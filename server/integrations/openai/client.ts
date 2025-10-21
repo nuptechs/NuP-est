@@ -15,11 +15,55 @@
  * - [ ] Falta circuit breaker para múltiplas falhas consecutivas
  */
 
-import OpenAI from 'openai';
 import type { AIRequest, AIResponse, AIClientConfig, ProviderConfig } from './types';
 
+/**
+ * Helper: Fetch with timeout and retry logic
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  timeoutMs = 45000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+      
+    } catch (error: any) {
+      lastError = error;
+      
+      // Se foi timeout ou erro de rede, tentar novamente com backoff exponencial
+      if (error.name === 'AbortError' || error.message?.includes('fetch')) {
+        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        console.log(`⏳ [AI Client] Tentativa ${attempt}/${maxRetries} falhou. Aguardando ${waitTime}ms...`);
+        
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+      }
+      
+      // Erro não recuperável, lançar imediatamente
+      throw error;
+    }
+  }
+  
+  throw lastError || new Error('Fetch failed after retries');
+}
+
 export class AIClient {
-  private client: OpenAI;
   private config: AIClientConfig;
   private provider: ProviderConfig;
 
@@ -33,18 +77,11 @@ export class AIClient {
       retries: 3
     };
 
-    this.client = new OpenAI({
-      apiKey: this.config.apiKey,
-      baseURL: this.config.baseURL,
-      timeout: this.config.timeout,
-      maxRetries: this.config.retries,
-    });
-
     console.log(`✅ [AI Client] Inicializado - Provider: ${providerConfig.provider}, Model: ${providerConfig.models.default}`);
   }
 
   /**
-   * Envia requisição para API de IA
+   * Envia requisição para API de IA com chat completions
    */
   async sendRequest(request: AIRequest): Promise<AIResponse> {
     const startTime = Date.now();
@@ -53,28 +90,51 @@ export class AIClient {
     try {
       console.log(`🤖 [AI Client] Request iniciado - Model: ${model}, Messages: ${request.messages.length}`);
 
-      const completion = await this.client.chat.completions.create({
-        model,
-        messages: request.messages,
-        temperature: request.temperature ?? 0.7,
-        max_tokens: request.maxTokens,
-        response_format: request.responseFormat === 'json' ? { type: 'json_object' } : undefined,
-      });
+      const response = await fetchWithRetry(
+        `${this.config.baseURL}/chat/completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.REPLIT_DOMAIN || 'localhost',
+            'X-Title': 'NuP-est Study Assistant'
+          },
+          body: JSON.stringify({
+            model,
+            messages: request.messages,
+            temperature: request.temperature ?? 0.7,
+            max_tokens: request.maxTokens,
+            top_p: request.topP ?? 0.9,
+          })
+        },
+        this.config.retries,
+        this.config.timeout
+      );
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
+
+      const data = await response.json();
       const duration = Date.now() - startTime;
-      const response: AIResponse = {
-        content: completion.choices[0]?.message?.content || '',
-        model: completion.model,
-        usage: completion.usage ? {
-          promptTokens: completion.usage.prompt_tokens,
-          completionTokens: completion.usage.completion_tokens,
-          totalTokens: completion.usage.total_tokens,
-        } : undefined
+      
+      const aiResponse: AIResponse = {
+        content: data.choices[0]?.message?.content || '',
+        model: data.model,
+        usage: data.usage ? {
+          promptTokens: data.usage.prompt_tokens || 0,
+          completionTokens: data.usage.completion_tokens || 0,
+          totalTokens: data.usage.total_tokens || 0,
+        } : undefined,
+        provider: this.provider.provider,
+        requestId: data.id
       };
 
-      console.log(`✅ [AI Client] Request completo - Duration: ${duration}ms, Tokens: ${response.usage?.totalTokens || 'N/A'}`);
+      console.log(`✅ [AI Client] Request completo - Duration: ${duration}ms, Tokens: ${aiResponse.usage?.totalTokens || 'N/A'}`);
 
-      return response;
+      return aiResponse;
     } catch (error: any) {
       const duration = Date.now() - startTime;
       console.error(`❌ [AI Client] Request falhou - Duration: ${duration}ms, Error: ${error.message}`);
@@ -93,12 +153,31 @@ export class AIClient {
     try {
       console.log(`🔢 [AI Client] Gerando embedding - Model: ${model}, Text length: ${text.length}`);
 
-      const response = await this.client.embeddings.create({
-        model,
-        input: text,
-      });
+      const response = await fetchWithRetry(
+        `${this.config.baseURL}/embeddings`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            input: text,
+          })
+        },
+        this.config.retries,
+        this.config.timeout
+      );
 
-      const embedding = response.data[0]?.embedding;
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Embedding API error (${response.status}): ${errorText}`);
+      }
+
+      const data = await response.json();
+      const embedding = data.data[0]?.embedding;
+      
       if (!embedding) {
         throw new Error('No embedding returned from API');
       }

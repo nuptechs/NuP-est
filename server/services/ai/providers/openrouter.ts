@@ -1,61 +1,17 @@
 import { IAIProvider } from '../interfaces';
 import { AIRequest, AIResponse, AIMetrics, AIProviderConfig } from '../types';
 import { AppError, errorMessages } from '../../../utils/ErrorHandler';
-
-/**
- * Helper: Fetch with timeout and retry logic
- */
-async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  maxRetries = 3,
-  timeoutMs = 45000
-): Promise<Response> {
-  let lastError: Error | null = null;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      return response;
-      
-    } catch (error: any) {
-      lastError = error;
-      
-      // Se foi timeout ou erro de rede, tentar novamente com backoff exponencial
-      if (error.name === 'AbortError' || error.message?.includes('fetch')) {
-        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-        console.log(`⏳ OpenRouter: Tentativa ${attempt}/${maxRetries} falhou. Aguardando ${waitTime}ms...`);
-        
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
-        }
-      }
-      
-      // Erro não recuperável, lançar imediatamente
-      throw error;
-    }
-  }
-  
-  throw lastError || new Error('Fetch failed after retries');
-}
+import { createAIClient, AIClient } from '../../../integrations/openai';
 
 /**
  * Implementação do provedor OpenRouter
- * Suporta múltiplos modelos através do OpenRouter
+ * Agora usa o cliente centralizado em integrations/openai
  */
 export class OpenRouterProvider implements IAIProvider {
   name = 'OpenRouter';
   config: AIProviderConfig;
   private metrics: AIMetrics[] = [];
+  private aiClient: AIClient;
 
   constructor(apiKey: string, config?: Partial<AIProviderConfig>) {
     this.config = {
@@ -70,15 +26,27 @@ export class OpenRouterProvider implements IAIProvider {
         'openai/gpt-4o-mini',
         'meta-llama/llama-3.1-405b-instruct'
       ],
-      costPerToken: 0.000001, // Custo estimado médio por token
+      costPerToken: 0.000001,
       enabled: true,
       priority: 1,
       ...config
     };
+
+    // Criar cliente integrado
+    this.aiClient = createAIClient({
+      provider: 'openrouter',
+      apiKey: this.config.apiKey,
+      baseURL: this.config.baseURL,
+      models: {
+        default: this.config.defaultModel,
+      }
+    });
+
+    console.log(`✅ [OpenRouter] Provider inicializado com cliente integrado`);
   }
 
   /**
-   * Realiza chat completion via OpenRouter
+   * Realiza chat completion via OpenRouter usando cliente integrado
    */
   async chatCompletion(request: AIRequest): Promise<AIResponse> {
     const startTime = Date.now();
@@ -87,52 +55,15 @@ export class OpenRouterProvider implements IAIProvider {
     try {
       console.log(`🔗 OpenRouter: Fazendo requisição para ${model}`);
       
-      const response = await fetchWithRetry(
-        `${this.config.baseURL}/chat/completions`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.REPLIT_DOMAIN || 'localhost',
-            'X-Title': 'NuP-est Study Assistant'
-          },
-          body: JSON.stringify({
-            model,
-            messages: request.messages,
-            temperature: request.temperature || 0.7,
-            max_tokens: request.maxTokens || 1500,
-            top_p: request.topP || 0.9,
-          })
-        },
-        3, // maxRetries
-        45000 // timeout 45s
-      );
+      // Usar cliente integrado
+      const aiResponse = await this.aiClient.sendRequest(request);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new AppError(503, errorMessages.AI_SERVICE_ERROR, `OpenRouter API error (${response.status}): ${errorText}`);
-      }
-
-      const data = await response.json();
       const endTime = Date.now();
-      
-      const aiResponse: AIResponse = {
-        content: data.choices[0]?.message?.content || '',
-        usage: data.usage ? {
-          promptTokens: data.usage.prompt_tokens || 0,
-          completionTokens: data.usage.completion_tokens || 0,
-          totalTokens: data.usage.total_tokens || 0
-        } : undefined,
-        model,
-        provider: this.name,
-        requestId: data.id
-      };
 
       // Registrar métricas
       this.recordMetrics({
         provider: this.name,
-        model,
+        model: aiResponse.model,
         tokensUsed: aiResponse.usage?.totalTokens || 0,
         cost: this.calculateCost(aiResponse.usage?.totalTokens || 0),
         latency: endTime - startTime,
