@@ -931,13 +931,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { title, description, subjectId, count } = req.body;
       const file = req.file;
 
+      console.log('🔍 [Flashcard Upload] Request received:', {
+        userId,
+        title,
+        hasFile: !!file,
+        fileDetails: file ? {
+          originalname: file.originalname,
+          filename: file.filename,
+          path: file.path,
+          size: file.size,
+          mimetype: file.mimetype
+        } : null
+      });
+
       if (!file) {
         return res.status(400).json({ message: "File is required" });
       }
 
       // Extract text from uploaded file
+      console.log(`📄 Tentando extrair texto do arquivo: ${file.path}`);
       const fileContent = await aiService.extractTextFromFile(file.path);
-      console.log(`📄 Arquivo processado: ${file.originalname}`);
+      console.log(`📄 Arquivo processado: ${file.originalname} (${fileContent.length} caracteres)`);
       
       if (!fileContent || fileContent.length < 20) {
         return res.status(400).json({ 
