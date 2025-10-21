@@ -76,10 +76,23 @@ server/integrations/
 └── README.md         # Documentação completa de gaps
 ```
 
-**OpenAI/OpenRouter Integration (Enhanced):**
-- ✅ **AIClient** centralizado com retry/timeout/logging/circuit breaker
-- ✅ **Circuit Breaker**: Previne cascatas de falhas (5 falhas → OPEN por 60s, auto-recuperação)
-- ✅ **Rate Limit Detection**: Detecta 429 e usa Retry-After header para backoff inteligente
+**OpenAI/OpenRouter Integration (Enhanced - October 2025):**
+- ✅ **AIClient** centralizado com retry/timeout/logging/circuit breaker production-ready
+- ✅ **Circuit Breaker com HALF_OPEN Enforcement**:
+  - CLOSED → OPEN: 5 falhas consecutivas abre circuito por 60s
+  - OPEN → HALF_OPEN: Auto-recuperação após 60s com limite de 3 probe requests
+  - HALF_OPEN → CLOSED: Sucesso em qualquer probe fecha circuito imediatamente
+  - HALF_OPEN → OPEN: Falha em qualquer probe reabre circuito
+  - Check + Increment antes de cada request lógico (não por retry)
+  - Retries validam circuit breaker sem incrementar contador
+- ✅ **Rate Limit Handling Robusto**:
+  - Detecta 429 e usa Retry-After header (delta-seconds ou HTTP-date)
+  - Fallback para exponential backoff quando Retry-After inválido/passado
+  - Backoff adaptativo: rate limits 5s→10s→20s, erros de rede 1s→2s→4s
+- ✅ **Failure Accounting Correto**:
+  - recordFailure() chamado UMA VEZ por erro (no catch, não em !response.ok)
+  - Circuit breaker errors não inflam failure counters
+  - Métricas precisas de consecutiveFailures e halfOpenRequests
 - ✅ **Health Metrics**: Rastreia success rate, circuit state, falhas consecutivas
 - ✅ Usado por: OpenRouterProvider, DeepSeekService, SmartSummaryService, AIService
 - ✅ Zero dependências diretas em services

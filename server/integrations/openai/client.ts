@@ -270,6 +270,10 @@ export class AIClient {
   async sendRequest(request: AIRequest): Promise<AIResponse> {
     this.metrics.totalRequests++;
     
+    // Verificar e incrementar circuit breaker UMA VEZ antes da primeira tentativa
+    this.checkCircuitBreaker();
+    this.incrementHalfOpenCounter();
+    
     const startTime = Date.now();
     const model = request.model || this.config.defaultModel || this.provider.models.default;
 
@@ -296,16 +300,12 @@ export class AIClient {
         },
         this.config.retries,
         this.config.timeout,
-        // Callback para validar circuit breaker e incrementar contador antes de CADA tentativa
-        () => {
-          this.checkCircuitBreaker();
-          this.incrementHalfOpenCounter();
-        }
+        // Callback para validar circuit breaker antes de cada retry (SEM incrementar novamente)
+        () => this.checkCircuitBreaker()
       );
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.recordFailure();
         throw new Error(`API error (${response.status}): ${errorText}`);
       }
 
@@ -330,7 +330,13 @@ export class AIClient {
       return aiResponse;
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      this.recordFailure();
+      
+      // Apenas registrar falha se NÃO for erro de circuit breaker (para evitar inflar counters)
+      const isCircuitBreakerError = error.message?.includes('Circuit breaker');
+      if (!isCircuitBreakerError) {
+        this.recordFailure();
+      }
+      
       console.error(`❌ [AI Client] Request falhou - Duration: ${duration}ms, Error: ${error.message}`);
       
       // Enriquecer erro com contexto
@@ -343,6 +349,10 @@ export class AIClient {
    */
   async generateEmbedding(text: string): Promise<number[]> {
     this.metrics.totalRequests++;
+    
+    // Verificar e incrementar circuit breaker UMA VEZ antes da primeira tentativa
+    this.checkCircuitBreaker();
+    this.incrementHalfOpenCounter();
     
     const model = this.provider.models.embedding || 'text-embedding-ada-002';
     
@@ -364,16 +374,12 @@ export class AIClient {
         },
         this.config.retries,
         this.config.timeout,
-        // Callback para validar circuit breaker e incrementar contador antes de CADA tentativa
-        () => {
-          this.checkCircuitBreaker();
-          this.incrementHalfOpenCounter();
-        }
+        // Callback para validar circuit breaker antes de cada retry (SEM incrementar novamente)
+        () => this.checkCircuitBreaker()
       );
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.recordFailure();
         throw new Error(`Embedding API error (${response.status}): ${errorText}`);
       }
 
@@ -388,7 +394,12 @@ export class AIClient {
       console.log(`✅ [AI Client] Embedding gerado - Dimensions: ${embedding.length}`);
       return embedding;
     } catch (error: any) {
-      this.recordFailure();
+      // Apenas registrar falha se NÃO for erro de circuit breaker (para evitar inflar counters)
+      const isCircuitBreakerError = error.message?.includes('Circuit breaker');
+      if (!isCircuitBreakerError) {
+        this.recordFailure();
+      }
+      
       console.error(`❌ [AI Client] Embedding falhou - Error: ${error.message}`);
       throw new Error(`Embedding generation failed: ${error.message}`);
     }

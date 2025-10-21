@@ -21,8 +21,8 @@ integrations/
 
 ## 📊 Status das Integrações
 
-### ✅ OpenAI/OpenRouter (MIGRADO + MELHORADO)
-- **Status**: ✅ Completamente implementado e em produção
+### ✅ OpenAI/OpenRouter (PRODUCTION-READY - October 2025)
+- **Status**: ✅ Completamente implementado, testado e aprovado para produção
 - **Arquivo**: `openai/client.ts`
 - **Responsável**: Comunicação com APIs de IA
 - **Services Usando**:
@@ -31,17 +31,30 @@ integrations/
   - ✅ SmartSummaryService
   - ✅ AIService (via funções de conveniência)
 - **Melhorias Implementadas (October 2025)**:
-  - ✅ **Circuit Breaker**: Previne cascata de falhas (5 falhas consecutivas → OPEN por 60s)
-  - ✅ **Rate Limit Handling**: Detecta 429 e usa Retry-After header
-  - ✅ **Backoff Adaptativo**: Rate limits aguardam 5s→10s→20s, erros de rede 1s→2s→4s
+  - ✅ **Circuit Breaker com HALF_OPEN Enforcement**:
+    - CLOSED → OPEN: 5 falhas consecutivas abre circuito por 60s
+    - OPEN → HALF_OPEN: Auto-recuperação após 60s com limite de 3 probe requests
+    - HALF_OPEN → CLOSED: Sucesso em qualquer probe fecha circuito imediatamente
+    - HALF_OPEN → OPEN: Falha em qualquer probe reabre circuito
+    - Check + Increment antes de cada request lógico (não por retry)
+    - Retries validam circuit breaker sem incrementar contador
+  - ✅ **Rate Limit Handling Robusto**:
+    - Detecta 429 e usa Retry-After header (delta-seconds ou HTTP-date)
+    - Fallback para exponential backoff quando Retry-After inválido/passado
+    - Backoff adaptativo: rate limits 5s→10s→20s, erros de rede 1s→2s→4s
+  - ✅ **Failure Accounting Correto**:
+    - recordFailure() chamado UMA VEZ por erro (no catch, não em !response.ok)
+    - Circuit breaker errors não inflam failure counters
+    - Métricas precisas de consecutiveFailures e halfOpenRequests
   - ✅ **Métricas de Saúde**: getHealthMetrics() retorna success rate, circuit state, etc.
-  - ✅ **Auto-recuperação**: Circuit testa recuperação após 60s (HALF_OPEN state)
 - **Benefícios**:
   - ✅ Retry automático com exponential backoff
   - ✅ Timeout configurável (45s)
   - ✅ Logging detalhado
   - ✅ Zero dependências diretas em services
-  - ✅ Proteção contra APIs indisponíveis
+  - ✅ Proteção robusta contra APIs indisponíveis
+  - ✅ Single failure accounting (sem inflação de counters)
+  - ✅ HALF_OPEN enforcement correto mesmo com retries
 - **Gaps Remanescentes**:
   - [ ] Timeout pode exceder 45s em requests muito complexos
   - [ ] Métricas não persistidas (reset em restart)
