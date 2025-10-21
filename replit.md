@@ -124,6 +124,8 @@ server/integrations/
 - ✅ Gap #4 Integration Architecture: Todas as integrações externas centralizadas em `server/integrations/`, gaps documentados
 - ✅ UX Improvements: Chat/Profile tabs always accessible, Questions/Assessment require subject selection
 - ✅ UI Redesign (October 2025): PersonalizedAssistantPage completely redesigned with modern sidebar layout, responsive mobile support, clean visual hierarchy
+- ✅ CRUD Completion (October 2025): Materials UPDATE/DELETE integrated in Library page with edit mode in MaterialUpload; Targets DELETE implemented in Goals page
+- ✅ API Cleanup (October 2025): Redundant PUT /api/knowledge-base/:id removed, only PATCH remains for consistency
 - ⚠️ Manual Testing Required: E2E playwright tests blocked by OIDC mock authentication (browser testing recommended)
 
 # External Dependencies
