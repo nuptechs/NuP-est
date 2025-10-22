@@ -1,150 +1,97 @@
-# 📚 Documentação das Integracões - NuP-est
+# 📚 Documentação NuP-est
 
-## 📖 Índice da Documentação
+Bem-vindo à documentação técnica da plataforma NuP-est. Esta pasta contém toda a documentação informativa do projeto.
 
-Esta pasta contém a documentação completa de todas as integrações utilizadas na plataforma NuP-est. Use os links abaixo para navegar entre os diferentes documentos:
+## 📖 Índice Geral
 
-### 📋 Documentos Principais
+### 🎯 Visão Geral do Sistema
+- **[SYSTEM_OVERVIEW.md](./SYSTEM_OVERVIEW.md)** - Visão completa do sistema, funcionalidades, arquitetura e tecnologias
+- **[arquitetura-atual.md](./arquitetura-atual.md)** - Arquitetura técnica detalhada da aplicação
 
-| Documento | Descrição | Público-Alvo |
-|-----------|-----------|--------------|
-| **[Integracões da Aplicação](./INTEGRACOES_APLICACAO.md)** | Documentação técnica completa de todas as integrações | Desenvolvedores |
-| **[Diagramas Detalhados](./DIAGRAMAS_DETALHADOS.md)** | Diagramas de arquitetura e fluxos de dados | Arquitetos/Desenvolvedores |
-| **[Resumo Executivo](./RESUMO_EXECUTIVO_INTEGRACOES.md)** | Visão estratégica e valor de negócio | Gestores/Stakeholders |
+### 🔧 Documentação Técnica
+- **[integrations-technical.md](./integrations-technical.md)** - Documentação das integrações externas (OpenAI, Pinecone, Document AI)
+- **[README-ErrorSystem.md](./README-ErrorSystem.md)** - Sistema centralizado de tratamento de erros
 
----
+### 📊 Análises e Fluxos
+- **[GAPS_ANALYSIS.md](./GAPS_ANALYSIS.md)** - Análise de gaps e pendências do projeto
+- **[como-funciona.md](./como-funciona.md)** - Explicação simplificada de como o sistema funciona
+- **[DIAGRAMAS_DETALHADOS.md](./DIAGRAMAS_DETALHADOS.md)** - Diagramas técnicos detalhados
 
-## 🔍 Navegação Rápida por Categoria
-
-### 🧠 Inteligência Artificial
-- [OpenRouter Provider](./INTEGRACOES_APLICACAO.md#1-openrouter)
-- [Google Generative AI](./INTEGRACOES_APLICACAO.md#2-google-generative-ai)
-- [DeepSeek R1 Service](./INTEGRACOES_APLICACAO.md#3-deepseek-r1-service)
-- [RAG Service](./INTEGRACOES_APLICACAO.md#-integracão-rag-retrieval-augmented-generation)
-
-### 💾 Bancos de Dados
-- [PostgreSQL (Neon)](./INTEGRACOES_APLICACAO.md#1-postgresql-neon-database)
-- [Pinecone Vector Database](./INTEGRACOES_APLICACAO.md#2-pinecone-vector-database)
-
-### 🔐 Autenticação
-- [Replit Auth (OpenID Connect)](./INTEGRACOES_APLICACAO.md#replit-auth-openid-connect)
-
-### 📄 Processamento de Arquivos
-- [Upload Configuration (Multer)](./INTEGRACOES_APLICACAO.md#1-multer)
-- [PDF Processing](./INTEGRACOES_APLICACAO.md#2-pdf-processing)
-- [DOCX Processing](./INTEGRACOES_APLICACAO.md#3-docx-processing)
-- [Excel/CSV Processing](./INTEGRACOES_APLICACAO.md#4-excelcsv-processing)
-
-### 🌐 Serviços Externos
-- [External Processing Service](./INTEGRACOES_APLICACAO.md#1-external-processing-service)
-- [Web Scraping](./INTEGRACOES_APLICACAO.md#2-web-scraping)
-
-### 🎨 Frontend
-- [TanStack Query](./INTEGRACOES_APLICACAO.md#1-tanstack-query-react-query)
-- [Wouter Router](./INTEGRACOES_APLICACAO.md#2-wouter)
-- [shadcn/ui + Radix](./INTEGRACOES_APLICACAO.md#3-shadcnui--radix-ui)
+### 🔌 Integrações
+- **[INTEGRACOES_APLICACAO.md](./INTEGRACOES_APLICACAO.md)** - Documentação das integrações da aplicação
+- **[RESUMO_EXECUTIVO_INTEGRACOES.md](./RESUMO_EXECUTIVO_INTEGRACOES.md)** - Resumo executivo das integrações
 
 ---
 
-## 📊 Diagramas Principais
+## 🚀 Como Usar Esta Documentação
 
-### Arquitetura Geral
-```
-Frontend (React) ↔ Backend (Express.js) ↔ External Services
-```
-📁 [Ver diagrama completo](./DIAGRAMAS_DETALHADOS.md#-diagrama-de-interações-completo)
+### Para Desenvolvedores Novos
+1. Comece com **[SYSTEM_OVERVIEW.md](./SYSTEM_OVERVIEW.md)** para entender o sistema
+2. Leia **[arquitetura-atual.md](./arquitetura-atual.md)** para entender a arquitetura
+3. Consulte **[como-funciona.md](./como-funciona.md)** para fluxos simplificados
 
-### Fluxo de Processamento de Arquivos
-```
-Upload → Validation → Processing → AI Analysis → Vector Indexing
-```
-📁 [Ver pipeline detalhado](./DIAGRAMAS_DETALHADOS.md#-pipeline-de-processamento-de-arquivos)
+### Para Manutenção
+1. Verifique **[GAPS_ANALYSIS.md](./GAPS_ANALYSIS.md)** para gaps conhecidos
+2. Consulte **[integrations-technical.md](./integrations-technical.md)** para integrações externas
+3. Use **[README-ErrorSystem.md](./README-ErrorSystem.md)** para tratamento de erros
 
-### Sistema RAG
-```
-Query → Embedding → Vector Search → Context → AI Response
-```
-📁 [Ver fluxo RAG completo](./DIAGRAMAS_DETALHADOS.md#-fluxo-rag-completo-com-contexto-do-usuário)
+### Para Debugging
+1. Consulte **[DIAGRAMAS_DETALHADOS.md](./DIAGRAMAS_DETALHADOS.md)** para fluxos visuais
+2. Verifique **[integrations-technical.md](./integrations-technical.md)** para status das integrações
 
 ---
 
-## ⚙️ Configuração Rápida
+## 📝 Estrutura de Documentos
 
-### Variáveis de Ambiente Essenciais
-```bash
-# AI Services
-OPENROUTER_API_KEY=sk-or-...
-GOOGLE_AI_API_KEY=...
-PINECONE_API_KEY=...
+### SYSTEM_OVERVIEW.md
+- Funcionalidades principais
+- Arquitetura do sistema
+- Stack tecnológico completo
+- Fluxos de dados
+- Padrões e convenções
 
-# Database
-DATABASE_URL=postgresql://...
+### arquitetura-atual.md
+- Arquitetura backend detalhada
+- Serviços core
+- Processamento externo
+- Configuração de banco de dados
 
-# Authentication
-REPLIT_DOMAINS=...
-SESSION_SECRET=...
-```
+### integrations-technical.md
+- OpenAI/OpenRouter (production-ready)
+- Pinecone (production-ready)
+- Google Document AI (pending)
+- Circuit breaker, retry logic, rate limiting
 
-📁 [Ver configuração completa](./RESUMO_EXECUTIVO_INTEGRACOES.md#-configuração-necessária)
+### GAPS_ANALYSIS.md
+- Gaps críticos
+- Gaps de funcionalidade
+- Gaps de UX/UI
+- Melhorias sugeridas
 
----
-
-## 📈 Métricas e Performance
-
-| Métrica | Valor | Integração |
-|---------|-------|------------|
-| Busca Semântica | < 100ms | Pinecone |
-| Geração AI | < 3s | OpenRouter |
-| Upload Max | 12MB | Multer |
-| Session TTL | 7 dias | Express Session |
-
-📁 [Ver métricas detalhadas](./RESUMO_EXECUTIVO_INTEGRACOES.md#-métricas-de-performance)
-
----
-
-## 🔧 Troubleshooting
-
-### Problemas Comuns
-
-1. **Erro de API Key**
-   - Verificar variáveis de ambiente
-   - Validar chaves com providers
-
-2. **Timeout de Upload**
-   - Verificar limite de 12MB
-   - Validar formato de arquivo
-
-3. **Falha na Busca Vetorial**
-   - Verificar conexão Pinecone
-   - Validar dimensões de embedding
-
-📁 [Ver guia completo de troubleshooting](./INTEGRACOES_APLICACAO.md#-variáveis-de-ambiente-necessárias)
+### como-funciona.md
+- Fluxo de chat explicado
+- Fluxo de flashcards explicado
+- Comparação visual dos fluxos
 
 ---
 
-## 🚀 Roadmap
+## 🔄 Atualizações
 
-### Próximas Integrações
-- [ ] Stripe (Pagamentos)
-- [ ] Twilio (Notificações)
-- [ ] SendGrid (Email)
-- [ ] Google Analytics
-- [ ] Sentry (Monitoramento)
+Esta documentação é atualizada continuamente. Última grande atualização: **Outubro 2025**
 
-📁 [Ver roadmap completo](./RESUMO_EXECUTIVO_INTEGRACOES.md#-checklist-de-integração)
-
----
-
-## 📞 Suporte
-
-Para dúvidas técnicas sobre as integrações:
-
-1. **Consulte primeiro** os documentos desta pasta
-2. **Verifique** os logs de aplicação
-3. **Validar** configurações de ambiente
-4. **Testar** conectividade com serviços externos
+**Mudanças Recentes:**
+- ✅ Reorganização completa da documentação em pasta `docs/`
+- ✅ Adição de documentação técnica de integrações
+- ✅ Documentação de fluxos (chat e flashcards)
+- ✅ Análise completa de gaps
 
 ---
 
-*Documentação atualizada em: 18 de Setembro de 2025*
-*Estrutura da documentação: v1.0*
+## 📌 Documentos na Raiz do Projeto
+
+Alguns arquivos permanecem na raiz por serem processados pelo sistema:
+
+- **`README.md`** - Documento principal do projeto (visível no GitHub)
+- **`replit.md`** - Configuração e preferências do Replit Agent (usado pelo sistema)
+
+Toda documentação **informativa** está nesta pasta `docs/`.

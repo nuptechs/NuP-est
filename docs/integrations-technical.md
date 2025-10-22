@@ -1,0 +1,142 @@
+# Integrações Externas
+
+Este diretório contém **todas** as integrações com sistemas externos. Cada integração é isolada em sua própria pasta.
+
+## 📁 Estrutura
+
+```
+integrations/
+├── openai/           # OpenAI, OpenRouter, DeepSeek
+├── document-ai/      # Google Document AI
+├── pinecone/         # Vector database
+└── index.ts          # Export central
+```
+
+## 🎯 Filosofia
+
+1. **Isolamento**: Cada integração em sua pasta
+2. **Clareza**: Código de comunicação separado de lógica de negócio
+3. **Testabilidade**: Fácil criar mocks
+4. **Documentação**: Gaps conhecidos em cada client
+
+## 📊 Status das Integrações
+
+### ✅ OpenAI/OpenRouter (PRODUCTION-READY - October 2025)
+- **Status**: ✅ Completamente implementado, testado e aprovado para produção
+- **Arquivo**: `openai/client.ts`
+- **Responsável**: Comunicação com APIs de IA
+- **Services Usando**:
+  - ✅ OpenRouterProvider (via AIManager)
+  - ✅ DeepSeekService
+  - ✅ SmartSummaryService
+  - ✅ AIService (via funções de conveniência)
+- **Melhorias Implementadas (October 2025)**:
+  - ✅ **Circuit Breaker com HALF_OPEN Enforcement**:
+    - CLOSED → OPEN: 5 falhas consecutivas abre circuito por 60s
+    - OPEN → HALF_OPEN: Auto-recuperação após 60s com limite de 3 probe requests
+    - HALF_OPEN → CLOSED: Sucesso em qualquer probe fecha circuito imediatamente
+    - HALF_OPEN → OPEN: Falha em qualquer probe reabre circuito
+    - Check + Increment antes de cada request lógico (não por retry)
+    - Retries validam circuit breaker sem incrementar contador
+  - ✅ **Rate Limit Handling Robusto**:
+    - Detecta 429 e usa Retry-After header (delta-seconds ou HTTP-date)
+    - Fallback para exponential backoff quando Retry-After inválido/passado
+    - Backoff adaptativo: rate limits 5s→10s→20s, erros de rede 1s→2s→4s
+  - ✅ **Failure Accounting Correto**:
+    - recordFailure() chamado UMA VEZ por erro (no catch, não em !response.ok)
+    - Circuit breaker errors não inflam failure counters
+    - Métricas precisas de consecutiveFailures e halfOpenRequests
+  - ✅ **Métricas de Saúde**: getHealthMetrics() retorna success rate, circuit state, etc.
+- **Benefícios**:
+  - ✅ Retry automático com exponential backoff
+  - ✅ Timeout configurável (45s)
+  - ✅ Logging detalhado
+  - ✅ Zero dependências diretas em services
+  - ✅ Proteção robusta contra APIs indisponíveis
+  - ✅ Single failure accounting (sem inflação de counters)
+  - ✅ HALF_OPEN enforcement correto mesmo com retries
+- **Gaps Remanescentes**:
+  - [ ] Timeout pode exceder 45s em requests muito complexos
+  - [ ] Métricas não persistidas (reset em restart)
+
+### 🚧 Google Document AI
+- **Status**: Estrutura criada, aguardando migração
+- **Arquivo**: `document-ai/client.ts`
+- **Responsável**: Processamento de PDFs/DOCs
+- **Gaps Conhecidos**:
+  - [ ] Falta cache para evitar reprocessamento
+  - [ ] Erro em PDFs específicos
+  - [ ] Timeout em documentos >10MB
+
+### ✅ Pinecone (MIGRADO + MELHORADO)
+- **Status**: ✅ Completamente implementado e em produção
+- **Arquivo**: `pinecone/client.ts`
+- **Responsável**: Armazenamento de vetores para busca semântica
+- **Melhorias Implementadas (October 2025)**:
+  - ✅ **Batch Upsert Otimizado**: Processa 100 vetores por batch automaticamente
+  - ✅ **Retry com Backoff**: Rate limits 1s→2s→4s, erros de rede com exponential backoff
+  - ✅ **Detecção de Rate Limits**: Trata status 429 com retry apropriado
+  - ✅ **Namespace Flexível**: Suporta múltiplos namespaces via parâmetro
+  - ✅ **Health Check Real**: Verifica conexão via describeIndexStats()
+  - ✅ **Operações Completas**: upsert, query, delete, deleteAll, getStats
+- **Benefícios**:
+  - ✅ Upsert em lote automático (sem preocupação com limite de 100)
+  - ✅ Retry automático em falhas temporárias
+  - ✅ Logging detalhado de todas as operações
+  - ✅ Type-safe com TypeScript completo
+- **Gaps Remanescentes**:
+  - [ ] Cache local para vetores frequentemente consultados
+  - [ ] Métrica de latência não persistida
+
+## 🔑 Variáveis de Ambiente
+
+### OpenAI/OpenRouter
+```env
+OPENAI_API_KEY=sk-...
+```
+
+### Google Document AI
+```env
+GOOGLE_DOC_AI_PROJECT_ID=...
+GOOGLE_DOC_AI_PRIVATE_KEY=...
+GOOGLE_DOC_AI_CLIENT_EMAIL=...
+```
+
+### Pinecone
+```env
+PINECONE_API_KEY=...
+PINECONE_ENVIRONMENT=...
+PINECONE_INDEX=nup-est-knowledge
+```
+
+## 📝 Como Usar
+
+```typescript
+// Em um service
+import { createAIClient } from '@/integrations';
+
+const aiClient = createAIClient({
+  provider: 'openai',
+  apiKey: process.env.OPENAI_API_KEY!,
+  models: {
+    default: 'gpt-4',
+  }
+});
+
+const response = await aiClient.sendRequest({
+  messages: [{ role: 'user', content: 'Hello' }]
+});
+```
+
+## 🐛 Reportando Gaps
+
+Ao encontrar um problema:
+1. Documente no client correspondente (seção `GAPS CONHECIDOS`)
+2. Adicione checkbox [ ] no README
+3. Crie issue se necessário
+
+## 🔄 Próximas Migrações
+
+- [ ] Migrar código existente de `services/ai/` para `integrations/openai/`
+- [ ] Migrar código de `services/fileProcessor/` para `integrations/document-ai/`
+- [ ] Migrar código de `services/embeddings/` para `integrations/pinecone/`

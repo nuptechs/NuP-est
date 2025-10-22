@@ -106,9 +106,18 @@ Procure por estes símbolos:
 
 ## 📖 Documentação Completa
 
-- [Como Funciona](docs/como-funciona.md) - Explicação detalhada do sistema
+### 📚 Central de Documentação
+Toda a documentação técnica está organizada na pasta **[docs/](./docs/)**:
 
-Para desenvolvedores:
+- **[Índice Geral](./docs/README.md)** - Navegação completa por toda a documentação
+- **[Visão Geral do Sistema](./docs/SYSTEM_OVERVIEW.md)** - Funcionalidades e arquitetura completa
+- **[Arquitetura Técnica](./docs/arquitetura-atual.md)** - Detalhes de implementação
+- **[Como Funciona](./docs/como-funciona.md)** - Explicação simplificada dos fluxos
+- **[Integrações Técnicas](./docs/integrations-technical.md)** - OpenAI, Pinecone, Document AI
+- **[Análise de Gaps](./docs/GAPS_ANALYSIS.md)** - Gaps conhecidos e melhorias
+
+### 🔧 Para Desenvolvedores
+Arquivos principais do código:
 - `server/routes/edital.ts` - Endpoints de upload e gerenciamento
 - `server/services/newEditalService.ts` - Lógica principal de processamento
 - `server/services/editalRAG.ts` - Análise inteligente com RAG
