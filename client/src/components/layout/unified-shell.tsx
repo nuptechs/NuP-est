@@ -350,14 +350,14 @@ export default function UnifiedShell({
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
+          {/* Backdrop - Opaco para bloquear conteúdo */}
           <div 
-            className="fixed inset-0 bg-black/50 animate-in fade-in"
+            className="fixed inset-0 bg-black/80 dark:bg-black/90 animate-in fade-in"
             onClick={() => setIsSidebarOpen(false)}
           />
           
-          {/* Sidebar */}
-          <aside className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border animate-in slide-in-from-left">
+          {/* Sidebar - Background sólido sem transparência */}
+          <aside className="fixed left-0 top-0 bottom-0 w-64 bg-background border-r border-border shadow-2xl animate-in slide-in-from-left z-10">
             {/* Logo */}
             <div className="flex items-center justify-between h-14 px-6 border-b border-border">
               <div className="flex items-center gap-3">
