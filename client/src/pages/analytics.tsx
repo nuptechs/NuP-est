@@ -3,7 +3,7 @@
  * Simplified from 387 lines to clean, professional UX
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import UnifiedShell from "@/components/layout/unified-shell";
@@ -13,6 +13,7 @@ import ModernEmptyState from "@/components/ui/modern-empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   TrendingUp, 
   Clock, 
@@ -20,18 +21,30 @@ import {
   Flame,
   BarChart3,
   Target as TargetIcon,
-  FileText
+  FileText,
+  History,
+  CheckCircle2
 } from "lucide-react";
-import type { StudySession, Target } from "@shared/schema";
+import type { StudySession, Target, Subject } from "@shared/schema";
 
 export default function Analytics() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [periodFilter, setPeriodFilter] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('analytics-period-filter') || 'month';
+    }
+    return 'month';
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       window.location.href = "/api/login";
     }
   }, [isAuthenticated, isLoading]);
+
+  useEffect(() => {
+    localStorage.setItem('analytics-period-filter', periodFilter);
+  }, [periodFilter]);
 
   const { data: stats } = useQuery({
     queryKey: ["/api/analytics/stats"],
@@ -53,15 +66,45 @@ export default function Analytics() {
     enabled: isAuthenticated,
   });
 
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects"],
+    enabled: isAuthenticated,
+  });
+
+  // Filter sessions based on selected period
+  const getPeriodStartDate = () => {
+    const now = new Date();
+    switch (periodFilter) {
+      case 'week':
+        now.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        now.setMonth(now.getMonth() - 1);
+        break;
+      case 'quarter':
+        now.setMonth(now.getMonth() - 3);
+        break;
+      case 'year':
+        now.setFullYear(now.getFullYear() - 1);
+        break;
+    }
+    return now;
+  };
+
+  const filteredSessions = recentSessions.filter((session: any) => {
+    const sessionDate = new Date(session.startedAt);
+    return sessionDate >= getPeriodStartDate();
+  });
+
   const calculateStudyStreak = () => {
-    if (!Array.isArray(recentSessions) || !recentSessions?.length) return 0;
+    if (!Array.isArray(filteredSessions) || !filteredSessions?.length) return 0;
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     let streak = 0;
     const dailySessions = new Map();
     
-    recentSessions.forEach((session: StudySession) => {
+    filteredSessions.forEach((session: StudySession) => {
       const sessionDate = new Date(session.startedAt!);
       sessionDate.setHours(0, 0, 0, 0);
       dailySessions.set(sessionDate.getTime(), true);
@@ -82,19 +125,15 @@ export default function Analytics() {
     return streak;
   };
 
-  const calculateWeeklyStudyTime = () => {
-    if (!Array.isArray(recentSessions) || !recentSessions?.length) return 0;
+  const calculatePeriodStudyTime = () => {
+    if (!Array.isArray(filteredSessions) || !filteredSessions?.length) return 0;
     
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    return recentSessions
-      .filter((session: StudySession) => new Date(session.startedAt!) >= oneWeekAgo)
+    return filteredSessions
       .reduce((total: number, session: StudySession) => total + (session.duration || 0), 0);
   };
 
   const studyStreak = calculateStudyStreak();
-  const weeklyStudyTime = Math.round(calculateWeeklyStudyTime() / 60 * 100) / 100;
+  const periodStudyTime = Math.round(calculatePeriodStudyTime() / 60 * 100) / 100;
 
   if (isLoading) {
     return (
@@ -109,12 +148,25 @@ export default function Analytics() {
   return (
     <UnifiedShell title="Analytics">
       <div className="max-w-6xl mx-auto p-6 space-y-8">
-        {/* Page Header */}
-        <ModernPageHeader
-          title="Analytics Detalhado"
-          description="Acompanhe seu desempenho e evolução nos estudos"
-          icon={BarChart3}
-        />
+        {/* Page Header with Filter */}
+        <div className="flex items-start justify-between gap-4">
+          <ModernPageHeader
+            title="Analytics Detalhado"
+            description="Acompanhe seu desempenho e evolução nos estudos"
+            icon={BarChart3}
+          />
+          <Select value={periodFilter} onValueChange={setPeriodFilter} data-testid="select-analytics-period">
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Esta semana</SelectItem>
+              <SelectItem value="month">Este mês</SelectItem>
+              <SelectItem value="quarter">Trimestre</SelectItem>
+              <SelectItem value="year">Ano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* KPI Header - 4 Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -125,8 +177,8 @@ export default function Analytics() {
             data-testid="stat-study-streak"
           />
           <ModernStatCard
-            title="Esta semana"
-            value={`${weeklyStudyTime}h`}
+            title={periodFilter === 'week' ? 'Esta semana' : periodFilter === 'month' ? 'Este mês' : periodFilter === 'quarter' ? 'Trimestre' : 'Ano'}
+            value={`${periodStudyTime}h`}
             icon={Clock}
             data-testid="stat-weekly-hours"
           />
@@ -243,6 +295,66 @@ export default function Analytics() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Sessions Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Sessões Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredSessions.length === 0 ? (
+              <ModernEmptyState
+                icon={History}
+                title="Nenhuma sessão encontrada"
+                description="Comece estudando para ver seu histórico"
+              />
+            ) : (
+              <div className="space-y-2">
+                {filteredSessions.slice(0, 10).map((session: any) => {
+                  const subject = subjects.find((s) => s.id === session.subjectId);
+                  return (
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/20 transition-colors"
+                      data-testid={`session-${session.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${
+                          session.completed 
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/20'
+                            : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20'
+                        }`}>
+                          {session.completed ? (
+                            <CheckCircle2 className="h-5 w-5" />
+                          ) : (
+                            <Clock className="h-5 w-5" />
+                          )}
+                        </div>
+                        <div>
+                          <h5 className="font-medium">{subject?.name || "Matéria não encontrada"}</h5>
+                          <p className="text-sm text-muted-foreground">
+                            {session.duration} min • {session.type}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {session.completed && session.score && (
+                          <p className="text-sm font-semibold">{session.score}%</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(session.startedAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </UnifiedShell>
   );
