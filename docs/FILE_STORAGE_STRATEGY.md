@@ -3,7 +3,14 @@
 ## 🚨 Status Atual: DESENVOLVIMENTO (uploads/ local)
 
 **Data:** Outubro 2025  
-**Status da Migração:** Pendente (antes do deploy em produção)
+**Status da Migração:** Pendente (antes de ter usuários reais)  
+**Decisão do Desenvolvedor:** Migrar ANTES de lançar para usuários reais
+
+### ✅ Confirmado pelo Desenvolvedor (23/10/2025)
+- PDFs atuais (32 arquivos) são de **TESTES**
+- **NÃO** há usuários reais ainda
+- Usuários reais virão **em breve**
+- Migração para Object Storage **obrigatória** antes do lançamento
 
 ---
 
@@ -122,22 +129,32 @@ TOTAL: 32 arquivos (54 MB)
 
 ## 📋 Timeline de Migração
 
-### AGORA (Desenvolvimento) ✅
-- ✅ Manter `uploads/` local
-- ✅ Funciona bem para testes
+### ✅ AGORA (Desenvolvimento - Fase Atual)
+- ✅ Manter `uploads/` local funcionando
 - ✅ Continuar desenvolvendo features
+- ✅ Testar com PDFs de teste
+- ✅ Fazer republish quando necessário
 
-### ANTES DE PUBLICAR (Deploy) ⚠️
+### ⚠️ ANTES DE TER USUÁRIOS REAIS (Próximo Marco)
+**🚨 OBRIGATÓRIO antes de lançar!**
+
+**Checklist de Migração:**
 - [ ] Adicionar blueprint "App Storage" (Replit Object Storage)
-- [ ] Migrar código de upload para Object Storage
-- [ ] Atualizar schema do banco (adicionar `storageUrl`)
-- [ ] Testar upload/download com arquivos reais
+- [ ] Migrar código de upload para Object Storage API
+- [ ] Atualizar schema do banco (adicionar `storageUrl` às tabelas)
+- [ ] Migrar PDFs de teste para Object Storage (validação)
+- [ ] Testar upload/download end-to-end
+- [ ] Testar persistência (republish e verificar arquivos)
 - [ ] Documentar API de storage
+- [ ] Avisar time que storage está pronto
 
-### DEPOIS DE PUBLICAR ✅
+**Gatilho para Começar:** Quando estiver pronto para lançar para primeiros usuários reais
+
+### ✅ DEPOIS DE MIGRAR
 - Arquivos persistem entre restarts
 - Usuários não perdem PDFs
-- App escalável e profissional
+- App escalável e confiável
+- Pronto para produção real
 
 ---
 
