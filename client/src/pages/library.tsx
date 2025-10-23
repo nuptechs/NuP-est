@@ -1,793 +1,352 @@
-import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+/**
+ * Library - Clean, Hierarchical Navigation
+ * Simplified from 793 lines to clean, professional UX
+ */
+
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-// Shadcn/ui imports
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
 import AreaForm from "@/components/knowledge-areas/area-form";
-import { EditalUploader } from "@/components/EditalUploader";
 import { 
   Search as SearchIcon, 
   Plus, 
   BookOpen, 
   FileText, 
-  Database, 
   Trash2,
   Edit,
-  Eye,
-  Upload,
   ArrowLeft,
   Folder,
-  FolderOpen,
-  GraduationCap
+  ChevronRight
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// Professional components
-import ProfessionalShell from "@/components/ui/professional-shell";
-import { ProfessionalCard } from "@/components/ui/professional-card";
-import { ProfessionalStats } from "@/components/ui/professional-stats";
-// import { 
-//   ResponsiveHeader, 
-//   ResponsiveButton, 
-//   ResponsiveGrid, 
-//   ResponsiveStatCard, 
-//   ResponsiveSearch 
-// } from "@/components/ui/responsive-components";
-// import { useResponsiveText, responsiveTexts } from "@/hooks/useResponsiveText";
+import UnifiedShell from "@/components/layout/unified-shell";
+import ModernPageHeader from "@/components/ui/modern-page-header";
+import ModernEmptyState from "@/components/ui/modern-empty-state";
 import type { Subject, Material, KnowledgeArea } from "@shared/schema";
 
-// Navigation state types
 type ViewLevel = 'areas' | 'subjects' | 'materials';
-
-interface NavigationState {
-  level: ViewLevel;
-  selectedAreaId?: string;
-  selectedSubjectId?: string;
-  breadcrumb: { id?: string; name: string; level: ViewLevel }[];
-}
 
 export default function Library() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   
-  // Navigation state for hierarchical view
-  const [navigation, setNavigation] = useState<NavigationState>({
-    level: 'areas',
-    breadcrumb: [{ name: 'Biblioteca', level: 'areas' }]
-  });
-  
-  // State para filtros e busca
+  // Navigation state
+  const [level, setLevel] = useState<ViewLevel>('areas');
+  const [selectedAreaId, setSelectedAreaId] = useState<string>();
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // Modal state
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createType, setCreateType] = useState<'area' | 'subject' | 'material'>('area');
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [itemToEdit, setItemToEdit] = useState<any>(null);
-  const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'materials' | 'editais'>('materials');
-  const [showEditalUploader, setShowEditalUploader] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
 
   // Auth redirect
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
+      window.location.href = "/api/login";
     }
-  }, [isAuthenticated, isLoading, toast]);
+  }, [isAuthenticated, isLoading]);
 
-  // Handle URL query parameters for creation modals
+  // Handle URL params for quick actions
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const createParam = urlParams.get('create');
-    
-    if (createParam === 'subject') {
-      setCreateType('subject');
-      setIsCreateModalOpen(true);
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (createParam === 'area') {
-      setCreateType('area');
-      setIsCreateModalOpen(true);
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (createParam === 'material') {
-      setCreateType('material');
-      setIsCreateModalOpen(true);
+    const params = new URLSearchParams(window.location.search);
+    const create = params.get('create');
+    if (create === 'material' || create === 'subject' || create === 'area') {
+      setCreateType(create);
+      setCreateModalOpen(true);
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'u') {
-        e.preventDefault();
-        handleCreateNew('material');
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Queries para dados hierárquicos
-  const { data: knowledgeAreas = [], isLoading: areasLoading } = useQuery<KnowledgeArea[]>({
+  // Queries
+  const { data: areas = [] } = useQuery<KnowledgeArea[]>({
     queryKey: ["/api/areas"],
     enabled: isAuthenticated,
   });
 
-  const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
-    queryKey: ["/api/subjects", navigation.selectedAreaId],
-    queryFn: async () => {
-      const response = await fetch(`/api/subjects?areaId=${navigation.selectedAreaId}`, {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch subjects');
-      return response.json();
-    },
-    enabled: isAuthenticated && navigation.level === 'subjects' && !!navigation.selectedAreaId,
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects", selectedAreaId],
+    enabled: !!selectedAreaId,
   });
 
-  const { data: materials = [], isLoading: materialsLoading } = useQuery<Material[]>({
-    queryKey: ["/api/materials", navigation.selectedSubjectId],
-    enabled: isAuthenticated && navigation.level === 'materials' && !!navigation.selectedSubjectId,
+  const { data: materials = [] } = useQuery<Material[]>({
+    queryKey: ["/api/materials", selectedSubjectId],
+    enabled: !!selectedSubjectId,
   });
 
-  // Query para editais
-  const { data: editais = [], isLoading: editaisLoading } = useQuery<any[]>({
-    queryKey: ["/api/edital/lista"],
-    queryFn: async () => {
-      const response = await fetch('/api/edital/lista', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch editais');
-      const data = await response.json();
-      return data.editais || []; // Extrair apenas o array editais da resposta
-    },
-    enabled: isAuthenticated && activeTab === 'editais',
-  });
+  // Navigation functions
+  const navigateToSubjects = (areaId: string) => {
+    setSelectedAreaId(areaId);
+    setSelectedSubjectId(undefined);
+    setLevel('subjects');
+  };
 
-  // Helper functions
-  const navigateToLevel = (level: ViewLevel, id?: string, name?: string) => {
-    if (level === 'subjects' && id && name) {
-      // Reset to areas level, then add subjects level
-      const baseBreadcrumb = [{ name: 'Biblioteca', level: 'areas' as ViewLevel }];
-      setNavigation({
-        level: 'subjects',
-        selectedAreaId: id,
-        selectedSubjectId: undefined,
-        breadcrumb: [...baseBreadcrumb, { id, name, level: 'subjects' }]
-      });
-    } else if (level === 'materials' && id && name) {
-      // Keep current breadcrumb up to subjects level, then add materials level
-      const currentBreadcrumb = navigation.breadcrumb.filter(item => 
-        item.level === 'areas' || item.level === 'subjects'
-      );
-      setNavigation({
-        ...navigation,
-        level: 'materials',
-        selectedSubjectId: id,
-        breadcrumb: [...currentBreadcrumb, { id, name, level: 'materials' }]
-      });
-    } else {
-      // Reset to areas level
-      setNavigation({
-        level: 'areas',
-        selectedAreaId: undefined,
-        selectedSubjectId: undefined,
-        breadcrumb: [{ name: 'Biblioteca', level: 'areas' }]
-      });
+  const navigateToMaterials = (subjectId: string) => {
+    setSelectedSubjectId(subjectId);
+    setLevel('materials');
+  };
+
+  const navigateBack = () => {
+    if (level === 'materials') {
+      setSelectedSubjectId(undefined);
+      setLevel('subjects');
+    } else if (level === 'subjects') {
+      setSelectedAreaId(undefined);
+      setLevel('areas');
     }
   };
 
-  const navigateBack = (targetLevel: ViewLevel) => {
-    const breadcrumbIndex = navigation.breadcrumb.findIndex(item => item.level === targetLevel);
-    
-    if (breadcrumbIndex !== -1) {
-      const newBreadcrumb = navigation.breadcrumb.slice(0, breadcrumbIndex + 1);
-      const targetItem = navigation.breadcrumb[breadcrumbIndex];
-      
-      setNavigation({
-        level: targetLevel,
-        selectedAreaId: targetLevel === 'subjects' ? targetItem.id : undefined,
-        selectedSubjectId: targetLevel === 'materials' ? targetItem.id : navigation.selectedSubjectId,
-        breadcrumb: newBreadcrumb
-      });
-    }
-  };
-
-  const handleCreateNew = (type: 'area' | 'subject' | 'material') => {
-    if (type === 'material' && activeTab === 'editais') {
-      setShowEditalUploader(true);
-    } else {
-      setCreateType(type);
-      setIsCreateModalOpen(true);
-    }
+  const handleCreate = (type: 'area' | 'subject' | 'material') => {
+    setCreateType(type);
+    setEditItem(null);
+    setCreateModalOpen(true);
   };
 
   const handleEdit = (item: any) => {
-    setItemToEdit(item);
-    setIsEditModalOpen(true);
+    setEditItem(item);
+    setCreateModalOpen(true);
   };
 
-  const handleDelete = (item: any) => {
-    setItemToDelete(item);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!itemToDelete) return;
+  const handleDelete = async (id: string, type: ViewLevel) => {
+    if (!confirm('Tem certeza que deseja excluir?')) return;
 
     try {
-      let endpoint = '';
-      let queryKey = '';
-
-      if (navigation.level === 'areas') {
-        endpoint = `/api/areas/${itemToDelete.id}`;
-        queryKey = '/api/areas';
-      } else if (navigation.level === 'subjects') {
-        endpoint = `/api/subjects/${itemToDelete.id}`;
-        queryKey = `/api/subjects`;
-      } else {
-        endpoint = `/api/materials/${itemToDelete.id}`;
-        queryKey = `/api/materials`;
-      }
-
+      const endpoint = type === 'areas' ? `/api/areas/${id}` :
+                       type === 'subjects' ? `/api/subjects/${id}` :
+                       `/api/materials/${id}`;
+      
       await apiRequest('DELETE', endpoint);
       
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: [queryKey] });
-      if (navigation.selectedAreaId) {
-        queryClient.invalidateQueries({ queryKey: [queryKey, navigation.selectedAreaId] });
-      }
-      if (navigation.selectedSubjectId) {
-        queryClient.invalidateQueries({ queryKey: [queryKey, navigation.selectedSubjectId] });
-      }
+      // Invalidate ALL queries in hierarchy to prevent stale data
+      // TanStack Query v5 uses prefix matching, so this catches all variants
+      await queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
       
-      toast({
-        title: "Sucesso",
-        description: "Item excluído com sucesso!",
-      });
+      toast({ title: "Sucesso", description: "Item excluído!" });
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao excluir item",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleteModalOpen(false);
-      setItemToDelete(null);
+      toast({ title: "Erro", description: "Falha ao excluir", variant: "destructive" });
     }
   };
 
-  const getIcon = () => {
-    switch (navigation.level) {
-      case 'areas': return Folder;
-      case 'subjects': return BookOpen;
-      case 'materials': return FileText;
-      default: return Folder;
-    }
-  };
-
-  // const { getResponsiveText } = useResponsiveText();
-
-  const getTitle = () => {
-    switch (navigation.level) {
-      case 'areas': return 'Áreas de Conhecimento';
-      case 'subjects': return 'Matérias';
-      case 'materials': return activeTab === 'editais' ? 'Editais de Concurso' : 'Materiais';
-      default: return 'Biblioteca';
-    }
-  };
-
-  // Helper functions for text content
-  const getCreateButtonText = () => {
-    switch (navigation.level) {
-      case 'areas': return 'Nova Área';
-      case 'subjects': return 'Nova Matéria';
-      case 'materials': return activeTab === 'editais' ? 'Novo Edital' : 'Novo Material';
-      default: return 'Adicionar';
-    }
-  };
-
-  const getSearchPlaceholder = () => {
-    switch (navigation.level) {
-      case 'areas': return 'Buscar áreas...';
-      case 'subjects': return 'Buscar matérias...';
-      case 'materials': return 'Buscar materiais...';
-      default: return 'Buscar...';
-    }
-  };
-
-  const getSubtitle = () => {
-    switch (navigation.level) {
-      case 'areas': return 'Organize seus estudos por áreas de conhecimento';
-      case 'subjects': return 'Gerencie as matérias desta área';
-      case 'materials': return activeTab === 'editais' ? 'Gerencie seus editais de concurso com processamento avançado' : 'Visualize e organize seus materiais de estudo';
-      default: return 'Sua biblioteca de conhecimento';
-    }
-  };
-
+  // Get current data and config
   const getCurrentData = () => {
-    switch (navigation.level) {
-      case 'areas': return knowledgeAreas;
-      case 'subjects': return subjects;
-      case 'materials': return activeTab === 'editais' ? (editais || []) : materials;
-      default: return [];
-    }
+    if (level === 'areas') return areas;
+    if (level === 'subjects') return subjects;
+    return materials;
   };
 
-  const isCurrentLoading = () => {
-    switch (navigation.level) {
-      case 'areas': return areasLoading;
-      case 'subjects': return subjectsLoading;
-      case 'materials': return activeTab === 'editais' ? editaisLoading : materialsLoading;
-      default: return false;
-    }
+  const getConfig = () => {
+    if (level === 'areas') return {
+      title: 'Áreas de Conhecimento',
+      icon: Folder,
+      createLabel: 'Nova Área',
+      emptyTitle: 'Nenhuma área criada',
+      emptyDesc: 'Comece organizando seus estudos criando áreas de conhecimento.',
+    };
+    if (level === 'subjects') return {
+      title: 'Matérias',
+      icon: BookOpen,
+      createLabel: 'Nova Matéria',
+      emptyTitle: 'Nenhuma matéria encontrada',
+      emptyDesc: 'Adicione matérias para esta área de conhecimento.',
+    };
+    return {
+      title: 'Materiais',
+      icon: FileText,
+      createLabel: 'Upload Material',
+      emptyTitle: 'Nenhum material encontrado',
+      emptyDesc: 'Faça upload de PDFs, documentos e outros materiais de estudo.',
+    };
   };
 
   const currentData = getCurrentData();
+  const config = getConfig();
+  const filteredData = currentData.filter((item: any) =>
+    !searchQuery || 
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   return (
-    <ProfessionalShell
-      breadcrumbs={[
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Biblioteca" }
-      ]}
+    <UnifiedShell
+      title="Biblioteca"
+      actions={
+        <div className="flex items-center gap-2">
+          {level !== 'areas' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={navigateBack}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
+            </Button>
+          )}
+          <Button
+            onClick={() => handleCreate(level === 'areas' ? 'area' : level === 'subjects' ? 'subject' : 'material')}
+            data-testid="button-create"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {config.createLabel}
+          </Button>
+        </div>
+      }
     >
-        {/* Action Buttons */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => handleCreateNew('material')}
-                data-testid="button-upload-material"
-                variant="outline"
-                className="flex items-center space-x-2"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Upload</span>
-              </Button>
-              <Button 
-                onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
-                data-testid="button-create-new"
-                className="flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{navigation.level === 'areas' ? 'Nova Área' : navigation.level === 'subjects' ? 'Nova Matéria' : 'Novo Material'}</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-          
-        {/* Breadcrumb Navigation */}
-        <div className="mb-6">
-          <Breadcrumb>
-            <BreadcrumbList>
-              {navigation.breadcrumb.map((crumb, index) => (
-                <React.Fragment key={index}>
-                  <BreadcrumbItem>
-                    {index < navigation.breadcrumb.length - 1 ? (
-                      <BreadcrumbLink 
-                        onClick={() => navigateBack(crumb.level)}
-                        className="cursor-pointer hover:text-primary"
-                      >
-                        {crumb.name}
-                      </BreadcrumbLink>
-                    ) : (
-                      <BreadcrumbPage>{crumb.name}</BreadcrumbPage>
-                    )}
-                  </BreadcrumbItem>
-                  {index < navigation.breadcrumb.length - 1 && <BreadcrumbSeparator />}
-                </React.Fragment>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Page Header */}
+        <ModernPageHeader
+          title={config.title}
+          description={`${filteredData.length} ${level === 'areas' ? 'áreas' : level === 'subjects' ? 'matérias' : 'materiais'}`}
+          icon={config.icon}
+        />
 
-        {/* Tabs para Materiais vs Editais */}
-        {navigation.level === 'materials' && (
-          <div className="mb-6">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'materials' | 'editais')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="materials" className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Materiais de Estudo
-                </TabsTrigger>
-                <TabsTrigger value="editais" className="flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4" />
-                  Editais de Concurso
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        )}
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={
-                navigation.level === 'areas' ? 'Buscar áreas...' : 
-                navigation.level === 'subjects' ? 'Buscar matérias...' : 
-                activeTab === 'editais' ? 'Buscar editais...' : 'Buscar materiais...'
-              }
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              data-testid="search-input"
-              className="pl-10"
-            />
-          </div>
+        {/* Search */}
+        <div className="relative max-w-md">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+            data-testid="input-search"
+          />
         </div>
-
-        {/* Stats Overview - only show on areas level */}
-        {navigation.level === 'areas' && (
-          <div className="mb-8">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-foreground mb-1">Visão Geral</h2>
-              <p className="text-sm text-muted-foreground">Estatísticas da sua biblioteca</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {areasLoading ? (
-                <>
-                  <Skeleton className="h-24" />
-                  <Skeleton className="h-24" />
-                  <Skeleton className="h-24" />
-                  <Skeleton className="h-24" />
-                </>
-              ) : (
-                <>
-                  <ProfessionalStats
-                    icon={<Folder className="w-5 h-5" />}
-                    value={knowledgeAreas.length}
-                    title="Áreas"
-                    variant="info"
-                    data-testid="stat-areas"
-                  />
-                  <ProfessionalStats
-                    icon={<BookOpen className="w-5 h-5" />}
-                    value={subjects.length}
-                    title="Matérias"
-                    variant="success"
-                    data-testid="stat-subjects"
-                  />
-                  <ProfessionalStats
-                    icon={<FileText className="w-5 h-5" />}
-                    value="0"
-                    title="Materiais"
-                    variant="warning"
-                    data-testid="stat-materials"
-                  />
-                  <ProfessionalStats
-                    icon={<Database className="w-5 h-5" />}
-                    value="100%"
-                    title="Organização"
-                    variant="default"
-                    data-testid="stat-organization"
-                  />
-                </>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Content Grid */}
-        <div>
-          <div className="mb-6" data-testid="content-header">
-            <h2 className="text-lg font-semibold text-foreground mb-1">{getTitle()}</h2>
-            <p className="text-sm text-muted-foreground">
-              {currentData.length} {navigation.level === 'areas' ? 'áreas' : navigation.level === 'subjects' ? 'matérias' : activeTab === 'editais' ? 'editais' : 'materiais'} encontrada{currentData.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          
-          <div className="mt-4">
-            {isCurrentLoading() ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-              </div>
-            ) : currentData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center" data-testid={`empty-${navigation.level}`}>
-                <div className="w-16 h-16 mb-4 text-muted-foreground">
-                  {React.createElement(activeTab === 'editais' ? GraduationCap : getIcon(), { className: "w-full h-full" })}
-                </div>
-                <h3 className="text-lg font-semibold mb-2">
-                  Nenhuma {navigation.level === 'areas' ? 'área' : navigation.level === 'subjects' ? 'matéria' : activeTab === 'editais' ? 'edital' : 'material'} encontrada
-                </h3>
-                <p className="text-muted-foreground mb-6 max-w-md">
-                  {activeTab === 'editais' 
-                    ? 'Faça upload de seu primeiro edital para processamento avançado com Google Document AI.'
-                    : `Comece criando sua primeira ${navigation.level === 'areas' ? 'área de conhecimento' : navigation.level === 'subjects' ? 'matéria' : 'material de estudo'}.`
-                  }
-                </p>
-                <Button 
-                  onClick={() => handleCreateNew(navigation.level === 'areas' ? 'area' : navigation.level === 'subjects' ? 'subject' : 'material')}
-                  data-testid="button-add-material"
-                >
-                  {getCreateButtonText()}
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {currentData
-                  .filter((item: any) => 
-                    searchQuery === '' || 
-                    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    item.title?.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((item: any) => (
-                    <Card key={item.id} className="transition-all duration-200 hover:shadow-md cursor-pointer">
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                              {React.createElement(getIcon(), { className: "w-5 h-5" })}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-base mb-1">
-                                {item.name || item.title}
-                              </h3>
-                              {item.description && (
-                                <p className="text-sm text-muted-foreground">
-                                  {item.description}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                            
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(item)}
-                              data-testid={`button-edit-${item.id}`}
-                              title={`Editar ${item.name || item.title}`}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(item)}
-                              data-testid={`button-delete-${item.id}`}
-                              title={`Excluir ${item.name || item.title}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          </div>
-                          
-                        {/* Item specific info */}
-                        <div className="mb-4">
-                          {navigation.level === 'subjects' && (
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <Badge variant="secondary">{item.category}</Badge>
-                              <span>Prioridade {item.priority}</span>
-                            </div>
-                          )}
-                          
-                          {navigation.level === 'materials' && (
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <Badge variant="outline">{item.type}</Badge>
-                              {item.uploadDate && (
-                                <span>
-                                  {new Date(item.uploadDate).toLocaleDateString('pt-BR')}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                          
-                        {/* Navigation action */}
-                        {(navigation.level === 'areas' || navigation.level === 'subjects') && (
-                          <Button
-                            className="w-full"
-                            onClick={() => {
-                              if (navigation.level === 'areas') {
-                                navigateToLevel('subjects', item.id, item.name);
-                              } else {
-                                navigateToLevel('materials', item.id, item.name);
-                              }
-                            }}
-                            data-testid={`button-navigate-${item.id}`}
-                          >
-                            {navigation.level === 'areas' ? 'Ver Matérias' : 'Ver Materiais'}
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Edital Uploader Modal */}
-        <Dialog 
-          open={showEditalUploader} 
-          onOpenChange={setShowEditalUploader}
-        >
-          <DialogContent className="sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5" />
-                Novo Edital de Concurso
-              </DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              <EditalUploader
-                concursoNome="Concurso Padrão"
-                onEditalProcessed={(result) => {
-                  console.log('Edital processado:', result);
-                  setShowEditalUploader(false);
-                  queryClient.invalidateQueries({ queryKey: ['/api/edital/lista'] });
-                  toast({
-                    title: "✅ Edital processado!",
-                    description: `${result.fileName} foi processado com sucesso usando Google Document AI.`,
-                  });
+        {filteredData.length === 0 ? (
+          <ModernEmptyState
+            icon={config.icon}
+            title={config.emptyTitle}
+            description={config.emptyDesc}
+            action={{
+              label: config.createLabel,
+              onClick: () => handleCreate(level === 'areas' ? 'area' : level === 'subjects' ? 'subject' : 'material')
+            }}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredData.map((item: any) => (
+              <Card
+                key={item.id}
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
+                onClick={() => {
+                  if (level === 'areas') navigateToSubjects(item.id);
+                  else if (level === 'subjects') navigateToMaterials(item.id);
                 }}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+                data-testid={`card-${item.id}`}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="p-2.5 rounded-lg bg-primary/10">
+                        <config.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">
+                          {item.name || item.title}
+                        </h3>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                  </div>
 
-        {/* Create Modal */}
-        <Dialog 
-          open={isCreateModalOpen} 
-          onOpenChange={setIsCreateModalOpen}
-        >
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(item)}
+                      data-testid={`button-edit-${item.id}`}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(item.id, level)}
+                      data-testid={`button-delete-${item.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Create/Edit Modal */}
+        <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
-                {createType === 'area' && 'Nova Área de Conhecimento'}
-                {createType === 'subject' && 'Nova Matéria'}
-                {createType === 'material' && 'Novo Material'}
+                {editItem ? 'Editar' : 'Criar'} {
+                  createType === 'area' ? 'Área' :
+                  createType === 'subject' ? 'Matéria' :
+                  'Material'
+                }
               </DialogTitle>
             </DialogHeader>
-            <div className="py-4">
-              {createType === 'area' && (
-                <AreaForm 
-                  onSuccess={() => {
-                    setIsCreateModalOpen(false);
-                    queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
-                  }} 
-                />
-              )}
-              {createType === 'subject' && (
-                <SubjectForm 
-                  areaId={navigation.selectedAreaId}
-                  onSuccess={() => {
-                    setIsCreateModalOpen(false);
-                    queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
-                  }} 
-                />
-              )}
-              {createType === 'material' && (
-                <MaterialUpload 
-                  subjectId={navigation.selectedSubjectId}
-                  onSuccess={() => {
-                    setIsCreateModalOpen(false);
-                    queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
-                  }} 
-                />
-              )}
-            </div>
+            {createType === 'area' && (
+              <AreaForm
+                onSuccess={() => {
+                  setCreateModalOpen(false);
+                  setEditItem(null);
+                  // Invalidate all hierarchy levels (prefix matching catches all variants)
+                  queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+                }}
+              />
+            )}
+            {createType === 'subject' && (
+              <SubjectForm
+                onSuccess={() => {
+                  setCreateModalOpen(false);
+                  setEditItem(null);
+                  // Invalidate subjects and materials (catches all scoped variants)
+                  queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+                }}
+              />
+            )}
+            {createType === 'material' && (
+              <MaterialUpload
+                onSuccess={() => {
+                  setCreateModalOpen(false);
+                  // Invalidate all material queries (catches scoped and unscoped)
+                  queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+                }}
+              />
+            )}
           </DialogContent>
         </Dialog>
-
-        {/* Edit Modal */}
-        <Dialog 
-          open={isEditModalOpen} 
-          onOpenChange={setIsEditModalOpen}
-        >
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Editar Item</DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              {navigation.level === 'areas' && itemToEdit && (
-                <AreaForm 
-                  area={itemToEdit}
-                  onSuccess={() => {
-                    setIsEditModalOpen(false);
-                    setItemToEdit(null);
-                    queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
-                  }} 
-                />
-              )}
-              {navigation.level === 'subjects' && itemToEdit && (
-                <SubjectForm 
-                  subject={itemToEdit}
-                  onSuccess={() => {
-                    setIsEditModalOpen(false);
-                    setItemToEdit(null);
-                    queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
-                  }} 
-                />
-              )}
-              {navigation.level === 'materials' && itemToEdit && (
-                <MaterialUpload 
-                  material={itemToEdit}
-                  subjectId={navigation.selectedSubjectId}
-                  onSuccess={() => {
-                    setIsEditModalOpen(false);
-                    setItemToEdit(null);
-                    queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
-                  }} 
-                />
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Modal */}
-        <AlertDialog 
-          open={isDeleteModalOpen} 
-          onOpenChange={setIsDeleteModalOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza de que deseja excluir "{itemToDelete?.name || itemToDelete?.title}"?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <Alert className="my-4">
-              <AlertDescription>
-                Esta ação não pode ser desfeita.
-              </AlertDescription>
-            </Alert>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setIsDeleteModalOpen(false)}>
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={confirmDelete}
-                data-testid="button-confirm-delete"
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-    </ProfessionalShell>
+      </div>
+    </UnifiedShell>
   );
 }
