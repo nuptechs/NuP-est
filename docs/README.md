@@ -5,6 +5,7 @@ Bem-vindo à documentação técnica da plataforma NuP-est. Esta pasta contém t
 ## 📖 Índice Geral
 
 ### 🎯 Visão Geral do Sistema
+- **[ARQUITETURA.md](./ARQUITETURA.md)** - ⭐ **NOVA!** Arquitetura Front-End/Back-End (nota 9.0/10)
 - **[SYSTEM_OVERVIEW.md](./SYSTEM_OVERVIEW.md)** - Visão completa do sistema, funcionalidades, arquitetura e tecnologias
 - **[arquitetura-atual.md](./arquitetura-atual.md)** - Arquitetura técnica detalhada da aplicação
 
