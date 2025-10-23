@@ -74,7 +74,7 @@ export default function PersonalizedAssistantPage() {
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <div className={`
-        w-80 border-r bg-muted/20 flex flex-col
+        w-80 border-r bg-background flex flex-col shadow-2xl
         lg:relative absolute inset-y-0 left-0 z-40
         transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -170,7 +170,7 @@ export default function PersonalizedAssistantPage() {
 
       {/* Backdrop (mobile) */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black/50 z-30" onClick={() => setSidebarOpen(false)} />
+        <div className="lg:hidden fixed inset-0 bg-black/80 dark:bg-black/90 z-30" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Main Content */}

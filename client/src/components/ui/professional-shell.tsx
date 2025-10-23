@@ -174,7 +174,7 @@ export default function ProfessionalShell({
                   data-testid="user-menu-trigger"
                 >
                   <Avatar className="w-8 h-8 mr-3">
-                    <AvatarImage src={user?.profileImageUrl} />
+                    <AvatarImage src={user?.profileImageUrl || undefined} />
                     <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                       {getUserInitials()}
                     </AvatarFallback>
@@ -347,14 +347,14 @@ export default function ProfessionalShell({
       {/* Mobile Sidebar Overlay */}
       {isMobileSidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
+          {/* Backdrop - Opaco para bloquear conteúdo */}
           <div 
-            className="fixed inset-0 bg-black/50"
+            className="fixed inset-0 bg-black/80 dark:bg-black/90"
             onClick={() => setIsMobileSidebarOpen(false)}
           />
           
-          {/* Sidebar */}
-          <div className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border">
+          {/* Sidebar - Background sólido */}
+          <div className="fixed left-0 top-0 bottom-0 w-64 bg-background border-r border-border shadow-2xl z-10">
             <div className="flex items-center justify-between h-16 px-6 border-b border-border">
               <div className="flex items-center">
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
