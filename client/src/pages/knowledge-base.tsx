@@ -301,7 +301,10 @@ export default function KnowledgeBasePage() {
                         <p className="text-muted-foreground">Adicionado em</p>
                         <p className="font-medium flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(selectedDoc.createdAt).toLocaleDateString('pt-BR')}
+                          {selectedDoc.createdAt 
+                            ? new Date(selectedDoc.createdAt).toLocaleDateString('pt-BR')
+                            : 'Data indisponível'
+                          }
                         </p>
                       </div>
                     </div>
@@ -312,8 +315,10 @@ export default function KnowledgeBasePage() {
                       <p className="text-sm text-muted-foreground mb-2">Conteúdo Extraído</p>
                       <div className="bg-muted/50 rounded-lg p-4 max-h-[300px] overflow-y-auto">
                         <p className="text-sm whitespace-pre-wrap" data-testid="doc-content">
-                          {selectedDoc.content.substring(0, 500)}
-                          {selectedDoc.content.length > 500 && '...'}
+                          {selectedDoc.content 
+                            ? selectedDoc.content.substring(0, 500) + (selectedDoc.content.length > 500 ? '...' : '')
+                            : 'Conteúdo não disponível'
+                          }
                         </p>
                       </div>
                     </div>

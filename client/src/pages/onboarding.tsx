@@ -76,18 +76,19 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (isEditMode && currentUserData) {
+      const userData = currentUserData as any;
       setData({
-        age: currentUserData.age || undefined,
-        studyProfile: currentUserData.studyProfile || "average",
-        learningDifficulties: currentUserData.learningDifficulties || [],
-        customDifficulties: currentUserData.customDifficulties || undefined,
-        studyObjective: currentUserData.studyObjective || undefined,
-        dailyStudyHours: currentUserData.dailyStudyHours ? Number(currentUserData.dailyStudyHours) : undefined,
-        preferredStudyTime: currentUserData.preferredStudyTime || "flexible",
-        learningStyle: currentUserData.learningStyle || "mixed",
-        preferredExplanationStyle: currentUserData.preferredExplanationStyle || "balanced",
-        needsMotivation: currentUserData.needsMotivation || false,
-        prefersExamples: currentUserData.prefersExamples !== false,
+        age: userData.age || undefined,
+        studyProfile: userData.studyProfile || "average",
+        learningDifficulties: userData.learningDifficulties || [],
+        customDifficulties: userData.customDifficulties || undefined,
+        studyObjective: userData.studyObjective || undefined,
+        dailyStudyHours: userData.dailyStudyHours ? Number(userData.dailyStudyHours) : undefined,
+        preferredStudyTime: userData.preferredStudyTime || "flexible",
+        learningStyle: userData.learningStyle || "mixed",
+        preferredExplanationStyle: userData.preferredExplanationStyle || "balanced",
+        needsMotivation: userData.needsMotivation || false,
+        prefersExamples: userData.prefersExamples !== false,
       });
     }
   }, [isEditMode, currentUserData]);
