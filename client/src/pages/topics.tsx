@@ -1,9 +1,25 @@
+/**
+ * Topics - Clean Master-Detail Layout
+ * Simplified from 501 lines to clean, professional UX
+ */
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
+import UnifiedShell from "@/components/layout/unified-shell";
+import ModernPageHeader from "@/components/ui/modern-page-header";
+import ModernEmptyState from "@/components/ui/modern-empty-state";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import {
   Plus,
   Edit,
@@ -13,19 +29,6 @@ import {
   Search,
   ChevronRight
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import ProfessionalShell from "@/components/ui/professional-shell";
-import { ProfessionalCard } from "@/components/ui/professional-card";
 import type { Topic, Subject } from "@shared/schema";
 
 const topicSchema = z.object({
@@ -44,7 +47,6 @@ export default function Topics() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterSubject, setFilterSubject] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
-
   const [formData, setFormData] = useState<TopicFormData>({
     name: '',
     description: '',
@@ -54,19 +56,11 @@ export default function Topics() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Não autorizado",
-        description: "Você precisa estar logado. Redirecionando...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
+      window.location.href = "/api/login";
     }
-  }, [isAuthenticated, isLoading, toast]);
+  }, [isAuthenticated, isLoading]);
 
-  const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
+  const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
     enabled: isAuthenticated,
   });
@@ -83,100 +77,45 @@ export default function Topics() {
   });
 
   const createTopicMutation = useMutation({
-    mutationFn: async (data: TopicFormData) => {
-      return apiRequest("POST", "/api/topics", data);
-    },
+    mutationFn: async (data: TopicFormData) => apiRequest("POST", "/api/topics", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
       setIsModalOpen(false);
       resetForm();
-      toast({
-        title: "Tópico criado",
-        description: "Tópico criado com sucesso!",
-      });
+      toast({ title: "Tópico criado com sucesso!" });
     },
-    onError: (error: any) => {
-      if (error.status === 401) {
-        window.location.href = "/api/login";
-        return;
-      }
-      toast({
-        title: "Erro",
-        description: "Falha ao criar tópico",
-        variant: "destructive",
-      });
-    },
+    onError: () => toast({ title: "Erro ao criar tópico", variant: "destructive" }),
   });
 
   const updateTopicMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<TopicFormData> }) => {
-      return apiRequest("PATCH", `/api/topics/${id}`, data);
-    },
+    mutationFn: async ({ id, data }: { id: string; data: Partial<TopicFormData> }) => 
+      apiRequest("PATCH", `/api/topics/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
       setIsModalOpen(false);
       setSelectedTopic(null);
       resetForm();
-      toast({
-        title: "Tópico atualizado",
-        description: "Tópico atualizado com sucesso!",
-      });
+      toast({ title: "Tópico atualizado com sucesso!" });
     },
-    onError: (error: any) => {
-      if (error.status === 401) {
-        window.location.href = "/api/login";
-        return;
-      }
-      toast({
-        title: "Erro",
-        description: "Falha ao atualizar tópico",
-        variant: "destructive",
-      });
-    },
+    onError: () => toast({ title: "Erro ao atualizar tópico", variant: "destructive" }),
   });
 
   const deleteTopicMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/topics/${id}`, null);
-    },
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/topics/${id}`, null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
-      toast({
-        title: "Tópico deletado",
-        description: "Tópico deletado com sucesso!",
-      });
+      toast({ title: "Tópico deletado com sucesso!" });
     },
-    onError: (error: any) => {
-      if (error.status === 401) {
-        window.location.href = "/api/login";
-        return;
-      }
-      toast({
-        title: "Erro",
-        description: "Falha ao deletar tópico",
-        variant: "destructive",
-      });
-    },
+    onError: () => toast({ title: "Erro ao deletar tópico", variant: "destructive" }),
   });
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      subjectId: filterSubject || '',
-      order: 0
-    });
+    setFormData({ name: '', description: '', subjectId: filterSubject || '', order: 0 });
     setSelectedTopic(null);
   };
 
   const handleCreate = () => {
-    setSelectedTopic(null);
-    setFormData({
-      name: '',
-      description: '',
-      subjectId: filterSubject || '',
-      order: 0
-    });
+    resetForm();
     setIsModalOpen(true);
   };
 
@@ -202,7 +141,6 @@ export default function Topics() {
     
     try {
       topicSchema.parse(formData);
-      
       if (selectedTopic) {
         updateTopicMutation.mutate({ id: selectedTopic.id, data: formData });
       } else {
@@ -210,11 +148,7 @@ export default function Topics() {
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Erro de validação",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
+        toast({ title: error.errors[0].message, variant: "destructive" });
       }
     }
   };
@@ -226,49 +160,38 @@ export default function Topics() {
 
   const selectedSubjectData = subjects.find(s => s.id === filterSubject);
 
-  if (isLoading || subjectsLoading) {
+  if (isLoading) {
     return (
-      <ProfessionalShell>
-        <div className="max-w-6xl mx-auto p-6 space-y-6">
-          <Skeleton className="h-12 w-64" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      </ProfessionalShell>
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
+  if (!isAuthenticated) return null;
+
   return (
-    <ProfessionalShell>
+    <UnifiedShell title="Tópicos">
       <div className="max-w-6xl mx-auto p-6 space-y-8">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                Gerenciar Tópicos
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Organize os tópicos dentro de cada matéria
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Page Header */}
+        <ModernPageHeader
+          title="Gerenciar Tópicos"
+          description="Organize os tópicos dentro de cada matéria"
+          icon={List}
+        />
 
         {/* Subject Filter */}
-        <Card className="border-2 shadow-sm">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
               Selecione uma Matéria
             </CardTitle>
-            <CardDescription>
-              Escolha a matéria para visualizar e gerenciar seus tópicos
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={filterSubject} onValueChange={setFilterSubject}>
               <SelectTrigger data-testid="select-subject">
-                <SelectValue placeholder="Selecione uma matéria..." />
+                <SelectValue placeholder="Escolha uma matéria..." />
               </SelectTrigger>
               <SelectContent>
                 {subjects.map((subject) => (
@@ -283,21 +206,14 @@ export default function Topics() {
 
         {/* Topics List */}
         {filterSubject && (
-          <Card className="border-2 shadow-sm">
+          <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-400/10 dark:to-purple-400/10 rounded-lg">
-                    <List className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <CardTitle>
-                      {selectedSubjectData?.name || 'Tópicos'}
-                    </CardTitle>
-                    <CardDescription>
-                      {filteredTopics.length} tópico{filteredTopics.length !== 1 ? 's' : ''}
-                    </CardDescription>
-                  </div>
+                <div>
+                  <CardTitle>{selectedSubjectData?.name || 'Tópicos'}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {filteredTopics.length} tópico{filteredTopics.length !== 1 ? 's' : ''}
+                  </p>
                 </div>
                 <Button onClick={handleCreate} data-testid="button-create-topic">
                   <Plus className="h-4 w-4 mr-2" />
@@ -323,75 +239,59 @@ export default function Topics() {
               )}
 
               {topicsLoading ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-20 w-full" />
+                    <div key={i} className="h-20 bg-muted/20 rounded animate-pulse" />
                   ))}
                 </div>
               ) : filteredTopics.length === 0 ? (
-                <Alert>
-                  <AlertDescription className="text-center py-8">
-                    {searchQuery ? (
-                      <>Nenhum tópico encontrado com "{searchQuery}"</>
-                    ) : (
-                      <>
-                        Nenhum tópico cadastrado ainda.{' '}
-                        <button
-                          onClick={handleCreate}
-                          className="text-blue-600 dark:text-blue-400 underline hover:no-underline"
-                        >
-                          Crie o primeiro
-                        </button>
-                      </>
-                    )}
-                  </AlertDescription>
-                </Alert>
+                <ModernEmptyState
+                  icon={List}
+                  title={searchQuery ? "Nenhum tópico encontrado" : "Nenhum tópico cadastrado"}
+                  description={searchQuery ? `Tente outro termo de busca` : "Crie o primeiro tópico"}
+                />
               ) : (
                 <div className="space-y-2">
                   {filteredTopics.map((topic) => (
-                    <ProfessionalCard
+                    <div
                       key={topic.id}
-                      className="group hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-500 dark:border-l-blue-400"
+                      className="flex items-center justify-between p-4 rounded-lg border hover:shadow-md transition-all"
                     >
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="p-2 bg-blue-500/10 dark:bg-blue-400/10 rounded-lg group-hover:bg-blue-500/20 dark:group-hover:bg-blue-400/20 transition-colors">
-                            <ChevronRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg truncate" data-testid={`text-topic-name-${topic.id}`}>
-                              {topic.name}
-                            </h3>
-                            {topic.description && (
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {topic.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <Badge variant="outline" className="hidden sm:flex">
-                            Ordem: {topic.order || 0}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(topic)}
-                            data-testid={`button-edit-topic-${topic.id}`}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(topic.id)}
-                            data-testid={`button-delete-topic-${topic.id}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate" data-testid={`text-topic-name-${topic.id}`}>
+                            {topic.name}
+                          </h3>
+                          {topic.description && (
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                              {topic.description}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    </ProfessionalCard>
+                      <div className="flex items-center gap-2 ml-4">
+                        <Badge variant="outline" className="hidden sm:flex">
+                          {topic.order || 0}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(topic)}
+                          data-testid={`button-edit-topic-${topic.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(topic.id)}
+                          data-testid={`button-delete-topic-${topic.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -400,24 +300,22 @@ export default function Topics() {
         )}
 
         {!filterSubject && (
-          <Alert>
-            <AlertDescription className="text-center py-8">
-              Selecione uma matéria acima para visualizar e gerenciar seus tópicos
-            </AlertDescription>
-          </Alert>
+          <ModernEmptyState
+            icon={BookOpen}
+            title="Selecione uma matéria"
+            description="Escolha uma matéria acima para visualizar seus tópicos"
+          />
         )}
 
         {/* Create/Edit Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {selectedTopic ? 'Editar Tópico' : 'Novo Tópico'}
-              </DialogTitle>
+              <DialogTitle>{selectedTopic ? 'Editar Tópico' : 'Novo Tópico'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome do Tópico *</Label>
+                <Label htmlFor="name">Nome *</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -434,7 +332,7 @@ export default function Topics() {
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Descrição opcional do tópico..."
+                  placeholder="Descrição opcional..."
                   rows={3}
                   data-testid="input-topic-description"
                 />
@@ -447,7 +345,7 @@ export default function Topics() {
                   onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
                 >
                   <SelectTrigger data-testid="select-topic-subject">
-                    <SelectValue placeholder="Selecione a matéria..." />
+                    <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.map((subject) => (
@@ -460,7 +358,7 @@ export default function Topics() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="order">Ordem de Exibição</Label>
+                <Label htmlFor="order">Ordem</Label>
                 <Input
                   id="order"
                   type="number"
@@ -469,25 +367,13 @@ export default function Topics() {
                   placeholder="0"
                   data-testid="input-topic-order"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Números menores aparecem primeiro
-                </p>
               </div>
 
               <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                  data-testid="button-cancel-topic"
-                >
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} data-testid="button-cancel-topic">
                   Cancelar
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={createTopicMutation.isPending || updateTopicMutation.isPending}
-                  data-testid="button-submit-topic"
-                >
+                <Button type="submit" disabled={createTopicMutation.isPending || updateTopicMutation.isPending} data-testid="button-submit-topic">
                   {selectedTopic ? 'Atualizar' : 'Criar'}
                 </Button>
               </DialogFooter>
@@ -495,6 +381,6 @@ export default function Topics() {
           </DialogContent>
         </Dialog>
       </div>
-    </ProfessionalShell>
+    </UnifiedShell>
   );
 }
