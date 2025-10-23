@@ -1,6 +1,6 @@
 # Overview
 
-NuP-est is an AI-powered adaptive study management platform that creates personalized learning experiences through deep user profiling and intelligent content delivery. The system guides users through a comprehensive setup process and provides an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The project aims to offer a polished, professional user experience with a focus on intuitive navigation and adaptive learning strategies.
+NuP-est is an AI-powered adaptive study management platform designed to personalize learning experiences through deep user profiling and intelligent content delivery. It provides a comprehensive setup, an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The project aims for a polished, professional user experience with intuitive navigation and adaptive learning strategies, ultimately enhancing learning efficiency and engagement.
 
 # User Preferences
 
@@ -12,154 +12,64 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 ## Frontend Architecture
 
-The client is built with **React 18** and **TypeScript**, using **Vite** as the build tool. It uses `wouter` for routing, **TanStack Query (React Query)** for server state management, and **shadcn/ui** with **Radix UI** primitives and **Tailwind CSS** for styling. **React Hook Form** with **Zod** handles form validation. The UI is profile-driven and adapts to user study patterns, featuring a centralized dashboard with a guided setup flow. A ClickUp-inspired modernization provides a consistent, modern visual design across all pages, including dark mode support and optimized responsive layouts.
+The client is built with React 18, TypeScript, and Vite. It utilizes `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI primitives and Tailwind CSS for styling. React Hook Form with Zod handles form validation. The UI is profile-driven, adapting to user study patterns, and features a centralized dashboard with a guided setup flow. A unified design system ensures consistency across spacing, typography, colors, and components.
 
 ## Backend Architecture
 
-The server is built with **Express.js** and **TypeScript** in ESM format. It uses **Drizzle ORM** for type-safe PostgreSQL database interactions and **Replit Auth** with Passport.js for authentication. **express-session** with **connect-pg-simple** manages sessions, and **multer** handles file uploads. The API is RESTful with consistent error handling. 
+The server uses Express.js and TypeScript (ESM format) with Drizzle ORM for type-safe PostgreSQL interactions. Replit Auth with Passport.js manages authentication, express-session handles sessions, and multer manages file uploads. The API is RESTful with consistent error handling.
 
-**Core AI Services (Phase 3 Complete):**
-1. **AdaptiveAssessmentService** - IRT-based question selection with ability estimation, optimal difficulty targeting, and zero-attempt guards
-2. **StudentProfileGenerator** - Analyzes assessments/interactions to create versioned student profiles with categorical-to-numeric mapping and behavioral analysis
-3. **ContinuousDiscoveryService** - Real-time interaction tracking with topic discovery, numeric engagement/comprehension parsing, and automatic profile updates
-4. **PersonalizedAssistantCore** - Context management with short/long-term memory systems, session state tracking, and profile-aware adaptations
-5. **AdaptiveContentDelivery** - AI-powered content generation with profile-aware questions, progressive hints (4 levels), personalized explanations, and safe difficulty adaptation
+**Core AI Services:**
+-   **AdaptiveAssessmentService**: IRT-based question selection and ability estimation.
+-   **StudentProfileGenerator**: Analyzes interactions to create versioned student profiles.
+-   **ContinuousDiscoveryService**: Tracks interactions, discovers topics, and updates profiles in real-time.
+-   **PersonalizedAssistantCore**: Manages context, short/long-term memory, and session state for profile-aware adaptations.
+-   **AdaptiveContentDelivery**: Generates AI-powered content, progressive hints, and personalized explanations.
 
-All services integrate with AIManager using proper AIRequest/AIResponse types, include Portuguese language support, handle edge cases (zero division, null values), and are architect-approved for production.
+**Key API Endpoints:**
+-   `/api/assistant/question`: Generates adaptive questions.
+-   `/api/assistant/hint`: Provides progressive hints.
+-   `/api/assistant/explanation`: Delivers personalized explanations.
+-   `/api/assistant/chat`: Manages conversational AI interactions.
+-   `/api/assessment/adaptive`: Initiates adaptive assessments.
+-   `/api/assessment/submit-answer`: Processes assessment answers and estimates ability.
 
-**AI Assistant API Endpoints (Phase 4 Complete + Security Hardening):**
-1. **POST /api/assistant/question** - Generate adaptive questions with profile-aware difficulty
-2. **POST /api/assistant/hint** - Progressive hint system with 4 levels (Note: currently uses placeholder hint history, future enhancement needed for persisted hints)
-3. **POST /api/assistant/explanation** - Personalized explanations adapted to learning profile
-4. **POST /api/assistant/chat** - Conversational assistant with context management, saves user and AI messages to chatMessages table
-5. **GET /api/assistant/:id/messages** - Retrieve chat history with pagination (default 100 messages)
-6. **POST /api/profile/interaction** - Log interactions and trigger profile updates
-7. **POST /api/assessment/adaptive** - Start adaptive assessments with IRT-based question selection, backend-controlled expectedTotalQuestions (capped at 50)
-8. **POST /api/assessment/submit-answer** - Submit answer with IRT-based ability estimation, automatic next question selection, backend-controlled completion
-
-All endpoints include authentication, ownership verification, Zod validation, and consistent error handling. Questions are persisted with database-generated IDs for hint/explanation tracking. Chat messages are persisted with full conversation history.
-
-**Security Features (October 2025):**
-- ✅ **Backend-Controlled Assessment Completion**: Assessment total questions stored in `expectedTotalQuestions` field (capped 1-50), preventing client-controlled completion attacks
-- ✅ **Layered Validation**: Zod schema validation → ownership checks → question existence → subject area match (defense in depth)
-- ✅ **submitAnswerRequestSchema**: Type-safe request validation without client-controlled completion fields
-- ✅ **Question Ownership**: Validates question belongs to assessment's subject area before processing
-
-**Frontend Integration (Phase 5 Complete + Bug Fix October 2025):**
-1. **usePersonalizedAssistant hook** - Auto-fetches/creates assistant and profile, provides mutations for configuration
-2. **PersonalizedAssistantPage (Redesigned October 2025)** - Modern sidebar-based layout with:
-   - **Sidebar (320px)**: Assistant header with gradient icon, subject/topic selectors with uppercase labels, vertical navigation (Chat, Questions, Assessment, Profile), contextual footer hints
-   - **Main Content Area**: Clean header with title/description/badges, full-height content rendering, contextual empty states
-   - **Mobile Responsive**: Toggle button with smooth slide-in/out animations, auto-close after navigation, dark backdrop overlay
-   - **Smart Navigation**: Chat and Profile always available, Questions/Assessment disabled without subject selection with visual hints
-   - **Modern UX**: Inspired by Notion/Linear/Figma - generous spacing, clear hierarchy, gradient accents, subtle backgrounds, no "AI-generated" appearance
-3. **AdaptiveQuestions component** - Full question flow with progressive 4-level hints, answer submission, explanations, statistics tracking. Enhanced timeout handling with visual timer (shows after 10s, warning after 30s).
-4. **AdaptiveAssessment component** - IRT-based adaptive assessment with real-time ability estimation, results with strengths/weaknesses/strategies
-5. **AssistantChat component (Fixed October 2025)** - Real-time chat interface with markdown rendering, context-aware responses, persistent message history. Fixed queryKey bug that prevented history loading. Uses singleton queryClient with shared queryKey for reliable cache invalidation.
-6. **StudentProfileView component** - Comprehensive profile visualization with cognitive abilities, learning style, study patterns
-
-All components include proper data-testid attributes, error handling, loading states, and integrate seamlessly with Phase 4 backend endpoints.
+Security features include backend-controlled assessment completion, layered Zod validation, ownership checks, and question persistence.
 
 ## Data Architecture
 
-The project uses a **PostgreSQL** database managed by **Drizzle ORM**. The schema includes tables for users, subjects, topics, study materials, goals, study sessions, and AI-related data (questions, attempts). A key feature is the comprehensive schema for the personalized AI teaching assistant, including tables for learning difficulties, versioned student learning profiles, personalized assistant instances, teaching strategies, adaptive assessments, and detailed interaction logs. This schema supports referential integrity, junction tables for many-to-many relationships, and versioning for student profiles.
+A PostgreSQL database managed by Drizzle ORM stores user data, subjects, topics, study materials, goals, sessions, and comprehensive AI-related data including learning difficulties, versioned student profiles, assistant instances, and interaction logs. The schema supports referential integrity and versioning.
 
 ## Authentication & Authorization
 
-Authentication is handled via **Replit OAuth** (OpenID Connect). The system uses secure session-based authentication with HttpOnly cookies and route-level middleware protection for API endpoints. User context is automatically injected into authenticated requests.
+Authentication is handled via Replit OAuth (OpenID Connect) using secure session-based authentication with HttpOnly cookies and route-level middleware protection.
 
 ## AI Integration
 
-The system integrates **OpenRouter** (DeepSeek R1 model) for advanced AI capabilities. AI interactions are profile-aware, adapting to user study profiles (disciplined, undisciplined, average). Key AI features include context-aware question generation, intelligent hints, personalized feedback, adaptive difficulty for questions and content, and smart recommendations for study strategies. The system processes uploaded study materials (PDF, DOC, DOCX, TXT, MD) to generate relevant content and questions.
+The system integrates OpenRouter (DeepSeek R1 model) for advanced, profile-aware AI capabilities. This includes context-aware question generation, intelligent hints, personalized feedback, adaptive difficulty, and smart recommendations. The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for content generation.
 
-**Integration Architecture (October 2025 - REFACTORED + IMPROVED):**
-
-All external service integrations are now centralized in `server/integrations/`:
-```
-server/integrations/
-├── openai/           # ✅ MIGRADO + Circuit Breaker + Rate Limit Handling
-├── document-ai/      # 🚧 Estrutura criada (aguardando migração)
-├── pinecone/         # ✅ MIGRADO + Batch Otimizado + Retry Logic
-└── README.md         # Documentação completa de gaps
-```
-
-**OpenAI/OpenRouter Integration (Enhanced - October 2025):**
-- ✅ **AIClient** centralizado com retry/timeout/logging/circuit breaker production-ready
-- ✅ **Circuit Breaker com HALF_OPEN Enforcement**:
-  - CLOSED → OPEN: 5 falhas consecutivas abre circuito por 60s
-  - OPEN → HALF_OPEN: Auto-recuperação após 60s com limite de 3 probe requests
-  - HALF_OPEN → CLOSED: Sucesso em qualquer probe fecha circuito imediatamente
-  - HALF_OPEN → OPEN: Falha em qualquer probe reabre circuito
-  - Check + Increment antes de cada request lógico (não por retry)
-  - Retries validam circuit breaker sem incrementar contador
-- ✅ **Rate Limit Handling Robusto**:
-  - Detecta 429 e usa Retry-After header (delta-seconds ou HTTP-date)
-  - Fallback para exponential backoff quando Retry-After inválido/passado
-  - Backoff adaptativo: rate limits 5s→10s→20s, erros de rede 1s→2s→4s
-- ✅ **Failure Accounting Correto**:
-  - recordFailure() chamado UMA VEZ por erro (no catch, não em !response.ok)
-  - Circuit breaker errors não inflam failure counters
-  - Métricas precisas de consecutiveFailures e halfOpenRequests
-- ✅ **Health Metrics**: Rastreia success rate, circuit state, falhas consecutivas
-- ✅ Usado por: OpenRouterProvider, DeepSeekService, SmartSummaryService, AIService
-- ✅ Zero dependências diretas em services
-
-**Pinecone Integration (Enhanced):**
-- ✅ **PineconeClient** completo com batch upsert otimizado (100 vetores/batch automático)
-- ✅ **Retry Logic**: Exponential backoff para rate limits e erros de rede
-- ✅ **Namespace Support**: Flexível via parâmetro (não hardcoded)
-- ✅ **Full Operations**: upsert, query, delete, deleteAll, getStats, healthCheck
-- ✅ Type-safe com TypeScript completo
-
-**Known Limitations:**
-- AI provider response times can be 15-30s for complex requests (OpenRouter latency with retry mechanism: timeout 45s + exponential backoff 1s→2s→4s)
-- Hint endpoint uses placeholder previousHints array (future enhancement: persist hints in assistant_memory or interaction_logs)
-- Timeout pode exceder 45s em requests muito complexos
-- Métricas de circuit breaker não persistidas (reset em restart)
-
-**Production Readiness (October 2025):**
-- ✅ Gap #1 Chat Persistence: Full implementation with chatMessages table, GET/POST endpoints, persistent conversation history
-- ✅ Gap #2 AI Timeouts: 45s timeout + retry with exponential backoff, visual loading timers (10s/30s warnings)
-- ✅ Gap #3 Migration Script: Idempotent script `scripts/migrate-learning-difficulties.ts` ready for production deployment
-- ✅ Gap #4 Integration Architecture: Todas as integrações externas centralizadas em `server/integrations/`, gaps documentados
-- ✅ UX Improvements: Chat/Profile tabs always accessible, Questions/Assessment require subject selection
-- ✅ UI Redesign (October 2025): PersonalizedAssistantPage completely redesigned with modern sidebar layout, responsive mobile support, clean visual hierarchy
-- ✅ CRUD Completion (October 2025): 
-  - Materials UPDATE/DELETE integrated in Library page with edit mode in MaterialUpload
-  - Targets DELETE implemented in Goals page
-  - Topics full CRUD with dedicated management page (/topics)
-- ✅ API Cleanup (October 2025): 
-  - Redundant PUT /api/knowledge-base/:id removed (use PATCH)
-  - Redundant POST /api/flashcard-decks/generate-from-material removed (use /api/ai/generate-flashcards-from-material)
-  - Redundant POST /api/flashcard-decks/generate-from-file removed (use /api/ai/generate-flashcards with embeddings)
-  - Frontend updated to use consolidated AI endpoints
-- ✅ Topics Management (October 2025):
-  - New page `/topics` with full CRUD interface
-  - Backend endpoints: GET, POST, PATCH, DELETE with dual ownership validation
-  - Security: Topic ownership validated through subject relationship; PATCH validates both current and target subjects
-  - Features: Filter by subject, search, drag-order, edit/delete actions
-- ⚠️ Manual Testing Required: E2E playwright tests blocked by OIDC mock authentication (browser testing recommended)
+**Integration Architecture:**
+External service integrations are centralized, featuring a robust `AIClient` with retry mechanisms, exponential backoff, circuit breakers with half-open enforcement, and comprehensive rate limit handling for OpenAI/OpenRouter. The `PineconeClient` supports optimized batch upserts, retry logic, and namespace handling for vector database operations.
 
 # External Dependencies
 
 ## Database & Storage
-- **Neon Database**: Serverless PostgreSQL for production.
-- **Local File Storage**: For uploaded study materials.
+-   **Neon Database**: Serverless PostgreSQL for production.
+-   **Local File Storage**: For uploaded study materials.
 
 ## Authentication Services
-- **Replit Auth**: OAuth provider using OpenID Connect.
+-   **Replit Auth**: OAuth provider using OpenID Connect.
 
 ## AI Services
-- **OpenAI API**: For GPT model integration in question generation and content analysis.
-- **OpenRouter**: For advanced AI capabilities.
+-   **OpenAI API**: For GPT model integration.
+-   **OpenRouter**: For advanced AI capabilities.
 
 ## UI & Styling
-- **shadcn/ui**: Component library.
-- **Tailwind CSS**: Utility-first CSS framework.
-- **Radix UI**: Accessible component primitives.
-- **Lucide React**: Icon library.
+-   **shadcn/ui**: Component library.
+-   **Tailwind CSS**: Utility-first CSS framework.
+-   **Radix UI**: Accessible component primitives.
+-   **Lucide React**: Icon library.
 
 ## Development Tools
-- **Vite**: Build tool and development server.
-- **TypeScript**: For full-stack type safety.
-- **Replit Integration**: For development environment optimization.
+-   **Vite**: Build tool and development server.
+-   **TypeScript**: For full-stack type safety.
+-   **Replit Integration**: For development environment optimization.

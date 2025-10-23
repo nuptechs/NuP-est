@@ -1,3 +1,8 @@
+/**
+ * Dashboard - Clean, Professional, Functional
+ * Redesigned for clarity and user flow
+ */
+
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,22 +12,23 @@ import {
   BookOpen, 
   Target, 
   Clock, 
-  Brain, 
-  CreditCard,
-  MessageCircle,
-  BarChart3,
+  Brain,
   Sparkles,
   ArrowRight,
   Trophy,
   Play,
   Library,
-  Settings,
+  CreditCard,
+  MessageCircle,
+  BarChart3,
   Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import ProfessionalShell from "@/components/ui/professional-shell";
+import UnifiedShell from "@/components/layout/unified-shell";
+import ModernStatCard from "@/components/ui/modern-stat-card";
+import ModernEmptyState from "@/components/ui/modern-empty-state";
 import type { Subject, Goal } from "@shared/schema";
 
 export default function Dashboard() {
@@ -77,73 +83,67 @@ export default function Dashboard() {
 
   if (!isAuthenticated) return null;
 
-  const quickStats = [
-    { label: "Matérias", value: stats?.subjects || "0", icon: BookOpen, color: "text-blue-500" },
-    { label: "Hoje", value: `${stats?.todayHours || 0}h`, icon: Clock, color: "text-green-500" },
-    { label: "Questões", value: stats?.questionsGenerated || "0", icon: Brain, color: "text-purple-500" },
-    { label: "Progresso", value: `${stats?.goalProgress || 0}%`, icon: Trophy, color: "text-orange-500" },
-  ];
-
-  const tools = [
+  const quickTools = [
     { 
       title: "Biblioteca", 
-      description: "Organize e gerencie seus materiais de estudo",
+      description: "Materiais de estudo",
       icon: Library, 
       href: "/library", 
-      color: "bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      variant: "primary" as const,
       testid: "tool-library"
     },
     { 
       title: "Flashcards", 
-      description: "Memorização eficaz com repetição espaçada",
+      description: "Memorização eficaz",
       icon: CreditCard, 
       href: "/flashcards", 
-      color: "bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+      variant: "default" as const,
       testid: "tool-flashcards"
     },
     { 
       title: "Chat IA", 
-      description: "Tire dúvidas e estude com assistente inteligente",
+      description: "Assistente inteligente",
       icon: MessageCircle, 
       href: "/personalized-assistant?tab=chat", 
-      color: "bg-green-500/10 hover:bg-green-500/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+      variant: "default" as const,
       testid: "tool-chat"
     },
     { 
-      title: "Questões IA", 
-      description: "Pratique com questões adaptadas ao seu nível",
-      icon: Brain, 
-      href: "/personalized-assistant?tab=questions", 
-      color: "bg-pink-500/10 hover:bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800",
-      testid: "tool-questions"
-    },
-    { 
       title: "Metas", 
-      description: "Configure e acompanhe seus objetivos",
+      description: "Acompanhe objetivos",
       icon: Target, 
       href: "/goals", 
-      color: "bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+      variant: "default" as const,
       testid: "tool-goals"
-    },
-    { 
-      title: "Analytics", 
-      description: "Analise sua evolução e desempenho",
-      icon: BarChart3, 
-      href: "/analytics", 
-      color: "bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
-      testid: "tool-analytics"
     },
   ];
 
+  // Empty state when no subjects
+  if (subjects && subjects.length === 0) {
+    return (
+      <UnifiedShell title="Dashboard">
+        <div className="max-w-7xl mx-auto p-6">
+          <ModernEmptyState
+            icon={BookOpen}
+            title="Bem-vindo ao NuP-est!"
+            description="Comece adicionando suas matérias e materiais para desbloquear todas as ferramentas de estudo inteligente."
+            action={{
+              label: "Ir para Biblioteca",
+              onClick: () => navigate('/library')
+            }}
+            variant="large"
+          />
+        </div>
+      </UnifiedShell>
+    );
+  }
+
   return (
-    <ProfessionalShell
-      title="Dashboard"
-      breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }]}
-    >
-      <div className="space-y-8">
-        {/* Header */}
+    <UnifiedShell title="Dashboard">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* Welcome Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">
             Olá, {user?.firstName || "Estudante"}! 👋
           </h1>
           <p className="text-muted-foreground">
@@ -151,71 +151,75 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {quickStats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Card key={stat.label} className="border-2">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                    </div>
-                    <Icon className={`w-8 h-8 ${stat.color}`} />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        {/* Stats Overview - 4 Cards Only */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <ModernStatCard
+            title="Matérias"
+            value={stats?.subjects || "0"}
+            icon={BookOpen}
+            variant="primary"
+            description="Cadastradas"
+          />
+          <ModernStatCard
+            title="Hoje"
+            value={`${stats?.todayHours || 0}h`}
+            icon={Clock}
+            variant="success"
+            description="Estudadas"
+          />
+          <ModernStatCard
+            title="Questões IA"
+            value={stats?.questionsGenerated || "0"}
+            icon={Brain}
+            variant="default"
+            description="Geradas"
+          />
+          <ModernStatCard
+            title="Meta"
+            value={`${stats?.goalProgress || 0}%`}
+            icon={Trophy}
+            variant="warning"
+            description="Concluída"
+          />
         </div>
 
-        {/* Hero CTA - Modo Guiado */}
-        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-          <CardHeader className="relative">
-            <div className="flex items-start justify-between">
+        {/* Guided Study CTA - Simplified */}
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-6 h-6 text-primary" />
-                  <Badge variant="default" className="text-xs">
-                    RECOMENDADO
-                  </Badge>
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <Badge>RECOMENDADO</Badge>
                 </div>
-                <CardTitle className="text-2xl md:text-3xl font-bold">
+                <CardTitle className="text-2xl">
                   Estudo Guiado por IA
                 </CardTitle>
-                <CardDescription className="text-base">
-                  Deixe nossa IA criar um plano personalizado para você hoje. Baseado no seu perfil, objetivos e tempo disponível.
+                <CardDescription>
+                  Deixe nossa IA criar um plano personalizado baseado no seu perfil e objetivos.
                 </CardDescription>
-                <ul className="space-y-1 text-sm text-muted-foreground mt-4">
-                  <li className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-primary" />
-                    Plano diário adaptado ao seu perfil
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-primary" />
-                    Foco nas suas áreas de dificuldade
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" />
-                    Otimizado para o tempo que você tem
-                  </li>
-                </ul>
               </div>
+              <Button
+                size="lg"
+                className="hidden md:flex"
+                onClick={() => navigate('/guided-study')}
+                data-testid="button-guided-study"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Começar
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </CardHeader>
-          <CardContent className="relative">
+          <CardContent className="md:hidden">
             <Button
               size="lg"
-              className="w-full md:w-auto text-lg h-14 px-8 shadow-lg hover:shadow-xl transition-all"
+              className="w-full"
               onClick={() => navigate('/guided-study')}
-              data-testid="button-guided-study"
+              data-testid="button-guided-study-mobile"
             >
-              <Play className="w-5 h-5 mr-2" />
+              <Play className="w-4 h-4 mr-2" />
               Começar Estudo Guiado
-              <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </CardContent>
         </Card>
@@ -232,60 +236,69 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Modo Livre - Ferramentas */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Ferramentas Disponíveis
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tools.map((tool) => {
-              const Icon = tool.icon;
-              return (
-                <Card
-                  key={tool.href}
-                  className={`cursor-pointer transition-all hover:shadow-md border-2 ${tool.color}`}
-                  onClick={() => navigate(tool.href)}
-                  data-testid={tool.testid}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-lg bg-background">
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold mb-1 flex items-center gap-2">
-                          {tool.title}
-                          <ArrowRight className="w-4 h-4 opacity-50" />
-                        </h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {tool.description}
-                        </p>
-                      </div>
+        {/* Quick Tools Grid - 4 Main Tools */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {quickTools.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <Card
+                key={tool.href}
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
+                onClick={() => navigate(tool.href)}
+                data-testid={tool.testid}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <Icon className="w-6 h-6 text-primary" />
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold mb-0.5 flex items-center gap-2">
+                        {tool.title}
+                        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {tool.description}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
-        {/* Recent Activity Hint */}
-        {subjects && subjects.length === 0 && (
-          <Card className="border-2 border-dashed">
-            <CardContent className="p-6 text-center">
-              <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">Comece adicionando suas matérias</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Adicione matérias e materiais para desbloquear o estudo guiado e todas as ferramentas
-              </p>
-              <Button onClick={() => navigate('/library')}>
-                Ir para Biblioteca
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Secondary Tools - Compact */}
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/personalized-assistant?tab=questions')}
+            data-testid="tool-questions"
+            className="flex items-center gap-2"
+          >
+            <Brain className="w-4 h-4" />
+            Questões IA
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/analytics')}
+            data-testid="tool-analytics"
+            className="flex items-center gap-2"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Analytics
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/quiz')}
+            data-testid="tool-quiz"
+            className="flex items-center gap-2"
+          >
+            <Zap className="w-4 h-4" />
+            Quiz Rápido
+          </Button>
+        </div>
       </div>
-    </ProfessionalShell>
+    </UnifiedShell>
   );
 }
