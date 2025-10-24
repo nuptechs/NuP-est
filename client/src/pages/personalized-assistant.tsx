@@ -103,10 +103,15 @@ export default function PersonalizedAssistantPage() {
         {/* Subject/Topic Selection */}
         <div className="p-6 border-b space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">MATÉRIA</label>
+            <label className="text-xs font-medium text-muted-foreground mb-2 block">
+              MATÉRIA
+              {!selectedSubject && (
+                <span className="text-amber-500 ml-2">● Necessário para Perguntas/Avaliação</span>
+              )}
+            </label>
             <Select value={selectedSubject} onValueChange={(v) => { setSelectedSubject(v); setSelectedTopic(""); }}>
               <SelectTrigger className="h-9" data-testid="select-subject">
-                <SelectValue placeholder="Selecione..." />
+                <SelectValue placeholder="Selecione uma matéria..." />
               </SelectTrigger>
               <SelectContent>
                 {subjects.map((s) => (
@@ -149,12 +154,15 @@ export default function PersonalizedAssistantPage() {
                 }}
                 disabled={tab.disabled}
                 data-testid={`nav-${tab.id}`}
+                title={tab.disabled && (tab.id === "questions" || tab.id === "assessment") 
+                  ? "Selecione uma matéria primeiro" 
+                  : undefined}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
                   ${isActive 
                     ? 'bg-primary text-primary-foreground shadow-sm' 
                     : tab.disabled
-                      ? 'text-muted-foreground/30 cursor-not-allowed'
+                      ? 'text-muted-foreground/40 cursor-not-allowed'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }
                 `}
