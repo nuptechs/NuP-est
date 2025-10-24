@@ -443,8 +443,17 @@ export default function Flashcards() {
             <CardContent className="p-12">
               <div className="flex flex-col items-center justify-center min-h-[250px]">
                 {!showAnswer ? (
-                  <div className="text-center space-y-4 max-w-3xl">
+                  <div className="text-center space-y-4 max-w-3xl w-full">
                     <h3 className="text-2xl font-semibold break-words">{currentCard.front}</h3>
+                    {currentCard.imageUrl && (
+                      <div className="relative rounded-lg overflow-hidden border mt-4">
+                        <img 
+                          src={currentCard.imageUrl} 
+                          alt="Flashcard visual" 
+                          className="max-w-full max-h-64 mx-auto object-contain"
+                        />
+                      </div>
+                    )}
                     <Button onClick={() => setShowAnswer(true)} data-testid="button-show-answer">
                       Mostrar Resposta
                     </Button>
@@ -454,6 +463,15 @@ export default function Flashcards() {
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">Pergunta:</p>
                       <h3 className="text-xl font-semibold break-words">{currentCard.front}</h3>
+                      {currentCard.imageUrl && (
+                        <div className="relative rounded-lg overflow-hidden border mt-4">
+                          <img 
+                            src={currentCard.imageUrl} 
+                            alt="Flashcard visual" 
+                            className="max-w-full max-h-64 mx-auto object-contain"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="border-t pt-4 space-y-2">
                       <p className="text-sm text-muted-foreground">Resposta:</p>
