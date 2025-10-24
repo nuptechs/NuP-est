@@ -43,6 +43,31 @@ Successfully redesigned **100% of the application** following modern design patt
 - ModernPageHeader, ModernStatCard, ModernEmptyState used uniformly
 - Professional UX with generous spacing and clear hierarchy
 
+**💬 CHAT TOKEN LIMIT INCREASED (October 24, 2025)**
+
+Fixed truncated responses in chat/assistant by increasing token limits:
+
+**Problem Resolved:**
+- Previous: 1500 tokens (~1000 words) - responses were being cut mid-sentence
+- Current: 3800 tokens (~2500-2800 words) - supports complete academic responses
+
+**Technical Implementation:**
+- Chat endpoint maxTokens: 3800 (within GPT-4o-mini's ~4096 output limit)
+- Explanation endpoint maxTokens: 3500 (for generateExplanation)
+- Truncation monitoring: warns when responses >3000 tokens don't end with punctuation
+- Improved logging: tracks response length, estimated tokens, and completion status
+
+**Impact:**
+- Academic questions now receive full, complete answers
+- No more mid-sentence truncation
+- Better UX for study materials requiring detailed explanations
+- ~150% increase in response capacity (1500 → 3800 tokens)
+
+**Future Improvements:**
+- Add finish_reason metadata from AI responses for precise truncation detection
+- Implement multi-turn continuation for responses needing >4000 tokens
+- Audit remaining assistant endpoints for consistent token limits
+
 **🖼️ ENHANCED FLASHCARD SYSTEM (October 24, 2025)**
 
 Implemented production-ready image upload system for flashcards:

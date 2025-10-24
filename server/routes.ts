@@ -2081,8 +2081,14 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
       // Monitor for potential truncation (response length near token limit)
       const responseLength = aiResponse.content.length;
       const estimatedTokens = Math.ceil(responseLength / 4);
-      if (estimatedTokens > 3000) {
-        console.warn(`⚠️ [Chat] Long response detected (${estimatedTokens} tokens). May be truncated if exceeds model limit.`);
+      const lastChar = aiResponse.content.trim().slice(-1);
+      const endsWithPunctuation = ['.', '!', '?', ':', ';'].includes(lastChar);
+      
+      // Warn if response is long and doesn't end with proper punctuation (likely truncated)
+      if (estimatedTokens > 3000 && !endsWithPunctuation) {
+        console.warn(`⚠️ [Chat] POSSIBLE TRUNCATION detected (${estimatedTokens} tokens, ends with '${lastChar}')`);
+      } else if (estimatedTokens > 3000) {
+        console.log(`✅ [Chat] Long response (${estimatedTokens} tokens) appears complete.`);
       }
       
       // Save assistant response
