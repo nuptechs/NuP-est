@@ -153,7 +153,7 @@ export class AdaptiveContentDelivery {
       ],
       model: 'gpt-4o-mini',
       temperature: 0.7,
-      maxTokens: 1500,
+      maxTokens: 3500, // Realistic limit for GPT-4o-mini explanations
     });
 
     return this.parseExplanationResponse(response.content);

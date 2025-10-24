@@ -2067,13 +2067,23 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         { role: 'user' as const, content: validatedData.message }
       ];
 
-      // Generate AI response
+      // Generate AI response with realistic token limit for academic answers
+      // GPT-4o-mini max output: ~4096 tokens. Using 3800 to stay within limits.
+      // For longer responses, consider switching to deepseek-r1 (15000 tokens)
       const aiResponse = await aiManager.request({
         messages,
         temperature: 0.7,
+        maxTokens: 3800, // Realistic limit for GPT-4o-mini academic responses
       });
       
       const processingTime = Date.now() - startTime;
+      
+      // Monitor for potential truncation (response length near token limit)
+      const responseLength = aiResponse.content.length;
+      const estimatedTokens = Math.ceil(responseLength / 4);
+      if (estimatedTokens > 3000) {
+        console.warn(`⚠️ [Chat] Long response detected (${estimatedTokens} tokens). May be truncated if exceeds model limit.`);
+      }
       
       // Save assistant response
       const savedMessage = await storage.createChatMessage({
@@ -2086,7 +2096,7 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         model: aiResponse.model || undefined,
         processingTime,
       });
-      console.log(`[Chat] Assistant message saved - assistantId: ${validatedData.assistantId}, messageId: ${savedMessage.id}, content preview: "${aiResponse.content.substring(0, 50)}..."`);
+      console.log(`[Chat] Assistant message saved - assistantId: ${validatedData.assistantId}, messageId: ${savedMessage.id}, length: ${responseLength} chars (~${estimatedTokens} tokens), preview: "${aiResponse.content.substring(0, 50)}..."`);
       
       res.json({ 
         message: savedMessage,
