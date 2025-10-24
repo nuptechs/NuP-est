@@ -43,6 +43,38 @@ Successfully redesigned **100% of the application** following modern design patt
 - ModernPageHeader, ModernStatCard, ModernEmptyState used uniformly
 - Professional UX with generous spacing and clear hierarchy
 
+**🖼️ ENHANCED FLASHCARD SYSTEM (October 24, 2025)**
+
+Implemented production-ready image upload system for flashcards:
+
+**Technical Implementation:**
+- **UploadConfig centralized**: `createFlashcardImageUpload()` with multer (10MB limit, JPEG/PNG/GIF/WebP)
+- **Storage**: `/uploads/flashcards/` directory with unique filenames (timestamp + random)
+- **Endpoint**: POST `/api/flashcards/upload-image` (multipart/form-data, auth-protected)
+- **Static serving**: `express.static('/uploads')` for image delivery
+- **Database**: `imageUrl` field stores server path (not base64)
+
+**Upload Flow:**
+1. User selects image in FlashcardEditor → immediate upload via FormData
+2. Server validates (type/size), stores file, returns `{ imageUrl: "/uploads/flashcards/..." }`
+3. Frontend stores URL in form state, shows preview
+4. On deck creation, flashcard saved with imageUrl path
+5. Study view displays images from static server
+
+**UX Features:**
+- Client-side validation (type/size) before upload
+- Instant preview after selection
+- AI-powered Portuguese grammar correction (preserves meaning)
+- Error handling with rollback on upload failure
+- Success/error toasts for user feedback
+
+**Architecture Wins:**
+- Resolved "request entity too large" errors (migrated from base64)
+- Centralized multer configuration following existing patterns
+- Auth guard protects upload endpoint
+- E2E tested: creation, AI polish, persistence, study flow
+- Production-ready with architect approval
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
