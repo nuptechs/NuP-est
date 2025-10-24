@@ -851,8 +851,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/flashcard-decks', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const deckData = insertFlashcardDeckSchema.parse({ ...req.body, userId });
+      const { flashcards: flashcardsData, ...deckInfo } = req.body;
+      
+      // Create deck
+      const deckData = insertFlashcardDeckSchema.parse({ 
+        ...deckInfo, 
+        userId,
+        totalCards: flashcardsData?.length || 0,
+        studiedCards: 0
+      });
       const deck = await storage.createFlashcardDeck(deckData);
+
+      // If flashcards provided, create them
+      if (flashcardsData && Array.isArray(flashcardsData) && flashcardsData.length > 0) {
+        for (let i = 0; i < flashcardsData.length; i++) {
+          const flashcardData = insertFlashcardSchema.parse({
+            ...flashcardsData[i],
+            userId,
+            deckId: deck.id,
+            order: i
+          });
+          await storage.createFlashcard(flashcardData);
+        }
+      }
+
       res.json(deck);
     } catch (error) {
       console.error("Error creating flashcard deck:", error);

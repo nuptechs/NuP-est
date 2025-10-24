@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import UnifiedShell from "@/components/layout/unified-shell";
@@ -30,15 +30,20 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
-  RotateCcw
+  RotateCcw,
+  Trash2,
+  X
 } from "lucide-react";
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
-import ModernFlashcard from "@/components/flashcard/ModernFlashcard";
 
 const createDeckSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
   description: z.string().optional(),
   subjectId: z.string().optional(),
+  flashcards: z.array(z.object({
+    front: z.string().min(1, "Pergunta é obrigatória"),
+    back: z.string().min(1, "Resposta é obrigatória"),
+  })).min(1, "Adicione pelo menos 1 flashcard"),
 });
 
 const uploadFileSchema = z.object({
@@ -68,6 +73,7 @@ export default function Flashcards() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createMethod, setCreateMethod] = useState<'manual' | 'upload' | 'material'>('manual');
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -92,7 +98,17 @@ export default function Flashcards() {
   // Forms
   const manualForm = useForm<CreateDeckFormData>({
     resolver: zodResolver(createDeckSchema),
-    defaultValues: { title: "", description: "", subjectId: "" },
+    defaultValues: { 
+      title: "", 
+      description: "", 
+      subjectId: "",
+      flashcards: [{ front: "", back: "" }]
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: manualForm.control,
+    name: "flashcards"
   });
 
   const uploadForm = useForm<UploadFileFormData>({
@@ -111,16 +127,24 @@ export default function Flashcards() {
       const response = await apiRequest("POST", "/api/flashcard-decks", {
         ...data,
         subjectId: data.subjectId || null,
-        totalCards: 0,
-        studiedCards: 0,
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (deck) => {
       queryClient.invalidateQueries({ queryKey: ["/api/flashcard-decks"] });
-      toast({ title: "Sucesso", description: "Deck criado!" });
+      const cardCount = manualForm.getValues('flashcards').length;
+      toast({ 
+        title: "Sucesso", 
+        description: `Deck criado com ${cardCount} flashcard${cardCount > 1 ? 's' : ''}!` 
+      });
       setCreateModalOpen(false);
-      manualForm.reset();
+      setWizardStep(1);
+      manualForm.reset({ 
+        title: "", 
+        description: "", 
+        subjectId: "",
+        flashcards: [{ front: "", back: "" }]
+      });
     },
     onError: () => {
       toast({ title: "Erro", description: "Falha ao criar deck", variant: "destructive" });
@@ -219,12 +243,31 @@ export default function Flashcards() {
 
           <Progress value={progress} className="h-2" />
 
-          <ModernFlashcard
-            question={currentCard.question}
-            answer={currentCard.answer}
-            showAnswer={showAnswer}
-            onToggle={() => setShowAnswer(!showAnswer)}
-          />
+          <Card className="min-h-[300px]">
+            <CardContent className="p-12">
+              <div className="flex flex-col items-center justify-center min-h-[250px]">
+                {!showAnswer ? (
+                  <div className="text-center space-y-4">
+                    <h3 className="text-2xl font-semibold">{currentCard.front}</h3>
+                    <Button onClick={() => setShowAnswer(true)} data-testid="button-show-answer">
+                      Mostrar Resposta
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-6">
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Pergunta:</p>
+                      <h3 className="text-xl font-semibold">{currentCard.front}</h3>
+                    </div>
+                    <div className="border-t pt-4 space-y-2">
+                      <p className="text-sm text-muted-foreground">Resposta:</p>
+                      <p className="text-lg">{currentCard.back}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="flex items-center justify-between gap-4">
             <Button
@@ -318,33 +361,157 @@ export default function Flashcards() {
             {createMethod === 'manual' && (
               <Form {...manualForm}>
                 <form onSubmit={manualForm.handleSubmit((data) => createManual.mutate(data))} className="space-y-4">
-                  <FormField control={manualForm.control} name="title" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título</FormLabel>
-                      <FormControl><Input {...field} data-testid="input-title" /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={manualForm.control} name="description" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição (opcional)</FormLabel>
-                      <FormControl><Textarea {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={manualForm.control} name="subjectId" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Matéria (opcional)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          {subjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <Button type="submit" className="w-full" disabled={createManual.isPending}>Criar Deck</Button>
+                  {/* Progress indicator */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full ${wizardStep === 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      1
+                    </div>
+                    <div className="flex-1 h-1 bg-muted">
+                      <div className={`h-full bg-primary transition-all ${wizardStep === 2 ? 'w-full' : 'w-0'}`}></div>
+                    </div>
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full ${wizardStep === 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      2
+                    </div>
+                  </div>
+
+                  {/* Step 1: Deck metadata */}
+                  {wizardStep === 1 && (
+                    <div className="space-y-4">
+                      <FormField control={manualForm.control} name="title" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Título do Deck</FormLabel>
+                          <FormControl><Input {...field} data-testid="input-title" placeholder="Ex: Verbos Irregulares" /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={manualForm.control} name="description" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Descrição (opcional)</FormLabel>
+                          <FormControl><Textarea {...field} placeholder="Breve descrição do deck" /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={manualForm.control} name="subjectId" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Matéria (opcional)</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Selecionar matéria" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {subjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <Button 
+                        type="button" 
+                        className="w-full"
+                        onClick={() => {
+                          const title = manualForm.getValues('title');
+                          if (!title) {
+                            manualForm.setError('title', { message: 'Título é obrigatório' });
+                            return;
+                          }
+                          setWizardStep(2);
+                        }}
+                        data-testid="button-next-step"
+                      >
+                        Próximo: Adicionar Flashcards
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Step 2: Flashcards */}
+                  {wizardStep === 2 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                          Adicione pelo menos 1 flashcard
+                        </p>
+                        <Badge variant="outline">{fields.length} card{fields.length > 1 ? 's' : ''}</Badge>
+                      </div>
+
+                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                        {fields.map((field, index) => (
+                          <Card key={field.id} className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1 space-y-3">
+                                <FormField
+                                  control={manualForm.control}
+                                  name={`flashcards.${index}.front`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs">Pergunta {index + 1}</FormLabel>
+                                      <FormControl>
+                                        <Input {...field} placeholder="Digite a pergunta" data-testid={`input-question-${index}`} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={manualForm.control}
+                                  name={`flashcards.${index}.back`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs">Resposta {index + 1}</FormLabel>
+                                      <FormControl>
+                                        <Textarea {...field} placeholder="Digite a resposta" rows={2} data-testid={`input-answer-${index}`} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              {fields.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => remove(index)}
+                                  data-testid={`button-remove-${index}`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => append({ front: "", back: "" })}
+                        data-testid="button-add-flashcard"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Flashcard
+                      </Button>
+
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setWizardStep(1)}
+                          data-testid="button-back-step"
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-2" />
+                          Voltar
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          className="flex-1" 
+                          disabled={createManual.isPending}
+                          data-testid="button-create-deck"
+                        >
+                          Criar Deck ({fields.length} card{fields.length > 1 ? 's' : ''})
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </form>
               </Form>
             )}
@@ -450,20 +617,20 @@ export default function Flashcards() {
 
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Badge variant="outline">{deck.totalCards} cards</Badge>
-                      {deck.studiedCards > 0 && (
+                      <Badge variant="outline">{deck.totalCards || 0} cards</Badge>
+                      {(deck.studiedCards || 0) > 0 && (
                         <Badge variant="secondary">{deck.studiedCards} estudados</Badge>
                       )}
                     </div>
 
-                    {deck.totalCards > 0 && (
-                      <Progress value={(deck.studiedCards / deck.totalCards) * 100} className="h-2" />
+                    {(deck.totalCards || 0) > 0 && (
+                      <Progress value={((deck.studiedCards || 0) / (deck.totalCards || 1)) * 100} className="h-2" />
                     )}
 
                     <Button
                       onClick={() => handleStudy(deck)}
                       className="w-full"
-                      disabled={deck.totalCards === 0}
+                      disabled={(deck.totalCards || 0) === 0}
                       data-testid={`button-study-${deck.id}`}
                     >
                       <Play className="h-4 w-4 mr-2" />
