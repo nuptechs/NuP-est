@@ -302,6 +302,7 @@ export const flashcards = pgTable("flashcards", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   front: text("front").notNull(), // pergunta
   back: text("back").notNull(), // resposta
+  imageUrl: text("image_url"), // URL da imagem/screenshot associada ao flashcard
   order: integer("order").default(0),
   easeFactor: decimal("ease_factor", { precision: 3, scale: 2 }).default("2.5"), // spaced repetition
   interval: integer("interval").default(0), // days until next review

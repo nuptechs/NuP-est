@@ -32,7 +32,10 @@ import {
   ChevronRight,
   RotateCcw,
   Trash2,
-  X
+  X,
+  ImagePlus,
+  Sparkles,
+  Loader2
 } from "lucide-react";
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
 
@@ -43,6 +46,7 @@ const createDeckSchema = z.object({
   flashcards: z.array(z.object({
     front: z.string().min(1, "Pergunta é obrigatória"),
     back: z.string().min(1, "Resposta é obrigatória"),
+    imageUrl: z.string().optional(),
   })).min(1, "Adicione pelo menos 1 flashcard"),
 });
 
@@ -65,6 +69,198 @@ const materialSchema = z.object({
 type CreateDeckFormData = z.infer<typeof createDeckSchema>;
 type UploadFileFormData = z.infer<typeof uploadFileSchema>;
 type MaterialFormData = z.infer<typeof materialSchema>;
+
+// Flashcard Editor Component with Image Upload and AI Polish
+function FlashcardEditor({ index, form, onRemove }: { 
+  index: number; 
+  form: any; 
+  onRemove?: () => void;
+}) {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [polishing, setPolishing] = useState<'front' | 'back' | null>(null);
+  const { toast } = useToast();
+
+  // Handle image upload
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({ title: "Erro", description: "Por favor, selecione uma imagem", variant: "destructive" });
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Erro", description: "Imagem muito grande (máx 5MB)", variant: "destructive" });
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        form.setValue(`flashcards.${index}.imageUrl`, reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Polish text with AI
+  const polishText = async (field: 'front' | 'back') => {
+    const currentText = form.getValues(`flashcards.${index}.${field}`);
+    if (!currentText || currentText.trim().length < 3) {
+      toast({ title: "Atenção", description: "Digite algum texto primeiro", variant: "destructive" });
+      return;
+    }
+
+    setPolishing(field);
+    try {
+      const response = await apiRequest('POST', '/api/flashcards/polish-text', { text: currentText });
+      const data = await response.json();
+      form.setValue(`flashcards.${index}.${field}`, data.polished);
+      toast({ title: "Sucesso", description: "Texto polido com IA ✨" });
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao polir texto", variant: "destructive" });
+    } finally {
+      setPolishing(null);
+    }
+  };
+
+  return (
+    <Card className="p-6 bg-card/50">
+      <div className="flex items-start gap-4">
+        {/* Main Content */}
+        <div className="flex-1 space-y-4">
+          {/* Question */}
+          <FormField
+            control={form.control}
+            name={`flashcards.${index}.front`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center justify-between">
+                  <span className="font-medium">Pergunta {index + 1}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => polishText('front')}
+                    disabled={polishing === 'front'}
+                    className="h-7 px-2 text-xs"
+                    data-testid={`button-polish-front-${index}`}
+                  >
+                    {polishing === 'front' ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                    {polishing === 'front' ? 'Polindo...' : 'Polir IA'}
+                  </Button>
+                </FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field} 
+                    placeholder="Digite a pergunta (a IA pode corrigir erros de português)"
+                    rows={3}
+                    data-testid={`input-question-${index}`}
+                    className="resize-none"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Answer */}
+          <FormField
+            control={form.control}
+            name={`flashcards.${index}.back`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center justify-between">
+                  <span className="font-medium">Resposta {index + 1}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => polishText('back')}
+                    disabled={polishing === 'back'}
+                    className="h-7 px-2 text-xs"
+                    data-testid={`button-polish-back-${index}`}
+                  >
+                    {polishing === 'back' ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                    {polishing === 'back' ? 'Polindo...' : 'Polir IA'}
+                  </Button>
+                </FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field} 
+                    placeholder="Digite a resposta (a IA pode organizar e corrigir)"
+                    rows={3}
+                    data-testid={`input-answer-${index}`}
+                    className="resize-none"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Image Upload */}
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              id={`image-${index}`}
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+              data-testid={`input-image-${index}`}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById(`image-${index}`)?.click()}
+              data-testid={`button-add-image-${index}`}
+            >
+              <ImagePlus className="h-4 w-4 mr-2" />
+              {imagePreview ? 'Trocar Imagem' : 'Adicionar Imagem'}
+            </Button>
+            {imagePreview && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setImageFile(null);
+                  setImagePreview(null);
+                  form.setValue(`flashcards.${index}.imageUrl`, undefined);
+                }}
+                data-testid={`button-remove-image-${index}`}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className="relative rounded-lg overflow-hidden border">
+              <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover" />
+            </div>
+          )}
+        </div>
+
+        {/* Remove Button */}
+        {onRemove && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onRemove}
+            data-testid={`button-remove-${index}`}
+            className="shrink-0"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 export default function Flashcards() {
   const [activeView, setActiveView] = useState<'decks' | 'study'>('decks');
@@ -243,25 +439,25 @@ export default function Flashcards() {
 
           <Progress value={progress} className="h-2" />
 
-          <Card className="min-h-[300px]">
+          <Card className="min-h-[300px] overflow-hidden">
             <CardContent className="p-12">
               <div className="flex flex-col items-center justify-center min-h-[250px]">
                 {!showAnswer ? (
-                  <div className="text-center space-y-4">
-                    <h3 className="text-2xl font-semibold">{currentCard.front}</h3>
+                  <div className="text-center space-y-4 max-w-3xl">
+                    <h3 className="text-2xl font-semibold break-words">{currentCard.front}</h3>
                     <Button onClick={() => setShowAnswer(true)} data-testid="button-show-answer">
                       Mostrar Resposta
                     </Button>
                   </div>
                 ) : (
-                  <div className="text-center space-y-6">
+                  <div className="text-center space-y-6 max-w-3xl w-full">
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">Pergunta:</p>
-                      <h3 className="text-xl font-semibold">{currentCard.front}</h3>
+                      <h3 className="text-xl font-semibold break-words">{currentCard.front}</h3>
                     </div>
                     <div className="border-t pt-4 space-y-2">
                       <p className="text-sm text-muted-foreground">Resposta:</p>
-                      <p className="text-lg">{currentCard.back}</p>
+                      <p className="text-lg break-words whitespace-pre-wrap">{currentCard.back}</p>
                     </div>
                   </div>
                 )}
@@ -432,51 +628,14 @@ export default function Flashcards() {
                         <Badge variant="outline">{fields.length} card{fields.length > 1 ? 's' : ''}</Badge>
                       </div>
 
-                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                         {fields.map((field, index) => (
-                          <Card key={field.id} className="p-4">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1 space-y-3">
-                                <FormField
-                                  control={manualForm.control}
-                                  name={`flashcards.${index}.front`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className="text-xs">Pergunta {index + 1}</FormLabel>
-                                      <FormControl>
-                                        <Input {...field} placeholder="Digite a pergunta" data-testid={`input-question-${index}`} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={manualForm.control}
-                                  name={`flashcards.${index}.back`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className="text-xs">Resposta {index + 1}</FormLabel>
-                                      <FormControl>
-                                        <Textarea {...field} placeholder="Digite a resposta" rows={2} data-testid={`input-answer-${index}`} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              {fields.length > 1 && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => remove(index)}
-                                  data-testid={`button-remove-${index}`}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </Card>
+                          <FlashcardEditor
+                            key={field.id}
+                            index={index}
+                            form={manualForm}
+                            onRemove={fields.length > 1 ? () => remove(index) : undefined}
+                          />
                         ))}
                       </div>
 

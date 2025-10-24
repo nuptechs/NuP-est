@@ -947,6 +947,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Polish flashcard text with AI (grammar and organization)
+  app.post('/api/flashcards/polish-text', isAuthenticated, async (req: any, res) => {
+    try {
+      const { text } = req.body;
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ message: "Text is required" });
+      }
+
+      const prompt = `Você é um assistente que melhora textos de flashcards mantendo a ideia original.
+
+Tarefa: Corrija erros de português, organize melhor as ideias e torne o texto mais claro, MAS mantenha o significado e conteúdo originais.
+
+Regras:
+- Corrija gramática e ortografia
+- Melhore a estrutura das frases
+- Mantenha o tom e conteúdo original
+- Não adicione informações novas
+- Seja conciso
+- Retorne APENAS o texto melhorado, sem explicações
+
+Texto original:
+${text}`;
+
+      const { aiChat } = await import('./services/ai/index');
+      const response = await aiChat(prompt, 'user');
+
+      res.json({ polished: response.trim() });
+    } catch (error) {
+      console.error("Error polishing text:", error);
+      res.status(500).json({ message: "Failed to polish text" });
+    }
+  });
+
   app.patch('/api/flashcards/:id', isAuthenticated, async (req: any, res) => {
     try {
       const updates = req.body;
