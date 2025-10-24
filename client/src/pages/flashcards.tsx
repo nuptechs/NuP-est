@@ -298,7 +298,7 @@ export default function Flashcards() {
       title: "", 
       description: "", 
       subjectId: "",
-      flashcards: [{ front: "", back: "" }]
+      flashcards: [{ front: "", back: "", imageUrl: undefined }]
     },
   });
 
@@ -339,7 +339,7 @@ export default function Flashcards() {
         title: "", 
         description: "", 
         subjectId: "",
-        flashcards: [{ front: "", back: "" }]
+        flashcards: [{ front: "", back: "", imageUrl: undefined }]
       });
     },
     onError: () => {
@@ -661,7 +661,7 @@ export default function Flashcards() {
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => append({ front: "", back: "" })}
+                        onClick={() => append({ front: "", back: "", imageUrl: undefined })}
                         data-testid="button-add-flashcard"
                       >
                         <Plus className="h-4 w-4 mr-2" />
