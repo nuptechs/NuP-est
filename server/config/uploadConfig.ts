@@ -77,6 +77,33 @@ export class UploadConfig {
     });
   }
 
+  // Configuração para imagens de flashcards
+  static createFlashcardImageUpload() {
+    const uploadDir = path.join(this.baseUploadDir, 'flashcards');
+    this.ensureDirectoryExists(uploadDir);
+
+    return multer({
+      storage: multer.diskStorage({
+        destination: uploadDir,
+        filename: (req, file, cb) => {
+          cb(null, this.generateFileName(file));
+        }
+      }),
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Apenas imagens são permitidas (JPEG, PNG, GIF, WebP)'));
+        }
+      },
+      limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB para imagens
+      }
+    });
+  }
+
   // Configuração para base de conhecimento (PDFs)
   static createKnowledgeBaseUpload() {
     this.ensureDirectoryExists(this.baseUploadDir);

@@ -48,6 +48,7 @@ import { DailyStudyPlannerService } from './services/study-planner/DailyStudyPla
 // Usar configurações centralizadas
 const upload = UploadConfig.createMaterialUpload();
 const pdfUpload = UploadConfig.createKnowledgeBaseUpload();
+const flashcardImageUpload = UploadConfig.createFlashcardImageUpload();
 
 // Spaced Repetition Algorithm (SuperMemo 2)
 function calculateSpacedRepetition(
@@ -944,6 +945,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating flashcard:", error);
       res.status(400).json({ message: "Failed to create flashcard" });
+    }
+  });
+
+  // Upload flashcard image
+  app.post('/api/flashcards/upload-image', isAuthenticated, flashcardImageUpload.single('image'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhuma imagem enviada" });
+      }
+
+      // Return the URL path to access the uploaded image
+      const imageUrl = `/uploads/flashcards/${req.file.filename}`;
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error("Error uploading flashcard image:", error);
+      res.status(500).json({ message: "Falha ao fazer upload da imagem" });
     }
   });
 

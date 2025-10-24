@@ -5,8 +5,11 @@ import { setupVite, serveStatic, log } from "./vite";
 // PDF worker não é mais necessário com newEditalService
 
 const app = express();
-app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images in flashcards
-app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Serve uploaded files statically
+app.use('/uploads', express.static('uploads'));
 
 app.use((req, res, next) => {
   const start = Date.now();

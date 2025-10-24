@@ -81,25 +81,44 @@ function FlashcardEditor({ index, form, onRemove }: {
   const [polishing, setPolishing] = useState<'front' | 'back' | null>(null);
   const { toast } = useToast();
 
-  // Handle image upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle image upload - upload to server immediately
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast({ title: "Erro", description: "Por favor, selecione uma imagem", variant: "destructive" });
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "Erro", description: "Imagem muito grande (máx 5MB)", variant: "destructive" });
-        return;
-      }
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        form.setValue(`flashcards.${index}.imageUrl`, reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Erro", description: "Por favor, selecione uma imagem", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Erro", description: "Imagem muito grande (máx 10MB)", variant: "destructive" });
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to server
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await apiRequest('POST', '/api/flashcards/upload-image', formData);
+      const data = await response.json();
+      
+      // Store the server URL (not base64)
+      form.setValue(`flashcards.${index}.imageUrl`, data.imageUrl);
+      toast({ title: "Sucesso", description: "Imagem enviada!" });
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao enviar imagem", variant: "destructive" });
+      setImageFile(null);
+      setImagePreview(null);
     }
   };
 
