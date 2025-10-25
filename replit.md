@@ -102,17 +102,18 @@ Implemented production-ready image upload system for flashcards:
 
 **📝 RICH MARKDOWN CONTENT FOR FLASHCARDS (October 25, 2025)**
 
-Implemented professional academic content rendering system for flashcards:
+Implemented professional academic content rendering system for flashcards with AI generation fixes:
 
 **Technical Implementation:**
 - **RichFlashcardContent component**: ReactMarkdown with remarkGfm for GitHub Flavored Markdown support
+- **Escape sequence processing**: Converts literal `\n` characters from AI responses to real line breaks
 - **Custom renderers**: Specialized handlers for headings, lists, tables, code blocks, blockquotes, links
 - **Scoped CSS**: Professional styling under `.flashcard-rich-content` class for tables, code, spacing
 - **Study view integration**: Both questions and answers now support full markdown rendering
 
 **Supported Content Types:**
 - **Tables**: Full GitHub-style tables with headers, borders, and alternating row colors
-- **Code blocks**: Syntax highlighting with language tags and proper overflow handling
+- **Code blocks**: Syntax highlighting with horizontal scrolling, preserves natural formatting
 - **Lists**: Nested ordered/unordered lists with proper indentation
 - **Headings**: H1-H6 with appropriate sizing and hierarchy
 - **Emphasis**: Bold, italic, strikethrough, inline code
@@ -121,10 +122,18 @@ Implemented professional academic content rendering system for flashcards:
 
 **CSS Features:**
 - Smart first/last child margin removal for clean spacing
-- Custom scrollbars for code blocks (thin, themed)
+- Word-wrap and overflow protection for general content (prevents text leaking)
+- Code blocks preserve natural formatting with horizontal scroll (no word-breaking)
+- Inline code protects against overflow with word-wrap
 - Table responsiveness with proper borders and padding
+- Custom scrollbars for code blocks (thin, themed)
 - Dark mode support through CSS variables
 - No global style conflicts - fully scoped to flashcard content
+
+**AI Generation Improvements:**
+- Fixed literal `\n` appearing in AI-generated content (now converted to real breaks)
+- Updated AI prompt for consistent JSON formatting with proper escape sequences
+- Improved instruction clarity to avoid contradictory formatting guidance
 
 **Use Cases:**
 - Legal frameworks (tables of articles, comparison charts)
@@ -134,11 +143,12 @@ Implemented professional academic content rendering system for flashcards:
 - Complex comparisons (multi-column tables with data)
 
 **Architecture Benefits:**
+- Robust escape sequence handling for AI-generated content
 - Maintains clean text storage in database (markdown strings)
 - Rendering happens client-side for flexibility
 - Supports copy-paste from academic sources
 - Professional appearance matching competitive exam materials
-- Architect-approved implementation with zero LSP errors
+- Architect-approved implementation with three-round review
 
 # User Preferences
 
