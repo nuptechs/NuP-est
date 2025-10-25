@@ -121,7 +121,7 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
             )}
             {isLast ? (
               <span 
-                className="text-foreground/70 font-normal truncate max-w-[200px] pointer-events-none"
+                className="text-foreground font-medium truncate max-w-[200px] pointer-events-none bg-primary/10 px-2.5 py-1 rounded-md"
                 data-testid="breadcrumb-current"
                 aria-current="page"
                 role="text"

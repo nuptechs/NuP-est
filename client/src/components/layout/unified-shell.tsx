@@ -342,24 +342,12 @@ export default function UnifiedShell({
 
         {/* Content Area */}
         <main className="flex-1 overflow-auto bg-background">
-          {/* Page Header with Breadcrumbs & Title */}
-          {title && (
-            <div className="border-b bg-card/50 backdrop-blur-sm">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <Breadcrumbs className="mb-3" />
-                <div>
-                  <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-                    {title}
-                  </h1>
-                  {subtitle && (
-                    <p className="text-sm text-muted-foreground mt-1.5">
-                      {subtitle}
-                    </p>
-                  )}
-                </div>
-              </div>
+          {/* Page Header with Breadcrumbs only */}
+          <div className="border-b bg-card/50 backdrop-blur-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+              <Breadcrumbs />
             </div>
-          )}
+          </div>
           
           {/* Page Content */}
           {children}
