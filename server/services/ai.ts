@@ -667,18 +667,40 @@ INSTRUÇÕES IMPORTANTES:
 - NÃO repita flashcards que já foram criados
 
 FORMATAÇÃO OBRIGATÓRIA (use Markdown):
-- Use **negrito** para destacar termos importantes
-- Use *itálico* para ênfase
-- Use \`código\` para termos técnicos ou conceitos específicos
-- Use ### para subtítulos quando apropriado
-- Use listas numeradas (1. 2. 3.) ou com bullets (- ) para organizar informações
-- Use > para citações ou destaques importantes
-- Use tabelas quando houver dados comparativos:
+
+🎯 DESTAQUE INTELIGENTE - Use **negrito** SOMENTE para termos com alto valor educacional:
+  ✅ DESTAQUE (use **negrito**):
+    - Conceitos técnicos essenciais (ex: "**mens legis**", "**princípio da legalidade**")
+    - Termos jurídicos/médicos específicos (ex: "**habeas corpus**", "**diabetes mellitus**")
+    - Nomes de institutos legais (ex: "**usucapião**", "**litispendência**")
+    - Mnemônicos e siglas importantes (ex: "**LINDB**", "**CRFB/88**")
+    - Números/datas cruciais (ex: "**prazo de 15 dias**", "**artigo 5º**")
+    - Processos/etapas-chave (ex: "**citação**", "**sentença**", "**recurso**")
+    - Elementos de listas importantes (ex: requisitos, características, hipóteses)
+    - Frases de impacto que sintetizam conceitos centrais
+  
+  ❌ NÃO DESTAQUE (deixe em texto normal):
+    - Verbos comuns (é, está, foi, antenado, caracterizado)
+    - Conectivos (com, para, pela, também, porém)
+    - Artigos e preposições (o, a, de, em, por)
+    - Palavras genéricas sem valor técnico (coisa, aspecto, característica)
+    - Adjetivos comuns (bom, grande, importante) - a menos que façam parte de termo técnico
+
+📝 OUTRAS FORMATAÇÕES:
+- Use *itálico* para ênfase secundária ou termos estrangeiros (ex: *ratio decidendi*)
+- Use \`código\` exclusivamente para fórmulas, código de programação ou notação técnica específica
+- Use ### para subtítulos quando organizar tópicos complexos
+- Use listas numeradas (1. 2. 3.) para sequências, requisitos, etapas
+- Use bullets (- ) para características, exemplos, elementos não sequenciais
+- Use > para citações textuais de lei ou doutrinas importantes
+- Use tabelas para comparações, classificações, dados estruturados:
   | Conceito | Definição |
   |----------|-----------|
   | Termo    | Explicação |
 - Para separar parágrafos, use quebras de linha (linhas em branco entre parágrafos)
 - Use --- para separadores visuais quando necessário
+
+⚠️ PRINCÍPIO FUNDAMENTAL: Destaque apenas o que REALMENTE ajuda na memorização e expertise. Menos é mais - excesso de negrito dilui o que é importante!
 
 Crie exatamente ${remainingCount} flashcards únicos baseados no conteúdo fornecido. Cada flashcard deve:
 1. Estar DIRETAMENTE relacionado ao conteúdo fornecido acima
