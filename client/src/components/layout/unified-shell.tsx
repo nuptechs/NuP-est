@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,8 @@ import {
   Zap,
   Target,
   BarChart3,
+  Palette,
+  Check,
 } from "lucide-react";
 import { layout, navigationItems } from "@/lib/design-system";
 import Breadcrumbs from "@/components/ui/breadcrumbs";
@@ -68,11 +71,12 @@ export default function UnifiedShell({
   actions
 }: UnifiedShellProps) {
   const { user } = useAuth();
+  const { currentTheme, currentMode, setTheme, setMode, availableThemes } = useTheme();
   const [location, navigate] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => {
-    return document.documentElement.classList.contains('dark');
+    return currentMode === 'dark';
   });
 
   const getUserInitials = () => {
@@ -84,10 +88,9 @@ export default function UnifiedShell({
   };
 
   const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    document.documentElement.classList.toggle('dark', newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    const newMode = isDark ? 'light' : 'dark';
+    setMode(newMode);
+    setIsDark(!isDark);
   };
 
   // Keyboard shortcuts
@@ -180,6 +183,8 @@ export default function UnifiedShell({
                 <span>Perfil</span>
               </DropdownMenuItem>
               
+              <DropdownMenuSeparator />
+              
               <DropdownMenuItem onClick={toggleTheme}>
                 {isDark ? (
                   <Sun className="mr-2 h-4 w-4" />
@@ -188,6 +193,32 @@ export default function UnifiedShell({
                 )}
                 <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
               </DropdownMenuItem>
+              
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Palette className="h-3 w-3" />
+                  <span>Tema de Cores</span>
+                </div>
+              </DropdownMenuLabel>
+              
+              {availableThemes.map((theme) => (
+                <DropdownMenuItem 
+                  key={theme.name}
+                  onClick={() => setTheme(theme.name)}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-4 h-4 rounded-sm border border-border"
+                      style={{ backgroundColor: theme.colors.primary }}
+                    />
+                    <span>{theme.displayName}</span>
+                  </div>
+                  {currentTheme.name === theme.name && (
+                    <Check className="h-4 w-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              ))}
               
               <DropdownMenuSeparator />
               
@@ -291,6 +322,8 @@ export default function UnifiedShell({
                   <span>Perfil</span>
                 </DropdownMenuItem>
                 
+                <DropdownMenuSeparator />
+                
                 <DropdownMenuItem onClick={toggleTheme}>
                   {isDark ? (
                     <Sun className="mr-2 h-4 w-4" />
@@ -299,6 +332,32 @@ export default function UnifiedShell({
                   )}
                   <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
                 </DropdownMenuItem>
+                
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Palette className="h-3 w-3" />
+                    <span>Tema de Cores</span>
+                  </div>
+                </DropdownMenuLabel>
+                
+                {availableThemes.map((theme) => (
+                  <DropdownMenuItem 
+                    key={theme.name}
+                    onClick={() => setTheme(theme.name)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-4 h-4 rounded-sm border border-border"
+                        style={{ backgroundColor: theme.colors.primary }}
+                      />
+                      <span>{theme.displayName}</span>
+                    </div>
+                    {currentTheme.name === theme.name && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
                 
                 <DropdownMenuSeparator />
                 
