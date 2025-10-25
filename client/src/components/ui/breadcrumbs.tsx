@@ -37,6 +37,26 @@ const routeLabels: Record<string, string> = {
   "search-config": "Configuração de Busca",
 };
 
+// Rotas válidas que existem na aplicação
+const validRoutes = new Set([
+  "/",
+  "/dashboard",
+  "/library",
+  "/study",
+  "/flashcards",
+  "/goals",
+  "/analytics",
+  "/personalized-assistant",
+  "/guided-study",
+  "/quiz",
+  "/topics",
+  "/knowledge-base",
+  "/goal-builder",
+  "/onboarding",
+  "/search",
+  "/admin/search-config",
+]);
+
 function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
   // Remove leading slash e separa por /
   const segments = pathname.replace(/^\//, "").split("/").filter(Boolean);
@@ -57,10 +77,16 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
     currentPath += `/${segment}`;
     const label = routeLabels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
     
-    breadcrumbs.push({
-      label,
-      href: currentPath
-    });
+    // Só adiciona ao breadcrumb se:
+    // 1. É o último segmento (página atual), OU
+    // 2. É uma rota válida que existe na aplicação
+    const isLast = index === segments.length - 1;
+    if (isLast || validRoutes.has(currentPath)) {
+      breadcrumbs.push({
+        label,
+        href: currentPath
+      });
+    }
   });
 
   return breadcrumbs;
