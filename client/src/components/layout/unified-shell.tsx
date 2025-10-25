@@ -43,6 +43,7 @@ import {
   BarChart3,
   Palette,
   Check,
+  Settings,
 } from "lucide-react";
 import { layout, navigationItems } from "@/lib/design-system";
 import Breadcrumbs from "@/components/ui/breadcrumbs";
@@ -183,6 +184,11 @@ export default function UnifiedShell({
                 <span>Perfil</span>
               </DropdownMenuItem>
               
+              <DropdownMenuItem onClick={() => navigate('/admin/search-config')}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Configurações</span>
+              </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
               
               <DropdownMenuItem onClick={toggleTheme}>
@@ -320,6 +326,11 @@ export default function UnifiedShell({
                 <DropdownMenuItem onClick={() => navigate('/onboarding?mode=edit')}>
                   <User className="mr-2 h-4 w-4" />
                   <span>Perfil</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem onClick={() => navigate('/admin/search-config')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Configurações</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuSeparator />
