@@ -210,13 +210,13 @@ export default function UnifiedShell({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="h-14 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 flex items-center justify-between px-4 gap-4 flex-shrink-0">
-          {/* Left Section */}
-          <div className="flex items-center gap-3 min-w-0">
+          {/* Left Section - Brain Icon + Breadcrumbs */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             {/* Brain Icon - Opens Sidebar on Mobile */}
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden h-9 w-9 p-0"
+              className="lg:hidden h-9 w-9 p-0 flex-shrink-0"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               data-testid="button-mobile-menu"
             >
@@ -224,10 +224,15 @@ export default function UnifiedShell({
                 <Brain className="w-4 h-4 text-primary-foreground" />
               </div>
             </Button>
+            
+            {/* Breadcrumbs */}
+            <div className="min-w-0 flex-1">
+              <Breadcrumbs />
+            </div>
           </div>
 
           {/* Center Section - Search */}
-          <div className="flex-1 max-w-md hidden md:block">
+          <div className="max-w-md hidden md:block flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -336,13 +341,6 @@ export default function UnifiedShell({
 
         {/* Content Area */}
         <main className="flex-1 overflow-auto bg-background">
-          {/* Page Header with Breadcrumbs only */}
-          <div className="border-b bg-card/50 backdrop-blur-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-              <Breadcrumbs />
-            </div>
-          </div>
-          
           {/* Page Content */}
           {children}
         </main>
