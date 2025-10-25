@@ -84,6 +84,9 @@ export default function Library() {
     enabled: !!selectedSubjectId,
   });
 
+  // Get selected subject for material color
+  const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
+
   // Navigation functions
   const navigateToSubjects = (areaId: string) => {
     setSelectedAreaId(areaId);
@@ -260,14 +263,14 @@ export default function Library() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {level === 'subjects' && item.color ? (
+                      {(level === 'subjects' && item.color) || (level === 'materials' && selectedSubject?.color) ? (
                         <div 
                           className="p-2.5 rounded-lg"
-                          style={{ backgroundColor: `${item.color}20` }}
+                          style={{ backgroundColor: `${level === 'subjects' ? item.color : selectedSubject?.color}20` }}
                         >
                           <config.icon 
                             className="h-5 w-5" 
-                            style={{ color: item.color }}
+                            style={{ color: level === 'subjects' ? item.color : selectedSubject?.color }}
                           />
                         </div>
                       ) : (
@@ -277,10 +280,10 @@ export default function Library() {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          {level === 'subjects' && item.color && (
+                          {((level === 'subjects' && item.color) || (level === 'materials' && selectedSubject?.color)) && (
                             <div 
                               className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: item.color }}
+                              style={{ backgroundColor: level === 'subjects' ? item.color : selectedSubject?.color }}
                             />
                           )}
                           <h3 className="font-semibold truncate">
