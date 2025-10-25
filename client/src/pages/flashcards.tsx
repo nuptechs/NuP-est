@@ -20,6 +20,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -35,7 +37,9 @@ import {
   X,
   ImagePlus,
   Sparkles,
-  Loader2
+  Loader2,
+  Pencil,
+  MoreVertical
 } from "lucide-react";
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
 
@@ -289,6 +293,10 @@ export default function Flashcards() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createMethod, setCreateMethod] = useState<'manual' | 'upload' | 'material'>('manual');
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deckToEdit, setDeckToEdit] = useState<FlashcardDeck | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deckToDelete, setDeckToDelete] = useState<FlashcardDeck | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -334,6 +342,17 @@ export default function Flashcards() {
   const materialForm = useForm<MaterialFormData>({
     resolver: zodResolver(materialSchema),
     defaultValues: { title: "", description: "", subjectId: "", materialId: "", count: 10 },
+  });
+
+  const editDeckSchema = z.object({
+    title: z.string().min(1, "Título é obrigatório"),
+    description: z.string().optional(),
+    subjectId: z.string().optional(),
+  });
+
+  const editForm = useForm<z.infer<typeof editDeckSchema>>({
+    resolver: zodResolver(editDeckSchema),
+    defaultValues: { title: "", description: "", subjectId: "" },
   });
 
   // Mutations
@@ -412,6 +431,58 @@ export default function Flashcards() {
       toast({ title: "Erro", description: "Falha ao gerar flashcards", variant: "destructive" });
     },
   });
+
+  const updateDeck = useMutation({
+    mutationFn: async (data: z.infer<typeof editDeckSchema>) => {
+      if (!deckToEdit) throw new Error("Nenhum deck selecionado");
+      const response = await apiRequest("PATCH", `/api/flashcard-decks/${deckToEdit.id}`, {
+        title: data.title,
+        description: data.description || null,
+        subjectId: data.subjectId || null,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/flashcard-decks"] });
+      toast({ title: "Sucesso", description: "Deck atualizado!" });
+      setEditModalOpen(false);
+      setDeckToEdit(null);
+      editForm.reset();
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Falha ao atualizar deck", variant: "destructive" });
+    },
+  });
+
+  const deleteDeck = useMutation({
+    mutationFn: async (deckId: string) => {
+      await apiRequest("DELETE", `/api/flashcard-decks/${deckId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/flashcard-decks"] });
+      toast({ title: "Sucesso", description: "Deck excluído!" });
+      setDeleteDialogOpen(false);
+      setDeckToDelete(null);
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Falha ao excluir deck", variant: "destructive" });
+    },
+  });
+
+  const handleEditDeck = (deck: FlashcardDeck) => {
+    setDeckToEdit(deck);
+    editForm.reset({
+      title: deck.title,
+      description: deck.description || "",
+      subjectId: deck.subjectId || "",
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteDeck = (deck: FlashcardDeck) => {
+    setDeckToDelete(deck);
+    setDeleteDialogOpen(true);
+  };
 
   const handleStudy = (deck: FlashcardDeck) => {
     setSelectedDeck(deck);
@@ -809,6 +880,27 @@ export default function Flashcards() {
                         <p className="text-sm text-muted-foreground">{deck.description}</p>
                       )}
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" data-testid={`button-menu-${deck.id}`}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditDeck(deck)} data-testid={`button-edit-${deck.id}`}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteDeck(deck)} 
+                          className="text-destructive"
+                          data-testid={`button-delete-${deck.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   <div className="space-y-3">
@@ -838,6 +930,83 @@ export default function Flashcards() {
             ))}
           </div>
         )}
+
+        {/* Edit Deck Modal */}
+        <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Editar Deck</DialogTitle>
+              <DialogDescription>
+                Atualize as informações do seu deck
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit((data) => updateDeck.mutate(data))} className="space-y-4">
+                <FormField control={editForm.control} name="title" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título do Deck</FormLabel>
+                    <FormControl><Input {...field} data-testid="input-edit-title" placeholder="Ex: Verbos Irregulares" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={editForm.control} name="description" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição (opcional)</FormLabel>
+                    <FormControl><Textarea {...field} data-testid="input-edit-description" placeholder="Descrição do deck" rows={3} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={editForm.control} name="subjectId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Matéria (opcional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-subject">
+                          <SelectValue placeholder="Selecionar matéria" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">Nenhuma</SelectItem>
+                        {subjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)} className="flex-1" data-testid="button-cancel-edit">
+                    Cancelar
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={updateDeck.isPending} data-testid="button-save-edit">
+                    {updateDeck.isPending ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. O deck "{deckToDelete?.title}" e todos os seus flashcards serão excluídos permanentemente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deckToDelete && deleteDeck.mutate(deckToDelete.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="button-confirm-delete"
+              >
+                {deleteDeck.isPending ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </UnifiedShell>
   );
