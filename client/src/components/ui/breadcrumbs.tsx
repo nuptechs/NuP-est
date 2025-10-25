@@ -81,7 +81,7 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
   return (
     <nav 
       aria-label="Breadcrumb" 
-      className={cn("flex items-center gap-1 text-sm", className)}
+      className={cn("flex items-center gap-1.5 text-sm text-muted-foreground", className)}
       data-testid="breadcrumbs-nav"
     >
       {breadcrumbs.map((crumb, index) => {
@@ -89,13 +89,13 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
         const isFirst = index === 0;
 
         return (
-          <div key={crumb.href} className="flex items-center gap-1">
+          <div key={crumb.href} className="flex items-center gap-1.5">
             {!isFirst && (
-              <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0" />
             )}
             {isLast ? (
               <span 
-                className="text-foreground font-medium truncate max-w-[200px] pointer-events-none"
+                className="text-foreground/70 font-normal truncate max-w-[200px] pointer-events-none"
                 data-testid="breadcrumb-current"
                 aria-current="page"
                 role="text"
@@ -106,15 +106,16 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
               <button
                 onClick={() => navigate(crumb.href)}
                 className={cn(
-                  "text-muted-foreground hover:text-foreground transition-colors truncate max-w-[150px]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm px-1"
+                  "inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors truncate max-w-[150px]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm px-1.5 py-0.5",
+                  "-ml-1.5" // Compensate padding to align with container edge
                 )}
                 data-testid={`breadcrumb-${crumb.href.replace(/\//g, '-') || 'home'}`}
                 aria-label={isFirst ? "Início" : undefined}
                 title={isFirst ? "Voltar ao início" : undefined}
               >
                 {isFirst ? (
-                  <Home className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Home className="h-4 w-4" aria-hidden="true" />
                 ) : (
                   crumb.label
                 )}

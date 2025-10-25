@@ -223,17 +223,12 @@ export default function UnifiedShell({
               <Menu className="h-4 w-4" />
             </Button>
 
-            {/* Page Title & Breadcrumbs */}
-            <div className="hidden sm:block min-w-0 flex-1">
-              <Breadcrumbs className="mb-1" />
-              {title && (
-                <div>
-                  <h1 className="font-semibold text-foreground truncate">{title}</h1>
-                  {subtitle && (
-                    <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
-                  )}
-                </div>
-              )}
+            {/* Logo/Brand (Mobile) */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
+                <Brain className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span className="font-semibold text-foreground">NuP-est</span>
             </div>
           </div>
 
@@ -347,6 +342,26 @@ export default function UnifiedShell({
 
         {/* Content Area */}
         <main className="flex-1 overflow-auto bg-background">
+          {/* Page Header with Breadcrumbs & Title */}
+          {title && (
+            <div className="border-b bg-card/50 backdrop-blur-sm">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <Breadcrumbs className="mb-3" />
+                <div>
+                  <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+                    {title}
+                  </h1>
+                  {subtitle && (
+                    <p className="text-sm text-muted-foreground mt-1.5">
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Page Content */}
           {children}
         </main>
       </div>
