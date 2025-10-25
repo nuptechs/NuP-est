@@ -116,7 +116,7 @@ export default function UnifiedShell({
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Brain className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-semibold text-foreground">NuP-est</span>
+            <span className="text-xl font-semibold text-foreground">NuP-Study</span>
           </div>
         </div>
 
@@ -212,7 +212,7 @@ export default function UnifiedShell({
         <header className="h-14 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 flex items-center justify-between px-4 gap-4 flex-shrink-0">
           {/* Left Section */}
           <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile Menu Toggle */}
+            {/* Brain Icon - Opens Sidebar on Mobile */}
             <Button
               variant="ghost"
               size="sm"
@@ -220,16 +220,10 @@ export default function UnifiedShell({
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               data-testid="button-mobile-menu"
             >
-              <Menu className="h-4 w-4" />
-            </Button>
-
-            {/* Logo/Brand (Mobile) */}
-            <div className="flex items-center gap-2 lg:hidden">
               <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
                 <Brain className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="font-semibold text-foreground">NuP-est</span>
-            </div>
+            </Button>
           </div>
 
           {/* Center Section - Search */}
@@ -371,7 +365,7 @@ export default function UnifiedShell({
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <Brain className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-semibold text-foreground">NuP-est</span>
+                <span className="text-xl font-semibold text-foreground">NuP-Study</span>
               </div>
               <Button
                 variant="ghost"

@@ -1,6 +1,6 @@
 # Overview
 
-NuP-est is an AI-powered adaptive study management platform designed to personalize learning experiences through deep user profiling and intelligent content delivery. It provides a comprehensive setup, an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The project aims for a polished, professional user experience with intuitive navigation and adaptive learning strategies, ultimately enhancing learning efficiency and engagement. The business vision is to provide a competitive edge in the e-learning market by offering a truly personalized and adaptive learning journey.
+NuP-Study is an AI-powered adaptive study management platform designed to personalize learning experiences through deep user profiling and intelligent content delivery. It provides a comprehensive setup, an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The project aims for a polished, professional user experience with intuitive navigation and adaptive learning strategies, ultimately enhancing learning efficiency and engagement. The business vision is to provide a competitive edge in the e-learning market by offering a truly personalized and adaptive learning journey.
 
 # User Preferences
 

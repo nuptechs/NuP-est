@@ -11,7 +11,7 @@ export default function Landing() {
             <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center">
               <i className="fas fa-brain text-white text-2xl"></i>
             </div>
-            <h1 className="text-4xl font-bold text-foreground">NuP-est</h1>
+            <h1 className="text-4xl font-bold text-foreground">NuP-Study</h1>
           </div>
           <h2 className="text-2xl font-semibold text-foreground mb-4">
             Seu Assistente de Estudos com IA
