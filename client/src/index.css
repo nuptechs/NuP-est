@@ -70,35 +70,31 @@
   .dark {
     /* === DARK MODE PALETTE === */
     
-    /* Backgrounds - Tons mais claros para melhor contraste */
-    --background: 222 47% 11%;        /* hsl(222, 47%, 11%) - #0f172a mais claro */
+    /* Backgrounds */
+    --background: 222 84% 5%;         /* hsl(222, 84%, 5%) - #0f172a */
     --foreground: 210 40% 98%;        /* hsl(210, 40%, 98%) - #f8fafc */
     
-    --card: 217 33% 17%;              /* hsl(217, 33%, 17%) - Mais claro que antes */
+    --card: 220 13% 18%;              /* hsl(220, 13%, 18%) - #1e293b */
     --card-foreground: 210 40% 98%;   /* Light text on dark cards */
     
-    --popover: 217 33% 17%;           /* Dark popovers */
+    --popover: 220 13% 18%;           /* Dark popovers */
     --popover-foreground: 210 40% 98%; /* Light text on popovers */
     
-    /* Interactive Elements - Melhor contraste */
-    --muted: 215 25% 27%;             /* hsl(215, 25%, 27%) - Mais claro para melhor legibilidade */
-    --muted-foreground: 217 33% 82%;  /* hsl(217, 33%, 82%) - Texto mais claro */
+    /* Interactive Elements - Texto secundário mais claro para legibilidade */
+    --muted: 215 28% 17%;             /* hsl(215, 28%, 17%) - #1e293b */
+    --muted-foreground: 215 20% 75%;  /* Mais claro que 65% para melhor contraste */
     
-    --accent: 217 33% 17%;            /* Dark accents */
+    --accent: 215 28% 17%;            /* Dark accents */
     --accent-foreground: 210 40% 98%; /* Light text on accents */
     
-    /* Borders & Inputs - Visibilidade melhorada */
-    --border: 217 33% 25%;            /* Borda mais visível */
-    --input: 217 33% 20%;             /* Input background com contraste */
-    --ring: 221 83% 53%;              /* Focus ring igual ao modo claro (azul visível) */
+    /* Borders & Inputs */
+    --border: 215 28% 17%;            /* Dark borders */
+    --input: 215 28% 17%;             /* Dark input borders */
+    --ring: 224 71% 4%;               /* Dark focus rings */
     
-    /* Secondary - Maior contraste */
-    --secondary: 217 33% 20%;         /* Dark secondary mais visível */
+    /* Secondary */
+    --secondary: 215 28% 17%;         /* Dark secondary */
     --secondary-foreground: 210 40% 98%; /* Light text on secondary */
-    
-    /* Primary - Ajustado para modo escuro */
-    --primary: 217 91% 60%;           /* hsl(217, 91%, 60%) - Azul mais claro no escuro */
-    --primary-foreground: 222 47% 11%; /* Texto escuro em botões primários */
   }
 }
 
