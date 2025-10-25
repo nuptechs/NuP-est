@@ -201,12 +201,13 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const currentTheme = themes[currentThemeName];
   const availableThemes = Object.values(themes);
 
-  // Aplicar as variáveis CSS quando o tema muda
+  // Aplicar APENAS as variáveis customizadas do tema (não sobrescrever variáveis base do shadcn)
   useEffect(() => {
     const applyThemeVariables = (colors: ThemeColors) => {
       const root = document.documentElement;
       
-      // === Variáveis NuP-Study (cores customizadas dos temas) ===
+      // === Variáveis NuP-Study (cores customizadas ADICIONAIS dos temas) ===
+      // Estas são cores SUPLEMENTARES que não afetam o sistema base
       root.style.setProperty('--nup-primary', colors.primary);
       root.style.setProperty('--nup-primary-hover', colors.primaryHover);
       root.style.setProperty('--nup-primary-light', colors.primaryLight);
