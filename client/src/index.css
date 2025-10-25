@@ -126,6 +126,14 @@
   /* === FLASHCARD RICH CONTENT STYLES === */
   .flashcard-rich-content {
     @apply text-foreground;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+  
+  .flashcard-rich-content * {
+    max-width: 100%;
   }
   
   .flashcard-rich-content h1:first-child,
@@ -153,6 +161,14 @@
   /* Table responsiveness and scrolling */
   .flashcard-rich-content table {
     @apply text-sm;
+    table-layout: auto;
+    word-break: normal;
+  }
+  
+  .flashcard-rich-content td,
+  .flashcard-rich-content th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   /* Code blocks with better overflow handling */
@@ -160,6 +176,18 @@
     @apply overflow-x-auto;
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
+    white-space: pre;
+    overflow-wrap: normal;
+  }
+  
+  .flashcard-rich-content pre code {
+    white-space: pre;
+    word-break: normal;
+  }
+  
+  .flashcard-rich-content code:not(pre code) {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .flashcard-rich-content pre::-webkit-scrollbar {

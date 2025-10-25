@@ -677,7 +677,7 @@ FORMATAÇÃO OBRIGATÓRIA (use Markdown):
   | Conceito | Definição |
   |----------|-----------|
   | Termo    | Explicação |
-- Use quebras de linha duplas para separar parágrafos
+- Para separar parágrafos, use quebras de linha (linhas em branco entre parágrafos)
 - Use --- para separadores visuais quando necessário
 
 Crie exatamente ${remainingCount} flashcards únicos baseados no conteúdo fornecido. Cada flashcard deve:
@@ -690,15 +690,17 @@ Crie exatamente ${remainingCount} flashcards únicos baseados no conteúdo forne
 7. Referenciar informações específicas do material fornecido
 8. Ser DIFERENTE dos flashcards já criados
 
-Responda com um objeto JSON contendo um array de flashcards no seguinte formato:
+Responda com um objeto JSON contendo um array de flashcards. Exemplo de formato:
 {
   "flashcards": [
     {
-      "front": "Pergunta ou conceito aqui (pode usar markdown básico)",
-      "back": "Resposta detalhada com **formatação markdown rica** incluindo:\\n\\n### Subtítulos\\n\\n1. Listas numeradas\\n- Bullets\\n\\n> Citações importantes\\n\\n| Tabela | Quando necessário |\\n|--------|-------------------|\\n| Item   | Descrição        |"
+      "front": "Pergunta clara e objetiva",
+      "back": "Resposta com **formatação markdown rica**:\\n\\n### Subtítulo\\n\\n1. Lista numerada\\n- Bullets\\n\\n> Citação\\n\\n| Col1 | Col2 |\\n|------|------|\\n| A    | B    |"
     }
   ]
-}`;
+}
+
+IMPORTANTE: No formato JSON, use \\n para quebras de linha nas strings (escape correto em JSON).`;
 
     try {
       // Usar sistema de injeção de dependência para análise

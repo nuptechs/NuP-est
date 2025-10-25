@@ -78,6 +78,12 @@ type MaterialFormData = z.infer<typeof materialSchema>;
 
 // Rich Content Renderer - Professional Academic Formatting
 function RichFlashcardContent({ content, className = "" }: { content: string; className?: string }) {
+  // Process literal escape sequences (\n, \t) that AI might return
+  const processedContent = content
+    .replace(/\\n/g, '\n')  // Convert literal \n to real line breaks
+    .replace(/\\t/g, '\t')  // Convert literal \t to real tabs
+    .replace(/\\r/g, '');   // Remove carriage returns
+  
   return (
     <div className={`flashcard-rich-content ${className}`}>
       <ReactMarkdown
@@ -157,7 +163,7 @@ function RichFlashcardContent({ content, className = "" }: { content: string; cl
           hr: () => <hr className="my-6 border-border" />,
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );
