@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import UnifiedShell from "@/components/layout/unified-shell";
 import ModernPageHeader from "@/components/ui/modern-page-header";
 import ModernEmptyState from "@/components/ui/modern-empty-state";
@@ -73,6 +75,93 @@ const materialSchema = z.object({
 type CreateDeckFormData = z.infer<typeof createDeckSchema>;
 type UploadFileFormData = z.infer<typeof uploadFileSchema>;
 type MaterialFormData = z.infer<typeof materialSchema>;
+
+// Rich Content Renderer - Professional Academic Formatting
+function RichFlashcardContent({ content, className = "" }: { content: string; className?: string }) {
+  return (
+    <div className={`flashcard-rich-content ${className}`}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          // Headings
+          h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 mt-6 text-foreground border-b pb-2">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 mt-5 text-foreground">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 mt-4 text-foreground">{children}</h3>,
+          h4: ({ children }) => <h4 className="text-base font-semibold mb-2 mt-3 text-foreground">{children}</h4>,
+          
+          // Paragraphs
+          p: ({ children }) => <p className="mb-3 leading-relaxed text-foreground">{children}</p>,
+          
+          // Lists
+          ul: ({ children }) => <ul className="list-disc list-outside ml-6 mb-4 space-y-2 text-foreground">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-outside ml-6 mb-4 space-y-2 text-foreground">{children}</ol>,
+          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+          
+          // Tables - Professional formatting
+          table: ({ children }) => (
+            <div className="my-6 overflow-x-auto">
+              <table className="min-w-full divide-y divide-border border border-border rounded-lg">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-muted">{children}</thead>,
+          tbody: ({ children }) => <tbody className="bg-card divide-y divide-border">{children}</tbody>,
+          tr: ({ children }) => <tr className="hover:bg-muted/50 transition-colors">{children}</tr>,
+          th: ({ children }) => (
+            <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-r border-border last:border-r-0">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="px-4 py-3 text-sm text-foreground border-r border-border last:border-r-0">
+              {children}
+            </td>
+          ),
+          
+          // Code blocks
+          code: ({ inline, children, ...props }: any) => {
+            if (inline) {
+              return (
+                <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground border border-border" {...props}>
+                  {children}
+                </code>
+              );
+            }
+            return (
+              <code className="block bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto mb-4 border border-border text-foreground" {...props}>
+                {children}
+              </code>
+            );
+          },
+          
+          // Blockquotes
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-4 border-primary pl-4 py-2 my-4 bg-muted/50 rounded-r italic text-foreground">
+              {children}
+            </blockquote>
+          ),
+          
+          // Strong/Bold
+          strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+          
+          // Emphasis/Italic
+          em: ({ children }) => <em className="italic text-foreground">{children}</em>,
+          
+          // Links
+          a: ({ children, href }) => (
+            <a href={href} className="text-primary hover:underline font-medium" target="_blank" rel="noopener noreferrer">
+              {children}
+            </a>
+          ),
+          
+          // Horizontal rules
+          hr: () => <hr className="my-6 border-border" />,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+}
 
 // Flashcard Editor Component with Image Upload and AI Polish
 function FlashcardEditor({ index, form, onRemove }: { 
@@ -529,43 +618,53 @@ export default function Flashcards() {
 
           <Progress value={progress} className="h-2" />
 
-          <Card className="min-h-[300px] overflow-hidden">
-            <CardContent className="p-12">
-              <div className="flex flex-col items-center justify-center min-h-[250px]">
+          <Card className="min-h-[400px] overflow-hidden shadow-lg">
+            <CardContent className="p-8 md:p-12">
+              <div className="flex flex-col min-h-[350px]">
                 {!showAnswer ? (
-                  <div className="text-center space-y-4 max-w-3xl w-full">
-                    <h3 className="text-2xl font-semibold break-words">{currentCard.front}</h3>
+                  <div className="space-y-6 max-w-4xl w-full mx-auto">
+                    <div className="bg-primary/5 rounded-lg p-6 border-l-4 border-primary">
+                      <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wide">Pergunta</p>
+                      <RichFlashcardContent content={currentCard.front} className="text-left" />
+                    </div>
                     {currentCard.imageUrl && (
-                      <div className="relative rounded-lg overflow-hidden border mt-4">
+                      <div className="relative rounded-lg overflow-hidden border shadow-sm">
                         <img 
                           src={currentCard.imageUrl} 
                           alt="Flashcard visual" 
-                          className="max-w-full max-h-64 mx-auto object-contain"
+                          className="max-w-full max-h-80 mx-auto object-contain"
                         />
                       </div>
                     )}
-                    <Button onClick={() => setShowAnswer(true)} data-testid="button-show-answer">
-                      Mostrar Resposta
-                    </Button>
+                    <div className="flex justify-center pt-4">
+                      <Button 
+                        onClick={() => setShowAnswer(true)} 
+                        size="lg"
+                        className="px-8"
+                        data-testid="button-show-answer"
+                      >
+                        Revelar Resposta
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="text-center space-y-6 max-w-3xl w-full">
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Pergunta:</p>
-                      <h3 className="text-xl font-semibold break-words">{currentCard.front}</h3>
-                      {currentCard.imageUrl && (
-                        <div className="relative rounded-lg overflow-hidden border mt-4">
-                          <img 
-                            src={currentCard.imageUrl} 
-                            alt="Flashcard visual" 
-                            className="max-w-full max-h-64 mx-auto object-contain"
-                          />
-                        </div>
-                      )}
+                  <div className="space-y-6 max-w-4xl w-full mx-auto">
+                    <div className="bg-muted/30 rounded-lg p-6 border-l-4 border-muted-foreground">
+                      <p className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">Pergunta</p>
+                      <RichFlashcardContent content={currentCard.front} className="text-left text-base" />
                     </div>
-                    <div className="border-t pt-4 space-y-2">
-                      <p className="text-sm text-muted-foreground">Resposta:</p>
-                      <p className="text-lg break-words whitespace-pre-wrap">{currentCard.back}</p>
+                    {currentCard.imageUrl && (
+                      <div className="relative rounded-lg overflow-hidden border shadow-sm">
+                        <img 
+                          src={currentCard.imageUrl} 
+                          alt="Flashcard visual" 
+                          className="max-w-full max-h-80 mx-auto object-contain"
+                        />
+                      </div>
+                    )}
+                    <div className="bg-success/5 rounded-lg p-6 border-l-4 border-success">
+                      <p className="text-sm font-medium text-success mb-4 uppercase tracking-wide">Resposta</p>
+                      <RichFlashcardContent content={currentCard.back} className="text-left" />
                     </div>
                   </div>
                 )}

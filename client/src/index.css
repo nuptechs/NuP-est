@@ -123,6 +123,57 @@
     @apply text-xl font-semibold tracking-tight;
   }
   
+  /* === FLASHCARD RICH CONTENT STYLES === */
+  .flashcard-rich-content {
+    @apply text-foreground;
+  }
+  
+  .flashcard-rich-content h1:first-child,
+  .flashcard-rich-content h2:first-child,
+  .flashcard-rich-content h3:first-child,
+  .flashcard-rich-content h4:first-child,
+  .flashcard-rich-content p:first-child {
+    @apply mt-0;
+  }
+  
+  .flashcard-rich-content p:last-child,
+  .flashcard-rich-content ul:last-child,
+  .flashcard-rich-content ol:last-child {
+    @apply mb-0;
+  }
+  
+  /* Ensure proper spacing in lists */
+  .flashcard-rich-content ul ul,
+  .flashcard-rich-content ul ol,
+  .flashcard-rich-content ol ul,
+  .flashcard-rich-content ol ol {
+    @apply mt-2;
+  }
+  
+  /* Table responsiveness and scrolling */
+  .flashcard-rich-content table {
+    @apply text-sm;
+  }
+  
+  /* Code blocks with better overflow handling */
+  .flashcard-rich-content pre {
+    @apply overflow-x-auto;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
+  }
+  
+  .flashcard-rich-content pre::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .flashcard-rich-content pre::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  .flashcard-rich-content pre::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground rounded;
+  }
+  
   h4 {
     @apply text-lg font-medium;
   }
