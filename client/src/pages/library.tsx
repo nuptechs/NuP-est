@@ -260,13 +260,33 @@ export default function Library() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="p-2.5 rounded-lg bg-primary/10">
-                        <config.icon className="h-5 w-5 text-primary" />
-                      </div>
+                      {level === 'subjects' && item.color ? (
+                        <div 
+                          className="p-2.5 rounded-lg"
+                          style={{ backgroundColor: `${item.color}20` }}
+                        >
+                          <config.icon 
+                            className="h-5 w-5" 
+                            style={{ color: item.color }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="p-2.5 rounded-lg bg-primary/10">
+                          <config.icon className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">
-                          {item.name || item.title}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          {level === 'subjects' && item.color && (
+                            <div 
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: item.color }}
+                            />
+                          )}
+                          <h3 className="font-semibold truncate">
+                            {item.name || item.title}
+                          </h3>
+                        </div>
                         {item.description && (
                           <p className="text-sm text-muted-foreground truncate">
                             {item.description}
