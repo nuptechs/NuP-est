@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import FloatingSettings from "@/components/FloatingSettings";
 // Toast notifications handled by Semantic UI Message components
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
@@ -87,6 +88,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Router />
+        <FloatingSettings />
       </ThemeProvider>
     </QueryClientProvider>
   );
