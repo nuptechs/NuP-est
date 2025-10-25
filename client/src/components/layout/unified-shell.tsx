@@ -45,6 +45,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { layout, navigationItems } from "@/lib/design-system";
+import Breadcrumbs from "@/components/ui/breadcrumbs";
 
 interface UnifiedShellProps {
   children: React.ReactNode;
@@ -222,15 +223,18 @@ export default function UnifiedShell({
               <Menu className="h-4 w-4" />
             </Button>
 
-            {/* Page Title */}
-            {title && (
-              <div className="hidden sm:block min-w-0">
-                <h1 className="font-semibold text-foreground truncate">{title}</h1>
-                {subtitle && (
-                  <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
-                )}
-              </div>
-            )}
+            {/* Page Title & Breadcrumbs */}
+            <div className="hidden sm:block min-w-0 flex-1">
+              <Breadcrumbs className="mb-1" />
+              {title && (
+                <div>
+                  <h1 className="font-semibold text-foreground truncate">{title}</h1>
+                  {subtitle && (
+                    <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Center Section - Search */}

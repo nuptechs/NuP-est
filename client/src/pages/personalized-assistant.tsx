@@ -25,6 +25,7 @@ import AdaptiveAssessment from "@/components/personalized-assistant/adaptive-ass
 import AssistantChat from "@/components/personalized-assistant/assistant-chat";
 import StudentProfileView from "@/components/personalized-assistant/student-profile-view";
 import ModernEmptyState from "@/components/ui/modern-empty-state";
+import Breadcrumbs from "@/components/ui/breadcrumbs";
 
 type TabId = "chat" | "questions" | "assessment" | "profile";
 
@@ -185,13 +186,16 @@ export default function PersonalizedAssistantPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="border-b px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)} className="lg:hidden">
               <Menu className="h-4 w-4" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold">{activeTabData?.label}</h1>
-              <p className="text-sm text-muted-foreground">{activeTabData?.desc}</p>
+            <div className="flex-1 min-w-0">
+              <Breadcrumbs className="mb-1 hidden sm:flex" />
+              <div>
+                <h1 className="text-2xl font-bold">{activeTabData?.label}</h1>
+                <p className="text-sm text-muted-foreground">{activeTabData?.desc}</p>
+              </div>
             </div>
           </div>
           {selectedSubject && (activeTab === "questions" || activeTab === "assessment") && (
