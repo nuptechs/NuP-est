@@ -29,13 +29,10 @@ import {
 import {
   Search,
   Plus,
-  Settings,
   LogOut,
   User,
   Moon,
   Sun,
-  Bell,
-  Menu,
   X,
   Home,
   BookOpen,
@@ -259,28 +256,6 @@ export default function UnifiedShell({
               data-testid="button-search-mobile"
             >
               <Search className="h-4 w-4" />
-            </Button>
-
-            {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0 relative hidden sm:flex"
-              data-testid="button-notifications"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full" />
-            </Button>
-
-            {/* Settings */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0 hidden sm:flex"
-              onClick={() => navigate('/admin/search-config')}
-              data-testid="button-settings"
-            >
-              <Settings className="h-4 w-4" />
             </Button>
 
             {/* User Menu (Mobile) */}
