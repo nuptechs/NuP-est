@@ -80,17 +80,17 @@
     --popover: 220 13% 18%;           /* Dark popovers */
     --popover-foreground: 210 40% 98%; /* Light text on popovers */
     
-    /* Interactive Elements - Texto secundário mais claro para legibilidade */
+    /* Interactive Elements */
     --muted: 215 28% 17%;             /* hsl(215, 28%, 17%) - #1e293b */
-    --muted-foreground: 215 20% 75%;  /* Mais claro que 65% para melhor contraste */
+    --muted-foreground: 215 20% 70%;  /* Texto secundário com melhor contraste */
     
     --accent: 215 28% 17%;            /* Dark accents */
     --accent-foreground: 210 40% 98%; /* Light text on accents */
     
     /* Borders & Inputs */
-    --border: 215 28% 17%;            /* Dark borders */
+    --border: 215 28% 25%;            /* Bordas mais visíveis */
     --input: 215 28% 17%;             /* Dark input borders */
-    --ring: 224 71% 4%;               /* Dark focus rings */
+    --ring: 221 83% 53%;              /* Focus ring visível (azul) */
     
     /* Secondary */
     --secondary: 215 28% 17%;         /* Dark secondary */
