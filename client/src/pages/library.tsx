@@ -121,6 +121,7 @@ export default function Library() {
 
   const handleEdit = (item: any) => {
     setEditItem(item);
+    setCreateType(level === 'areas' ? 'area' : level === 'subjects' ? 'subject' : 'material');
     setCreateModalOpen(true);
   };
 
