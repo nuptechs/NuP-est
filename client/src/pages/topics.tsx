@@ -141,9 +141,9 @@ export default function Topics() {
     setSelectedTopicForView(topic);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja deletar este tópico?')) {
-      deleteTopicMutation.mutate(id);
+  const handleDelete = (topic: Topic) => {
+    if (confirm(`Tem certeza que deseja excluir o tópico "${topic.name}"?`)) {
+      deleteTopicMutation.mutate(topic.id);
     }
   };
 
@@ -305,7 +305,7 @@ export default function Topics() {
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(topic.id);
+                            handleDelete(topic);
                           }}
                           data-testid={`button-delete-topic-${topic.id}`}
                         >
@@ -397,11 +397,11 @@ export default function Topics() {
                     variant="outline"
                     size="sm"
                     className="flex-1 text-destructive"
-                    onClick={() => handleDelete(selectedTopicForView.id)}
+                    onClick={() => handleDelete(selectedTopicForView)}
                     data-testid="button-detail-delete"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Deletar
+                    Excluir
                   </Button>
                 </div>
               </CardContent>

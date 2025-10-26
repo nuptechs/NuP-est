@@ -191,13 +191,16 @@ export default function Library() {
     setCreateModalOpen(true);
   };
 
-  const handleDelete = async (id: string, type: ViewLevel) => {
-    if (!confirm('Tem certeza que deseja excluir?')) return;
+  const handleDelete = async (item: any, type: ViewLevel) => {
+    const itemName = item.name || item.title;
+    const itemType = type === 'areas' ? 'área' : type === 'subjects' ? 'disciplina' : 'material';
+    
+    if (!confirm(`Tem certeza que deseja excluir ${itemType} "${itemName}"?`)) return;
 
     try {
-      const endpoint = type === 'areas' ? `/api/areas/${id}` :
-                       type === 'subjects' ? `/api/subjects/${id}` :
-                       `/api/materials/${id}`;
+      const endpoint = type === 'areas' ? `/api/areas/${item.id}` :
+                       type === 'subjects' ? `/api/subjects/${item.id}` :
+                       `/api/materials/${item.id}`;
       
       await apiRequest('DELETE', endpoint);
       
@@ -216,9 +219,16 @@ export default function Library() {
           query.queryKey[0].startsWith('/api/materials')
       });
       
-      toast({ title: "Sucesso", description: "Item excluído!" });
+      toast({ 
+        title: "Sucesso", 
+        description: `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} "${itemName}" excluído(a) com sucesso!` 
+      });
     } catch (error) {
-      toast({ title: "Erro", description: "Falha ao excluir", variant: "destructive" });
+      toast({ 
+        title: "Erro", 
+        description: `Falha ao excluir ${itemType}`, 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -457,7 +467,7 @@ export default function Library() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(item.id, level)}
+                            onClick={() => handleDelete(item, level)}
                             data-testid={`button-delete-${item.id}`}
                             className="h-7 w-7 p-0"
                           >
@@ -534,7 +544,7 @@ export default function Library() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(item.id, level)}
+                          onClick={() => handleDelete(item, level)}
                           data-testid={`button-delete-${item.id}`}
                         >
                           <Trash2 className="h-4 w-4" />
