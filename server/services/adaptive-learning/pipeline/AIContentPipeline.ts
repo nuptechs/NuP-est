@@ -10,45 +10,8 @@ import type { IPromptStrategy } from '../strategies/IPromptStrategy';
 import { ExactasPromptStrategy } from '../strategies/ExactasPromptStrategy';
 import { HumanasPromptStrategy } from '../strategies/HumanasPromptStrategy';
 import { BiologicasPromptStrategy } from '../strategies/BiologicasPromptStrategy';
-import { BasePromptStrategy } from '../strategies/IPromptStrategy';
+import { GenericPromptStrategy } from '../strategies/GenericPromptStrategy';
 import type { IAIManager } from '../../ai/interfaces';
-
-/**
- * Generic prompt strategy for subjects without specific category
- */
-class GenericPromptStrategy extends BasePromptStrategy {
-  readonly category = 'generic' as const;
-  readonly name = 'Genérica';
-  
-  buildSystemPrompt(context: StudyContext): string {
-    return `Você é um professor experiente especializado em criar conteúdo educacional de alta qualidade.
-
-${this.buildPersonalityPrompt(context)}
-${this.buildProfileContext(context)}
-${this.buildAdaptationsPrompt(context)}
-
-Adapte todo conteúdo considerando essas características.`;
-  }
-  
-  buildQuestionPrompt(context: StudyContext, topic: string, difficulty: number): string {
-    return `Crie uma questão de múltipla escolha sobre: ${topic}
-
-NÍVEL: ${difficulty.toFixed(1)}/3.0
-FORMATO: 4 alternativas (A, B, C, D), uma única resposta correta
-
-${this.buildPriorityInstructions(context)}
-${this.buildRAGContext(context)}
-
-Retorne APENAS JSON válido:
-{
-  "question": "...",
-  "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-  "correctAnswer": "A",
-  "explanation": "...",
-  "adaptations": []
-}`;
-  }
-}
 
 /**
  * Content validator for quality control

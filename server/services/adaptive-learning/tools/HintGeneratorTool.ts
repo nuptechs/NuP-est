@@ -12,7 +12,7 @@ import type { IPromptStrategy } from '../strategies/IPromptStrategy';
 import { ExactasPromptStrategy } from '../strategies/ExactasPromptStrategy';
 import { HumanasPromptStrategy } from '../strategies/HumanasPromptStrategy';
 import { BiologicasPromptStrategy } from '../strategies/BiologicasPromptStrategy';
-import { BasePromptStrategy } from '../strategies/IPromptStrategy';
+import { GenericPromptStrategy } from '../strategies/GenericPromptStrategy';
 import type { IAIManager } from '../../ai/interfaces';
 
 export interface HintGeneratorParams {
@@ -30,27 +30,6 @@ export interface HintGeneratorData {
     categoryUsed: string;
     strategyName: string;
   };
-}
-
-/**
- * Generic prompt strategy for subjects without specific category
- */
-class GenericPromptStrategy extends BasePromptStrategy {
-  readonly category = 'generic' as const;
-  readonly name = 'Genérica';
-  
-  buildSystemPrompt(context: StudyContext): string {
-    return `Você é um professor experiente que fornece dicas pedagógicas progressivas.
-
-${this.buildPersonalityPrompt(context)}
-${this.buildProfileContext(context)}
-
-Adapte as dicas considerando essas características.`;
-  }
-  
-  buildQuestionPrompt(context: StudyContext, topic: string, difficulty: number): string {
-    return ''; // Not used for hints
-  }
 }
 
 /**

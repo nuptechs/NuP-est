@@ -12,7 +12,7 @@ import type { IPromptStrategy } from '../strategies/IPromptStrategy';
 import { ExactasPromptStrategy } from '../strategies/ExactasPromptStrategy';
 import { HumanasPromptStrategy } from '../strategies/HumanasPromptStrategy';
 import { BiologicasPromptStrategy } from '../strategies/BiologicasPromptStrategy';
-import { BasePromptStrategy } from '../strategies/IPromptStrategy';
+import { GenericPromptStrategy } from '../strategies/GenericPromptStrategy';
 import type { IAIManager } from '../../ai/interfaces';
 
 export interface ExplanationGeneratorParams {
@@ -32,27 +32,6 @@ export interface ExplanationGeneratorData {
     strategyName: string;
     errorType?: 'conceptual' | 'calculation' | 'interpretation' | 'careless';
   };
-}
-
-/**
- * Generic prompt strategy for subjects without specific category
- */
-class GenericPromptStrategy extends BasePromptStrategy {
-  readonly category = 'generic' as const;
-  readonly name = 'Genérica';
-  
-  buildSystemPrompt(context: StudyContext): string {
-    return `Você é um professor experiente que fornece explicações didáticas e construtivas.
-
-${this.buildPersonalityPrompt(context)}
-${this.buildProfileContext(context)}
-
-Adapte as explicações considerando essas características.`;
-  }
-  
-  buildQuestionPrompt(context: StudyContext, topic: string, difficulty: number): string {
-    return ''; // Not used for explanations
-  }
 }
 
 /**

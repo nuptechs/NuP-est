@@ -16,6 +16,7 @@ export type { IPromptStrategy } from './strategies/IPromptStrategy';
 export { ExactasPromptStrategy } from './strategies/ExactasPromptStrategy';
 export { HumanasPromptStrategy } from './strategies/HumanasPromptStrategy';
 export { BiologicasPromptStrategy } from './strategies/BiologicasPromptStrategy';
+export { GenericPromptStrategy } from './strategies/GenericPromptStrategy';
 
 // AI Pipeline
 export { AIContentPipeline } from './pipeline/AIContentPipeline';
