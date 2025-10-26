@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
+import MaterialDragDrop from "@/components/materials/material-drag-drop";
 import AreaForm from "@/components/knowledge-areas/area-form";
 import { 
   Search as SearchIcon, 
@@ -323,6 +324,21 @@ export default function Library() {
             </Button>
           </div>
         </div>
+
+        {/* Drag and Drop Area for Materials */}
+        {level === 'materials' && (
+          <MaterialDragDrop 
+            subjectId={selectedSubjectId}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ 
+                predicate: (query) => 
+                  Array.isArray(query.queryKey) && 
+                  typeof query.queryKey[0] === 'string' &&
+                  query.queryKey[0].startsWith('/api/materials')
+              });
+            }}
+          />
+        )}
 
         {/* Results Counter */}
         <div className="text-sm text-muted-foreground">
