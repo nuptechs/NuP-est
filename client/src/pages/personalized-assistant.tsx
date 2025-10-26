@@ -17,7 +17,7 @@ import {
   BookOpen,
   Loader2,
   Sparkles,
-  Menu
+  Brain
 } from "lucide-react";
 import type { Subject } from "@shared/schema";
 import AdaptiveQuestions from "@/components/personalized-assistant/adaptive-questions";
@@ -185,25 +185,28 @@ export default function PersonalizedAssistantPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-b px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)} className="lg:hidden">
-              <Menu className="h-4 w-4" />
-            </Button>
-            <div className="flex-1 min-w-0">
-              <Breadcrumbs className="mb-1 hidden sm:flex" />
-              <div>
-                <h1 className="text-2xl font-bold">{activeTabData?.label}</h1>
-                <p className="text-sm text-muted-foreground">{activeTabData?.desc}</p>
-              </div>
+        <div className="border-b px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)} className="lg:hidden">
+                <Brain className="h-4 w-4" />
+              </Button>
+              <Breadcrumbs className="hidden sm:flex" />
+            </div>
+            <div className="flex items-center gap-3">
+              {activeTab === "chat" && (
+                <p className="text-sm text-muted-foreground hidden md:block">
+                  Converse com seu assistente
+                </p>
+              )}
+              {selectedSubject && (activeTab === "questions" || activeTab === "assessment") && (
+                <Badge variant="secondary">
+                  <BookOpen className="h-3 w-3 mr-1" />
+                  {subjects.find(s => s.id === selectedSubject)?.name}
+                </Badge>
+              )}
             </div>
           </div>
-          {selectedSubject && (activeTab === "questions" || activeTab === "assessment") && (
-            <Badge variant="secondary">
-              <BookOpen className="h-3 w-3 mr-1" />
-              {subjects.find(s => s.id === selectedSubject)?.name}
-            </Badge>
-          )}
         </div>
 
         {/* Content */}
