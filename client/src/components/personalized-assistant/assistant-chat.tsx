@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Bot, User, Loader2, Clock, ChevronUp, ChevronDown, Calendar, MessageSquare } from "lucide-react";
+import { Send, Bot, User, Loader2, Clock, ChevronUp, ChevronDown, Calendar, MessageSquare, Trash2 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -104,6 +104,29 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
     },
   });
 
+  // Mutation para excluir mensagem
+  const deleteMessage = useMutation({
+    mutationFn: async (messageId: string) => {
+      const response = await apiRequest("DELETE", `/api/assistant/messages/${messageId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatMessagesQueryKey });
+      queryClient.invalidateQueries({ queryKey: topicsQueryKey });
+      toast({
+        title: "Mensagem excluída",
+        description: "A mensagem e sua resposta foram removidas.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir mensagem",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Timer para loading state
   useEffect(() => {
     if (!sendMessage.isPending) {
@@ -163,7 +186,7 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
   const renderMessage = (message: ChatMessage, index: number) => (
     <div
       key={message.id || index}
-      className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+      className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"} group`}
       data-testid={`message-${message.role}`}
     >
       {message.role === "assistant" && (
@@ -174,28 +197,44 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
         </Avatar>
       )}
       
-      <div
-        className={`max-w-[80%] rounded-lg px-4 py-2 ${
-          message.role === "user"
-            ? "bg-primary text-primary-foreground"
-            : "bg-secondary/30 dark:bg-secondary/50 border border-border/50"
-        }`}
-      >
-        <div className={`prose prose-sm max-w-none ${
-          message.role === "user" ? "prose-invert" : "dark:prose-invert"
-        }`}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
-          </ReactMarkdown>
+      <div className={`flex items-start gap-2 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
+        <div
+          className={`max-w-[80%] rounded-lg px-4 py-2 ${
+            message.role === "user"
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary/30 dark:bg-secondary/50 border border-border/50"
+          }`}
+        >
+          <div className={`prose prose-sm max-w-none ${
+            message.role === "user" ? "prose-invert" : "dark:prose-invert"
+          }`}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content}
+            </ReactMarkdown>
+          </div>
+          <p className={`text-xs mt-1 opacity-70 ${
+            message.role === "user" ? "text-primary-foreground" : "text-foreground"
+          }`}>
+            {new Date(message.createdAt).toLocaleTimeString('pt-BR', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
+          </p>
         </div>
-        <p className={`text-xs mt-1 opacity-70 ${
-          message.role === "user" ? "text-primary-foreground" : "text-foreground"
-        }`}>
-          {new Date(message.createdAt).toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </p>
+        
+        {/* Botão de exclusão (apenas para mensagens do usuário) */}
+        {message.role === "user" && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => deleteMessage.mutate(message.id)}
+            disabled={deleteMessage.isPending}
+            data-testid={`button-delete-message-${message.id}`}
+          >
+            <Trash2 className="h-3 w-3 text-destructive" />
+          </Button>
+        )}
       </div>
 
       {message.role === "user" && (
