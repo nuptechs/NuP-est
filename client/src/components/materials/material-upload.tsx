@@ -113,11 +113,15 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
   const materialType = form.watch("type");
 
   const materialTypeOptions = [
-    { value: "pdf", label: "Arquivo PDF", icon: FileText },
-    { value: "txt", label: "Texto", icon: FileText },
-    { value: "link", label: "Link/URL", icon: Link },
+    { value: "pdf", label: "PDF", icon: FileText },
+    { value: "document", label: "Documento (Word)", icon: FileIcon },
+    { value: "spreadsheet", label: "Planilha (Excel)", icon: FileText },
+    { value: "text", label: "Texto", icon: FileText },
+    { value: "image", label: "Imagem", icon: FileIcon },
     { value: "video", label: "Vídeo", icon: Video },
-    { value: "file", label: "Arquivo", icon: FileIcon },
+    { value: "code", label: "Código", icon: FileText },
+    { value: "link", label: "Link/URL", icon: Link },
+    { value: "file", label: "Outro arquivo", icon: FileIcon },
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,7 +215,8 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
       </div>
 
       {/* File Upload */}
-      {(materialType === "pdf" || materialType === "file") && (
+      {(materialType === "pdf" || materialType === "document" || materialType === "spreadsheet" || 
+        materialType === "image" || materialType === "code" || materialType === "file") && (
         <div className="space-y-2">
           <Label htmlFor="file" className="text-foreground font-medium">
             Arquivo
@@ -230,7 +235,14 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
                     className="sr-only"
                     onChange={handleFileChange}
                     data-testid="input-material-file"
-                    accept={materialType === "pdf" ? ".pdf" : "*/*"}
+                    accept={
+                      materialType === "pdf" ? ".pdf" :
+                      materialType === "document" ? ".doc,.docx" :
+                      materialType === "spreadsheet" ? ".xls,.xlsx,.csv" :
+                      materialType === "image" ? "image/*" :
+                      materialType === "code" ? ".js,.ts,.css,.html,.jsx,.tsx" :
+                      "*/*"
+                    }
                   />
                 </label>
               </div>
@@ -262,7 +274,7 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
       )}
 
       {/* Content Input */}
-      {materialType === "txt" && (
+      {materialType === "text" && (
         <div className="space-y-2">
           <Label htmlFor="content" className="text-foreground font-medium">
             Conteúdo
