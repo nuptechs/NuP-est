@@ -46,12 +46,22 @@ import {
   Settings,
 } from "lucide-react";
 import { layout, navigationItems } from "@/lib/design-system";
+import type { BreadcrumbItem } from "@/components/ui/page-header";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Link } from "wouter";
+import { ChevronRight } from "lucide-react";
 
 interface UnifiedShellProps {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
 // Icon mapping
@@ -68,7 +78,8 @@ export default function UnifiedShell({
   children, 
   title, 
   subtitle,
-  actions
+  actions,
+  breadcrumbs
 }: UnifiedShellProps) {
   const { user } = useAuth();
   const { currentTheme, currentMode, setTheme, setMode, availableThemes } = useTheme();
@@ -244,7 +255,7 @@ export default function UnifiedShell({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="h-14 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 flex items-center justify-between px-4 gap-4 flex-shrink-0">
-          {/* Left Section - Reserved for Page Content */}
+          {/* Left Section - Breadcrumbs or Brain Icon */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {/* Brain Icon - Opens Sidebar on Mobile */}
             <Button
@@ -258,6 +269,97 @@ export default function UnifiedShell({
                 <Brain className="w-4 h-4 text-primary-foreground" />
               </div>
             </Button>
+            
+            {/* Breadcrumbs */}
+            {breadcrumbs && breadcrumbs.length > 0 && (
+              <TooltipProvider>
+                <nav className="flex items-center space-x-1 text-sm flex-1 overflow-hidden">
+                  {breadcrumbs.map((item, index) => {
+                    const isLast = index === breadcrumbs.length - 1;
+                    const totalCrumbs = breadcrumbs.length;
+                    
+                    let hiddenClasses = "flex";
+                    const isLastTwo = index >= totalCrumbs - 2;
+                    const isThirdFromLast = index === totalCrumbs - 3;
+                    const isBeforeThird = index < totalCrumbs - 3;
+                    
+                    if (isBeforeThird) {
+                      hiddenClasses = "hidden lg:flex";
+                    } else if (isThirdFromLast) {
+                      hiddenClasses = "hidden md:flex";
+                    }
+
+                    const content = (
+                      <div
+                        className={`${hiddenClasses} items-center`}
+                        key={index}
+                        data-testid={`breadcrumb-${index}`}
+                      >
+                        {index > 0 && (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground mx-1" />
+                        )}
+                        
+                        {(item.href || item.onClick) && !isLast ? (
+                          item.onClick ? (
+                            <button
+                              onClick={item.onClick}
+                              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-accent max-w-[200px] truncate"
+                              data-testid={`button-breadcrumb-${index}`}
+                            >
+                              {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
+                              <span className="truncate">{item.label}</span>
+                            </button>
+                          ) : (
+                            <Link
+                              href={item.href!}
+                              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-accent max-w-[200px] truncate"
+                              data-testid={`link-breadcrumb-${index}`}
+                            >
+                              {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
+                              <span className="truncate">{item.label}</span>
+                            </Link>
+                          )
+                        ) : (
+                          <span
+                            className={`flex items-center gap-1.5 px-2 py-1 max-w-[200px] truncate ${
+                              isLast 
+                                ? "text-foreground font-medium" 
+                                : "text-muted-foreground"
+                            }`}
+                            data-testid={`text-breadcrumb-${index}`}
+                          >
+                            {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
+                            <span className="truncate">{item.label}</span>
+                          </span>
+                        )}
+                      </div>
+                    );
+
+                    if (index < breadcrumbs.length - 2) {
+                      return (
+                        <Tooltip key={index}>
+                          <TooltipTrigger asChild>
+                            {content}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{item.label}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+
+                    return content;
+                  })}
+
+                  {breadcrumbs.length > 2 && (
+                    <div className="md:hidden flex items-center text-muted-foreground px-2">
+                      <span>...</span>
+                      <ChevronRight className="h-4 w-4 mx-1" />
+                    </div>
+                  )}
+                </nav>
+              </TooltipProvider>
+            )}
           </div>
 
           {/* Center Section - Search */}

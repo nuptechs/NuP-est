@@ -28,7 +28,6 @@ import {
   ChevronRight
 } from "lucide-react";
 import UnifiedShell from "@/components/layout/unified-shell";
-import { PageHeader } from "@/components/ui/page-header";
 import type { BreadcrumbItem } from "@/components/ui/page-header";
 import ModernEmptyState from "@/components/ui/modern-empty-state";
 import type { Subject, Material, KnowledgeArea } from "@shared/schema";
@@ -289,12 +288,7 @@ export default function Library() {
   if (!isAuthenticated) return null;
 
   return (
-    <UnifiedShell>
-      <PageHeader 
-        breadcrumbs={getBreadcrumbs()} 
-        onMenuClick={() => {}} 
-      />
-      
+    <UnifiedShell breadcrumbs={getBreadcrumbs()}>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Actions Bar */}
         <div className="flex items-center justify-between">
