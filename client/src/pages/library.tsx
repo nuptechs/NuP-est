@@ -290,16 +290,23 @@ export default function Library() {
   return (
     <UnifiedShell breadcrumbs={getBreadcrumbs()}>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Actions Bar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{filteredData.length} {level === 'areas' ? 'áreas' : level === 'subjects' ? 'disciplinas' : 'materiais'}</span>
+        {/* Search and Actions Bar */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="input-search"
+            />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {level !== 'areas' && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="default"
                 onClick={navigateBack}
                 data-testid="button-back"
               >
@@ -317,16 +324,9 @@ export default function Library() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-            data-testid="input-search"
-          />
+        {/* Results Counter */}
+        <div className="text-sm text-muted-foreground">
+          <span>{filteredData.length} {level === 'areas' ? 'áreas' : level === 'subjects' ? 'disciplinas' : 'materiais'}</span>
         </div>
 
         {/* Content Grid */}
