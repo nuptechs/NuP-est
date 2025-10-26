@@ -1782,7 +1782,7 @@ export class DatabaseStorage implements IStorage {
           and(
             eq(chatMessages.assistantId, message.assistantId),
             eq(chatMessages.role, "assistant"),
-            gt(chatMessages.createdAt, message.createdAt)
+            sql`${chatMessages.createdAt} > ${message.createdAt}`
           )
         )
         .orderBy(chatMessages.createdAt)

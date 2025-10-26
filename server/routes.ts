@@ -2160,6 +2160,34 @@ Responda em JSON no formato:
     }
   });
   
+  // Endpoint: Delete chat message (and associated AI response if user message)
+  app.delete('/api/assistant/messages/:messageId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { messageId } = req.params;
+      
+      console.log(`[Chat Messages] DELETE request - messageId: ${messageId}, userId: ${userId}`);
+      
+      // Delete message and associated response (if applicable)
+      await storage.deleteChatMessage(messageId, userId);
+      
+      console.log(`[Chat Messages] Successfully deleted message ${messageId}`);
+      res.json({ success: true, message: "Message deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting chat message:", error);
+      
+      // Handle specific errors
+      if (error.message.includes("not found")) {
+        return res.status(404).json({ message: error.message });
+      }
+      if (error.message.includes("Unauthorized")) {
+        return res.status(403).json({ message: error.message });
+      }
+      
+      res.status(500).json({ message: "Failed to delete message: " + error.message });
+    }
+  });
+  
   // Endpoint: Get conversation topics (semantic analysis)
   app.get('/api/assistant/:assistantId/conversation-topics', isAuthenticated, async (req: any, res) => {
     try {
