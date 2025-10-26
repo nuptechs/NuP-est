@@ -16,7 +16,36 @@ The client is built with React 18, TypeScript, and Vite. It utilizes `wouter` fo
 
 ## Backend Architecture
 
-The server uses Express.js and TypeScript (ESM format) with Drizzle ORM for type-safe PostgreSQL interactions. Replit Auth with Passport.js manages authentication, express-session handles sessions, and multer manages file uploads. The API is RESTful with consistent error handling. Core AI services include Adaptive Assessment, Student Profile Generation, Continuous Discovery, Personalized Assistant, and Adaptive Content Delivery. Key API endpoints facilitate adaptive questions, hints, explanations, chat interactions, and assessment processing. Security features include backend-controlled assessment completion, layered Zod validation, ownership checks, and question persistence. Flashcard image uploads are handled through a dedicated authenticated endpoint, storing images locally and serving them statically. AI chat token limits have been significantly increased to support detailed academic responses.
+The server uses Express.js and TypeScript (ESM format) with Drizzle ORM for type-safe PostgreSQL interactions. Replit Auth with Passport.js manages authentication, express-session handles sessions, and multer manages file uploads. The API is RESTful with consistent error handling.
+
+### Modular AI Pipeline Architecture (New)
+
+**StudyContextBuilder** (`server/services/adaptive-learning/StudyContextBuilder.ts`):
+- Aggregates comprehensive study context: user profile, subject (category/priority), materials, performance data, RAG chunks
+- Parallel data fetching for performance optimization
+- Integrates with Pinecone for RAG-enhanced content generation
+
+**Prompt Strategies** (Category-specific pedagogical approaches):
+- `ExactasPromptStrategy`: Mathematical rigor, step-by-step problem solving, formulas (Math, Physics, Chemistry)
+- `HumanasPromptStrategy`: Critical analysis, interpretation, contextualization (History, Law, Philosophy)
+- `BiologicasPromptStrategy`: Biological processes, systems integration, clinical reasoning (Biology, Medicine)
+- Interface-based design (`IPromptStrategy`) allows A/B testing strategies without breaking production
+
+**AIContentPipeline** (`server/services/adaptive-learning/pipeline/AIContentPipeline.ts`):
+- Structured flow: Context → Strategy Selection → AI Execution → Validation → Result
+- Priority-based model selection: HIGH priority → DeepSeek R1, MEDIUM/LOW → GPT-4o-mini
+- Quality validation with automatic retry logic
+- Telemetry and cost tracking
+
+**QuestionGeneratorTool** (`server/services/adaptive-learning/tools/QuestionGeneratorTool.ts`):
+- Implements `ToolCapability` interface for orchestration compatibility
+- Generates adaptive questions using category-specific strategies
+- RAG enrichment from uploaded materials
+- Automatic question persistence to database
+- Quality scoring and metadata tracking
+
+**Legacy AI Services**:
+Core AI services include Adaptive Assessment, Student Profile Generation, Continuous Discovery, Personalized Assistant, and Adaptive Content Delivery. Key API endpoints facilitate adaptive questions, hints, explanations, chat interactions, and assessment processing. Security features include backend-controlled assessment completion, layered Zod validation, ownership checks, and question persistence. Flashcard image uploads are handled through a dedicated authenticated endpoint, storing images locally and serving them statically. AI chat token limits have been significantly increased to support detailed academic responses.
 
 ## Data Architecture
 
@@ -28,7 +57,17 @@ Authentication is handled via Replit OAuth (OpenID Connect) using secure session
 
 ## AI Integration
 
-The system integrates OpenRouter (DeepSeek R1 model) for advanced, profile-aware AI capabilities, including context-aware question generation, intelligent hints, personalized feedback, adaptive difficulty, and smart recommendations. The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for content generation. External service integrations are centralized with a robust `AIClient` and `PineconeClient` featuring retry mechanisms, exponential backoff, circuit breakers, and comprehensive rate limit handling.
+The system uses a **modular AI pipeline** with intelligent model selection:
+- **DeepSeek R1** (via OpenRouter): For HIGH-priority subjects requiring advanced reasoning
+- **GPT-4o-mini** (OpenAI): For MEDIUM/LOW-priority subjects, balancing speed and cost
+- **Pinecone**: Vector database for RAG-enhanced content generation from uploaded materials
+
+**Category-Aware Content Generation**:
+- Subject categories (exatas/humanas/biologicas) trigger specialized prompt strategies
+- Each category has domain-specific pedagogical approaches (mathematical rigor, critical analysis, biological processes)
+- Priority levels (high/medium/low) influence model selection and difficulty calibration
+
+The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for content generation. External service integrations are centralized with a robust `AIManager` and `PineconeClient` featuring retry mechanisms, exponential backoff, circuit breakers, and comprehensive rate limit handling.
 
 # External Dependencies
 
