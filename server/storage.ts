@@ -97,7 +97,7 @@ import {
   type InsertChatMessage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte, or, isNotNull } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, or, isNotNull, gt, inArray } from "drizzle-orm";
 import { embeddingsService } from "./services/embeddings";
 
 export interface IStorage {
@@ -300,6 +300,7 @@ export interface IStorage {
   // Chat Messages operations
   getChatMessages(assistantId: string, limit?: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  deleteChatMessage(messageId: string, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1754,6 +1755,56 @@ export class DatabaseStorage implements IStorage {
       .values(message)
       .returning();
     return newMessage;
+  }
+
+  async deleteChatMessage(messageId: string, userId: string): Promise<void> {
+    // Get the message to verify ownership and get details
+    const [message] = await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.id, messageId));
+
+    if (!message) {
+      throw new Error("Message not found");
+    }
+
+    if (message.userId !== userId) {
+      throw new Error("Unauthorized: You can only delete your own messages");
+    }
+
+    // If it's a user message, also delete the assistant's response (next message with role=assistant)
+    if (message.role === "user") {
+      // Find the assistant's response (next message with role=assistant after this timestamp)
+      const assistantResponses = await db
+        .select()
+        .from(chatMessages)
+        .where(
+          and(
+            eq(chatMessages.assistantId, message.assistantId),
+            eq(chatMessages.role, "assistant"),
+            gt(chatMessages.createdAt, message.createdAt)
+          )
+        )
+        .orderBy(chatMessages.createdAt)
+        .limit(1);
+
+      // Delete both the user message and the assistant's response
+      const idsToDelete = [messageId];
+      if (assistantResponses.length > 0) {
+        idsToDelete.push(assistantResponses[0].id);
+      }
+
+      await db
+        .delete(chatMessages)
+        .where(
+          inArray(chatMessages.id, idsToDelete)
+        );
+    } else {
+      // If it's an assistant message, just delete it
+      await db
+        .delete(chatMessages)
+        .where(eq(chatMessages.id, messageId));
+    }
   }
 }
 
