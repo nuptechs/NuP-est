@@ -25,7 +25,6 @@ import {
   FileText, 
   Trash2,
   Edit,
-  ArrowLeft,
   Folder,
   ChevronRight,
   File,
@@ -392,17 +391,6 @@ export default function Library() {
             />
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {level !== 'areas' && (
-              <Button
-                variant="ghost"
-                size="default"
-                onClick={navigateBack}
-                data-testid="button-back"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-            )}
             <Button
               onClick={() => handleCreate(level === 'areas' ? 'area' : level === 'subjects' ? 'subject' : 'material')}
               data-testid="button-create"
