@@ -476,11 +476,6 @@ export default function Library() {
                           <h3 className="font-semibold truncate">
                             {item.title}
                           </h3>
-                          {item.type && (
-                            <Badge variant="secondary" className="text-xs flex-shrink-0">
-                              {item.type}
-                            </Badge>
-                          )}
                         </div>
                         {item.description && (
                           <p className="text-sm text-muted-foreground line-clamp-2">
