@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -58,6 +59,10 @@ export default function Topics() {
     subjectId: '',
     order: 0
   });
+  
+  // Delete confirmation state
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -142,8 +147,15 @@ export default function Topics() {
   };
 
   const handleDelete = (topic: Topic) => {
-    if (confirm(`Tem certeza que deseja excluir o tópico "${topic.name}"?`)) {
-      deleteTopicMutation.mutate(topic.id);
+    setTopicToDelete(topic);
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (topicToDelete) {
+      deleteTopicMutation.mutate(topicToDelete.id);
+      setConfirmDeleteOpen(false);
+      setTopicToDelete(null);
     }
   };
 
@@ -553,6 +565,21 @@ export default function Topics() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          open={confirmDeleteOpen}
+          onOpenChange={setConfirmDeleteOpen}
+          title="Confirmar exclusão"
+          description={
+            topicToDelete
+              ? `Tem certeza que deseja excluir tópico "${topicToDelete.name}"?`
+              : ''
+          }
+          onConfirm={confirmDelete}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+        />
       </div>
     </UnifiedShell>
   );

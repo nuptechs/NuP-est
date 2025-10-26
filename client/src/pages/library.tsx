@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import SubjectForm from "@/components/subjects/subject-form";
 import MaterialUpload from "@/components/materials/material-upload";
 import MaterialDragDrop from "@/components/materials/material-drag-drop";
@@ -115,6 +116,10 @@ export default function Library() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createType, setCreateType] = useState<'area' | 'subject' | 'material'>('area');
   const [editItem, setEditItem] = useState<any>(null);
+  
+  // Delete confirmation state
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ item: any; type: ViewLevel } | null>(null);
 
   // Auth redirect
   useEffect(() => {
@@ -191,11 +196,17 @@ export default function Library() {
     setCreateModalOpen(true);
   };
 
-  const handleDelete = async (item: any, type: ViewLevel) => {
+  const handleDelete = (item: any, type: ViewLevel) => {
+    setItemToDelete({ item, type });
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    const { item, type } = itemToDelete;
     const itemName = item.name || item.title;
     const itemType = type === 'areas' ? 'área' : type === 'subjects' ? 'disciplina' : 'material';
-    
-    if (!confirm(`Tem certeza que deseja excluir ${itemType} "${itemName}"?`)) return;
 
     try {
       const endpoint = type === 'areas' ? `/api/areas/${item.id}` :
@@ -229,6 +240,9 @@ export default function Library() {
         description: `Falha ao excluir ${itemType}`, 
         variant: "destructive" 
       });
+    } finally {
+      setConfirmDeleteOpen(false);
+      setItemToDelete(null);
     }
   };
 
@@ -629,6 +643,25 @@ export default function Library() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          open={confirmDeleteOpen}
+          onOpenChange={setConfirmDeleteOpen}
+          title="Confirmar exclusão"
+          description={
+            itemToDelete
+              ? `Tem certeza que deseja excluir ${
+                  itemToDelete.type === 'areas' ? 'área' :
+                  itemToDelete.type === 'subjects' ? 'disciplina' :
+                  'material'
+                } "${itemToDelete.item.name || itemToDelete.item.title}"?`
+              : ''
+          }
+          onConfirm={confirmDelete}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+        />
       </div>
     </UnifiedShell>
   );
