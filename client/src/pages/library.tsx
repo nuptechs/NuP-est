@@ -28,7 +28,8 @@ import {
   ChevronRight
 } from "lucide-react";
 import UnifiedShell from "@/components/layout/unified-shell";
-import ModernPageHeader from "@/components/ui/modern-page-header";
+import { PageHeader } from "@/components/ui/page-header";
+import type { BreadcrumbItem } from "@/components/ui/page-header";
 import ModernEmptyState from "@/components/ui/modern-empty-state";
 import type { Subject, Material, KnowledgeArea } from "@shared/schema";
 
@@ -44,6 +45,7 @@ export default function Library() {
   const [selectedAreaId, setSelectedAreaId] = useState<string>();
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isNavigating, setIsNavigating] = useState(false);
   
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -156,6 +158,87 @@ export default function Library() {
     }
   };
 
+  // Build breadcrumbs dynamically with navigation callbacks
+  const getBreadcrumbs = (): BreadcrumbItem[] => {
+    const breadcrumbs: BreadcrumbItem[] = [];
+
+    // Handler to navigate back to areas
+    const navigateToAreas = () => {
+      if (isNavigating) return;
+      setIsNavigating(true);
+      setSelectedAreaId(undefined);
+      setSelectedSubjectId(undefined);
+      setLevel('areas');
+      setTimeout(() => setIsNavigating(false), 100);
+    };
+
+    // Handler to navigate back to subjects
+    const navigateBackToSubjects = () => {
+      if (isNavigating) return;
+      setIsNavigating(true);
+      setSelectedSubjectId(undefined);
+      setLevel('subjects');
+      setTimeout(() => setIsNavigating(false), 100);
+    };
+
+    if (level === 'areas') {
+      breadcrumbs.push({ label: 'Biblioteca', icon: <BookOpen className="h-4 w-4" /> });
+      breadcrumbs.push({ label: 'Áreas', icon: <Folder className="h-4 w-4" /> });
+    } else if (level === 'subjects') {
+      const selectedArea = areas.find(a => a.id === selectedAreaId);
+      breadcrumbs.push({ 
+        label: 'Biblioteca', 
+        icon: <BookOpen className="h-4 w-4" />,
+        onClick: navigateToAreas
+      });
+      breadcrumbs.push({ 
+        label: 'Áreas', 
+        icon: <Folder className="h-4 w-4" />,
+        onClick: navigateToAreas
+      });
+      if (selectedArea) {
+        breadcrumbs.push({ 
+          label: selectedArea.name, 
+          icon: <Folder className="h-4 w-4" /> 
+        });
+      }
+      breadcrumbs.push({ label: 'Disciplinas', icon: <BookOpen className="h-4 w-4" /> });
+    } else if (level === 'materials') {
+      const selectedArea = areas.find(a => a.id === selectedAreaId);
+      breadcrumbs.push({ 
+        label: 'Biblioteca', 
+        icon: <BookOpen className="h-4 w-4" />,
+        onClick: navigateToAreas
+      });
+      breadcrumbs.push({ 
+        label: 'Áreas', 
+        icon: <Folder className="h-4 w-4" />,
+        onClick: navigateToAreas
+      });
+      if (selectedArea) {
+        breadcrumbs.push({ 
+          label: selectedArea.name,
+          icon: <Folder className="h-4 w-4" />,
+          onClick: navigateBackToSubjects
+        });
+      }
+      breadcrumbs.push({ 
+        label: 'Disciplinas',
+        icon: <BookOpen className="h-4 w-4" />,
+        onClick: navigateBackToSubjects
+      });
+      if (selectedSubject) {
+        breadcrumbs.push({ 
+          label: selectedSubject.name,
+          icon: <BookOpen className="h-4 w-4" /> 
+        });
+      }
+      breadcrumbs.push({ label: 'Materiais de Estudo', icon: <FileText className="h-4 w-4" /> });
+    }
+
+    return breadcrumbs;
+  };
+
   // Get current data and config
   const getCurrentData = () => {
     if (level === 'areas') return areas;
@@ -206,79 +289,39 @@ export default function Library() {
   if (!isAuthenticated) return null;
 
   return (
-    <UnifiedShell
-      title="Biblioteca"
-      actions={
-        <div className="flex items-center gap-2">
-          {level !== 'areas' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={navigateBack}
-              data-testid="button-back"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
-          )}
-          <Button
-            onClick={() => handleCreate(level === 'areas' ? 'area' : level === 'subjects' ? 'subject' : 'material')}
-            data-testid="button-create"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {config.createLabel}
-          </Button>
-        </div>
-      }
-    >
+    <UnifiedShell>
+      <PageHeader 
+        breadcrumbs={getBreadcrumbs()} 
+        onMenuClick={() => {}} 
+      />
+      
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Breadcrumb Navigation */}
-        {(level === 'subjects' || level === 'materials') && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Folder className="h-4 w-4" />
-            <span 
-              className="hover:text-foreground cursor-pointer transition-colors"
-              onClick={() => {
-                setSelectedAreaId(undefined);
-                setSelectedSubjectId(undefined);
-                setLevel('areas');
-              }}
-              data-testid="breadcrumb-areas"
-            >
-              Áreas
-            </span>
-            {level === 'subjects' && (
-              <>
-                <ChevronRight className="h-3 w-3" />
-                <span className="text-foreground font-medium" data-testid="breadcrumb-subjects-current">Disciplinas</span>
-              </>
-            )}
-            {level === 'materials' && (
-              <>
-                <ChevronRight className="h-3 w-3" />
-                <span 
-                  className="hover:text-foreground cursor-pointer transition-colors"
-                  onClick={() => {
-                    setSelectedSubjectId(undefined);
-                    setLevel('subjects');
-                  }}
-                  data-testid="breadcrumb-subjects"
-                >
-                  Disciplinas
-                </span>
-                <ChevronRight className="h-3 w-3" />
-                <span className="text-foreground font-medium" data-testid="breadcrumb-materials-current">Materiais de Estudo</span>
-              </>
-            )}
+        {/* Actions Bar */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{filteredData.length} {level === 'areas' ? 'áreas' : level === 'subjects' ? 'disciplinas' : 'materiais'}</span>
           </div>
-        )}
-
-        {/* Page Header */}
-        <ModernPageHeader
-          title={config.title}
-          description={`${filteredData.length} ${level === 'areas' ? 'áreas' : level === 'subjects' ? 'disciplinas' : 'materiais'}`}
-          icon={config.icon}
-        />
+          <div className="flex items-center gap-2">
+            {level !== 'areas' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={navigateBack}
+                data-testid="button-back"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+            )}
+            <Button
+              onClick={() => handleCreate(level === 'areas' ? 'area' : level === 'subjects' ? 'subject' : 'material')}
+              data-testid="button-create"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {config.createLabel}
+            </Button>
+          </div>
+        </div>
 
         {/* Search */}
         <div className="relative max-w-md">
