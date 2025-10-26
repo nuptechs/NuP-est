@@ -444,7 +444,7 @@ export default function Library() {
                           alt={`${item.type} icon`}
                           className="h-10 w-10 rounded-lg object-cover"
                         />
-                        <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"
                             size="sm"
