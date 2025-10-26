@@ -379,6 +379,7 @@ export default function Library() {
             </DialogHeader>
             {createType === 'area' && (
               <AreaForm
+                area={editItem}
                 onSuccess={() => {
                   setCreateModalOpen(false);
                   setEditItem(null);
@@ -390,11 +391,16 @@ export default function Library() {
             )}
             {createType === 'subject' && (
               <SubjectForm
+                areaId={selectedAreaId}
+                subject={editItem}
                 onSuccess={() => {
                   setCreateModalOpen(false);
                   setEditItem(null);
                   // Invalidate subjects and materials (catches all scoped variants)
                   queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+                  if (selectedAreaId) {
+                    queryClient.invalidateQueries({ queryKey: ['/api/subjects', selectedAreaId] });
+                  }
                   queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
                 }}
               />
