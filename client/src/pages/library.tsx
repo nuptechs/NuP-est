@@ -39,6 +39,16 @@ import type { BreadcrumbItem } from "@/components/ui/page-header";
 import ModernEmptyState from "@/components/ui/modern-empty-state";
 import type { Subject, Material, KnowledgeArea } from "@shared/schema";
 
+// Import file type images
+import pdfIcon from '@assets/generated_images/PDF_document_icon_a22dd6f8.png';
+import docIcon from '@assets/generated_images/Word_document_icon_534ed330.png';
+import xlsIcon from '@assets/generated_images/Excel_spreadsheet_icon_bf6d77af.png';
+import videoIcon from '@assets/generated_images/Video_file_icon_c6cdebff.png';
+import imageIcon from '@assets/generated_images/Image_file_icon_5c042d96.png';
+import codeIcon from '@assets/generated_images/Code_file_icon_102bdd8d.png';
+import textIcon from '@assets/generated_images/Text_file_icon_353f8ea6.png';
+import linkIcon from '@assets/generated_images/Link_file_icon_00a08f77.png';
+
 type ViewLevel = 'areas' | 'subjects' | 'materials';
 
 // Get icon for material type
@@ -62,6 +72,30 @@ const getMaterialIcon = (materialType?: string) => {
       return FileText;
     default:
       return FileText;
+  }
+};
+
+// Get image for material type
+const getMaterialImage = (materialType?: string) => {
+  switch (materialType) {
+    case 'pdf':
+      return pdfIcon;
+    case 'document':
+      return docIcon;
+    case 'spreadsheet':
+      return xlsIcon;
+    case 'video':
+      return videoIcon;
+    case 'image':
+      return imageIcon;
+    case 'code':
+      return codeIcon;
+    case 'text':
+      return textIcon;
+    case 'link':
+      return linkIcon;
+    default:
+      return pdfIcon;
   }
 };
 
@@ -402,43 +436,47 @@ export default function Library() {
                 data-testid={`card-${item.id}`}
               >
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {(level === 'subjects' && item.color) || (level === 'materials' && selectedSubject?.color) ? (
-                        <div 
-                          className="p-2.5 rounded-lg flex-shrink-0"
-                          style={{ backgroundColor: `${level === 'subjects' ? item.color : selectedSubject?.color}20` }}
-                        >
-                          {(() => {
-                            const IconComponent = level === 'materials' ? getMaterialIcon(item.type) : config.icon;
-                            return (
-                              <IconComponent 
-                                className="h-5 w-5" 
-                                style={{ color: level === 'subjects' ? item.color : selectedSubject?.color }}
-                              />
-                            );
-                          })()}
+                  {level === 'materials' ? (
+                    <div className="flex items-start gap-4">
+                      <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                        <img 
+                          src={getMaterialImage(item.type)} 
+                          alt={`${item.type} icon`}
+                          className="h-10 w-10 rounded-lg object-cover"
+                        />
+                        <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(item)}
+                            data-testid={`button-edit-${item.id}`}
+                            className="h-7 w-7 p-0"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(item.id, level)}
+                            data-testid={`button-delete-${item.id}`}
+                            className="h-7 w-7 p-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
-                      ) : (
-                        <div className="p-2.5 rounded-lg bg-primary/10 flex-shrink-0">
-                          {(() => {
-                            const IconComponent = level === 'materials' ? getMaterialIcon(item.type) : config.icon;
-                            return <IconComponent className="h-5 w-5 text-primary" />;
-                          })()}
-                        </div>
-                      )}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {((level === 'subjects' && item.color) || (level === 'materials' && selectedSubject?.color)) && (
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          {selectedSubject?.color && (
                             <div 
                               className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: level === 'subjects' ? item.color : selectedSubject?.color }}
+                              style={{ backgroundColor: selectedSubject?.color }}
                             />
                           )}
                           <h3 className="font-semibold truncate">
-                            {item.name || item.title}
+                            {item.title}
                           </h3>
-                          {level === 'materials' && item.type && (
+                          {item.type && (
                             <Badge variant="secondary" className="text-xs flex-shrink-0">
                               {item.type}
                             </Badge>
@@ -450,30 +488,73 @@ export default function Library() {
                           </p>
                         )}
                       </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {(level === 'subjects' && item.color) ? (
+                            <div 
+                              className="p-2.5 rounded-lg flex-shrink-0"
+                              style={{ backgroundColor: `${item.color}20` }}
+                            >
+                              <config.icon 
+                                className="h-5 w-5" 
+                                style={{ color: item.color }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="p-2.5 rounded-lg bg-primary/10 flex-shrink-0">
+                              <config.icon className="h-5 w-5 text-primary" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {(level === 'subjects' && item.color) && (
+                                <div 
+                                  className="w-2 h-2 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: item.color }}
+                                />
+                              )}
+                              <h3 className="font-semibold truncate">
+                                {item.name || item.title}
+                              </h3>
+                            </div>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </div>
+                      </div>
 
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(item)}
-                      data-testid={`button-edit-${item.id}`}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(item.id, level)}
-                      data-testid={`button-delete-${item.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(item)}
+                          data-testid={`button-edit-${item.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(item.id, level)}
+                          data-testid={`button-delete-${item.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ))}
