@@ -345,7 +345,7 @@ export default function Library() {
           <span>{filteredData.length} {level === 'areas' ? 'áreas' : level === 'subjects' ? 'disciplinas' : 'materiais'}</span>
         </div>
 
-        {/* Content Grid */}
+        {/* Content Grid/List */}
         {filteredData.length === 0 ? (
           <ModernEmptyState
             icon={config.icon}
@@ -357,7 +357,10 @@ export default function Library() {
             }}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className={level === 'materials' 
+            ? "space-y-3" 
+            : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          }>
             {filteredData.map((item: any) => (
               <Card
                 key={item.id}
@@ -373,7 +376,7 @@ export default function Library() {
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {(level === 'subjects' && item.color) || (level === 'materials' && selectedSubject?.color) ? (
                         <div 
-                          className="p-2.5 rounded-lg"
+                          className="p-2.5 rounded-lg flex-shrink-0"
                           style={{ backgroundColor: `${level === 'subjects' ? item.color : selectedSubject?.color}20` }}
                         >
                           <config.icon 
@@ -382,7 +385,7 @@ export default function Library() {
                           />
                         </div>
                       ) : (
-                        <div className="p-2.5 rounded-lg bg-primary/10">
+                        <div className="p-2.5 rounded-lg bg-primary/10 flex-shrink-0">
                           <config.icon className="h-5 w-5 text-primary" />
                         </div>
                       )}
@@ -399,13 +402,15 @@ export default function Library() {
                           </h3>
                         </div>
                         {item.description && (
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-sm text-muted-foreground line-clamp-2">
                             {item.description}
                           </p>
                         )}
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
