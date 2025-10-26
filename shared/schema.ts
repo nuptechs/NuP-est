@@ -206,10 +206,14 @@ export const materials = pgTable("materials", {
   description: text("description"),
   type: varchar("type").notNull(), // pdf, video, text, link
   filePath: text("file_path"),
+  fileHash: varchar("file_hash", { length: 64 }), // SHA-256 hash for deduplication
   url: text("url"),
   content: text("content"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_materials_file_hash").on(table.fileHash),
+  index("idx_materials_user_subject").on(table.userId, table.subjectId),
+]);
 
 // Goals (macro objectives)
 export const goals = pgTable("goals", {
