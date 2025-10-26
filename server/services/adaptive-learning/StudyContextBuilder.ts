@@ -166,7 +166,7 @@ export class StudyContextBuilder {
         const question = questionMap.get(attempt.questionId);
         return {
           ...attempt,
-          topic: question?.topic,
+          topic: question?.topicId || 'general', // Use topicId as topic identifier
           subjectId: question?.subjectId,
         };
       });
