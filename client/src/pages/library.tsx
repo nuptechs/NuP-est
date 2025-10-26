@@ -466,17 +466,9 @@ export default function Library() {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          {selectedSubject?.color && (
-                            <div 
-                              className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: selectedSubject?.color }}
-                            />
-                          )}
-                          <h3 className="font-semibold truncate">
-                            {item.title}
-                          </h3>
-                        </div>
+                        <h3 className="font-semibold truncate mb-1">
+                          {item.title}
+                        </h3>
                         {item.description && (
                           <p className="text-sm text-muted-foreground line-clamp-2">
                             {item.description}
