@@ -658,68 +658,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI routes
+  // AI routes - Using new modular architecture
   app.post('/api/ai/generate-questions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { subjectId, topicId, difficulty = "medium", questionCount = 5 } = req.body;
 
-      // Get user profile
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      console.log(`[API] Generate questions request: subject=${subjectId}, difficulty=${difficulty}, count=${questionCount}`);
 
-      // Get subject
-      const subject = await storage.getSubject(subjectId);
-      if (!subject) {
+      // Import modular adaptive learning system
+      const { StudyContextBuilder, QuestionGeneratorTool } = await import('./services/adaptive-learning/index.js');
+
+      // STAGE 1: Build comprehensive study context
+      const contextBuilder = new StudyContextBuilder(storage);
+      const context = await contextBuilder.build(userId, {
+        subjectId,
+        includeRAG: true, // Enable RAG enrichment
+      });
+
+      if (!context.subject) {
         return res.status(404).json({ message: "Subject not found" });
       }
 
-      // Get topic if specified
-      let topic = undefined;
+      console.log(`[API] Context built: category=${context.subject.category}, priority=${context.subject.priority}`);
+
+      // STAGE 2: Get topic name
+      let topicName = 'Geral';
       if (topicId) {
         const topics = await storage.getTopics(subjectId);
-        topic = topics.find(t => t.id === topicId);
+        const topic = topics.find(t => t.id === topicId);
+        if (topic) {
+          topicName = topic.name;
+        }
       }
 
-      // Get materials for context
-      const materials = await storage.getMaterials(userId, subjectId);
-      if (materials.length === 0) {
-        return res.status(400).json({ message: "No materials found for this subject. Please upload study materials first." });
+      // STAGE 3: Map difficulty string to number (0.5-3.0)
+      const difficultyMap: Record<string, number> = {
+        'very_easy': 0.5,
+        'easy': 1.0,
+        'medium': 1.5,
+        'hard': 2.0,
+        'very_hard': 2.5,
+        'extreme': 3.0,
+      };
+      const numericDifficulty = difficultyMap[difficulty] || 1.5;
+
+      // STAGE 4: Initialize question generator tool
+      const aiManagerInstance = getAIManager();
+      const questionTool = new QuestionGeneratorTool(aiManagerInstance, storage);
+
+      // Check if tool should execute
+      if (!questionTool.shouldExecute(context)) {
+        return res.status(400).json({ 
+          message: "Cannot generate questions with current context. Please check subject configuration." 
+        });
       }
 
-      // Generate questions using AI
-      const questions = await aiService.generateQuestions({
-        subject,
-        topic,
-        materials,
-        studyProfile: user.studyProfile || "average",
-        difficulty,
-        questionCount
+      // STAGE 5: Execute question generation
+      const result = await questionTool.execute(context, {
+        topic: topicName,
+        difficulty: numericDifficulty,
+        count: questionCount,
       });
 
-      // Save questions to database
-      const savedQuestions = [];
-      for (const q of questions) {
-        const aiQuestion = await storage.createAiQuestion({
-          userId,
-          subjectId,
-          topicId,
-          question: q.question,
-          options: q.options,
-          correctAnswer: q.correctAnswer,
-          explanation: q.explanation,
-          difficulty: q.difficulty,
-          studyProfile: user.studyProfile || "average"
+      if (!result.success) {
+        console.error('[API] Question generation failed:', result.error);
+        return res.status(500).json({ 
+          message: result.error?.message || "Failed to generate questions" 
         });
-        savedQuestions.push(aiQuestion);
       }
 
-      res.json(savedQuestions);
+      console.log(`[API] Successfully generated ${result.data.questions.length} questions`);
+      console.log(`[API] Metadata: category=${result.data.metadata.categoryUsed}, quality=${result.data.metadata.averageQuality.toFixed(2)}`);
+
+      // STAGE 6: Return generated questions
+      // Questions are already saved to DB by QuestionGeneratorTool
+      // Fetch the most recent questions for this user/subject
+      const savedQuestions = await storage.getAiQuestions(userId);
+      const relevantQuestions = savedQuestions
+        .filter(q => q.subjectId === subjectId)
+        .slice(0, questionCount);
+
+      res.json(relevantQuestions);
+
     } catch (error) {
       console.error("Error generating questions:", error);
-      res.status(500).json({ message: "Failed to generate questions: " + (error as Error).message });
+      res.status(500).json({ 
+        message: "Failed to generate questions: " + (error as Error).message 
+      });
     }
   });
 
