@@ -46,7 +46,6 @@ import {
   Settings,
 } from "lucide-react";
 import { layout, navigationItems } from "@/lib/design-system";
-import Breadcrumbs from "@/components/ui/breadcrumbs";
 
 interface UnifiedShellProps {
   children: React.ReactNode;
@@ -245,7 +244,7 @@ export default function UnifiedShell({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="h-14 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 flex items-center justify-between px-4 gap-4 flex-shrink-0">
-          {/* Left Section - Brain Icon + Breadcrumbs */}
+          {/* Left Section - Reserved for Page Content */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {/* Brain Icon - Opens Sidebar on Mobile */}
             <Button
@@ -259,11 +258,6 @@ export default function UnifiedShell({
                 <Brain className="w-4 h-4 text-primary-foreground" />
               </div>
             </Button>
-            
-            {/* Breadcrumbs */}
-            <div className="min-w-0 flex-1">
-              <Breadcrumbs />
-            </div>
           </div>
 
           {/* Center Section - Search */}
