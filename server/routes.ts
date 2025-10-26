@@ -2004,10 +2004,13 @@ Responda em JSON no formato:
       const aiManager = getAIManager();
       const contentDelivery = new AdaptiveContentDelivery(storage, aiManager);
       
+      // Use topicId if available, otherwise use subjectId
+      const targetId = validatedData.topicId || validatedData.subjectId;
+      
       // Generate question
       const question = await contentDelivery.generateQuestion(
         validatedData.assistantId,
-        validatedData.topic,
+        targetId,
         validatedData.difficulty
       );
       
@@ -2018,8 +2021,8 @@ Responda em JSON no formato:
         options: question.options ? { options: question.options } : null,
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
-        subjectArea: validatedData.topic,
-        topic: validatedData.topic,
+        subjectArea: targetId,
+        topic: targetId,
         difficulty: validatedData.difficulty ? String(validatedData.difficulty) : "0.5",
         discrimination: "1.0",
         guessing: "0.25",

@@ -1513,7 +1513,8 @@ export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 // === API REQUEST VALIDATION SCHEMAS ===
 export const generateQuestionRequestSchema = z.object({
   assistantId: z.string(),
-  topic: z.string(),
+  subjectId: z.string(),
+  topicId: z.string().optional(),
   difficulty: z.number().min(-3).max(3).optional().default(0),
 });
 
