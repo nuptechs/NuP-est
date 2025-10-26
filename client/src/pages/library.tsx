@@ -26,7 +26,13 @@ import {
   Edit,
   ArrowLeft,
   Folder,
-  ChevronRight
+  ChevronRight,
+  File,
+  FileSpreadsheet,
+  Video,
+  Image as ImageIcon,
+  Code,
+  Link as LinkIcon
 } from "lucide-react";
 import UnifiedShell from "@/components/layout/unified-shell";
 import type { BreadcrumbItem } from "@/components/ui/page-header";
@@ -34,6 +40,30 @@ import ModernEmptyState from "@/components/ui/modern-empty-state";
 import type { Subject, Material, KnowledgeArea } from "@shared/schema";
 
 type ViewLevel = 'areas' | 'subjects' | 'materials';
+
+// Get icon for material type
+const getMaterialIcon = (materialType?: string) => {
+  switch (materialType) {
+    case 'pdf':
+      return FileText;
+    case 'document':
+      return File;
+    case 'spreadsheet':
+      return FileSpreadsheet;
+    case 'video':
+      return Video;
+    case 'image':
+      return ImageIcon;
+    case 'code':
+      return Code;
+    case 'link':
+      return LinkIcon;
+    case 'text':
+      return FileText;
+    default:
+      return FileText;
+  }
+};
 
 export default function Library() {
   const { toast } = useToast();
@@ -379,18 +409,26 @@ export default function Library() {
                           className="p-2.5 rounded-lg flex-shrink-0"
                           style={{ backgroundColor: `${level === 'subjects' ? item.color : selectedSubject?.color}20` }}
                         >
-                          <config.icon 
-                            className="h-5 w-5" 
-                            style={{ color: level === 'subjects' ? item.color : selectedSubject?.color }}
-                          />
+                          {(() => {
+                            const IconComponent = level === 'materials' ? getMaterialIcon(item.type) : config.icon;
+                            return (
+                              <IconComponent 
+                                className="h-5 w-5" 
+                                style={{ color: level === 'subjects' ? item.color : selectedSubject?.color }}
+                              />
+                            );
+                          })()}
                         </div>
                       ) : (
                         <div className="p-2.5 rounded-lg bg-primary/10 flex-shrink-0">
-                          <config.icon className="h-5 w-5 text-primary" />
+                          {(() => {
+                            const IconComponent = level === 'materials' ? getMaterialIcon(item.type) : config.icon;
+                            return <IconComponent className="h-5 w-5 text-primary" />;
+                          })()}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {((level === 'subjects' && item.color) || (level === 'materials' && selectedSubject?.color)) && (
                             <div 
                               className="w-2 h-2 rounded-full flex-shrink-0"
@@ -400,6 +438,11 @@ export default function Library() {
                           <h3 className="font-semibold truncate">
                             {item.name || item.title}
                           </h3>
+                          {level === 'materials' && item.type && (
+                            <Badge variant="secondary" className="text-xs flex-shrink-0">
+                              {item.type}
+                            </Badge>
+                          )}
                         </div>
                         {item.description && (
                           <p className="text-sm text-muted-foreground line-clamp-2">
