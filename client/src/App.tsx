@@ -55,6 +55,7 @@ function Router() {
           <Route path="/onboarding" component={Onboarding} />
           <Route path="/ai-assistant" component={AiAssistant} />
           <Route path="/personalized-assistant" component={PersonalizedAssistant} />
+          <Route path="/assistant" component={PersonalizedAssistant} />
           <Route path="/guided-study" component={GuidedStudy} />
           
           {/* Nova biblioteca unificada */}
