@@ -2160,6 +2160,39 @@ Responda em JSON no formato:
     }
   });
   
+  // Endpoint: Get conversation topics (semantic analysis)
+  app.get('/api/assistant/:assistantId/conversation-topics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { assistantId } = req.params;
+      
+      // Get assistant and verify ownership
+      const assistant = await storage.getPersonalizedAssistant(assistantId);
+      if (!assistant) {
+        return res.status(404).json({ message: "Assistant not found" });
+      }
+      if (assistant.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Get all chat messages
+      const messages = await storage.getChatMessages(assistantId, 200); // Analyze last 200 messages
+      
+      // Use singleton analyzer to persist cache across requests
+      const { getConversationAnalyzer } = await import('./services/chat/index');
+      const analyzer = getConversationAnalyzer();
+      
+      // Analyze and group conversations with persistent caching
+      const cacheKey = `${assistantId}-${messages.length}`;
+      const topics = await analyzer.analyzeConversations(messages, cacheKey);
+      
+      res.json({ topics });
+    } catch (error: any) {
+      console.error("Error analyzing conversation topics:", error);
+      res.status(500).json({ message: "Failed to analyze conversations: " + error.message });
+    }
+  });
+  
   // Endpoint: Chat with personalized assistant  
   app.post('/api/assistant/chat', isAuthenticated, async (req: any, res) => {
     try {
