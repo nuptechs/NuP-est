@@ -142,7 +142,7 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
         />
         {errors.title && (
           <p className="text-red-500 text-sm mt-1">
-            {errors.title.message}
+            {String(errors.title.message)}
           </p>
         )}
       </div>
@@ -204,7 +204,7 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
           </Select>
           {errors.type && (
             <p className="text-red-500 text-sm mt-1">
-              {errors.type.message}
+              {String(errors.type.message)}
             </p>
           )}
         </div>
@@ -255,7 +255,7 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
           />
           {errors.url && (
             <p className="text-red-500 text-sm mt-1">
-              {errors.url.message}
+              {String(errors.url.message)}
             </p>
           )}
         </div>
@@ -277,7 +277,7 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
           />
           {errors.content && (
             <p className="text-red-500 text-sm mt-1">
-              {errors.content.message}
+              {String(errors.content.message)}
             </p>
           )}
         </div>

@@ -360,10 +360,16 @@ export default function Library() {
             )}
             {createType === 'material' && (
               <MaterialUpload
+                subjectId={selectedSubjectId}
+                material={editItem}
                 onSuccess={() => {
                   setCreateModalOpen(false);
+                  setEditItem(null);
                   // Invalidate all material queries (catches scoped and unscoped)
                   queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+                  if (selectedSubjectId) {
+                    queryClient.invalidateQueries({ queryKey: ['/api/materials', selectedSubjectId] });
+                  }
                 }}
               />
             )}
