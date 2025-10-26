@@ -10,6 +10,16 @@ import { Send, Bot, User, Loader2, Clock, ChevronUp, ChevronDown, Calendar, Mess
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AssistantChatProps {
   assistantId: string;
@@ -50,6 +60,7 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
   const [expandedPeriods, setExpandedPeriods] = useState<Set<string>>(new Set(["today"]));
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -228,7 +239,7 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
             variant="ghost"
             size="icon"
             className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={() => deleteMessage.mutate(message.id)}
+            onClick={() => setMessageToDelete(message.id)}
             disabled={deleteMessage.isPending}
             data-testid={`button-delete-message-${message.id}`}
           >
@@ -444,6 +455,35 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
           </Button>
         </div>
       </div>
+
+      {/* Diálogo de confirmação de exclusão */}
+      <AlertDialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir mensagem?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao excluir sua pergunta, a resposta da IA também será removida. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (messageToDelete) {
+                  deleteMessage.mutate(messageToDelete);
+                  setMessageToDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
