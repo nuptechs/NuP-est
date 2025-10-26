@@ -749,6 +749,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Hint Generation - Using modular architecture
+  app.post('/api/ai/hint', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { subjectId, question, correctAnswer, studentAnswer, hintLevel = 1 } = req.body;
+
+      console.log(`[API] Generate hint request: level=${hintLevel}`);
+
+      // Validate hint level
+      if (hintLevel < 1 || hintLevel > 3) {
+        return res.status(400).json({ message: "Hint level must be between 1 and 3" });
+      }
+
+      // Import modular adaptive learning system
+      const { StudyContextBuilder, HintGeneratorTool } = await import('./services/adaptive-learning/index.js');
+
+      // Build study context
+      const contextBuilder = new StudyContextBuilder(storage);
+      const context = await contextBuilder.build(userId, {
+        subjectId,
+      });
+
+      if (!context.subject) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+
+      // Initialize hint generator tool
+      const aiManagerInstance = getAIManager();
+      const hintTool = new HintGeneratorTool(aiManagerInstance);
+
+      // Execute hint generation
+      const result = await hintTool.execute(context, {
+        question,
+        correctAnswer,
+        studentAnswer,
+        hintLevel: hintLevel as 1 | 2 | 3,
+      });
+
+      if (!result.success) {
+        console.error('[API] Hint generation failed:', result.error);
+        return res.status(500).json({ 
+          message: result.error?.message || "Failed to generate hint" 
+        });
+      }
+
+      console.log(`[API] Hint generated successfully using ${result.data.metadata.strategyName} strategy`);
+
+      res.json({
+        hint: result.data.hint,
+        hintLevel: result.data.hintLevel,
+        shouldRevealMore: result.data.shouldRevealMore,
+        metadata: result.data.metadata,
+      });
+
+    } catch (error) {
+      console.error("Error generating hint:", error);
+      res.status(500).json({ 
+        message: "Failed to generate hint: " + (error as Error).message 
+      });
+    }
+  });
+
+  // AI Explanation Generation - Using modular architecture
+  app.post('/api/ai/explanation', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { subjectId, question, correctAnswer, studentAnswer, wasCorrect } = req.body;
+
+      console.log(`[API] Generate explanation request: ${wasCorrect ? 'correct' : 'incorrect'} answer`);
+
+      // Import modular adaptive learning system
+      const { StudyContextBuilder, ExplanationGeneratorTool } = await import('./services/adaptive-learning/index.js');
+
+      // Build study context
+      const contextBuilder = new StudyContextBuilder(storage);
+      const context = await contextBuilder.build(userId, {
+        subjectId,
+      });
+
+      if (!context.subject) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+
+      // Initialize explanation generator tool
+      const aiManagerInstance = getAIManager();
+      const explanationTool = new ExplanationGeneratorTool(aiManagerInstance);
+
+      // Execute explanation generation
+      const result = await explanationTool.execute(context, {
+        question,
+        correctAnswer,
+        studentAnswer,
+        wasCorrect: wasCorrect === true || wasCorrect === 'true',
+      });
+
+      if (!result.success) {
+        console.error('[API] Explanation generation failed:', result.error);
+        return res.status(500).json({ 
+          message: result.error?.message || "Failed to generate explanation" 
+        });
+      }
+
+      console.log(`[API] Explanation generated successfully using ${result.data.metadata.strategyName} strategy`);
+
+      res.json({
+        explanation: result.data.explanation,
+        wasCorrect: result.data.wasCorrect,
+        keyLearnings: result.data.keyLearnings,
+        suggestedTopicsToReview: result.data.suggestedTopicsToReview,
+        metadata: result.data.metadata,
+      });
+
+    } catch (error) {
+      console.error("Error generating explanation:", error);
+      res.status(500).json({ 
+        message: "Failed to generate explanation: " + (error as Error).message 
+      });
+    }
+  });
+
   app.post('/api/ai/recommendation', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

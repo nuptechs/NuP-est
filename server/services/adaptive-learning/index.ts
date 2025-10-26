@@ -23,3 +23,9 @@ export { AIContentPipeline } from './pipeline/AIContentPipeline';
 // Tools
 export { QuestionGeneratorTool } from './tools/QuestionGeneratorTool';
 export type { QuestionGeneratorParams, QuestionGeneratorData } from './tools/QuestionGeneratorTool';
+
+export { HintGeneratorTool } from './tools/HintGeneratorTool';
+export type { HintGeneratorParams, HintGeneratorData } from './tools/HintGeneratorTool';
+
+export { ExplanationGeneratorTool } from './tools/ExplanationGeneratorTool';
+export type { ExplanationGeneratorParams, ExplanationGeneratorData } from './tools/ExplanationGeneratorTool';
