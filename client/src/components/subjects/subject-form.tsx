@@ -53,14 +53,14 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
       }
       toast({
         title: "Sucesso",
-        description: subject ? "Matéria atualizada com sucesso!" : "Matéria criada com sucesso!",
+        description: subject ? "Disciplina atualizada com sucesso!" : "Disciplina criada com sucesso!",
       });
       onSuccess();
     },
     onError: () => {
       toast({
         title: "Erro",
-        description: "Falha ao salvar matéria",
+        description: "Falha ao salvar disciplina",
         variant: "destructive",
       });
     },
@@ -92,11 +92,11 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="name" className="text-foreground font-medium">
-          Nome da Matéria
+          Nome da Disciplina
         </Label>
         <Input
           id="name"
-          placeholder="Ex: Cálculo I" 
+          placeholder="Ex: Matemática, Física, História..." 
           {...form.register("name")}
           data-testid="input-subject-name"
           className={errors.name ? "border-red-500" : ""}
@@ -114,7 +114,7 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
         </Label>
         <Textarea
           id="description"
-          placeholder="Breve descrição da matéria..." 
+          placeholder="Breve descrição da disciplina..." 
           {...form.register("description")}
           data-testid="input-subject-description"
           rows={3}
@@ -228,7 +228,7 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
               Salvando...
             </div>
           ) : (
-            subject ? "Atualizar" : "Criar Matéria"
+            subject ? "Atualizar" : "Criar Disciplina"
           )}
         </Button>
       </div>

@@ -158,18 +158,18 @@ export default function Library() {
       emptyDesc: 'Comece organizando seus estudos criando áreas de conhecimento.',
     };
     if (level === 'subjects') return {
-      title: 'Matérias',
+      title: 'Disciplinas',
       icon: BookOpen,
-      createLabel: 'Nova Matéria',
-      emptyTitle: 'Nenhuma matéria encontrada',
-      emptyDesc: 'Adicione matérias para esta área de conhecimento.',
+      createLabel: 'Nova Disciplina',
+      emptyTitle: 'Nenhuma disciplina encontrada',
+      emptyDesc: 'Adicione disciplinas (ex: Matemática, Física). Depois, clique em uma disciplina para adicionar materiais de estudo (PDFs, links, etc).',
     };
     return {
-      title: 'Materiais',
+      title: 'Materiais de Estudo',
       icon: FileText,
-      createLabel: 'Upload Material',
-      emptyTitle: 'Nenhum material encontrado',
-      emptyDesc: 'Faça upload de PDFs, documentos e outros materiais de estudo.',
+      createLabel: 'Adicionar Material',
+      emptyTitle: 'Nenhum material de estudo',
+      emptyDesc: 'Adicione PDFs, documentos, links e outros materiais de estudo para esta disciplina.',
     };
   };
 
@@ -218,10 +218,51 @@ export default function Library() {
       }
     >
       <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Breadcrumb Navigation */}
+        {(level === 'subjects' || level === 'materials') && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+            <Folder className="h-4 w-4" />
+            <span 
+              className="hover:text-foreground cursor-pointer transition-colors"
+              onClick={() => {
+                setSelectedAreaId(undefined);
+                setSelectedSubjectId(undefined);
+                setLevel('areas');
+              }}
+              data-testid="breadcrumb-areas"
+            >
+              Áreas
+            </span>
+            {level === 'subjects' && (
+              <>
+                <ChevronRight className="h-3 w-3" />
+                <span className="text-foreground font-medium" data-testid="breadcrumb-subjects-current">Disciplinas</span>
+              </>
+            )}
+            {level === 'materials' && (
+              <>
+                <ChevronRight className="h-3 w-3" />
+                <span 
+                  className="hover:text-foreground cursor-pointer transition-colors"
+                  onClick={() => {
+                    setSelectedSubjectId(undefined);
+                    setLevel('subjects');
+                  }}
+                  data-testid="breadcrumb-subjects"
+                >
+                  Disciplinas
+                </span>
+                <ChevronRight className="h-3 w-3" />
+                <span className="text-foreground font-medium" data-testid="breadcrumb-materials-current">Materiais de Estudo</span>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Page Header */}
         <ModernPageHeader
           title={config.title}
-          description={`${filteredData.length} ${level === 'areas' ? 'áreas' : level === 'subjects' ? 'matérias' : 'materiais'}`}
+          description={`${filteredData.length} ${level === 'areas' ? 'áreas' : level === 'subjects' ? 'disciplinas' : 'materiais'}`}
           icon={config.icon}
         />
 
@@ -330,9 +371,9 @@ export default function Library() {
             <DialogHeader>
               <DialogTitle>
                 {editItem ? 'Editar' : 'Criar'} {
-                  createType === 'area' ? 'Área' :
-                  createType === 'subject' ? 'Matéria' :
-                  'Material'
+                  createType === 'area' ? 'Área de Conhecimento' :
+                  createType === 'subject' ? 'Disciplina' :
+                  'Material de Estudo'
                 }
               </DialogTitle>
             </DialogHeader>
