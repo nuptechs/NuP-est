@@ -42,9 +42,18 @@ export default function PersonalizedAssistantPage() {
     }
   }, [isLoading, hasAssistant, createAssistant]);
 
-  const { data: subjects = [] } = useQuery<Subject[]>({
+  const { data: allSubjects = [] } = useQuery<Subject[]>({
     queryKey: ['/api/subjects'],
   });
+
+  const { data: materials = [] } = useQuery<any[]>({
+    queryKey: ['/api/materials'],
+  });
+
+  // Filter subjects that have materials
+  const subjects = allSubjects.filter(subject => 
+    materials.some(material => material.subjectId === subject.id)
+  );
 
   const { data: topics = [] } = useQuery<any[]>({
     queryKey: ['/api/topics', selectedSubject],
