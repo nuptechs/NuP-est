@@ -161,8 +161,16 @@ IMPORTANTE: Retorne sua resposta em JSON válido com esta estrutura:
   "explanation": "Explicação completa e didática",
   "keyLearnings": ["Aprendizado 1", "Aprendizado 2", "Aprendizado 3"],
   ${!wasCorrect ? '"suggestedTopicsToReview": ["Tópico 1", "Tópico 2"],' : ''}
-  "errorType": "${wasCorrect ? 'none' : 'conceptual ou calculation ou interpretation ou careless'}"
-}`;
+  "errorType": "${wasCorrect ? 'none' : 'Escolha UMA opção: conceptual, calculation, interpretation ou careless'}"
+}
+
+${!wasCorrect ? `
+TIPOS DE ERRO:
+- "conceptual": Erro de conceito/entendimento
+- "calculation": Erro de cálculo/execução
+- "interpretation": Erro de interpretação do enunciado
+- "careless": Erro de distração/descuido
+` : ''}`;
       
       // STAGE 5: Call AI
       const response = await this.aiManager.request({
