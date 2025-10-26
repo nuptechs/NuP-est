@@ -75,12 +75,16 @@ export default function Library() {
   });
 
   const { data: subjects = [] } = useQuery<Subject[]>({
-    queryKey: ["/api/subjects", selectedAreaId],
+    queryKey: selectedAreaId 
+      ? [`/api/subjects?areaId=${selectedAreaId}`]
+      : ["/api/subjects"],
     enabled: !!selectedAreaId,
   });
 
   const { data: materials = [] } = useQuery<Material[]>({
-    queryKey: ["/api/materials", selectedSubjectId],
+    queryKey: selectedSubjectId 
+      ? [`/api/materials?subjectId=${selectedSubjectId}`]
+      : ["/api/materials"],
     enabled: !!selectedSubjectId,
   });
 
@@ -131,10 +135,19 @@ export default function Library() {
       await apiRequest('DELETE', endpoint);
       
       // Invalidate ALL queries in hierarchy to prevent stale data
-      // TanStack Query v5 uses prefix matching, so this catches all variants
       await queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+      await queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && 
+          typeof query.queryKey[0] === 'string' &&
+          query.queryKey[0].startsWith('/api/subjects')
+      });
+      await queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && 
+          typeof query.queryKey[0] === 'string' &&
+          query.queryKey[0].startsWith('/api/materials')
+      });
       
       toast({ title: "Sucesso", description: "Item excluído!" });
     } catch (error) {
@@ -383,9 +396,14 @@ export default function Library() {
                 onSuccess={() => {
                   setCreateModalOpen(false);
                   setEditItem(null);
-                  // Invalidate all hierarchy levels (prefix matching catches all variants)
+                  // Invalidate all hierarchy levels
                   queryClient.invalidateQueries({ queryKey: ['/api/areas'] });
-                  queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+                  queryClient.invalidateQueries({ 
+                    predicate: (query) => 
+                      Array.isArray(query.queryKey) && 
+                      typeof query.queryKey[0] === 'string' &&
+                      query.queryKey[0].startsWith('/api/subjects')
+                  });
                 }}
               />
             )}
@@ -397,11 +415,18 @@ export default function Library() {
                   setCreateModalOpen(false);
                   setEditItem(null);
                   // Invalidate subjects and materials (catches all scoped variants)
-                  queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
-                  if (selectedAreaId) {
-                    queryClient.invalidateQueries({ queryKey: ['/api/subjects', selectedAreaId] });
-                  }
-                  queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+                  queryClient.invalidateQueries({ 
+                    predicate: (query) => 
+                      Array.isArray(query.queryKey) && 
+                      typeof query.queryKey[0] === 'string' &&
+                      query.queryKey[0].startsWith('/api/subjects')
+                  });
+                  queryClient.invalidateQueries({ 
+                    predicate: (query) => 
+                      Array.isArray(query.queryKey) && 
+                      typeof query.queryKey[0] === 'string' &&
+                      query.queryKey[0].startsWith('/api/materials')
+                  });
                 }}
               />
             )}
@@ -413,10 +438,12 @@ export default function Library() {
                   setCreateModalOpen(false);
                   setEditItem(null);
                   // Invalidate all material queries (catches scoped and unscoped)
-                  queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
-                  if (selectedSubjectId) {
-                    queryClient.invalidateQueries({ queryKey: ['/api/materials', selectedSubjectId] });
-                  }
+                  queryClient.invalidateQueries({ 
+                    predicate: (query) => 
+                      Array.isArray(query.queryKey) && 
+                      typeof query.queryKey[0] === 'string' &&
+                      query.queryKey[0].startsWith('/api/materials')
+                  });
                 }}
               />
             )}
