@@ -398,6 +398,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Smart upload with AI-powered semantic title generation
+  app.post('/api/materials/smart-upload', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const filePath = req.file.path;
+      const originalFilename = req.file.originalname;
+      const fileExt = path.extname(originalFilename).toLowerCase();
+
+      console.log(`📤 Smart upload iniciado: ${originalFilename}`);
+
+      // Detect file type with expanded support
+      const FILE_TYPE_MAP: Record<string, string> = {
+        '.pdf': 'pdf',
+        '.doc': 'document',
+        '.docx': 'document',
+        '.txt': 'text',
+        '.md': 'text',
+        '.xls': 'spreadsheet',
+        '.xlsx': 'spreadsheet',
+        '.csv': 'spreadsheet',
+        '.jpg': 'image',
+        '.jpeg': 'image',
+        '.png': 'image',
+        '.gif': 'image',
+        '.webp': 'image',
+        '.svg': 'image',
+        '.mp4': 'video',
+        '.avi': 'video',
+        '.mov': 'video',
+        '.wmv': 'video',
+        '.mkv': 'video',
+        '.webm': 'video',
+        '.css': 'code',
+        '.js': 'code',
+        '.ts': 'code',
+        '.html': 'code',
+      };
+
+      const detectedType = FILE_TYPE_MAP[fileExt] || 'file';
+      console.log(`🔍 Tipo detectado: ${detectedType} (${fileExt})`);
+
+      // Extract content when possible
+      let extractedContent = '';
+      try {
+        if (['.txt', '.md', '.css', '.js', '.ts', '.html'].includes(fileExt)) {
+          extractedContent = fs.readFileSync(filePath, 'utf-8');
+          console.log(`📝 Conteúdo texto extraído: ${extractedContent.length} caracteres`);
+        } else if (['.pdf', '.docx'].includes(fileExt)) {
+          extractedContent = await aiService.extractTextFromFile(filePath);
+          console.log(`📝 Conteúdo extraído: ${extractedContent.length} caracteres`);
+        } else if (fileExt === '.doc') {
+          console.log('⚠️ Arquivos .DOC têm suporte limitado');
+          extractedContent = '';
+        } else {
+          console.log(`ℹ️ Extração de texto não suportada para ${fileExt}`);
+        }
+      } catch (err) {
+        console.error("Error extracting file content:", err);
+        extractedContent = '';
+      }
+
+      // Generate semantic title and description using AI
+      console.log(`✨ Gerando título semântico com IA...`);
+      const { title, description } = await aiService.generateSemanticMetadata(
+        originalFilename,
+        extractedContent,
+        detectedType
+      );
+
+      // Prepare material data
+      const materialData = {
+        userId,
+        title,
+        description,
+        type: detectedType,
+        filePath,
+        content: extractedContent || undefined,
+        subjectId: req.body.subjectId || undefined,
+      };
+
+      const validatedData = insertMaterialSchema.parse(materialData);
+      const material = await storage.createMaterial(validatedData);
+
+      // Migrate to RAG if content is available
+      try {
+        if (material.content) {
+          await aiService.migrateToRAG(material, userId);
+          console.log(`📚 Material migrado para RAG: ${material.title}`);
+        }
+      } catch (error) {
+        console.log('⚠️ Falha na migração automática para RAG:', error);
+      }
+
+      console.log(`✅ Upload concluído: "${material.title}"`);
+      res.json(material);
+    } catch (error) {
+      console.error("Error in smart upload:", error);
+      res.status(400).json({ message: "Failed to upload material: " + (error as Error).message });
+    }
+  });
+
   app.post('/api/materials', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

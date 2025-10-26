@@ -589,6 +589,90 @@ Respond with JSON in this format:
   }
 
   /**
+   * Generate semantic title and description for a file using AI
+   * @param filename Original filename
+   * @param content Extracted text content from the file
+   * @param fileType Detected file type (pdf, document, spreadsheet, etc.)
+   * @returns Object with semantic title and description
+   */
+  async generateSemanticMetadata(
+    filename: string, 
+    content: string, 
+    fileType: string
+  ): Promise<{ title: string; description: string }> {
+    try {
+      // If content is empty or very short, fallback to filename-based title
+      if (!content || content.trim().length < 50) {
+        const cleanName = filename.replace(/\.[^/.]+$/, ""); // Remove extension
+        return {
+          title: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
+          description: `Material do tipo ${fileType}`
+        };
+      }
+
+      // Truncate content to first 3000 characters for analysis
+      const contentSample = content.substring(0, 3000);
+
+      const prompt = `Você é um especialista em análise de conteúdo educacional. Analise o conteúdo abaixo e gere um título semântico descritivo e uma breve descrição.
+
+NOME DO ARQUIVO ORIGINAL: ${filename}
+TIPO DE ARQUIVO: ${fileType}
+
+CONTEÚDO DO ARQUIVO:
+---
+${contentSample}${content.length > 3000 ? '\n...[conteúdo continua]' : ''}
+---
+
+INSTRUÇÕES:
+1. Crie um TÍTULO SEMÂNTICO que descreva o conteúdo principal do material de forma clara e objetiva
+   - O título deve ser específico e informativo
+   - Não use o nome do arquivo original a menos que faça sentido semântico
+   - Foque no tema/assunto principal do conteúdo
+   - Máximo de 80 caracteres
+
+2. Crie uma DESCRIÇÃO BREVE (1-2 frases) que resuma o conteúdo
+   - Destaque os tópicos principais abordados
+   - Máximo de 200 caracteres
+
+EXEMPLOS DE BOM RESULTADO:
+- Conteúdo sobre Revolução Francesa → Título: "Revolução Francesa: Causas e Consequências", Descrição: "Material sobre os eventos, causas sociais e impactos da Revolução Francesa de 1789."
+- Conteúdo sobre Fotossíntese → Título: "Fotossíntese: Processo e Etapas", Descrição: "Explicação detalhada do processo de fotossíntese em plantas e suas etapas."
+- Fórmulas de Física → Título: "Fórmulas de Cinemática e Dinâmica", Descrição: "Compilação de fórmulas essenciais de física para movimento e forças."
+
+Responda APENAS com um JSON válido neste formato:
+{
+  "title": "Título semântico aqui",
+  "description": "Descrição breve aqui"
+}`;
+
+      const result = await aiAnalyze<{ title: string; description: string }>(
+        prompt,
+        `Você é um analisador de conteúdo educacional especializado. Gere títulos e descrições semânticas precisas.`,
+        {
+          temperature: 0.3,
+          maxTokens: 300
+        }
+      );
+
+      // Validate and clean result
+      const title = (result.title || filename).substring(0, 100).trim();
+      const description = (result.description || `Material do tipo ${fileType}`).substring(0, 250).trim();
+
+      console.log(`✨ Título semântico gerado: "${title}"`);
+      
+      return { title, description };
+    } catch (error) {
+      console.error("Error generating semantic metadata:", error);
+      // Fallback to filename-based title
+      const cleanName = filename.replace(/\.[^/.]+$/, "");
+      return {
+        title: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
+        description: `Material do tipo ${fileType}`
+      };
+    }
+  }
+
+  /**
    * NOVO: Migra documento para o sistema RAG/Pinecone quando criado
    */
   async migrateToRAG(document: any, userId: string) {
