@@ -221,35 +221,31 @@ export default function Topics() {
         {filterSubject && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>{selectedSubjectData?.name || 'Tópicos'}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {filteredTopics.length} tópico{filteredTopics.length !== 1 ? 's' : ''}
-                  </p>
+              <CardTitle>{selectedSubjectData?.name || 'Tópicos'}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Search and Actions Bar */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar tópicos..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-search-topics"
+                  />
                 </div>
-                <Button onClick={handleCreate} data-testid="button-create-topic">
+                <Button onClick={handleCreate} data-testid="button-create-topic" className="flex-shrink-0">
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Tópico
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {/* Search */}
-              {allTopics.length > 0 && (
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar tópicos..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                      data-testid="input-search-topics"
-                    />
-                  </div>
-                </div>
-              )}
+
+              {/* Results Counter */}
+              <div className="text-sm text-muted-foreground">
+                <span>{filteredTopics.length} tópico{filteredTopics.length !== 1 ? 's' : ''}</span>
+              </div>
 
               {topicsLoading ? (
                 <div className="space-y-2">

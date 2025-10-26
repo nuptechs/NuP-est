@@ -41,7 +41,8 @@ import {
   Sparkles,
   Loader2,
   Pencil,
-  MoreVertical
+  MoreVertical,
+  Search
 } from "lucide-react";
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
 
@@ -392,6 +393,7 @@ export default function Flashcards() {
   const [deckToEdit, setDeckToEdit] = useState<FlashcardDeck | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deckToDelete, setDeckToDelete] = useState<FlashcardDeck | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -719,14 +721,28 @@ export default function Flashcards() {
   return (
     <UnifiedShell
       title="Flashcards"
-      actions={
+    >
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Search and Actions Bar */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar decks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-decks"
+            />
+          </div>
+          <Button onClick={() => setCreateModalOpen(true)} data-testid="button-create" className="flex-shrink-0">
+            <Plus className="h-4 w-4 mr-2" />
+            Criar Deck
+          </Button>
+        </div>
+
+        {/* Create Deck Modal */}
         <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create">
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Deck
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Criar Deck de Flashcards</DialogTitle>
@@ -954,28 +970,50 @@ export default function Flashcards() {
             )}
           </DialogContent>
         </Dialog>
-      }
-    >
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <ModernPageHeader
-          title="Meus Decks"
-          description={`${decks.length} decks de flashcards`}
-          icon={CreditCard}
-        />
 
-        {decks.length === 0 ? (
+        {/* Results Counter */}
+        <div className="text-sm text-muted-foreground">
+          <span>{decks.filter(d => {
+            if (!searchQuery) return true;
+            const query = searchQuery.toLowerCase();
+            const matchesTitle = d.title.toLowerCase().includes(query);
+            const matchesDescription = d.description ? d.description.toLowerCase().includes(query) : false;
+            return matchesTitle || matchesDescription;
+          }).length} deck{decks.filter(d => {
+            if (!searchQuery) return true;
+            const query = searchQuery.toLowerCase();
+            const matchesTitle = d.title.toLowerCase().includes(query);
+            const matchesDescription = d.description ? d.description.toLowerCase().includes(query) : false;
+            return matchesTitle || matchesDescription;
+          }).length !== 1 ? 's' : ''}</span>
+        </div>
+
+        {/* Deck Grid */}
+        {decks.filter(d => {
+          if (!searchQuery) return true;
+          const query = searchQuery.toLowerCase();
+          const matchesTitle = d.title.toLowerCase().includes(query);
+          const matchesDescription = d.description ? d.description.toLowerCase().includes(query) : false;
+          return matchesTitle || matchesDescription;
+        }).length === 0 ? (
           <ModernEmptyState
             icon={CreditCard}
-            title="Nenhum deck criado"
-            description="Crie seu primeiro deck de flashcards para começar a estudar."
-            action={{
+            title={searchQuery ? "Nenhum deck encontrado" : "Nenhum deck criado"}
+            description={searchQuery ? "Tente outro termo de busca" : "Crie seu primeiro deck de flashcards para começar a estudar."}
+            action={!searchQuery ? {
               label: "Criar Deck",
               onClick: () => setCreateModalOpen(true)
-            }}
+            } : undefined}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {decks.map((deck) => (
+            {decks.filter(d => {
+              if (!searchQuery) return true;
+              const query = searchQuery.toLowerCase();
+              const matchesTitle = d.title.toLowerCase().includes(query);
+              const matchesDescription = d.description ? d.description.toLowerCase().includes(query) : false;
+              return matchesTitle || matchesDescription;
+            }).map((deck) => (
               <Card key={deck.id} className="hover:shadow-md transition-shadow" data-testid={`deck-${deck.id}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
