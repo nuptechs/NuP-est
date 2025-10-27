@@ -160,11 +160,26 @@ export class DeepgramVoiceService implements IVoiceService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao sintetizar áudio');
+        const errorText = await response.text();
+        let errorMessage = 'Erro ao sintetizar áudio';
+        
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        
+        console.error('[Deepgram] HTTP Error:', response.status, errorMessage);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      
+      if (!data.audio) {
+        console.error('[Deepgram] Resposta sem áudio:', data);
+        throw new Error('Resposta inválida do servidor');
+      }
 
       return {
         audio: data.audio,
@@ -174,6 +189,7 @@ export class DeepgramVoiceService implements IVoiceService {
       };
     } catch (err) {
       console.error('[Deepgram] Erro na síntese:', err);
+      console.error('[Deepgram] Stack:', err instanceof Error ? err.stack : 'N/A');
       throw new VoiceServiceError(
         err instanceof Error ? err.message : 'Erro ao sintetizar áudio',
         'deepgram',
