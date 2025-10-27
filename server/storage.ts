@@ -69,6 +69,11 @@ import {
   interactionLogs,
   assistantMemory,
   chatMessages,
+  contentSources,
+  materialContentSegments,
+  segmentTopics,
+  studyMaterialEvents,
+  studentProfileTraits,
   type LearningDifficultyCatalog,
   type InsertLearningDifficultyCatalog,
   type UserLearningDifficulty,
@@ -95,6 +100,16 @@ import {
   type InsertAssistantMemory,
   type ChatMessage,
   type InsertChatMessage,
+  type ContentSource,
+  type InsertContentSource,
+  type MaterialContentSegment,
+  type InsertMaterialContentSegment,
+  type SegmentTopic,
+  type InsertSegmentTopic,
+  type StudyMaterialEvent,
+  type InsertStudyMaterialEvent,
+  type StudentProfileTrait,
+  type InsertStudentProfileTrait,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, or, isNotNull, gt, inArray } from "drizzle-orm";
@@ -301,6 +316,47 @@ export interface IStorage {
   getChatMessages(assistantId: string, limit?: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   deleteChatMessage(messageId: string, userId: string): Promise<void>;
+  
+  // ========== FASE 1: CONTENT SOURCE & SEGMENT OPERATIONS ==========
+  
+  // Content Sources (professors, institutions)
+  getContentSources(type?: string): Promise<ContentSource[]>;
+  getContentSource(id: string): Promise<ContentSource | undefined>;
+  getContentSourceByName(name: string, type: string): Promise<ContentSource | undefined>;
+  createContentSource(source: InsertContentSource): Promise<ContentSource>;
+  updateContentSource(id: string, updates: Partial<InsertContentSource>): Promise<ContentSource>;
+  
+  // Material Content Segments (categorized content)
+  getSegmentsByMaterial(materialId: string): Promise<MaterialContentSegment[]>;
+  getSegmentsByProcessedFile(processedFileId: string): Promise<MaterialContentSegment[]>;
+  getSegment(id: string): Promise<MaterialContentSegment | undefined>;
+  createSegment(segment: InsertMaterialContentSegment): Promise<MaterialContentSegment>;
+  updateSegment(id: string, updates: Partial<InsertMaterialContentSegment>): Promise<MaterialContentSegment>;
+  
+  // Segment Topics (normalized topics)
+  getTopicsBySegment(segmentId: string): Promise<SegmentTopic[]>;
+  getSegmentsByTopic(topic: string): Promise<MaterialContentSegment[]>;
+  createSegmentTopic(segmentTopic: InsertSegmentTopic): Promise<SegmentTopic>;
+  
+  // Study Material Events (telemetry)
+  createStudyEvent(event: InsertStudyMaterialEvent): Promise<StudyMaterialEvent>;
+  getStudyEvents(userId: string, filters?: {
+    materialId?: string;
+    segmentId?: string;
+    contentSourceId?: string;
+    eventType?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<StudyMaterialEvent[]>;
+  
+  // Student Profile Traits (cognitive profile)
+  getProfileTraits(userId: string, activeOnly?: boolean): Promise<StudentProfileTrait[]>;
+  getProfileTrait(id: string): Promise<StudentProfileTrait | undefined>;
+  createProfileTrait(trait: InsertStudentProfileTrait): Promise<StudentProfileTrait>;
+  updateProfileTrait(id: string, updates: Partial<InsertStudentProfileTrait>): Promise<StudentProfileTrait>;
+  deactivateProfileTrait(id: string, userId: string): Promise<void>;
+  
+  // ========== END FASE 1 OPERATIONS ==========
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1806,6 +1862,239 @@ export class DatabaseStorage implements IStorage {
         .where(eq(chatMessages.id, messageId));
     }
   }
+
+  // ========== FASE 1: IMPLEMENTATIONS ==========
+
+  // Content Sources
+  async getContentSources(type?: string): Promise<ContentSource[]> {
+    if (type) {
+      return await db
+        .select()
+        .from(contentSources)
+        .where(eq(contentSources.type, type))
+        .orderBy(contentSources.name);
+    }
+    return await db
+      .select()
+      .from(contentSources)
+      .orderBy(contentSources.name);
+  }
+
+  async getContentSource(id: string): Promise<ContentSource | undefined> {
+    const [source] = await db
+      .select()
+      .from(contentSources)
+      .where(eq(contentSources.id, id));
+    return source;
+  }
+
+  async getContentSourceByName(name: string, type: string): Promise<ContentSource | undefined> {
+    const [source] = await db
+      .select()
+      .from(contentSources)
+      .where(
+        and(
+          eq(contentSources.name, name),
+          eq(contentSources.type, type)
+        )
+      );
+    return source;
+  }
+
+  async createContentSource(source: InsertContentSource): Promise<ContentSource> {
+    const [newSource] = await db
+      .insert(contentSources)
+      .values(source)
+      .returning();
+    return newSource;
+  }
+
+  async updateContentSource(id: string, updates: Partial<InsertContentSource>): Promise<ContentSource> {
+    const [updated] = await db
+      .update(contentSources)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contentSources.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Material Content Segments
+  async getSegmentsByMaterial(materialId: string): Promise<MaterialContentSegment[]> {
+    return await db
+      .select()
+      .from(materialContentSegments)
+      .where(eq(materialContentSegments.materialId, materialId))
+      .orderBy(materialContentSegments.segmentOrder);
+  }
+
+  async getSegmentsByProcessedFile(processedFileId: string): Promise<MaterialContentSegment[]> {
+    return await db
+      .select()
+      .from(materialContentSegments)
+      .where(eq(materialContentSegments.processedFileId, processedFileId))
+      .orderBy(materialContentSegments.segmentOrder);
+  }
+
+  async getSegment(id: string): Promise<MaterialContentSegment | undefined> {
+    const [segment] = await db
+      .select()
+      .from(materialContentSegments)
+      .where(eq(materialContentSegments.id, id));
+    return segment;
+  }
+
+  async createSegment(segment: InsertMaterialContentSegment): Promise<MaterialContentSegment> {
+    const [newSegment] = await db
+      .insert(materialContentSegments)
+      .values(segment)
+      .returning();
+    return newSegment;
+  }
+
+  async updateSegment(id: string, updates: Partial<InsertMaterialContentSegment>): Promise<MaterialContentSegment> {
+    const [updated] = await db
+      .update(materialContentSegments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(materialContentSegments.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Segment Topics
+  async getTopicsBySegment(segmentId: string): Promise<SegmentTopic[]> {
+    return await db
+      .select()
+      .from(segmentTopics)
+      .where(eq(segmentTopics.segmentId, segmentId))
+      .orderBy(desc(segmentTopics.isPrimary), segmentTopics.topic);
+  }
+
+  async getSegmentsByTopic(topic: string): Promise<MaterialContentSegment[]> {
+    // Find all segment IDs with this topic
+    const topicRecords = await db
+      .select()
+      .from(segmentTopics)
+      .where(eq(segmentTopics.topic, topic));
+    
+    if (topicRecords.length === 0) {
+      return [];
+    }
+    
+    const segmentIds = topicRecords.map(t => t.segmentId);
+    
+    // Get all segments with these IDs
+    return await db
+      .select()
+      .from(materialContentSegments)
+      .where(inArray(materialContentSegments.id, segmentIds));
+  }
+
+  async createSegmentTopic(segmentTopic: InsertSegmentTopic): Promise<SegmentTopic> {
+    const [newTopic] = await db
+      .insert(segmentTopics)
+      .values(segmentTopic)
+      .returning();
+    return newTopic;
+  }
+
+  // Study Material Events
+  async createStudyEvent(event: InsertStudyMaterialEvent): Promise<StudyMaterialEvent> {
+    const [newEvent] = await db
+      .insert(studyMaterialEvents)
+      .values(event)
+      .returning();
+    return newEvent;
+  }
+
+  async getStudyEvents(userId: string, filters?: {
+    materialId?: string;
+    segmentId?: string;
+    contentSourceId?: string;
+    eventType?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<StudyMaterialEvent[]> {
+    const conditions = [eq(studyMaterialEvents.userId, userId)];
+    
+    if (filters?.materialId) {
+      conditions.push(eq(studyMaterialEvents.materialId, filters.materialId));
+    }
+    if (filters?.segmentId) {
+      conditions.push(eq(studyMaterialEvents.segmentId, filters.segmentId));
+    }
+    if (filters?.contentSourceId) {
+      conditions.push(eq(studyMaterialEvents.contentSourceId, filters.contentSourceId));
+    }
+    if (filters?.eventType) {
+      conditions.push(eq(studyMaterialEvents.eventType, filters.eventType));
+    }
+    if (filters?.startDate) {
+      conditions.push(gte(studyMaterialEvents.createdAt, filters.startDate));
+    }
+    if (filters?.endDate) {
+      conditions.push(lte(studyMaterialEvents.createdAt, filters.endDate));
+    }
+    
+    return await db
+      .select()
+      .from(studyMaterialEvents)
+      .where(and(...conditions))
+      .orderBy(desc(studyMaterialEvents.createdAt));
+  }
+
+  // Student Profile Traits
+  async getProfileTraits(userId: string, activeOnly: boolean = true): Promise<StudentProfileTrait[]> {
+    const conditions = [eq(studentProfileTraits.userId, userId)];
+    
+    if (activeOnly) {
+      conditions.push(eq(studentProfileTraits.isActive, true));
+    }
+    
+    return await db
+      .select()
+      .from(studentProfileTraits)
+      .where(and(...conditions))
+      .orderBy(desc(studentProfileTraits.createdAt));
+  }
+
+  async getProfileTrait(id: string): Promise<StudentProfileTrait | undefined> {
+    const [trait] = await db
+      .select()
+      .from(studentProfileTraits)
+      .where(eq(studentProfileTraits.id, id));
+    return trait;
+  }
+
+  async createProfileTrait(trait: InsertStudentProfileTrait): Promise<StudentProfileTrait> {
+    const [newTrait] = await db
+      .insert(studentProfileTraits)
+      .values(trait)
+      .returning();
+    return newTrait;
+  }
+
+  async updateProfileTrait(id: string, updates: Partial<InsertStudentProfileTrait>): Promise<StudentProfileTrait> {
+    const [updated] = await db
+      .update(studentProfileTraits)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(studentProfileTraits.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deactivateProfileTrait(id: string, userId: string): Promise<void> {
+    await db
+      .update(studentProfileTraits)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(
+        and(
+          eq(studentProfileTraits.id, id),
+          eq(studentProfileTraits.userId, userId)
+        )
+      );
+  }
+
+  // ========== END FASE 1 IMPLEMENTATIONS ==========
 }
 
 export const storage = new DatabaseStorage();
