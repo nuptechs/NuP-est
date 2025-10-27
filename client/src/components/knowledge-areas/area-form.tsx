@@ -110,13 +110,19 @@ export default function AreaForm({ area, onSuccess }: AreaFormProps) {
         <Label htmlFor="color" className="text-foreground font-medium">
           Cor
         </Label>
-        <Input
-          id="color"
-          type="color" 
-          {...form.register("color")}
-          data-testid="input-area-color"
-          className={`h-10 cursor-pointer ${errors.color ? "border-red-500" : ""}`}
-        />
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-12 h-10 rounded-md border-2 border-border shadow-sm transition-all"
+            style={{ backgroundColor: form.watch("color") }}
+          />
+          <Input
+            id="color"
+            type="color" 
+            {...form.register("color")}
+            data-testid="input-area-color"
+            className="flex-1 h-10 cursor-pointer"
+          />
+        </div>
         {errors.color && (
           <p className="text-red-500 text-sm mt-1">
             {errors.color.message}
