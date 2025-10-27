@@ -251,6 +251,155 @@ export const materials = pgTable("materials", {
   index("idx_materials_processed_file").on(table.processedFileId),
 ]);
 
+// ========== FASE 1: ARQUITETURA ESTRUTURADA PARA PROFESSOR ROBÔ + ML/DW ==========
+
+// Content sources (professors, institutions, platforms) - CRITICAL FOR ANALYTICS
+export const contentSources = pgTable("content_sources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Source identification
+  name: text("name").notNull(), // "Fábio Dutra", "Estratégia Concursos", etc.
+  type: varchar("type").notNull(), // "professor", "institution", "platform", "author"
+  specialty: text("specialty"), // "Direito Tributário", "Matemática", etc.
+  
+  // For professors
+  institution: text("institution"), // Which institution they teach at
+  
+  // Analytics fields (computed from telemetry)
+  ratingAverage: decimal("rating_average", { precision: 3, scale: 2 }), // 0.00-5.00
+  totalMaterials: integer("total_materials").default(0),
+  totalStudents: integer("total_students").default(0),
+  
+  // Extensible metadata (for future attributes)
+  metadata: jsonb("metadata"), // {bio, website, social_media, etc.}
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_content_sources_type").on(table.type),
+  index("idx_content_sources_name").on(table.name),
+]);
+
+// Material content segments (categorized: metadata, clean_content, irrelevant) - CORE OF PHASE 1
+export const materialContentSegments = pgTable("material_content_segments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Links to material and processed file
+  materialId: varchar("material_id").notNull().references(() => materials.id, { onDelete: "cascade" }),
+  processedFileId: varchar("processed_file_id").references(() => processedFiles.id, { onDelete: "cascade" }),
+  
+  // Content source (professor/institution that created this content)
+  contentSourceId: varchar("content_source_id").references(() => contentSources.id, { onDelete: "set null" }),
+  
+  // === CATEGORIZED CONTENT (AI-processed) ===
+  // Pedagogical metadata (professor info, course info, stats) - JSON for analytics
+  pedagogicalMetadata: jsonb("pedagogical_metadata"), // {professor, institution, pages, exercises, etc.}
+  
+  // Clean content (pure pedagogical text) - USED BY ALL AI TOOLS
+  cleanContent: text("clean_content"), // Concepts, definitions, theories - NO fluff
+  
+  // Irrelevant content (discarded from AI generation, kept for reference)
+  irrelevantContent: text("irrelevant_content"), // Greetings, repeated intros, admin info
+  
+  // Segment metadata
+  segmentType: varchar("segment_type").default("full"), // "full", "chapter", "section", "slide"
+  segmentOrder: integer("segment_order").default(0), // Order within material
+  contentHash: varchar("content_hash", { length: 64 }), // Hash for incremental updates
+  
+  // Processing info
+  categorizationModel: varchar("categorization_model"), // Which AI model did categorization
+  categorizationConfidence: decimal("categorization_confidence", { precision: 3, scale: 2 }), // 0.00-1.00
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_segments_material").on(table.materialId),
+  index("idx_segments_content_source").on(table.contentSourceId),
+  index("idx_segments_processed_file").on(table.processedFileId),
+]);
+
+// Segment topics (normalized topics for cross-material correlation) - ENABLES ML CORRELATIONS
+export const segmentTopics = pgTable("segment_topics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  segmentId: varchar("segment_id").notNull().references(() => materialContentSegments.id, { onDelete: "cascade" }),
+  topic: text("topic").notNull(), // Normalized topic: "ICMS", "Princípio da Legalidade", etc.
+  
+  // Topic metadata
+  confidence: decimal("confidence", { precision: 3, scale: 2 }), // AI confidence in topic extraction
+  isPrimary: boolean("is_primary").default(false), // Is this a primary topic of the segment?
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_segment_topics_segment").on(table.segmentId),
+  index("idx_segment_topics_topic").on(table.topic),
+  uniqueIndex("idx_segment_topics_unique").on(table.segmentId, table.topic), // No duplicate topics per segment
+]);
+
+// Study material events (telemetry for ML/analytics) - CANNOT BE RETROCOLLECTED
+export const studyMaterialEvents = pgTable("study_material_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  materialId: varchar("material_id").references(() => materials.id, { onDelete: "cascade" }),
+  segmentId: varchar("segment_id").references(() => materialContentSegments.id, { onDelete: "cascade" }),
+  contentSourceId: varchar("content_source_id").references(() => contentSources.id, { onDelete: "set null" }),
+  
+  // Event type
+  eventType: varchar("event_type").notNull(), // "start", "pause", "resume", "complete", "review"
+  
+  // Telemetry data
+  durationSeconds: integer("duration_seconds"), // Time spent in this event
+  difficultyPerceived: integer("difficulty_perceived"), // 1-5 scale, user-reported
+  
+  // Context
+  sessionId: varchar("session_id").references(() => studySessions.id, { onDelete: "set null" }),
+  deviceType: varchar("device_type"), // "desktop", "mobile", "tablet"
+  
+  // Extensible metadata
+  eventMetadata: jsonb("event_metadata"), // {scroll_depth, highlights_count, notes_count, etc.}
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_study_events_user").on(table.userId),
+  index("idx_study_events_segment").on(table.segmentId),
+  index("idx_study_events_content_source").on(table.contentSourceId),
+  index("idx_study_events_type").on(table.eventType),
+  index("idx_study_events_created").on(table.createdAt),
+]);
+
+// Student profile traits (cognitive profile for personalization) - CRITICAL FOR PROFESSOR ROBÔ
+export const studentProfileTraits = pgTable("student_profile_traits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // Trait information
+  traitType: varchar("trait_type").notNull(), // "TDAH", "dyslexia", "visual_learner", "fast_paced", etc.
+  severity: varchar("severity"), // "mild", "moderate", "severe" (for learning difficulties)
+  
+  // Source of trait
+  source: varchar("source").default("self_reported"), // "self_reported", "ai_detected", "professional_diagnosed"
+  confidence: decimal("confidence", { precision: 3, scale: 2 }), // 0.00-1.00 (for AI-detected)
+  
+  // Additional context
+  notes: text("notes"), // User or AI notes about the trait
+  metadata: jsonb("metadata"), // Extensible data
+  
+  // Status
+  isActive: boolean("is_active").default(true), // Can be deactivated without deletion
+  
+  diagnosedAt: timestamp("diagnosed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_profile_traits_user").on(table.userId),
+  index("idx_profile_traits_type").on(table.traitType),
+  index("idx_profile_traits_active").on(table.isActive),
+]);
+
+// ========== END FASE 1 TABLES ==========
+
 // Goals (macro objectives)
 export const goals = pgTable("goals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -315,11 +464,19 @@ export const questionAttempts = pgTable("question_attempts", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   questionId: varchar("question_id").notNull().references(() => aiQuestions.id, { onDelete: "cascade" }),
   sessionId: varchar("session_id").references(() => studySessions.id, { onDelete: "cascade" }),
+  
+  // FASE 1: Link to content source and segment for analytics
+  contentSourceId: varchar("content_source_id").references(() => contentSources.id, { onDelete: "set null" }),
+  segmentId: varchar("segment_id").references(() => materialContentSegments.id, { onDelete: "set null" }),
+  
   userAnswer: text("user_answer").notNull(),
   isCorrect: boolean("is_correct").notNull(),
   timeSpent: integer("time_spent"), // in seconds
   attemptedAt: timestamp("attempted_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_question_attempts_content_source").on(table.contentSourceId),
+  index("idx_question_attempts_segment").on(table.segmentId),
+]);
 
 // Flashcard decks
 export const flashcardDecks = pgTable("flashcard_decks", {
@@ -947,7 +1104,74 @@ export const materialsRelations = relations(materials, ({ one, many }) => ({
     references: [processedFiles.id],
   }),
   flashcardDecks: many(flashcardDecks),
+  contentSegments: many(materialContentSegments),
+  studyEvents: many(studyMaterialEvents),
 }));
+
+// ========== FASE 1: RELATIONS ==========
+
+export const contentSourcesRelations = relations(contentSources, ({ many }) => ({
+  segments: many(materialContentSegments),
+  studyEvents: many(studyMaterialEvents),
+  questionAttempts: many(questionAttempts),
+}));
+
+export const materialContentSegmentsRelations = relations(materialContentSegments, ({ one, many }) => ({
+  material: one(materials, {
+    fields: [materialContentSegments.materialId],
+    references: [materials.id],
+  }),
+  processedFile: one(processedFiles, {
+    fields: [materialContentSegments.processedFileId],
+    references: [processedFiles.id],
+  }),
+  contentSource: one(contentSources, {
+    fields: [materialContentSegments.contentSourceId],
+    references: [contentSources.id],
+  }),
+  topics: many(segmentTopics),
+  studyEvents: many(studyMaterialEvents),
+  questionAttempts: many(questionAttempts),
+}));
+
+export const segmentTopicsRelations = relations(segmentTopics, ({ one }) => ({
+  segment: one(materialContentSegments, {
+    fields: [segmentTopics.segmentId],
+    references: [materialContentSegments.id],
+  }),
+}));
+
+export const studyMaterialEventsRelations = relations(studyMaterialEvents, ({ one }) => ({
+  user: one(users, {
+    fields: [studyMaterialEvents.userId],
+    references: [users.id],
+  }),
+  material: one(materials, {
+    fields: [studyMaterialEvents.materialId],
+    references: [materials.id],
+  }),
+  segment: one(materialContentSegments, {
+    fields: [studyMaterialEvents.segmentId],
+    references: [materialContentSegments.id],
+  }),
+  contentSource: one(contentSources, {
+    fields: [studyMaterialEvents.contentSourceId],
+    references: [contentSources.id],
+  }),
+  session: one(studySessions, {
+    fields: [studyMaterialEvents.sessionId],
+    references: [studySessions.id],
+  }),
+}));
+
+export const studentProfileTraitsRelations = relations(studentProfileTraits, ({ one }) => ({
+  user: one(users, {
+    fields: [studentProfileTraits.userId],
+    references: [users.id],
+  }),
+}));
+
+// ========== END FASE 1 RELATIONS ==========
 
 export const goalsRelations = relations(goals, ({ one, many }) => ({
   user: one(users, {
@@ -1016,6 +1240,14 @@ export const questionAttemptsRelations = relations(questionAttempts, ({ one }) =
   session: one(studySessions, {
     fields: [questionAttempts.sessionId],
     references: [studySessions.id],
+  }),
+  contentSource: one(contentSources, {
+    fields: [questionAttempts.contentSourceId],
+    references: [contentSources.id],
+  }),
+  segment: one(materialContentSegments, {
+    fields: [questionAttempts.segmentId],
+    references: [materialContentSegments.id],
   }),
 }));
 
@@ -1305,6 +1537,38 @@ export const insertMaterialSchema = createInsertSchema(materials).omit({
   createdAt: true,
 });
 
+// ========== FASE 1: INSERT SCHEMAS ==========
+
+export const insertContentSourceSchema = createInsertSchema(contentSources).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMaterialContentSegmentSchema = createInsertSchema(materialContentSegments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSegmentTopicSchema = createInsertSchema(segmentTopics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStudyMaterialEventSchema = createInsertSchema(studyMaterialEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStudentProfileTraitSchema = createInsertSchema(studentProfileTraits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ========== END FASE 1 INSERT SCHEMAS ==========
+
 export const insertGoalSchema = createInsertSchema(goals).omit({
   id: true,
   createdAt: true,
@@ -1501,6 +1765,20 @@ export type ProcessedFile = typeof processedFiles.$inferSelect;
 export type InsertProcessedFile = z.infer<typeof insertProcessedFileSchema>;
 export type Material = typeof materials.$inferSelect;
 export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
+
+// ========== FASE 1: TYPES ==========
+export type ContentSource = typeof contentSources.$inferSelect;
+export type InsertContentSource = z.infer<typeof insertContentSourceSchema>;
+export type MaterialContentSegment = typeof materialContentSegments.$inferSelect;
+export type InsertMaterialContentSegment = z.infer<typeof insertMaterialContentSegmentSchema>;
+export type SegmentTopic = typeof segmentTopics.$inferSelect;
+export type InsertSegmentTopic = z.infer<typeof insertSegmentTopicSchema>;
+export type StudyMaterialEvent = typeof studyMaterialEvents.$inferSelect;
+export type InsertStudyMaterialEvent = z.infer<typeof insertStudyMaterialEventSchema>;
+export type StudentProfileTrait = typeof studentProfileTraits.$inferSelect;
+export type InsertStudentProfileTrait = z.infer<typeof insertStudentProfileTraitSchema>;
+// ========== END FASE 1 TYPES ==========
+
 export type Goal = typeof goals.$inferSelect;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type Target = typeof targets.$inferSelect;
