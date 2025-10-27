@@ -1,4 +1,5 @@
 import { MultiIndexPineconeAdapter } from './MultiIndexPineconeAdapter';
+import { TextChunker } from '../../chunking/TextChunker';
 
 export interface RAGConfig {
   indexName: string;
@@ -92,42 +93,20 @@ export abstract class BaseRAGService {
 
   /**
    * Funcionalidade comum: chunking inteligente
-   * CORREÇÃO: Previne loop infinito garantindo progresso mínimo
+   * MIGRADO: Agora usa TextChunker com sentence-aware strategy
    */
   protected chunkText(text: string): string[] {
-    const chunks: string[] = [];
     const { chunkSize, overlapSize } = this.config;
     
-    let start = 0;
-    while (start < text.length) {
-      const end = Math.min(start + chunkSize!, text.length);
-      let chunk = text.slice(start, end);
-      
-      // Tenta quebrar em uma frase completa
-      if (end < text.length) {
-        const lastSentence = chunk.lastIndexOf('. ');
-        const lastParagraph = chunk.lastIndexOf('\n\n');
-        const breakPoint = Math.max(lastSentence, lastParagraph);
-        
-        if (breakPoint > start + chunkSize! * 0.6) {
-          chunk = text.slice(start, breakPoint + 1);
-        }
-      }
-      
-      chunks.push(chunk.trim());
-      
-      // CORREÇÃO: Garantir progresso mínimo para prevenir loop infinito
-      const actualChunkLength = chunk.length;
-      const safeOverlap = Math.min(overlapSize || 0, actualChunkLength - 1);
-      const nextStart = start + actualChunkLength - safeOverlap;
-      
-      // Garantir progresso mínimo de pelo menos 1 caractere
-      start = Math.max(nextStart, start + 1);
-      
-      if (start >= text.length) break;
-    }
-    
-    return chunks.filter(chunk => chunk.length > 50); // Remove chunks muito pequenos
+    // Usa TextChunker com configuração customizada
+    return TextChunker.chunkTexts(text, {
+      maxChars: chunkSize || 1000,
+      overlapChars: overlapSize || 200,
+      splitOn: 'sentence',
+      minChunkSize: 50,
+      allowTruncation: false,
+      preserveFormatting: true,
+    });
   }
 
   /**

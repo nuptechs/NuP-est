@@ -58,8 +58,11 @@ export class SentenceAwareChunkStrategy implements IChunkingStrategy {
       
       const trimmedChunk = chunkText.trim();
       
-      // Adiciona chunk se atender tamanho mínimo
-      if (trimmedChunk.length >= minChunkSize) {
+      // Sempre adicionar último chunk, mesmo se menor que minChunkSize
+      const isLastChunk = actualEnd >= text.length;
+      
+      // Adiciona chunk se atender tamanho mínimo OU se for o último chunk
+      if (trimmedChunk.length >= minChunkSize || isLastChunk) {
         chunks.push({
           text: trimmedChunk,
           startIndex: start,

@@ -3203,6 +3203,7 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
   /**
    * POST /api/voice/synthesize-deepgram
    * Converte texto em áudio usando Deepgram SDK (Aura TTS)
+   * Suporta textos longos com chunking automático
    */
   app.post('/api/voice/synthesize-deepgram', isAuthenticated, async (req: any, res) => {
     try {
@@ -3212,10 +3213,6 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         return res.status(400).json({ error: "Texto não fornecido" });
       }
 
-      if (text.length > 2000) {
-        return res.status(400).json({ error: "Texto muito longo. Máximo: 2000 caracteres" });
-      }
-
       const apiKey = process.env.DEEPGRAM_API_KEY;
 
       if (!apiKey) {
@@ -3223,47 +3220,113 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         return res.status(503).json({ error: "Serviço Deepgram indisponível" });
       }
 
-      console.log(`[Deepgram/TTS] Sintetizando ${text.length} caracteres com voz: ${voice}`);
-
       const { createClient } = await import('@deepgram/sdk');
+      const { TextChunker } = await import('./services/chunking/TextChunker');
       const deepgram = createClient(apiKey);
 
-      const response = await deepgram.speak.request(
-        { text },
-        {
-          model: voice,
-          encoding: 'mp3',
-        }
-      );
-
-      const stream = await response.getStream();
+      // Verificar se precisa chunking
+      const needsChunking = text.length > 2000;
       
-      if (!stream) {
-        throw new Error('Erro ao obter stream de áudio');
-      }
+      if (needsChunking) {
+        console.log(`[Deepgram/TTS] Texto longo detectado (${text.length} chars), usando chunking...`);
+        
+        // Dividir texto em chunks de 2000 caracteres
+        const textChunks = TextChunker.chunkTexts(text, 'tts-deepgram');
+        console.log(`[Deepgram/TTS] Dividido em ${textChunks.length} chunks`);
+        
+        // Processar cada chunk e coletar áudios
+        const audioBuffers: Buffer[] = [];
+        
+        for (let i = 0; i < textChunks.length; i++) {
+          const chunk = textChunks[i];
+          console.log(`[Deepgram/TTS] Processando chunk ${i + 1}/${textChunks.length} (${chunk.length} chars)`);
+          
+          const response = await deepgram.speak.request(
+            { text: chunk },
+            {
+              model: voice,
+              encoding: 'mp3',
+            }
+          );
 
-      const chunks: Uint8Array[] = [];
-      const reader = stream.getReader();
-      
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (value) chunks.push(value);
+          const stream = await response.getStream();
+          
+          if (!stream) {
+            throw new Error(`Erro ao obter stream de áudio para chunk ${i + 1}`);
+          }
+
+          const streamChunks: Uint8Array[] = [];
+          const reader = stream.getReader();
+          
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (value) streamChunks.push(value);
+            }
+          } finally {
+            reader.releaseLock();
+          }
+
+          const chunkAudioBuffer = Buffer.concat(streamChunks);
+          audioBuffers.push(chunkAudioBuffer);
         }
-      } finally {
-        reader.releaseLock();
+        
+        // Concatenar todos os áudios
+        const finalAudioBuffer = Buffer.concat(audioBuffers);
+        const base64Audio = finalAudioBuffer.toString('base64');
+        
+        console.log(`[Deepgram/TTS] ${textChunks.length} chunks concatenados: ${finalAudioBuffer.length} bytes`);
+
+        res.json({
+          audio: base64Audio,
+          voice,
+          chunked: true,
+          chunkCount: textChunks.length,
+        });
+        
+      } else {
+        // Texto curto, processamento direto
+        console.log(`[Deepgram/TTS] Sintetizando ${text.length} caracteres com voz: ${voice}`);
+
+        const response = await deepgram.speak.request(
+          { text },
+          {
+            model: voice,
+            encoding: 'mp3',
+          }
+        );
+
+        const stream = await response.getStream();
+        
+        if (!stream) {
+          throw new Error('Erro ao obter stream de áudio');
+        }
+
+        const chunks: Uint8Array[] = [];
+        const reader = stream.getReader();
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) chunks.push(value);
+          }
+        } finally {
+          reader.releaseLock();
+        }
+
+        const audioBuffer = Buffer.concat(chunks);
+        const base64Audio = audioBuffer.toString('base64');
+
+        console.log(`[Deepgram/TTS] Áudio gerado: ${audioBuffer.length} bytes`);
+
+        res.json({
+          audio: base64Audio,
+          voice,
+          chunked: false,
+        });
       }
-
-      const audioBuffer = Buffer.concat(chunks);
-      const base64Audio = audioBuffer.toString('base64');
-
-      console.log(`[Deepgram/TTS] Áudio gerado: ${audioBuffer.length} bytes`);
-
-      res.json({
-        audio: base64Audio,
-        voice,
-      });
     } catch (error: any) {
       console.error("[Deepgram/TTS] Erro:", error);
       res.status(500).json({ error: error.message });

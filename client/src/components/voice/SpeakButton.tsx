@@ -60,20 +60,8 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
     console.log('[SpeakButton] Iniciando síntese...');
 
     try {
-      // Detectar se texto é muito longo para Deepgram (limite 2000 chars)
-      const isTextTooLongForDeepgram = text.length > 2000;
-      
-      // Se texto > 2000 chars, forçar Whisper mesmo em premium
-      const voiceService = isTextTooLongForDeepgram && isPremium
-        ? VoiceServiceFactory.createByType('whisper')
-        : VoiceServiceFactory.create(isPremium);
-      
+      const voiceService = VoiceServiceFactory.create(isPremium);
       console.log('[SpeakButton] VoiceService criado:', voiceService.getMetadata().type);
-      
-      // Avisar usuário sobre fallback
-      if (isTextTooLongForDeepgram && isPremium) {
-        console.log('[SpeakButton] Texto longo detectado, usando Whisper ao invés de Deepgram');
-      }
       
       if (!isPremium) {
         // Modo Básico: speechSynthesis toca diretamente (não retorna áudio)
@@ -137,19 +125,8 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
         
       } else {
         // Modo Premium: Whisper/Deepgram retorna áudio MP3
-        // Truncar se ainda exceder limite absoluto (Whisper 4096 chars)
-        const truncatedText = text.length > 4096 ? text.substring(0, 4096) + '...' : text;
-        
-        if (text.length > 4096) {
-          console.warn('[SpeakButton] Texto truncado de', text.length, 'para 4096 caracteres');
-          toast({
-            title: "Texto muito longo",
-            description: "A mensagem foi cortada para caber no limite de síntese de voz.",
-            variant: "default",
-          });
-        }
-        
-        const result = await voiceService.synthesize(truncatedText, voice);
+        // Backend agora cuida do chunking automaticamente
+        const result = await voiceService.synthesize(text, voice);
         
         // Converter base64 para Blob
         let audioBlob: Blob;
