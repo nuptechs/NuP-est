@@ -33,6 +33,7 @@ import { embeddingsService } from "./services/embeddings";
 import { knowledgeChunks } from "@shared/schema";
 import { db } from "./db";
 import { UploadConfig } from "./config/uploadConfig";
+import { fileDeduplicationService } from "./services/FileDeduplicationService";
 
 // Sistema de IA com injeção de dependência
 import { aiAnalyze, getAIManager } from './services/ai/index';
@@ -413,6 +414,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`📤 Smart upload iniciado: ${originalFilename}`);
 
+      // Check for duplicate files using hash
+      console.log(`🔍 Verificando duplicatas...`);
+      const deduplicationResult = await fileDeduplicationService.checkFileForDuplication(
+        filePath,
+        userId
+      );
+
+      if (deduplicationResult.isDuplicate && deduplicationResult.existingMaterial) {
+        console.log(`⚠️ Arquivo duplicado detectado: ${deduplicationResult.existingMaterial.title}`);
+        
+        // Delete the uploaded file since it's a duplicate
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          console.error('Erro ao remover arquivo duplicado:', err);
+        }
+
+        return res.status(409).json({
+          message: "Este arquivo já foi enviado anteriormente",
+          duplicate: true,
+          existingMaterial: {
+            id: deduplicationResult.existingMaterial.id,
+            title: deduplicationResult.existingMaterial.title,
+            createdAt: deduplicationResult.existingMaterial.createdAt,
+          }
+        });
+      }
+
+      console.log(`✅ Arquivo não é duplicado (hash: ${deduplicationResult.hash.substring(0, 12)}...)`);
+
       // Detect file type with expanded support
       const FILE_TYPE_MAP: Record<string, string> = {
         '.pdf': 'pdf',
@@ -472,13 +503,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         detectedType
       );
 
-      // Prepare material data
+      // Prepare material data with file hash
       const materialData = {
         userId,
         title,
         description,
         type: detectedType,
         filePath,
+        fileHash: deduplicationResult.hash,
         content: extractedContent || undefined,
         subjectId: req.body.subjectId || undefined,
       };
@@ -515,7 +547,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If file was uploaded, process it
       if (req.file) {
         const filePath = req.file.path;
+        
+        // Check for duplicate files using hash
+        const deduplicationResult = await fileDeduplicationService.checkFileForDuplication(
+          filePath,
+          userId
+        );
+
+        if (deduplicationResult.isDuplicate && deduplicationResult.existingMaterial) {
+          console.log(`⚠️ Arquivo duplicado detectado: ${deduplicationResult.existingMaterial.title}`);
+          
+          // Delete the uploaded file since it's a duplicate
+          try {
+            fs.unlinkSync(filePath);
+          } catch (err) {
+            console.error('Erro ao remover arquivo duplicado:', err);
+          }
+
+          return res.status(409).json({
+            message: "Este arquivo já foi enviado anteriormente",
+            duplicate: true,
+            existingMaterial: {
+              id: deduplicationResult.existingMaterial.id,
+              title: deduplicationResult.existingMaterial.title,
+              createdAt: deduplicationResult.existingMaterial.createdAt,
+            }
+          });
+        }
+        
         materialData.filePath = filePath;
+        materialData.fileHash = deduplicationResult.hash;
         materialData.type = path.extname(req.file.originalname).toLowerCase().substring(1);
         
         // Extract content from various file types for RAG
