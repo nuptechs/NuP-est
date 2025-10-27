@@ -1851,7 +1851,10 @@ export const generateQuestionRequestSchema = z.object({
   assistantId: z.string(),
   subjectId: z.string(),
   topicId: z.string().optional(),
-  difficulty: z.number().min(-3).max(3).optional().default(0),
+  difficulty: z.union([
+    z.number().min(-3).max(3),
+    z.enum(['easy', 'medium', 'hard', 'difficult'])
+  ]).optional().default(0),
 });
 
 export const generateHintRequestSchema = z.object({
@@ -1863,7 +1866,11 @@ export const generateHintRequestSchema = z.object({
 
 export const generateExplanationRequestSchema = z.object({
   assistantId: z.string(),
-  concept: z.string(),
+  concept: z.string().optional(),
+  questionContent: z.string().optional(),
+  userAnswer: z.string().optional(),
+  correctAnswer: z.string().optional(),
+  wasCorrect: z.boolean().optional(),
   context: z.string().optional(),
 });
 
