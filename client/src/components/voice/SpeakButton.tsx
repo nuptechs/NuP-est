@@ -21,23 +21,35 @@ interface SpeakButtonProps {
 export function SpeakButton({ text, isPremium, voice = 'alloy', className }: SpeakButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
   const handleSpeak = async () => {
-    console.log('[SpeakButton] Clicado - isPremium:', isPremium, 'isPlaying:', isPlaying);
+    console.log('[SpeakButton] Clicado - isPremium:', isPremium, 'isPlaying:', isPlaying, 'isPaused:', isPaused);
     
-    // Se já está tocando, parar
+    // Se está pausado, resumir
+    if (isPaused) {
+      console.log('[SpeakButton] Resumindo áudio...');
+      if (audioRef.current) {
+        audioRef.current.play();
+      } else if (window.speechSynthesis && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+      setIsPaused(false);
+      setIsPlaying(true);
+      return;
+    }
+    
+    // Se já está tocando, pausar
     if (isPlaying) {
-      console.log('[SpeakButton] Parando áudio...');
+      console.log('[SpeakButton] Pausando áudio...');
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+      } else if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
       }
-      // Para speechSynthesis também
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
+      setIsPaused(true);
       setIsPlaying(false);
       return;
     }
@@ -52,18 +64,63 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
       if (!isPremium) {
         // Modo Básico: speechSynthesis toca diretamente (não retorna áudio)
         console.log('[SpeakButton] Usando modo básico - texto:', text.substring(0, 100) + '...');
-        await voiceService.synthesize(text, voice);
-        console.log('[SpeakButton] Síntese iniciada (modo básico)');
+        
+        // Usar speechSynthesis diretamente para ter controle de pause
+        if (!window.speechSynthesis) {
+          throw new Error('Speech Synthesis não disponível neste navegador');
+        }
+        
+        // Limpar fila antes de iniciar
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        
+        // Carregar vozes (necessário em alguns navegadores)
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          // Tentar usar voz em português
+          const ptVoice = voices.find(v => v.lang.startsWith('pt'));
+          if (ptVoice) {
+            utterance.voice = ptVoice;
+            console.log('[SpeakButton] Usando voz:', ptVoice.name);
+          }
+        }
+        
+        utterance.onstart = () => {
+          console.log('[SpeakButton] Síntese iniciada (modo básico)');
+          setIsPlaying(true);
+          setIsLoading(false);
+          setIsPaused(false);
+        };
+        
+        utterance.onend = () => {
+          console.log('[SpeakButton] Áudio finalizado');
+          setIsPlaying(false);
+          setIsPaused(false);
+        };
+        
+        utterance.onerror = (event) => {
+          console.error('[SpeakButton] Erro no utterance:', event);
+          setIsPlaying(false);
+          setIsLoading(false);
+          setIsPaused(false);
+          toast({
+            title: "Erro na síntese",
+            description: "Não foi possível tocar o áudio.",
+            variant: "destructive",
+          });
+        };
+        
+        // Setar estado imediatamente (workaround para eventos que não disparam)
         setIsPlaying(true);
         setIsLoading(false);
         
-        // Simula "onended" - reseta após um tempo estimado
-        const estimatedDuration = (text.length / 15) * 1000; // ~15 caracteres/segundo
-        console.log('[SpeakButton] Duração estimada:', estimatedDuration / 1000, 'segundos');
-        setTimeout(() => {
-          console.log('[SpeakButton] Áudio finalizado (estimativa)');
-          setIsPlaying(false);
-        }, estimatedDuration);
+        window.speechSynthesis.speak(utterance);
+        console.log('[SpeakButton] speak() chamado, esperando áudio...');
+        
       } else {
         // Modo Premium: Whisper retorna áudio MP3
         const result = await voiceService.synthesize(text, voice);
@@ -123,25 +180,60 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
     }
   };
 
+  const handleStop = () => {
+    console.log('[SpeakButton] Parando áudio completamente...');
+    
+    // Parar áudio Premium
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    
+    // Parar áudio Básico
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    
+    setIsPlaying(false);
+    setIsPaused(false);
+    setIsLoading(false);
+  };
+
   return (
-    <Button
-      onClick={handleSpeak}
-      size="sm"
-      variant="ghost"
-      disabled={isLoading}
-      className={className}
-      data-testid="button-speak"
-    >
-      {isLoading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : isPlaying ? (
-        <VolumeX className="h-4 w-4" />
-      ) : (
-        <Volume2 className="h-4 w-4" />
+    <div className={`flex items-center gap-1 ${className}`}>
+      <Button
+        onClick={handleSpeak}
+        size="sm"
+        variant="ghost"
+        disabled={isLoading}
+        data-testid="button-speak"
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : isPaused ? (
+          <Volume2 className="h-4 w-4" />
+        ) : isPlaying ? (
+          <VolumeX className="h-4 w-4" />
+        ) : (
+          <Volume2 className="h-4 w-4" />
+        )}
+        <span className="ml-2 text-xs">
+          {isLoading ? 'Gerando...' : isPaused ? 'Continuar' : isPlaying ? 'Pausar' : 'Ouvir'}
+        </span>
+      </Button>
+      
+      {/* Botão de parar (apenas se estiver tocando ou pausado) */}
+      {(isPlaying || isPaused) && (
+        <Button
+          onClick={handleStop}
+          size="sm"
+          variant="ghost"
+          data-testid="button-stop"
+        >
+          <span className="text-xs">Parar</span>
+        </Button>
       )}
-      <span className="ml-2 text-xs">
-        {isLoading ? 'Gerando...' : isPlaying ? 'Parar' : 'Ouvir'}
-      </span>
-    </Button>
+    </div>
   );
 }
