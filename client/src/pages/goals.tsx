@@ -94,7 +94,10 @@ export default function Goals() {
   // Mutations
   const createGoal = useMutation({
     mutationFn: async (data: GoalFormData) => {
-      const payload = { ...data, targetDate: data.targetDate?.toISOString() || null };
+      const payload = { 
+        ...data, 
+        targetDate: data.targetDate ? data.targetDate.toISOString() : null 
+      };
       return apiRequest("POST", "/api/goals", payload);
     },
     onSuccess: () => {
@@ -108,7 +111,10 @@ export default function Goals() {
 
   const createTarget = useMutation({
     mutationFn: async (data: TargetFormData) => {
-      const payload = { ...data, deadline: data.deadline?.toISOString() || null };
+      const payload = { 
+        ...data, 
+        deadline: data.deadline ? data.deadline.toISOString() : null 
+      };
       return apiRequest("POST", "/api/targets", payload);
     },
     onSuccess: () => {

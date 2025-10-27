@@ -1573,7 +1573,9 @@ export const insertGoalSchema = createInsertSchema(goals).omit({
   id: true,
   createdAt: true,
 }).extend({
-  targetDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  targetDate: z.union([z.string(), z.date(), z.null()]).optional().transform((val) => 
+    val === null || val === undefined ? null : typeof val === 'string' ? new Date(val) : val
+  ),
 });
 
 export const insertTargetSchema = createInsertSchema(targets).omit({
