@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Send, Bot, User, Loader2, Clock, ChevronUp, ChevronDown, Calendar, MessageSquare, Trash2 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { VoiceToggle } from "@/components/voice/VoiceToggle";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
@@ -164,6 +165,10 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleVoiceTranscript = (text: string) => {
+    setInputMessage(prev => prev ? `${prev} ${text}` : text);
   };
 
   const togglePeriod = (period: string) => {
@@ -431,28 +436,41 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
 
       {/* Input de mensagem */}
       <div className="border-t p-6 bg-background">
-        <div className="flex gap-3 max-w-5xl mx-auto">
-          <Textarea
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
-            className="min-h-[80px] max-h-[160px] flex-1"
-            data-testid="textarea-message"
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!inputMessage.trim() || sendMessage.isPending}
-            size="icon"
-            className="h-[80px] w-[80px] flex-shrink-0"
-            data-testid="button-send-message"
-          >
-            {sendMessage.isPending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
+        <div className="max-w-5xl mx-auto space-y-3">
+          {/* Voice Toggle */}
+          <div className="flex justify-end">
+            <VoiceToggle
+              isPremium={false}
+              onTranscript={handleVoiceTranscript}
+              disabled={sendMessage.isPending}
+              language="pt-BR"
+            />
+          </div>
+
+          {/* Message Input */}
+          <div className="flex gap-3">
+            <Textarea
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Digite sua mensagem ou use o modo voz... (Enter para enviar, Shift+Enter para nova linha)"
+              className="min-h-[80px] max-h-[160px] flex-1"
+              data-testid="textarea-message"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!inputMessage.trim() || sendMessage.isPending}
+              size="icon"
+              className="h-[80px] w-[80px] flex-shrink-0"
+              data-testid="button-send-message"
+            >
+              {sendMessage.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 

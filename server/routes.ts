@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
+import FormData from "form-data";
+import OpenAI from "openai";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { aiService } from "./services/ai";
@@ -51,6 +53,7 @@ import { DailyStudyPlannerService } from './services/study-planner/DailyStudyPla
 const upload = UploadConfig.createMaterialUpload();
 const pdfUpload = UploadConfig.createKnowledgeBaseUpload();
 const flashcardImageUpload = UploadConfig.createFlashcardImageUpload();
+const audioUpload = UploadConfig.createAudioUpload();
 
 // Spaced Repetition Algorithm (SuperMemo 2)
 function calculateSpacedRepetition(
@@ -3006,6 +3009,133 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
     } catch (error: any) {
       console.error("Error submitting answer:", error);
       res.status(500).json({ message: "Failed to submit answer: " + error.message });
+    }
+  });
+
+  // ========== VOICE API ROUTES (PREMIUM FEATURE) ==========
+  
+  /**
+   * POST /api/voice/transcribe
+   * Transcreve áudio para texto usando OpenAI Whisper
+   * Requer: Plano Premium (verificação futura)
+   */
+  app.post('/api/voice/transcribe', isAuthenticated, audioUpload.single('audio'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Arquivo de áudio não enviado" });
+      }
+
+      const language = req.body.language || 'pt';
+      const userId = req.user.claims.sub;
+
+      // TODO: Verificar se usuário tem plano premium
+      // const user = await storage.getUser(userId);
+      // if (!user.isPremium) {
+      //   return res.status(403).json({ message: "Recurso disponível apenas para usuários premium" });
+      // }
+
+      // Configurar OpenAI
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      // Ler arquivo de áudio
+      const audioFile = fs.createReadStream(req.file.path);
+
+      console.log(`[Voice/Whisper] Transcrevendo áudio: ${req.file.originalname}, tamanho: ${req.file.size} bytes`);
+
+      // Transcrever com Whisper
+      const transcription = await openai.audio.transcriptions.create({
+        file: audioFile,
+        model: 'whisper-1',
+        language,
+        response_format: 'verbose_json', // Retorna timestamps e confiança
+      });
+
+      // Limpar arquivo temporário
+      fs.unlinkSync(req.file.path);
+
+      console.log(`[Voice/Whisper] Transcrição concluída: "${transcription.text.substring(0, 50)}..."`);
+
+      res.json({
+        text: transcription.text,
+        language: transcription.language,
+        duration: transcription.duration,
+        confidence: 1.0, // Whisper não retorna confiança diretamente
+      });
+    } catch (error: any) {
+      console.error("[Voice/Whisper] Erro na transcrição:", error);
+      
+      // Limpar arquivo se existir
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      res.status(500).json({ 
+        message: "Erro ao transcrever áudio: " + error.message 
+      });
+    }
+  });
+
+  /**
+   * POST /api/voice/synthesize
+   * Converte texto em áudio usando OpenAI TTS
+   * Requer: Plano Premium (verificação futura)
+   */
+  app.post('/api/voice/synthesize', isAuthenticated, async (req: any, res) => {
+    try {
+      const { text, voice = 'alloy' } = req.body;
+      const userId = req.user.claims.sub;
+
+      if (!text) {
+        return res.status(400).json({ message: "Texto não fornecido" });
+      }
+
+      // Limitar tamanho do texto (4096 caracteres é o limite do OpenAI)
+      if (text.length > 4096) {
+        return res.status(400).json({ 
+          message: "Texto muito longo. Máximo: 4096 caracteres" 
+        });
+      }
+
+      // TODO: Verificar plano premium
+      // const user = await storage.getUser(userId);
+      // if (!user.isPremium) {
+      //   return res.status(403).json({ message: "Recurso disponível apenas para usuários premium" });
+      // }
+
+      // Configurar OpenAI
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      console.log(`[Voice/TTS] Sintetizando ${text.length} caracteres com voz: ${voice}`);
+
+      // Gerar áudio
+      const mp3 = await openai.audio.speech.create({
+        model: 'tts-1', // ou 'tts-1-hd' para qualidade superior
+        voice: voice as any, // alloy, echo, fable, onyx, nova, shimmer
+        input: text,
+      });
+
+      // Converter para buffer
+      const buffer = Buffer.from(await mp3.arrayBuffer());
+
+      // Converter para base64 para enviar ao frontend
+      const base64Audio = buffer.toString('base64');
+
+      console.log(`[Voice/TTS] Áudio gerado: ${buffer.length} bytes`);
+
+      res.json({
+        audio: base64Audio,
+        duration: undefined, // TTS não retorna duração
+        voice,
+      });
+    } catch (error: any) {
+      console.error("[Voice/TTS] Erro na síntese:", error);
+      res.status(500).json({ 
+        message: "Erro ao sintetizar voz: " + error.message 
+      });
     }
   });
 

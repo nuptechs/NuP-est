@@ -130,4 +130,38 @@ export class UploadConfig {
       }
     });
   }
+
+  // Configuração para uploads de áudio (Voice)
+  static createAudioUpload() {
+    const uploadDir = path.join(this.baseUploadDir, 'voice');
+    this.ensureDirectoryExists(uploadDir);
+
+    return multer({
+      storage: multer.diskStorage({
+        destination: uploadDir,
+        filename: (req, file, cb) => {
+          cb(null, this.generateFileName(file));
+        }
+      }),
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+          'audio/webm', 
+          'audio/wav', 
+          'audio/mp3', 
+          'audio/mpeg',
+          'audio/ogg',
+          'audio/m4a'
+        ];
+        
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Formato de áudio não suportado. Use WebM, WAV, MP3, OGG ou M4A'));
+        }
+      },
+      limits: {
+        fileSize: 25 * 1024 * 1024 // 25MB (limite do Whisper)
+      }
+    });
+  }
 }
