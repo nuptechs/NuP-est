@@ -571,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/materials', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      let materialData = {
+      let materialData: any = {
         ...req.body,
         userId
       };
@@ -579,65 +579,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If file was uploaded, process it
       if (req.file) {
         const filePath = req.file.path;
+        const originalFilename = req.file.originalname;
+        const fileExt = path.extname(originalFilename).toLowerCase();
+        const fileSize = req.file.size;
         
-        // Check for duplicate files using hash
-        const deduplicationResult = await fileDeduplicationService.checkFileForDuplication(
+        // Generate file hash
+        const fileHash = await fileDeduplicationService.generateFileHash(filePath);
+        
+        // Detect file type
+        const detectedType = fileExt.substring(1);
+        
+        // Check if file was already processed
+        const { processedFile, isNew } = await processedFileService.getOrCreate({
+          fileHash,
           filePath,
-          userId
-        );
+          fileName: originalFilename,
+          fileType: detectedType,
+          fileSize,
+        });
 
-        if (deduplicationResult.isDuplicate && deduplicationResult.existingMaterial) {
-          console.log(`⚠️ Arquivo duplicado detectado: ${deduplicationResult.existingMaterial.title}`);
-          
-          // Delete the uploaded file since it's a duplicate
+        if (!isNew) {
+          // Delete uploaded file since we already have it
           try {
             fs.unlinkSync(filePath);
+            console.log(`🗑️ Arquivo duplicado removido (reutilizando: ${processedFile.filePath})`);
           } catch (err) {
             console.error('Erro ao remover arquivo duplicado:', err);
           }
-
-          return res.status(409).json({
-            message: "Este arquivo já foi enviado anteriormente",
-            duplicate: true,
-            existingMaterial: {
-              id: deduplicationResult.existingMaterial.id,
-              title: deduplicationResult.existingMaterial.title,
-              createdAt: deduplicationResult.existingMaterial.createdAt,
-            }
-          });
         }
         
-        materialData.filePath = filePath;
-        materialData.fileHash = deduplicationResult.hash;
-        materialData.type = path.extname(req.file.originalname).toLowerCase().substring(1);
-        
-        // Extract content from various file types for RAG
-        const fileExt = path.extname(req.file.originalname).toLowerCase();
-        try {
-          if (['.txt', '.md'].includes(fileExt)) {
-            materialData.content = fs.readFileSync(filePath, 'utf-8');
-          } else if (['.pdf', '.docx'].includes(fileExt)) {
-            // Extract content for RAG migration
-            materialData.content = await aiService.extractTextFromFile(filePath);
-            console.log(`📝 Conteúdo extraído para RAG: ${materialData.content.length} caracteres`);
-          }
-        } catch (err) {
-          console.error("Error extracting file content for RAG:", err);
-        }
+        materialData.processedFileId = processedFile.id;
+        materialData.type = detectedType;
       }
 
       const validatedData = insertMaterialSchema.parse(materialData);
       const material = await storage.createMaterial(validatedData);
-      
-      // NOVO: Migrar automaticamente para RAG quando material é criado
-      try {
-        if (material.content) {
-          await aiService.migrateToRAG(material, userId);
-        }
-      } catch (error) {
-        console.log('⚠️ Falha na migração automática para RAG:', error);
-        // Não falhar a criação do material por causa disso
-      }
       
       res.json(material);
     } catch (error) {
@@ -681,7 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const userId = req.user.claims.sub;
       
-      // Get material and verify ownership before deleting file
+      // Get material and verify ownership
       const material = await storage.getMaterial(id);
       if (!material) {
         return res.status(404).json({ message: "Material not found" });
@@ -691,12 +667,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized" });
       }
       
-      // Delete from database first
-      await storage.deleteMaterial(id, userId);
+      const processedFileId = material.processedFileId;
       
-      // Only delete file after successful database deletion
-      if (material.filePath && fs.existsSync(material.filePath)) {
-        fs.unlinkSync(material.filePath);
+      // Delete material from database
+      await storage.deleteMaterial(id, userId);
+      console.log(`🗑️ Material deletado: ${material.title}`);
+      
+      // Decrement reference count on processed file (will auto-delete if no more references)
+      if (processedFileId) {
+        const wasDeleted = await processedFileService.decrementReference(processedFileId);
+        if (wasDeleted) {
+          console.log(`🗑️ Arquivo físico deletado (sem mais referências)`);
+        }
       }
       
       res.json({ success: true });
