@@ -94,9 +94,17 @@ The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for co
 
 **Integration:**
 - `VoiceToggle` component in AssistantChat shows tier indicator (Básico 🆓 / Premium ⭐)
+- `SpeakButton` component in AI messages enables listening to responses (TTS)
 - Transcribed text auto-populates message input
 - Error handling with user-friendly feedback
 - Automatic cleanup of temporary audio files
+
+**TTS Features:**
+- **Modo Básico 🆓**: Uses browser speechSynthesis API (plays directly, no audio download)
+- **Modo Premium ⭐**: Uses OpenAI TTS API (generates high-quality MP3, requires credits)
+- Button appears on hover over AI messages
+- Visual feedback during generation (loading spinner)
+- Pause/resume controls for playback
 
 **Security:**
 - API keys secured in backend only

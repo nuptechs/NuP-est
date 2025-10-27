@@ -10,6 +10,7 @@ import { Send, Bot, User, Loader2, Clock, ChevronUp, ChevronDown, Calendar, Mess
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { VoiceToggle } from "@/components/voice/VoiceToggle";
+import { SpeakButton } from "@/components/voice/SpeakButton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
@@ -228,14 +229,24 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
               {message.content}
             </ReactMarkdown>
           </div>
-          <p className={`text-xs mt-1 opacity-70 ${
-            message.role === "user" ? "text-primary-foreground" : "text-foreground"
-          }`}>
-            {new Date(message.createdAt).toLocaleTimeString('pt-BR', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
-          </p>
+          <div className="flex items-center justify-between mt-1 gap-2">
+            <p className={`text-xs opacity-70 ${
+              message.role === "user" ? "text-primary-foreground" : "text-foreground"
+            }`}>
+              {new Date(message.createdAt).toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </p>
+            {/* Botão TTS apenas para mensagens do assistente */}
+            {message.role === "assistant" && (
+              <SpeakButton 
+                text={message.content}
+                isPremium={false}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            )}
+          </div>
         </div>
         
         {/* Botão de exclusão (apenas para mensagens do usuário) */}
