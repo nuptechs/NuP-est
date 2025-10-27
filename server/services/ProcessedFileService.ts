@@ -1,8 +1,9 @@
 import { db } from '../db.js';
-import { processedFiles, materials } from '@shared/schema';
-import type { InsertProcessedFile, ProcessedFile } from '@shared/schema';
-import { eq, sql } from 'drizzle-orm';
+import { processedFiles, materials, materialContentSegments, segmentTopics, contentSources } from '@shared/schema';
+import type { InsertProcessedFile, ProcessedFile, InsertMaterialContentSegment, InsertSegmentTopic, InsertContentSource } from '@shared/schema';
+import { eq, sql, and } from 'drizzle-orm';
 import fs from 'fs';
+import { contentCategorizationService } from './ContentCategorizationService.js';
 
 export interface CreateProcessedFileOptions {
   fileHash: string;
@@ -157,6 +158,139 @@ export class ProcessedFileService {
       .where(eq(materials.processedFileId, processedFileId));
     
     return Number(result[0]?.count || 0);
+  }
+
+  /**
+   * FASE 1: Categorize content and create segments/topics/content source
+   * Should be called after file processing to extract structured data
+   */
+  async processCategorization(
+    processedFileId: string,
+    materialId: string,
+    fileName: string,
+    materialTitle?: string
+  ): Promise<{
+    segmentId: string;
+    contentSourceId?: string;
+    topicIds: string[];
+  }> {
+    console.log(`[ProcessedFileService] Starting categorization for: ${fileName}`);
+    
+    // Get the processed file to extract content
+    const [processedFile] = await db
+      .select()
+      .from(processedFiles)
+      .where(eq(processedFiles.id, processedFileId))
+      .limit(1);
+
+    if (!processedFile || !processedFile.extractedContent) {
+      throw new Error('Processed file not found or has no extracted content');
+    }
+
+    // Categorize content using AI
+    const categorization = await contentCategorizationService.categorizeContent(
+      processedFile.extractedContent,
+      fileName,
+      materialTitle
+    );
+
+    console.log(`[ProcessedFileService] Categorization complete. Topics: ${categorization.normalizedTopics.length}`);
+
+    // Wrap all DB writes in a transaction to prevent orphaned records
+    const result = await db.transaction(async (tx) => {
+      // Extract and create/find content source if present
+      let contentSourceId: string | undefined;
+      const sourceInfo = await contentCategorizationService.extractContentSourceInfo(
+        categorization.pedagogicalMetadata,
+        categorization.contentSourceName,
+        categorization.contentSourceType,
+        categorization.contentSourceSpecialty
+      );
+
+      if (sourceInfo) {
+        // Check if content source already exists
+        const [existingSource] = await tx
+          .select()
+          .from(contentSources)
+          .where(
+            and(
+              eq(contentSources.name, sourceInfo.name),
+              eq(contentSources.type, sourceInfo.type)
+            )
+          )
+          .limit(1);
+
+        if (existingSource) {
+          contentSourceId = existingSource.id;
+          console.log(`[ProcessedFileService] Reusing existing content source: ${sourceInfo.name}`);
+        } else {
+          const sourceData: InsertContentSource = {
+            name: sourceInfo.name,
+            type: sourceInfo.type,
+            specialty: sourceInfo.specialty,
+            institution: sourceInfo.institution,
+          };
+
+          const [newSource] = await tx
+            .insert(contentSources)
+            .values(sourceData)
+            .returning();
+          
+          contentSourceId = newSource.id;
+          console.log(`[ProcessedFileService] Created new content source: ${sourceInfo.name}`);
+        }
+      }
+
+      // Create material content segment
+      const segmentData: InsertMaterialContentSegment = {
+        materialId,
+        processedFileId,
+        contentSourceId,
+        pedagogicalMetadata: categorization.pedagogicalMetadata,
+        cleanContent: categorization.cleanContent,
+        irrelevantContent: categorization.irrelevantContent,
+        segmentType: 'full',
+        segmentOrder: 0,
+        contentHash: processedFile.fileHash,
+        categorizationModel: 'gpt-4o-mini',
+        categorizationConfidence: categorization.categorizationConfidence.toString(),
+      };
+
+      const [segment] = await tx
+        .insert(materialContentSegments)
+        .values(segmentData)
+        .returning();
+
+      console.log(`[ProcessedFileService] Created material content segment: ${segment.id}`);
+
+      // Create segment topics
+      const topicIds: string[] = [];
+      for (const topicData of categorization.normalizedTopics) {
+        const topicRecord: InsertSegmentTopic = {
+          segmentId: segment.id,
+          topic: topicData.topic,
+          confidence: topicData.confidence.toString(),
+          isPrimary: topicData.isPrimary,
+        };
+
+        const [topic] = await tx
+          .insert(segmentTopics)
+          .values(topicRecord)
+          .returning();
+        
+        topicIds.push(topic.id);
+      }
+
+      console.log(`[ProcessedFileService] Created ${topicIds.length} segment topics`);
+
+      return {
+        segmentId: segment.id,
+        contentSourceId,
+        topicIds,
+      };
+    });
+
+    return result;
   }
 }
 
