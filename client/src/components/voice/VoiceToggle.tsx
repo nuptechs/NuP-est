@@ -16,9 +16,10 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Hint } from '@/components/ui/hint';
 import { 
   VoiceServiceFactory, 
   type IVoiceService, 
@@ -188,46 +189,60 @@ export function VoiceToggle({
 
   const getButtonIcon = () => {
     if (state === 'processing') return <Loader2 className="h-4 w-4 animate-spin" />;
-    if (state === 'error') return <AlertCircle className="h-4 w-4" />;
     if (isActive) return <Mic className="h-4 w-4 animate-pulse" />;
     return <MicOff className="h-4 w-4" />;
   };
 
-  const getButtonLabel = () => {
-    if (state === 'processing') return 'Processando...';
-    if (state === 'listening') return 'Ouvindo...';
-    if (state === 'error') return 'Erro';
-    return 'Modo Voz';
+  const getHintContent = () => {
+    if (isPremium) {
+      return (
+        <div className="text-center">
+          <div className="font-semibold mb-1">⭐ Modo Premium</div>
+          <div className="text-xs opacity-90">
+            • OpenAI Whisper API<br/>
+            • Qualidade superior (~99%)<br/>
+            • Cross-browser<br/>
+            • Custo: $0.006/min
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="text-center">
+        <div className="font-semibold mb-1">🆓 Modo Básico</div>
+        <div className="text-xs opacity-90">
+          • Web Speech API<br/>
+          • Gratuito<br/>
+          • Chrome/Edge apenas<br/>
+          • Qualidade padrão
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="inline-flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 shadow-sm">
       <Button
-        variant={getButtonVariant()}
+        variant="ghost"
         size="sm"
         onClick={handleToggle}
         disabled={disabled || !!error}
         data-testid="button-voice-toggle"
-        className="gap-2"
+        className="gap-2 h-7 px-2 hover:bg-transparent"
       >
         {getButtonIcon()}
-        <span className="hidden sm:inline">{getButtonLabel()}</span>
+        <span className="text-sm font-medium">Modo Voz</span>
       </Button>
 
-      <Badge 
-        variant={isPremium ? 'default' : 'secondary'}
-        className="gap-1 text-xs"
-        data-testid="badge-voice-tier"
-      >
-        {isPremium && <Sparkles className="h-3 w-3" />}
-        {tierLabel}
-      </Badge>
-
-      {error && (
-        <span className="text-xs text-destructive hidden md:inline" data-testid="text-voice-error">
-          {error}
-        </span>
-      )}
+      <Hint content={getHintContent()} side="bottom">
+        <Badge 
+          variant={isPremium ? 'default' : 'secondary'}
+          className="gap-1 text-xs cursor-help"
+          data-testid="badge-voice-tier"
+        >
+          {tierLabel}
+        </Badge>
+      </Hint>
     </div>
   );
 }

@@ -14,6 +14,9 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 The client is built with React 18, TypeScript, and Vite. It utilizes `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI primitives and Tailwind CSS for styling. React Hook Form with Zod handles form validation. The UI is profile-driven, adapting to user study patterns, and features a centralized dashboard with a guided setup flow. A unified design system ensures consistency across spacing, typography, colors, and components, inspired by modern design patterns (Notion/Linear/Figma style). All 17 application pages have been redesigned for a professional user experience. Features like rich Markdown content rendering with syntax highlighting and intelligent semantic highlighting are integrated into components like Flashcards to enhance academic content presentation.
 
+**Reusable UI Components:**
+- `Hint` component (`client/src/components/ui/hint.tsx`): Encapsulated tooltip system based on Radix UI, providing accessible hints with configurable positioning, delays, and animations. Used throughout the app for contextual information.
+
 ## Backend Architecture
 
 The server uses Express.js and TypeScript (ESM format) with Drizzle ORM for type-safe PostgreSQL interactions. Replit Auth with Passport.js manages authentication, express-session handles sessions, and multer manages file uploads. The API is RESTful with consistent error handling.
