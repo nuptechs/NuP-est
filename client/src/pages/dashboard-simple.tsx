@@ -85,12 +85,12 @@ export default function Dashboard() {
 
   const quickTools = [
     { 
-      title: "Biblioteca", 
-      description: "Materiais de estudo",
-      icon: Library, 
-      href: "/library", 
+      title: "Questões IA", 
+      description: "Prática adaptativa",
+      icon: Brain, 
+      href: "/personalized-assistant?tab=questions", 
       variant: "primary" as const,
-      testid: "tool-library"
+      testid: "tool-questions"
     },
     { 
       title: "Flashcards", 
@@ -109,12 +109,12 @@ export default function Dashboard() {
       testid: "tool-chat"
     },
     { 
-      title: "Metas", 
-      description: "Acompanhe objetivos",
-      icon: Target, 
-      href: "/goals", 
+      title: "Quiz Rápido", 
+      description: "Revisão rápida",
+      icon: Zap, 
+      href: "/quiz", 
       variant: "default" as const,
-      testid: "tool-goals"
+      testid: "tool-quiz"
     },
   ];
 
@@ -231,7 +231,7 @@ export default function Dashboard() {
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-4 text-muted-foreground font-medium">
-              ou escolha uma ferramenta
+              Ferramentas de Estudo
             </span>
           </div>
         </div>
@@ -268,34 +268,34 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Secondary Tools - Compact */}
+        {/* Secondary Navigation - Planejamento e Análise */}
         <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
-            onClick={() => navigate('/personalized-assistant?tab=questions')}
-            data-testid="tool-questions"
+            onClick={() => navigate('/library')}
+            data-testid="nav-library"
             className="flex items-center gap-2"
           >
-            <Brain className="w-4 h-4" />
-            Questões IA
+            <Library className="w-4 h-4" />
+            Biblioteca
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/goals')}
+            data-testid="nav-goals"
+            className="flex items-center gap-2"
+          >
+            <Target className="w-4 h-4" />
+            Metas
           </Button>
           <Button
             variant="outline"
             onClick={() => navigate('/analytics')}
-            data-testid="tool-analytics"
+            data-testid="nav-analytics"
             className="flex items-center gap-2"
           >
             <BarChart3 className="w-4 h-4" />
             Analytics
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/quiz')}
-            data-testid="tool-quiz"
-            className="flex items-center gap-2"
-          >
-            <Zap className="w-4 h-4" />
-            Quiz Rápido
           </Button>
         </div>
       </div>
