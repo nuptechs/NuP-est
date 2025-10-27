@@ -18,8 +18,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Hint } from '@/components/ui/hint';
+import { HINTS } from '@/config/hints';
 import { 
   VoiceServiceFactory, 
   type IVoiceService, 
@@ -49,8 +49,7 @@ export function VoiceToggle({
   const voiceServiceRef = useRef<IVoiceService | null>(null);
   const { toast } = useToast();
 
-  const serviceType = isPremium ? 'whisper' : 'native';
-  const tierLabel = isPremium ? 'Premium ⭐' : 'Básico 🆓';
+  const hintContent = isPremium ? HINTS.voice.premium : HINTS.voice.basic;
 
   useEffect(() => {
     // Inicializar serviço
@@ -108,7 +107,7 @@ export function VoiceToggle({
     );
 
     toast({
-      title: `Modo voz ativado (${tierLabel})`,
+      title: `Modo voz ativado (${hintContent})`,
       description: isWhisper 
         ? 'Fale e clique novamente para transcrever'
         : 'Fale naturalmente, estarei ouvindo...',
@@ -193,56 +192,29 @@ export function VoiceToggle({
     return <MicOff className="h-4 w-4" />;
   };
 
-  const getHintContent = () => {
-    if (isPremium) {
-      return (
-        <div className="text-center">
-          <div className="font-semibold mb-1">⭐ Modo Premium</div>
-          <div className="text-xs opacity-90">
-            • OpenAI Whisper API<br/>
-            • Qualidade superior (~99%)<br/>
-            • Cross-browser<br/>
-            • Custo: $0.006/min
-          </div>
-        </div>
-      );
-    }
-    return (
-      <div className="text-center">
-        <div className="font-semibold mb-1">🆓 Modo Básico</div>
-        <div className="text-xs opacity-90">
-          • Web Speech API<br/>
-          • Gratuito<br/>
-          • Chrome/Edge apenas<br/>
-          • Qualidade padrão
-        </div>
-      </div>
-    );
+  const getTierColor = () => {
+    return isPremium ? 'bg-violet-500' : 'bg-emerald-500';
   };
 
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 shadow-sm">
+    <Hint content={hintContent} side="bottom">
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={handleToggle}
         disabled={disabled || !!error}
         data-testid="button-voice-toggle"
-        className="gap-2 h-7 px-2 hover:bg-transparent"
+        className="gap-2 relative"
       >
         {getButtonIcon()}
-        <span className="text-sm font-medium">Modo Voz</span>
+        <span>Modo Voz</span>
+        
+        {/* Indicador sutil de tier no canto superior direito */}
+        <span 
+          className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${getTierColor()} ring-2 ring-background shadow-sm`}
+          aria-hidden="true"
+        />
       </Button>
-
-      <Hint content={getHintContent()} side="bottom">
-        <Badge 
-          variant={isPremium ? 'default' : 'secondary'}
-          className="gap-1 text-xs cursor-help"
-          data-testid="badge-voice-tier"
-        >
-          {tierLabel}
-        </Badge>
-      </Hint>
-    </div>
+    </Hint>
   );
 }
