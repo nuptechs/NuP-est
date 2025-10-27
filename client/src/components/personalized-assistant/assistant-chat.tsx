@@ -440,7 +440,7 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
           {/* Voice Toggle */}
           <div className="flex justify-end">
             <VoiceToggle
-              isPremium={true}
+              isPremium={false}
               onTranscript={handleVoiceTranscript}
               disabled={sendMessage.isPending}
               language="pt-BR"
