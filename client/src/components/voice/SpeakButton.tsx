@@ -25,38 +25,43 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
   const { toast } = useToast();
 
   const handleSpeak = async () => {
-    // Modo básico não suporta TTS
-    if (!isPremium) {
-      toast({
-        title: "Recurso Premium",
-        description: "A síntese de voz está disponível apenas no plano Premium ⭐",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    console.log('[SpeakButton] Clicado - isPremium:', isPremium, 'isPlaying:', isPlaying);
+    
     // Se já está tocando, parar
-    if (isPlaying && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+    if (isPlaying) {
+      console.log('[SpeakButton] Parando áudio...');
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      // Para speechSynthesis também
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
       setIsPlaying(false);
       return;
     }
 
     setIsLoading(true);
+    console.log('[SpeakButton] Iniciando síntese...');
 
     try {
       const voiceService = VoiceServiceFactory.create(isPremium);
+      console.log('[SpeakButton] VoiceService criado:', voiceService.getMetadata().type);
       
       if (!isPremium) {
         // Modo Básico: speechSynthesis toca diretamente (não retorna áudio)
+        console.log('[SpeakButton] Usando modo básico - texto:', text.substring(0, 100) + '...');
         await voiceService.synthesize(text, voice);
+        console.log('[SpeakButton] Síntese iniciada (modo básico)');
         setIsPlaying(true);
         setIsLoading(false);
         
         // Simula "onended" - reseta após um tempo estimado
         const estimatedDuration = (text.length / 15) * 1000; // ~15 caracteres/segundo
+        console.log('[SpeakButton] Duração estimada:', estimatedDuration / 1000, 'segundos');
         setTimeout(() => {
+          console.log('[SpeakButton] Áudio finalizado (estimativa)');
           setIsPlaying(false);
         }, estimatedDuration);
       } else {
@@ -106,8 +111,9 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
       }
 
     } catch (error: any) {
-      console.error('[SpeakButton] Erro:', error);
+      console.error('[SpeakButton] Erro completo:', error);
       setIsLoading(false);
+      setIsPlaying(false);
       
       toast({
         title: "Erro na síntese de voz",
