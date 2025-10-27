@@ -11,13 +11,15 @@
 
 export const HINTS = {
   voice: {
-    basic: 'Básico 🆓',
-    premium: 'Premium ⭐',
+    native: 'Básico 🆓',
+    whisper: 'OpenAI Whisper ⭐',
+    deepgram: 'Deepgram ⚡',
   },
   
   tts: {
-    basic: 'Ouvir (Básico 🆓)',
-    premium: 'Ouvir (Premium ⭐)',
+    native: 'Ouvir (Básico 🆓)',
+    whisper: 'Ouvir (OpenAI ⭐)',
+    deepgram: 'Ouvir (Deepgram ⚡)',
   },
   
   // Adicione mais hints aqui conforme necessário

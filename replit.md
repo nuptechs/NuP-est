@@ -78,6 +78,7 @@ The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for co
 **Architecture Pattern: Strategy Pattern**
 - `IVoiceService` interface defines common contract for all voice implementations
 - `VoiceServiceFactory` selects appropriate implementation based on user plan
+- **Configuration**: Centralized in `client/src/services/voice/config.ts` for easy provider switching
 
 **Implementations:**
 
@@ -87,14 +88,26 @@ The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for co
    - **Cons**: Chrome/Edge only, quality varies, Google server dependency
    - **Use cases**: Prototyping, basic voice input for free users
 
-2. **WhisperVoiceService** (Premium - ⭐):
+2. **DeepgramVoiceService** (Premium - ⚡ **CURRENT**):
+   - **STT**: Deepgram Nova-3 ($0.0043/min) - 99% accuracy, <300ms latency
+   - **TTS**: Deepgram Aura - natural voice synthesis
+   - **Pros**: Best cost-benefit (40% cheaper than OpenAI), ultra-low latency (<300ms vs 2-4s), billing per second
+   - **Cons**: Limited TTS voices compared to OpenAI
+   - **Backend Routes**: 
+     - `POST /api/voice/transcribe-deepgram` - Audio → Text
+     - `POST /api/voice/synthesize-deepgram` - Text → Audio (2000 char limit)
+
+3. **WhisperVoiceService** (Premium - ⭐ Alternative):
    - **STT**: OpenAI Whisper API ($0.006/min) - superior accuracy (~99%)
-   - **TTS**: OpenAI TTS API ($0.015/1K chars) - natural voice synthesis
-   - **Pros**: Cross-browser, multilingual (50+ languages), professional quality
-   - **Cons**: Higher latency (~2-4s), requires backend, usage costs
+   - **TTS**: OpenAI TTS API ($0.015/1K chars) - 6 natural voices
+   - **Pros**: Cross-browser, multilingual (50+ languages), professional quality, more voice options
+   - **Cons**: Higher latency (~2-4s), more expensive
    - **Backend Routes**: 
      - `POST /api/voice/transcribe` - Audio → Text (25MB limit)
      - `POST /api/voice/synthesize` - Text → Audio (4096 char limit)
+
+**Quick Provider Switch:**
+Edit `client/src/services/voice/config.ts` → change `premiumProvider: 'deepgram'` to `'whisper'`
 
 **Integration:**
 - `VoiceToggle` component in AssistantChat shows tier indicator (Básico 🆓 / Premium ⭐)

@@ -5,7 +5,7 @@
  * Mantém consistência entre Native (gratuito) e Whisper (premium).
  */
 
-export type VoiceServiceType = 'native' | 'whisper';
+export type VoiceServiceType = 'native' | 'whisper' | 'deepgram';
 
 export interface VoiceConfig {
   language: string;
@@ -20,16 +20,21 @@ export interface TranscriptionResult {
 }
 
 export interface SynthesisResult {
-  audio: Blob | string; // Blob para native, base64 para Whisper
+  audio: Blob | string; // Blob para native, base64 para Whisper/Deepgram
+  audioData?: string; // Alias para compatibilidade
+  format?: string;
   duration?: number;
 }
 
 export interface VoiceServiceMetadata {
   type: VoiceServiceType;
-  isAvailable: boolean;
-  requiresNetwork: boolean;
-  supportedLanguages: string[];
-  features: {
+  name?: string;
+  description?: string;
+  tier?: 'free' | 'premium';
+  isAvailable?: boolean;
+  requiresNetwork?: boolean;
+  supportedLanguages?: string[];
+  features: string[] | {
     streaming: boolean;
     interim: boolean;
     punctuation: boolean;

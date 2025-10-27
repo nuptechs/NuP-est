@@ -49,7 +49,7 @@ export function VoiceToggle({
   const voiceServiceRef = useRef<IVoiceService | null>(null);
   const { toast } = useToast();
 
-  const hintContent = isPremium ? HINTS.voice.premium : HINTS.voice.basic;
+  const hintContent = isPremium ? HINTS.voice.deepgram : HINTS.voice.native;
 
   useEffect(() => {
     // Inicializar serviço

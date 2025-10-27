@@ -3139,6 +3139,137 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
     }
   });
 
+  /**
+   * POST /api/voice/transcribe-deepgram
+   * Transcreve áudio para texto usando Deepgram SDK
+   */
+  app.post('/api/voice/transcribe-deepgram', isAuthenticated, audioUpload.single('audio'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Arquivo de áudio não enviado" });
+      }
+
+      const apiKey = process.env.DEEPGRAM_API_KEY;
+
+      if (!apiKey) {
+        console.warn('[Deepgram/STT] DEEPGRAM_API_KEY não configurada');
+        return res.status(503).json({ error: "Serviço Deepgram indisponível" });
+      }
+
+      console.log(`[Deepgram/STT] Transcrevendo áudio: ${req.file.originalname}`);
+
+      const { createClient } = await import('@deepgram/sdk');
+      const deepgram = createClient(apiKey);
+
+      const audioBuffer = fs.readFileSync(req.file.path);
+
+      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+        audioBuffer,
+        {
+          model: 'nova-3',
+          language: 'pt-BR',
+          smart_format: true,
+          punctuate: true,
+        }
+      );
+
+      fs.unlinkSync(req.file.path);
+
+      if (error) {
+        console.error('[Deepgram/STT] Erro:', error);
+        return res.status(500).json({ error: 'Erro ao transcrever áudio' });
+      }
+
+      const transcript = result?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+      const confidence = result?.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0;
+
+      console.log(`[Deepgram/STT] Transcrição: "${transcript.substring(0, 100)}..."`);
+
+      res.json({
+        transcript,
+        confidence,
+      });
+    } catch (error: any) {
+      console.error("[Deepgram/STT] Erro:", error);
+      
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/voice/synthesize-deepgram
+   * Converte texto em áudio usando Deepgram SDK (Aura TTS)
+   */
+  app.post('/api/voice/synthesize-deepgram', isAuthenticated, async (req: any, res) => {
+    try {
+      const { text, voice = 'aura-asteria-en' } = req.body;
+
+      if (!text) {
+        return res.status(400).json({ error: "Texto não fornecido" });
+      }
+
+      if (text.length > 2000) {
+        return res.status(400).json({ error: "Texto muito longo. Máximo: 2000 caracteres" });
+      }
+
+      const apiKey = process.env.DEEPGRAM_API_KEY;
+
+      if (!apiKey) {
+        console.warn('[Deepgram/TTS] DEEPGRAM_API_KEY não configurada');
+        return res.status(503).json({ error: "Serviço Deepgram indisponível" });
+      }
+
+      console.log(`[Deepgram/TTS] Sintetizando ${text.length} caracteres com voz: ${voice}`);
+
+      const { createClient } = await import('@deepgram/sdk');
+      const deepgram = createClient(apiKey);
+
+      const response = await deepgram.speak.request(
+        { text },
+        {
+          model: voice,
+          encoding: 'mp3',
+        }
+      );
+
+      const stream = await response.getStream();
+      
+      if (!stream) {
+        throw new Error('Erro ao obter stream de áudio');
+      }
+
+      const chunks: Uint8Array[] = [];
+      const reader = stream.getReader();
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) chunks.push(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      const audioBuffer = Buffer.concat(chunks);
+      const base64Audio = audioBuffer.toString('base64');
+
+      console.log(`[Deepgram/TTS] Áudio gerado: ${audioBuffer.length} bytes`);
+
+      res.json({
+        audio: base64Audio,
+        voice,
+      });
+    } catch (error: any) {
+      console.error("[Deepgram/TTS] Erro:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Setup RAG routes
   setupRAGRoutes(app);
   

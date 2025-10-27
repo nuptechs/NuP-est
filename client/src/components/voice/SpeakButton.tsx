@@ -202,7 +202,7 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
     setIsLoading(false);
   };
 
-  const hintContent = isPremium ? HINTS.tts.premium : HINTS.tts.basic;
+  const hintContent = isPremium ? HINTS.tts.deepgram : HINTS.tts.native;
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
