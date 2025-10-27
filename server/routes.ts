@@ -1623,7 +1623,7 @@ ${text}`;
   app.post('/api/ai/generate-flashcards-from-material', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { materialId, title, description, subjectId, count } = req.body;
+      const { materialId, title, description, subjectId, count, includeMetadata } = req.body;
 
       if (!materialId) {
         return res.status(400).json({ message: "Material ID is required" });
@@ -1635,11 +1635,32 @@ ${text}`;
         return res.status(404).json({ message: "Material not found" });
       }
 
-      // Get material content
-      let content = material.content || "";
-      if (material.filePath && !content) {
-        // Extract content from file if not already stored
-        content = await aiService.extractTextFromFile(material.filePath);
+      // FASE 1: Get clean content from segment
+      let content = "";
+      const segments = await storage.getSegmentsByMaterial(materialId);
+      
+      if (segments && segments.length > 0) {
+        // Use cleanContent from segment (FASE 1 categorization)
+        const segment = segments[0]; // For now, use first segment (most materials have 1 full segment)
+        content = segment.cleanContent || "";
+        
+        // Optionally include pedagogical metadata if requested
+        if (includeMetadata && segment.pedagogicalMetadata) {
+          const metadataStr = JSON.stringify(segment.pedagogicalMetadata, null, 2);
+          content = `METADATA:\n${metadataStr}\n\nCONTENT:\n${content}`;
+        }
+        
+        console.log(`📚 Using FASE 1 cleanContent from segment (${content.length} chars)`);
+      } else {
+        // Fallback to legacy content extraction
+        console.log(`⚠️ No segment found for material ${materialId}, using legacy content`);
+        content = material.content || "";
+        if (material.processedFileId && !content) {
+          const processedFile = await db.select().from(processedFiles).where(eq(processedFiles.id, material.processedFileId)).limit(1);
+          if (processedFile[0]?.extractedContent) {
+            content = processedFile[0].extractedContent;
+          }
+        }
       }
 
       if (!content || content.trim().length === 0) {
