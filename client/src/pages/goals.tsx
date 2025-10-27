@@ -211,7 +211,7 @@ export default function Goals() {
                 <FormField control={goalForm.control} name="targetDate" render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Data Alvo (opcional)</FormLabel>
-                    <Popover>
+                    <Popover modal={false}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button 
@@ -393,7 +393,7 @@ export default function Goals() {
                 <FormField control={targetForm.control} name="deadline" render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Prazo (opcional)</FormLabel>
-                    <Popover>
+                    <Popover modal={false}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button 

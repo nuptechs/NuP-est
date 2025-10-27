@@ -1569,13 +1569,13 @@ export const insertStudentProfileTraitSchema = createInsertSchema(studentProfile
 
 // ========== END FASE 1 INSERT SCHEMAS ==========
 
-export const insertGoalSchema = createInsertSchema(goals).omit({
+export const insertGoalSchema = createInsertSchema(goals, {
+  targetDate: z.string().datetime().nullable().optional().transform((val) => 
+    val ? new Date(val) : null
+  ),
+}).omit({
   id: true,
   createdAt: true,
-}).extend({
-  targetDate: z.union([z.string(), z.date(), z.null()]).optional().transform((val) => 
-    val === null || val === undefined ? null : typeof val === 'string' ? new Date(val) : val
-  ),
 });
 
 export const insertTargetSchema = createInsertSchema(targets).omit({
