@@ -15,6 +15,11 @@ export const HINTS = {
     premium: 'Premium ⭐',
   },
   
+  tts: {
+    basic: 'Ouvir (Básico 🆓)',
+    premium: 'Ouvir (Premium ⭐)',
+  },
+  
   // Adicione mais hints aqui conforme necessário
   // Exemplo:
   // features: {

@@ -7,6 +7,8 @@
 
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Hint } from '@/components/ui/hint';
+import { HINTS } from '@/config/hints';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { VoiceServiceFactory } from '@/services/voice/VoiceServiceFactory';
 import { useToast } from '@/hooks/use-toast';
@@ -200,28 +202,32 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
     setIsLoading(false);
   };
 
+  const hintContent = isPremium ? HINTS.tts.premium : HINTS.tts.basic;
+
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <Button
-        onClick={handleSpeak}
-        size="sm"
-        variant="ghost"
-        disabled={isLoading}
-        data-testid="button-speak"
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isPaused ? (
-          <Volume2 className="h-4 w-4" />
-        ) : isPlaying ? (
-          <VolumeX className="h-4 w-4" />
-        ) : (
-          <Volume2 className="h-4 w-4" />
-        )}
-        <span className="ml-2 text-xs">
-          {isLoading ? 'Gerando...' : isPaused ? 'Continuar' : isPlaying ? 'Pausar' : 'Ouvir'}
-        </span>
-      </Button>
+      <Hint content={hintContent} side="top">
+        <Button
+          onClick={handleSpeak}
+          size="sm"
+          variant="ghost"
+          disabled={isLoading}
+          data-testid="button-speak"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isPaused ? (
+            <Volume2 className="h-4 w-4" />
+          ) : isPlaying ? (
+            <VolumeX className="h-4 w-4" />
+          ) : (
+            <Volume2 className="h-4 w-4" />
+          )}
+          <span className="ml-2 text-xs">
+            {isLoading ? 'Gerando...' : isPaused ? 'Continuar' : isPlaying ? 'Pausar' : 'Ouvir'}
+          </span>
+        </Button>
+      </Hint>
       
       {/* Botão de parar (apenas se estiver tocando ou pausado) */}
       {(isPlaying || isPaused) && (
