@@ -26,9 +26,11 @@ import {
   Play,
   RotateCcw,
   Lightbulb,
-  Target
+  Target,
+  Home
 } from "lucide-react";
 import type { Subject } from "@shared/schema";
+import type { BreadcrumbItem } from "@/components/ui/page-header";
 
 interface QuizQuestion {
   id: string;
@@ -194,8 +196,13 @@ export default function QuizPage() {
   const currentQ = quizState?.questions[quizState.currentIndex];
   const progress = quizState ? ((quizState.currentIndex + 1) / quizState.questions.length) * 100 : 0;
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: "Início", href: "/", icon: <Home className="h-4 w-4" /> },
+    { label: "Quiz", icon: <Brain className="h-4 w-4" /> }
+  ];
+
   return (
-    <UnifiedShell title="Quiz">
+    <UnifiedShell breadcrumbs={breadcrumbs}>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         <ModernPageHeader
           title="Quiz Interativo"

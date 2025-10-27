@@ -23,9 +23,11 @@ import {
   Target as TargetIcon,
   FileText,
   History,
-  CheckCircle2
+  CheckCircle2,
+  Home
 } from "lucide-react";
 import type { StudySession, Target, Subject } from "@shared/schema";
+import type { BreadcrumbItem } from "@/components/ui/page-header";
 
 export default function Analytics() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -145,8 +147,13 @@ export default function Analytics() {
 
   if (!isAuthenticated) return null;
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: "Início", href: "/", icon: <Home className="h-4 w-4" /> },
+    { label: "Analytics", icon: <BarChart3 className="h-4 w-4" /> }
+  ];
+
   return (
-    <UnifiedShell title="Analytics">
+    <UnifiedShell breadcrumbs={breadcrumbs}>
       <div className="max-w-6xl mx-auto p-6 space-y-8">
         {/* Page Header with Filter */}
         <div className="flex items-start justify-between gap-4">

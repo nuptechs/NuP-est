@@ -42,9 +42,11 @@ import {
   Loader2,
   Pencil,
   MoreVertical,
-  Search
+  Search,
+  Home
 } from "lucide-react";
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
+import type { BreadcrumbItem } from "@/components/ui/page-header";
 
 const createDeckSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -602,13 +604,30 @@ export default function Flashcards() {
     }
   };
 
+  // Build breadcrumbs for study view
+  const getStudyBreadcrumbs = (): BreadcrumbItem[] => {
+    return [
+      { label: "Início", href: "/", icon: <Home className="h-4 w-4" /> },
+      { label: "Flashcards", onClick: () => setActiveView('decks'), icon: <CreditCard className="h-4 w-4" /> },
+      { label: selectedDeck?.title || "Estudar" }
+    ];
+  };
+
+  // Build breadcrumbs for decks view
+  const getDecksBreadcrumbs = (): BreadcrumbItem[] => {
+    return [
+      { label: "Início", href: "/", icon: <Home className="h-4 w-4" /> },
+      { label: "Flashcards", icon: <CreditCard className="h-4 w-4" /> }
+    ];
+  };
+
   // Study View
   if (activeView === 'study' && selectedDeck && flashcards.length > 0) {
     const currentCard = flashcards[currentIndex];
     const progress = ((currentIndex + 1) / flashcards.length) * 100;
 
     return (
-      <UnifiedShell title="Estudar Flashcards">
+      <UnifiedShell breadcrumbs={getStudyBreadcrumbs()}>
         <div className="max-w-4xl mx-auto p-6 space-y-6">
           <div className="flex items-center justify-between">
             <Button
@@ -720,7 +739,7 @@ export default function Flashcards() {
   // Decks View
   return (
     <UnifiedShell
-      title="Flashcards"
+      breadcrumbs={getDecksBreadcrumbs()}
     >
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Search and Actions Bar */}

@@ -33,9 +33,11 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   Circle,
-  Flag
+  Flag,
+  Home
 } from "lucide-react";
 import type { Goal, Target as TargetType } from "@shared/schema";
+import type { BreadcrumbItem } from "@/components/ui/page-header";
 
 const goalSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -163,8 +165,14 @@ export default function Goals() {
 
   if (!isAuthenticated) return null;
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: "Início", href: "/", icon: <Home className="h-4 w-4" /> },
+    { label: "Metas", icon: <Target className="h-4 w-4" /> }
+  ];
+
   return (
     <UnifiedShell
+      breadcrumbs={breadcrumbs}
       title="Metas"
       actions={
         <Dialog open={goalModalOpen} onOpenChange={setGoalModalOpen}>

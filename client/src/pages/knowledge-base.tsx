@@ -26,9 +26,11 @@ import {
   Calendar,
   Filter,
   Plus,
-  Database
+  Database,
+  Home
 } from "lucide-react";
 import type { KnowledgeBase } from "@shared/schema";
+import type { BreadcrumbItem } from "@/components/ui/page-header";
 
 export default function KnowledgeBasePage() {
   const { toast } = useToast();
@@ -120,8 +122,13 @@ export default function KnowledgeBasePage() {
     if (file) setUploadData({ ...uploadData, file });
   };
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: "Início", href: "/", icon: <Home className="h-4 w-4" /> },
+    { label: "Base de Conhecimento", icon: <Database className="h-4 w-4" /> }
+  ];
+
   return (
-    <UnifiedShell title="Base de Conhecimento">
+    <UnifiedShell breadcrumbs={breadcrumbs}>
       <div className="p-6 space-y-6">
         <ModernPageHeader
           title="Base de Conhecimento"

@@ -28,9 +28,11 @@ import {
   History,
   CheckCircle2,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  Home
 } from "lucide-react";
 import type { Subject } from "@shared/schema";
+import type { BreadcrumbItem } from "@/components/ui/page-header";
 
 export default function Study() {
   const { toast } = useToast();
@@ -133,8 +135,13 @@ export default function Study() {
 
   if (!isAuthenticated) return null;
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: "Início", href: "/", icon: <Home className="h-4 w-4" /> },
+    { label: "Estudar", icon: <BookOpen className="h-4 w-4" /> }
+  ];
+
   return (
-    <UnifiedShell title="Estudar">
+    <UnifiedShell breadcrumbs={breadcrumbs}>
       <div className="max-w-6xl mx-auto p-6 space-y-8">
         {/* Page Header */}
         <ModernPageHeader
