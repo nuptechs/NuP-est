@@ -174,7 +174,7 @@ export const knowledgeAreas = pgTable("knowledge_areas", {
 export const subjects = pgTable("subjects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  areaId: varchar("area_id").references(() => knowledgeAreas.id, { onDelete: "set null" }),
+  areaId: varchar("area_id").notNull().references(() => knowledgeAreas.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   category: varchar("category").notNull(), // exatas, humanas, biologicas

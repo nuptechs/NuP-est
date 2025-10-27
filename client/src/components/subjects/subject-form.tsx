@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Subject } from "@shared/schema";
+import type { Subject, KnowledgeArea } from "@shared/schema";
 
 interface SubjectFormProps {
   subject?: Subject | null;
@@ -22,12 +22,18 @@ interface SubjectFormProps {
 const formSchema = insertSubjectSchema.omit({ userId: true }).extend({
   name: z.string().min(1, "Nome é obrigatório"),
   category: z.string().min(1, "Categoria é obrigatória"),
+  areaId: z.string().min(1, "Área é obrigatória"),
 });
 
 export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Buscar áreas disponíveis
+  const { data: areas = [] } = useQuery<KnowledgeArea[]>({
+    queryKey: ["/api/areas"],
+  });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -37,6 +43,7 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
       category: subject?.category || "",
       priority: subject?.priority || "medium",
       color: subject?.color || "#3b82f6",
+      areaId: subject?.areaId || areaId || "",
     },
   });
 
@@ -68,10 +75,7 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     if (!user) return;
-    createMutation.mutate({ 
-      ...data,
-      areaId: areaId || null
-    });
+    createMutation.mutate(data);
   };
 
   const { errors } = form.formState;
@@ -91,8 +95,41 @@ export default function SubjectForm({ subject, areaId, onSuccess }: SubjectFormP
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
+        <Label className="text-foreground font-medium">
+          Área de Conhecimento *
+        </Label>
+        <Select
+          value={form.watch("areaId")}
+          onValueChange={(value) => form.setValue("areaId", value)}
+          data-testid="select-subject-area"
+        >
+          <SelectTrigger className={errors.areaId ? "border-red-500" : ""}>
+            <SelectValue placeholder="Selecione uma área" />
+          </SelectTrigger>
+          <SelectContent>
+            {areas.length === 0 ? (
+              <SelectItem value="__none__" disabled>
+                Nenhuma área cadastrada
+              </SelectItem>
+            ) : (
+              areas.map((area) => (
+                <SelectItem key={area.id} value={area.id}>
+                  {area.name}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+        {errors.areaId && (
+          <p className="text-red-500 text-sm mt-1">
+            {errors.areaId.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="name" className="text-foreground font-medium">
-          Nome da Disciplina
+          Nome da Disciplina *
         </Label>
         <Input
           id="name"

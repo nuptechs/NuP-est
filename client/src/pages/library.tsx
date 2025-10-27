@@ -148,7 +148,7 @@ export default function Library() {
     queryKey: selectedAreaId 
       ? [`/api/subjects?areaId=${selectedAreaId}`]
       : ["/api/subjects"],
-    enabled: !!selectedAreaId || level === 'subjects',
+    enabled: !!selectedAreaId,
   });
 
   const { data: materials = [] } = useQuery<Material[]>({
@@ -160,12 +160,6 @@ export default function Library() {
 
   // Get selected subject for material color
   const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
-
-  // Buscar subjects sem área
-  const { data: allSubjects = [] } = useQuery<Subject[]>({
-    queryKey: ["/api/subjects"],
-    enabled: isAuthenticated && level === 'areas',
-  });
 
   // Navigation functions
   const navigateToSubjects = (areaId: string) => {
@@ -279,9 +273,7 @@ export default function Library() {
       breadcrumbs.push({ label: 'Biblioteca', icon: <BookOpen className="h-4 w-4" /> });
       breadcrumbs.push({ label: 'Áreas', icon: <Folder className="h-4 w-4" /> });
     } else if (level === 'subjects') {
-      const selectedArea = selectedAreaId === '__unassigned__' 
-        ? { name: 'Disciplinas sem Área', id: '__unassigned__' }
-        : areas.find(a => a.id === selectedAreaId);
+      const selectedArea = areas.find(a => a.id === selectedAreaId);
       
       breadcrumbs.push({ label: 'Home', href: '/dashboard' });
       breadcrumbs.push({ 
@@ -340,31 +332,8 @@ export default function Library() {
 
   // Get current data and config
   const getCurrentData = () => {
-    if (level === 'areas') {
-      // Incluir "Disciplinas sem Área" como uma área especial se existirem
-      const unassignedSubjects = allSubjects.filter(s => !s.areaId);
-      if (unassignedSubjects.length > 0) {
-        return [
-          ...areas,
-          {
-            id: '__unassigned__',
-            name: 'Disciplinas sem Área',
-            description: `${unassignedSubjects.length} disciplina(s) não associada(s) a nenhuma área`,
-            userId: '',
-            createdAt: new Date(),
-            color: '#94a3b8'
-          } as KnowledgeArea
-        ];
-      }
-      return areas;
-    }
-    if (level === 'subjects') {
-      // Se estiver visualizando "Disciplinas sem Área", filtrar apenas subjects sem area
-      if (selectedAreaId === '__unassigned__') {
-        return allSubjects.filter(s => !s.areaId);
-      }
-      return subjects;
-    }
+    if (level === 'areas') return areas;
+    if (level === 'subjects') return subjects;
     return materials;
   };
 
@@ -572,27 +541,24 @@ export default function Library() {
                         </div>
                       </div>
 
-                      {/* Não mostrar edição/delete para área especial "Disciplinas sem Área" */}
-                      {item.id !== '__unassigned__' && (
-                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(item)}
-                            data-testid={`button-edit-${item.id}`}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(item, level)}
-                            data-testid={`button-delete-${item.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(item)}
+                          data-testid={`button-edit-${item.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(item, level)}
+                          data-testid={`button-delete-${item.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </>
                   )}
                 </CardContent>
