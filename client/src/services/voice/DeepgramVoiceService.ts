@@ -96,6 +96,7 @@ export class DeepgramVoiceService implements IVoiceService {
 
           const response = await fetch('/api/voice/transcribe-deepgram', {
             method: 'POST',
+            credentials: 'include',
             body: formData,
           });
 
@@ -154,6 +155,7 @@ export class DeepgramVoiceService implements IVoiceService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ text, voice }),
       });
 
