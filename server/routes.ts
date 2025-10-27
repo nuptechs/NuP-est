@@ -595,6 +595,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`📚 Conteúdo já está no RAG (arquivo reutilizado)`);
       }
 
+      // FASE 1: Process content categorization if file has text content
+      if (processedFile && extractedContent && extractedContent.length > 100) {
+        try {
+          console.log(`🔍 Starting FASE 1 content categorization...`);
+          const categorizationResult = await processedFileService.processCategorization(
+            processedFile.id,
+            material.id,
+            originalFilename,
+            material.title
+          );
+          console.log(`✅ FASE 1 categorization complete: segment=${categorizationResult.segmentId}, topics=${categorizationResult.topicIds.length}`);
+        } catch (catError) {
+          console.error('⚠️ FASE 1 categorization failed (non-blocking):', catError);
+          // Continue even if categorization fails - it's not critical for material creation
+        }
+      }
+
       console.log(`✅ Upload concluído: "${material.title}"`);
       res.json({
         ...material,

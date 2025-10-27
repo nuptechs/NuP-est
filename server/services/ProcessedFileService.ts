@@ -176,6 +176,30 @@ export class ProcessedFileService {
   }> {
     console.log(`[ProcessedFileService] Starting categorization for: ${fileName}`);
     
+    // IDEMPOTENCY CHECK: If segments already exist for this material, skip categorization
+    const existingSegments = await db
+      .select()
+      .from(materialContentSegments)
+      .where(eq(materialContentSegments.materialId, materialId))
+      .limit(1);
+
+    if (existingSegments.length > 0) {
+      console.log(`[ProcessedFileService] Segment already exists for material ${materialId}, skipping categorization`);
+      
+      // Return existing segment data
+      const segment = existingSegments[0];
+      const topics = await db
+        .select()
+        .from(segmentTopics)
+        .where(eq(segmentTopics.segmentId, segment.id));
+      
+      return {
+        segmentId: segment.id,
+        contentSourceId: segment.contentSourceId || undefined,
+        topicIds: topics.map(t => t.id),
+      };
+    }
+    
     // Get the processed file to extract content
     const [processedFile] = await db
       .select()
