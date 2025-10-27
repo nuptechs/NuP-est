@@ -69,6 +69,41 @@ The system uses a **modular AI pipeline** with intelligent model selection:
 
 The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for content generation. External service integrations are centralized with a robust `AIManager` and `PineconeClient` featuring retry mechanisms, exponential backoff, circuit breakers, and comprehensive rate limit handling.
 
+## Voice Services (Freemium Feature)
+
+**Architecture Pattern: Strategy Pattern**
+- `IVoiceService` interface defines common contract for all voice implementations
+- `VoiceServiceFactory` selects appropriate implementation based on user plan
+
+**Implementations:**
+
+1. **NativeVoiceService** (Free Tier - 🆓 Básico):
+   - Uses browser Web Speech API
+   - **Pros**: Free, low latency, streaming transcription
+   - **Cons**: Chrome/Edge only, quality varies, Google server dependency
+   - **Use cases**: Prototyping, basic voice input for free users
+
+2. **WhisperVoiceService** (Premium - ⭐):
+   - **STT**: OpenAI Whisper API ($0.006/min) - superior accuracy (~99%)
+   - **TTS**: OpenAI TTS API ($0.015/1K chars) - natural voice synthesis
+   - **Pros**: Cross-browser, multilingual (50+ languages), professional quality
+   - **Cons**: Higher latency (~2-4s), requires backend, usage costs
+   - **Backend Routes**: 
+     - `POST /api/voice/transcribe` - Audio → Text (25MB limit)
+     - `POST /api/voice/synthesize` - Text → Audio (4096 char limit)
+
+**Integration:**
+- `VoiceToggle` component in AssistantChat shows tier indicator (Básico 🆓 / Premium ⭐)
+- Transcribed text auto-populates message input
+- Error handling with user-friendly feedback
+- Automatic cleanup of temporary audio files
+
+**Security:**
+- API keys secured in backend only
+- Audio uploads validated (format, size limits)
+- Authentication required for all voice endpoints
+- Premium enforcement prepared (commented TODOs for future activation)
+
 # External Dependencies
 
 ## Database & Storage
