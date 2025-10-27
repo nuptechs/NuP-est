@@ -269,10 +269,12 @@ export default function Library() {
     };
 
     if (level === 'areas') {
+      breadcrumbs.push({ label: 'Home', href: '/dashboard' });
       breadcrumbs.push({ label: 'Biblioteca', icon: <BookOpen className="h-4 w-4" /> });
       breadcrumbs.push({ label: 'Áreas', icon: <Folder className="h-4 w-4" /> });
     } else if (level === 'subjects') {
       const selectedArea = areas.find(a => a.id === selectedAreaId);
+      breadcrumbs.push({ label: 'Home', href: '/dashboard' });
       breadcrumbs.push({ 
         label: 'Biblioteca', 
         icon: <BookOpen className="h-4 w-4" />,
@@ -292,6 +294,7 @@ export default function Library() {
       breadcrumbs.push({ label: 'Disciplinas', icon: <BookOpen className="h-4 w-4" /> });
     } else if (level === 'materials') {
       const selectedArea = areas.find(a => a.id === selectedAreaId);
+      breadcrumbs.push({ label: 'Home', href: '/dashboard' });
       breadcrumbs.push({ 
         label: 'Biblioteca', 
         icon: <BookOpen className="h-4 w-4" />,
