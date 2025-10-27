@@ -2,16 +2,18 @@ import crypto from 'crypto';
 import fs from 'fs';
 import { eq } from 'drizzle-orm';
 import { db } from '../db.js';
-import { materials } from '@shared/schema';
+import { processedFiles } from '@shared/schema';
 
 export interface DeduplicationResult {
   hash: string;
   isDuplicate: boolean;
-  existingMaterial?: {
+  existingProcessedFile?: {
     id: string;
-    title: string;
-    filePath: string | null;
-    subjectId: string | null;
+    fileName: string;
+    filePath: string;
+    extractedContent: string | null;
+    aiGeneratedTitle: string | null;
+    aiGeneratedDescription: string | null;
     createdAt: Date | null;
   };
 }
@@ -35,43 +37,31 @@ export class FileDeduplicationService {
   }
 
   /**
-   * Checks if a file with the same hash already exists in the database
+   * Checks if a file with the same hash already exists in processed_files
    * @param fileHash - SHA-256 hash of the file
-   * @param userId - User ID to scope the search (optional)
    * @returns Promise<DeduplicationResult>
    */
-  async checkDuplicate(
-    fileHash: string, 
-    userId?: string
-  ): Promise<DeduplicationResult> {
+  async checkDuplicate(fileHash: string): Promise<DeduplicationResult> {
     try {
-      const conditions = [eq(materials.fileHash, fileHash)];
-      
-      if (userId) {
-        conditions.push(eq(materials.userId, userId));
-      }
-
-      const existingMaterials = await db
+      const existingFiles = await db
         .select({
-          id: materials.id,
-          title: materials.title,
-          filePath: materials.filePath,
-          subjectId: materials.subjectId,
-          createdAt: materials.createdAt,
+          id: processedFiles.id,
+          fileName: processedFiles.fileName,
+          filePath: processedFiles.filePath,
+          extractedContent: processedFiles.extractedContent,
+          aiGeneratedTitle: processedFiles.aiGeneratedTitle,
+          aiGeneratedDescription: processedFiles.aiGeneratedDescription,
+          createdAt: processedFiles.createdAt,
         })
-        .from(materials)
-        .where(conditions.length > 1 ? 
-          // @ts-ignore - Drizzle typing issue with multiple conditions
-          eq(materials.fileHash, fileHash) && eq(materials.userId, userId!) :
-          eq(materials.fileHash, fileHash)
-        )
+        .from(processedFiles)
+        .where(eq(processedFiles.fileHash, fileHash))
         .limit(1);
 
-      if (existingMaterials.length > 0) {
+      if (existingFiles.length > 0) {
         return {
           hash: fileHash,
           isDuplicate: true,
-          existingMaterial: existingMaterials[0],
+          existingProcessedFile: existingFiles[0],
         };
       }
 
@@ -91,48 +81,45 @@ export class FileDeduplicationService {
   /**
    * Complete deduplication check: generates hash and checks for duplicates
    * @param filePath - Path to the file
-   * @param userId - User ID to scope the search (optional)
    * @returns Promise<DeduplicationResult>
    */
-  async checkFileForDuplication(
-    filePath: string,
-    userId?: string
-  ): Promise<DeduplicationResult> {
+  async checkFileForDuplication(filePath: string): Promise<DeduplicationResult> {
     const hash = await this.generateFileHash(filePath);
-    return this.checkDuplicate(hash, userId);
+    return this.checkDuplicate(hash);
   }
 
   /**
-   * Checks if a file already exists for the current user
+   * Checks if a file already exists (has been processed before)
    * Returns true if duplicate, false otherwise
    * @param filePath - Path to the file
-   * @param userId - User ID
    * @returns Promise<boolean>
    */
-  async isDuplicateForUser(filePath: string, userId: string): Promise<boolean> {
-    const result = await this.checkFileForDuplication(filePath, userId);
+  async isDuplicate(filePath: string): Promise<boolean> {
+    const result = await this.checkFileForDuplication(filePath);
     return result.isDuplicate;
   }
 
   /**
-   * Get detailed duplicate information including all occurrences
+   * Get detailed duplicate information including all materials using this file
    * @param fileHash - SHA-256 hash of the file
-   * @returns Promise with array of all materials with the same hash
+   * @returns Promise with processed file details
    */
   async getDuplicateDetails(fileHash: string) {
     try {
       const duplicates = await db
         .select({
-          id: materials.id,
-          title: materials.title,
-          description: materials.description,
-          filePath: materials.filePath,
-          subjectId: materials.subjectId,
-          userId: materials.userId,
-          createdAt: materials.createdAt,
+          id: processedFiles.id,
+          fileName: processedFiles.fileName,
+          filePath: processedFiles.filePath,
+          fileType: processedFiles.fileType,
+          extractedContent: processedFiles.extractedContent,
+          aiGeneratedTitle: processedFiles.aiGeneratedTitle,
+          aiGeneratedDescription: processedFiles.aiGeneratedDescription,
+          referenceCount: processedFiles.referenceCount,
+          createdAt: processedFiles.createdAt,
         })
-        .from(materials)
-        .where(eq(materials.fileHash, fileHash));
+        .from(processedFiles)
+        .where(eq(processedFiles.fileHash, fileHash));
 
       return duplicates;
     } catch (error) {

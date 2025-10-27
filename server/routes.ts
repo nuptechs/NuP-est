@@ -34,6 +34,7 @@ import { knowledgeChunks } from "@shared/schema";
 import { db } from "./db";
 import { UploadConfig } from "./config/uploadConfig";
 import { fileDeduplicationService } from "./services/FileDeduplicationService";
+import { processedFileService } from "./services/ProcessedFileService";
 
 // Sistema de IA com injeção de dependência
 import { aiAnalyze, getAIManager } from './services/ai/index';
@@ -411,40 +412,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filePath = req.file.path;
       const originalFilename = req.file.originalname;
       const fileExt = path.extname(originalFilename).toLowerCase();
+      const fileSize = req.file.size;
 
       console.log(`📤 Smart upload iniciado: ${originalFilename}`);
 
-      // Check for duplicate files using hash
-      console.log(`🔍 Verificando duplicatas...`);
-      const deduplicationResult = await fileDeduplicationService.checkFileForDuplication(
-        filePath,
-        userId
-      );
+      // Generate file hash
+      console.log(`🔐 Gerando hash do arquivo...`);
+      const fileHash = await fileDeduplicationService.generateFileHash(filePath);
 
-      if (deduplicationResult.isDuplicate && deduplicationResult.existingMaterial) {
-        console.log(`⚠️ Arquivo duplicado detectado: ${deduplicationResult.existingMaterial.title}`);
-        
-        // Delete the uploaded file since it's a duplicate
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          console.error('Erro ao remover arquivo duplicado:', err);
-        }
-
-        return res.status(409).json({
-          message: "Este arquivo já foi enviado anteriormente",
-          duplicate: true,
-          existingMaterial: {
-            id: deduplicationResult.existingMaterial.id,
-            title: deduplicationResult.existingMaterial.title,
-            createdAt: deduplicationResult.existingMaterial.createdAt,
-          }
-        });
-      }
-
-      console.log(`✅ Arquivo não é duplicado (hash: ${deduplicationResult.hash.substring(0, 12)}...)`);
-
-      // Detect file type with expanded support
+      // Detect file type
       const FILE_TYPE_MAP: Record<string, string> = {
         '.pdf': 'pdf',
         '.doc': 'document',
@@ -475,61 +451,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const detectedType = FILE_TYPE_MAP[fileExt] || 'file';
       console.log(`🔍 Tipo detectado: ${detectedType} (${fileExt})`);
 
-      // Extract content when possible
+      // Check if file was already processed
+      const existingProcessedFile = await processedFileService.findByHash(fileHash);
+      
+      let processedFile;
       let extractedContent = '';
-      try {
-        if (['.txt', '.md', '.css', '.js', '.ts', '.html'].includes(fileExt)) {
-          extractedContent = fs.readFileSync(filePath, 'utf-8');
-          console.log(`📝 Conteúdo texto extraído: ${extractedContent.length} caracteres`);
-        } else if (['.pdf', '.docx'].includes(fileExt)) {
-          extractedContent = await aiService.extractTextFromFile(filePath);
-          console.log(`📝 Conteúdo extraído: ${extractedContent.length} caracteres`);
-        } else if (fileExt === '.doc') {
-          console.log('⚠️ Arquivos .DOC têm suporte limitado');
-          extractedContent = '';
-        } else {
-          console.log(`ℹ️ Extração de texto não suportada para ${fileExt}`);
+      let aiTitle = '';
+      let aiDescription = '';
+
+      if (existingProcessedFile) {
+        // File already processed - reuse it!
+        console.log(`♻️ Arquivo já processado anteriormente! Reutilizando processamento...`);
+        console.log(`   Arquivo original: ${existingProcessedFile.fileName}`);
+        console.log(`   Processado em: ${existingProcessedFile.createdAt}`);
+        
+        processedFile = existingProcessedFile;
+        extractedContent = existingProcessedFile.extractedContent || '';
+        aiTitle = existingProcessedFile.aiGeneratedTitle || originalFilename;
+        aiDescription = existingProcessedFile.aiGeneratedDescription || '';
+
+        // Delete the newly uploaded file since we already have it
+        try {
+          fs.unlinkSync(filePath);
+          console.log(`🗑️ Arquivo duplicado removido (já existe em: ${existingProcessedFile.filePath})`);
+        } catch (err) {
+          console.error('Erro ao remover arquivo duplicado:', err);
         }
-      } catch (err) {
-        console.error("Error extracting file content:", err);
-        extractedContent = '';
+
+        // Increment reference count
+        await processedFileService.incrementReference(existingProcessedFile.id);
+      } else {
+        // New file - process it
+        console.log(`🆕 Arquivo novo - processando...`);
+
+        // Extract content when possible
+        try {
+          if (['.txt', '.md', '.css', '.js', '.ts', '.html'].includes(fileExt)) {
+            extractedContent = fs.readFileSync(filePath, 'utf-8');
+            console.log(`📝 Conteúdo texto extraído: ${extractedContent.length} caracteres`);
+          } else if (['.pdf', '.docx'].includes(fileExt)) {
+            extractedContent = await aiService.extractTextFromFile(filePath);
+            console.log(`📝 Conteúdo extraído: ${extractedContent.length} caracteres`);
+          } else if (fileExt === '.doc') {
+            console.log('⚠️ Arquivos .DOC têm suporte limitado');
+            extractedContent = '';
+          } else {
+            console.log(`ℹ️ Extração de texto não suportada para ${fileExt}`);
+          }
+        } catch (err) {
+          console.error("Error extracting file content:", err);
+          extractedContent = '';
+        }
+
+        // Generate semantic title and description using AI
+        console.log(`✨ Gerando título semântico com IA...`);
+        const aiMetadata = await aiService.generateSemanticMetadata(
+          originalFilename,
+          extractedContent,
+          detectedType
+        );
+        
+        aiTitle = aiMetadata.title;
+        aiDescription = aiMetadata.description;
+
+        // Create processed file
+        processedFile = await processedFileService.create({
+          fileHash,
+          filePath,
+          fileName: originalFilename,
+          fileType: detectedType,
+          fileSize,
+          extractedContent,
+          aiGeneratedTitle: aiTitle,
+          aiGeneratedDescription: aiDescription,
+        });
+
+        console.log(`✅ Arquivo processado e salvo`);
       }
 
-      // Generate semantic title and description using AI
-      console.log(`✨ Gerando título semântico com IA...`);
-      const { title, description } = await aiService.generateSemanticMetadata(
-        originalFilename,
-        extractedContent,
-        detectedType
-      );
-
-      // Prepare material data with file hash
+      // Create user's material pointing to the processed file
       const materialData = {
         userId,
-        title,
-        description,
+        title: aiTitle,
+        description: aiDescription,
         type: detectedType,
-        filePath,
-        fileHash: deduplicationResult.hash,
-        content: extractedContent || undefined,
+        processedFileId: processedFile.id,
         subjectId: req.body.subjectId || undefined,
       };
 
       const validatedData = insertMaterialSchema.parse(materialData);
       const material = await storage.createMaterial(validatedData);
 
-      // Migrate to RAG if content is available
-      try {
-        if (material.content) {
-          await aiService.migrateToRAG(material, userId);
+      // Migrate to RAG if content is available (only for new files)
+      if (!existingProcessedFile && extractedContent) {
+        try {
+          // Create a temporary material object for RAG with content
+          const materialForRAG = { ...material, content: extractedContent };
+          await aiService.migrateToRAG(materialForRAG, userId);
           console.log(`📚 Material migrado para RAG: ${material.title}`);
+        } catch (error) {
+          console.log('⚠️ Falha na migração automática para RAG:', error);
         }
-      } catch (error) {
-        console.log('⚠️ Falha na migração automática para RAG:', error);
+      } else if (existingProcessedFile) {
+        console.log(`📚 Conteúdo já está no RAG (arquivo reutilizado)`);
       }
 
       console.log(`✅ Upload concluído: "${material.title}"`);
-      res.json(material);
+      res.json({
+        ...material,
+        wasReused: !!existingProcessedFile,
+        processingTime: existingProcessedFile ? 'instantâneo (reutilizado)' : 'processado agora',
+      });
     } catch (error) {
       console.error("Error in smart upload:", error);
       res.status(400).json({ message: "Failed to upload material: " + (error as Error).message });

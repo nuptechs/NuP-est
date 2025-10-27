@@ -129,7 +129,6 @@ export interface IStorage {
   // Material operations
   getMaterials(userId: string, subjectId?: string): Promise<Material[]>;
   getMaterial(id: string): Promise<Material | undefined>;
-  getMaterialByHash(fileHash: string, userId?: string): Promise<Material | undefined>;
   createMaterial(material: InsertMaterial): Promise<Material>;
   updateMaterial(id: string, userId: string, updates: Partial<InsertMaterial>): Promise<Material>;
   deleteMaterial(id: string, userId: string): Promise<void>;
@@ -522,15 +521,6 @@ export class DatabaseStorage implements IStorage {
 
   async getMaterial(id: string): Promise<Material | undefined> {
     const [material] = await db.select().from(materials).where(eq(materials.id, id));
-    return material;
-  }
-
-  async getMaterialByHash(fileHash: string, userId?: string): Promise<Material | undefined> {
-    const conditions = userId 
-      ? and(eq(materials.fileHash, fileHash), eq(materials.userId, userId))
-      : eq(materials.fileHash, fileHash);
-    
-    const [material] = await db.select().from(materials).where(conditions);
     return material;
   }
 
