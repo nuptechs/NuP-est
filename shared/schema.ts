@@ -196,23 +196,59 @@ export const topics = pgTable("topics", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Study materials
+// Processed files (shared across users for deduplication and efficiency)
+export const processedFiles = pgTable("processed_files", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fileHash: varchar("file_hash", { length: 64 }).notNull().unique(), // SHA-256 hash
+  filePath: text("file_path").notNull(), // Physical file location
+  fileName: text("file_name").notNull(), // Original filename
+  fileType: varchar("file_type").notNull(), // pdf, document, spreadsheet, etc.
+  fileSize: integer("file_size"), // Size in bytes
+  
+  // Extracted content (shared processing result)
+  extractedContent: text("extracted_content"),
+  
+  // AI-generated metadata (suggestions, user can override in materials)
+  aiGeneratedTitle: text("ai_generated_title"),
+  aiGeneratedDescription: text("ai_generated_description"),
+  
+  // Reference counting for safe deletion
+  referenceCount: integer("reference_count").notNull().default(1),
+  
+  // Processing metadata
+  processedAt: timestamp("processed_at").defaultNow(),
+  processingStatus: varchar("processing_status").default("completed"), // pending, processing, completed, failed
+  processingError: text("processing_error"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_processed_files_hash").on(table.fileHash),
+  index("idx_processed_files_status").on(table.processingStatus),
+]);
+
+// Study materials (user's personal organization of content)
 export const materials = pgTable("materials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
   topicId: varchar("topic_id").references(() => topics.id, { onDelete: "cascade" }),
+  
+  // User-customizable metadata
   title: text("title").notNull(),
   description: text("description"),
-  type: varchar("type").notNull(), // pdf, video, text, link
-  filePath: text("file_path"),
-  fileHash: varchar("file_hash", { length: 64 }), // SHA-256 hash for deduplication
+  type: varchar("type").notNull(), // pdf, document, spreadsheet, video, text, link, etc.
+  
+  // Reference to shared processed file (if file-based material)
+  processedFileId: varchar("processed_file_id").references(() => processedFiles.id, { onDelete: "set null" }),
+  
+  // For non-file materials (links, manual text entries)
   url: text("url"),
   content: text("content"),
+  
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
-  index("idx_materials_file_hash").on(table.fileHash),
   index("idx_materials_user_subject").on(table.userId, table.subjectId),
+  index("idx_materials_processed_file").on(table.processedFileId),
 ]);
 
 // Goals (macro objectives)
@@ -889,6 +925,10 @@ export const topicsRelations = relations(topics, ({ one, many }) => ({
   aiQuestions: many(aiQuestions),
 }));
 
+export const processedFilesRelations = relations(processedFiles, ({ many }) => ({
+  materials: many(materials),
+}));
+
 export const materialsRelations = relations(materials, ({ one, many }) => ({
   user: one(users, {
     fields: [materials.userId],
@@ -901,6 +941,10 @@ export const materialsRelations = relations(materials, ({ one, many }) => ({
   topic: one(topics, {
     fields: [materials.topicId],
     references: [topics.id],
+  }),
+  processedFile: one(processedFiles, {
+    fields: [materials.processedFileId],
+    references: [processedFiles.id],
   }),
   flashcardDecks: many(flashcardDecks),
 }));
@@ -1250,6 +1294,12 @@ export const insertTopicSchema = createInsertSchema(topics).omit({
   createdAt: true,
 });
 
+export const insertProcessedFileSchema = createInsertSchema(processedFiles).omit({
+  id: true,
+  createdAt: true,
+  processedAt: true,
+});
+
 export const insertMaterialSchema = createInsertSchema(materials).omit({
   id: true,
   createdAt: true,
@@ -1447,6 +1497,8 @@ export type Subject = typeof subjects.$inferSelect;
 export type InsertSubject = z.infer<typeof insertSubjectSchema>;
 export type Topic = typeof topics.$inferSelect;
 export type InsertTopic = z.infer<typeof insertTopicSchema>;
+export type ProcessedFile = typeof processedFiles.$inferSelect;
+export type InsertProcessedFile = z.infer<typeof insertProcessedFileSchema>;
 export type Material = typeof materials.$inferSelect;
 export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
 export type Goal = typeof goals.$inferSelect;
