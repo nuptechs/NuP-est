@@ -742,6 +742,39 @@ CONTEÚDO DE ESTUDO QUE DEVE SER USADO PARA CRIAR OS FLASHCARDS:
 ${content.substring(0, 6000)}${content.length > 6000 ? '...\n[conteúdo continua]' : ''}
 ---${existingContent}
 
+🎯 FILTRO DE RELEVÂNCIA PEDAGÓGICA - LEIA COM ATENÇÃO:
+
+❌ IGNORE COMPLETAMENTE (NÃO CRIE FLASHCARDS SOBRE):
+  • Biografias de professores, autores, instrutores ou palestrantes
+  • Formação acadêmica e experiência profissional de docentes
+  • Apresentações pessoais ("Olá, eu sou...", "Meu nome é...")
+  • Currículos e trajetórias profissionais de educadores
+  • Agradecimentos e dedicatórias
+  • Informações sobre a plataforma, curso ou instituição de ensino
+  • Detalhes administrativos (horários, cronograma, metodologia do curso)
+  • Introduções genéricas que não ensinam conceitos específicos
+  • Avisos, lembretes e orientações sobre como usar o material
+  • Informações sobre o palestrante/professor (cargo, aprovação em concurso, região de atuação)
+  • Descrições de "quem é" o instrutor ou "sobre o autor"
+
+✅ CRIE FLASHCARDS APENAS SOBRE:
+  • Conceitos teóricos fundamentais da matéria
+  • Definições técnicas e terminologia específica
+  • Processos, metodologias e procedimentos
+  • Fatos históricos, científicos ou jurídicos relevantes
+  • Fórmulas, cálculos e aplicações matemáticas
+  • Legislação, artigos, incisos e jurisprudência
+  • Princípios, teorias e fundamentos da área
+  • Casos práticos que exemplificam conceitos (não biografia)
+  • Exemplos educativos que ilustram aplicações reais
+  • Comparações, classificações e categorizações
+  • Requisitos, características e elementos essenciais
+  • Etapas de processos e fluxos de trabalho
+
+⚠️ TESTE DE RELEVÂNCIA: Antes de criar um flashcard, pergunte-se:
+  "Esta informação ajuda o aluno a dominar a MATÉRIA ou é apenas sobre quem a está ensinando?"
+  Se a resposta for "sobre quem ensina", DESCARTE.
+
 INSTRUÇÕES IMPORTANTES:
 - Os flashcards DEVEM ser baseados EXCLUSIVAMENTE no conteúdo fornecido acima
 - NÃO crie flashcards genéricos ou de conhecimento geral
@@ -749,6 +782,7 @@ INSTRUÇÕES IMPORTANTES:
 - Se o conteúdo contém exemplos, inclua-os nos flashcards
 - Identifique termos técnicos, nomes importantes, datas, processos explicados no texto
 - NÃO repita flashcards que já foram criados
+- APLIQUE RIGOROSAMENTE o filtro de relevância pedagógica acima
 
 FORMATAÇÃO OBRIGATÓRIA (use Markdown):
 
