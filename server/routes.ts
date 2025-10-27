@@ -8,7 +8,6 @@ import { aiService } from "./services/ai";
 import { ragService } from "./services/rag";
 import { setupRAGRoutes } from "./routes/rag";
 import { externalProcessingRouter } from "./routes/externalProcessing";
-import { eq } from "drizzle-orm";
 import { 
   insertKnowledgeAreaSchema,
   insertSubjectSchema, 
@@ -30,8 +29,9 @@ import {
   submitAnswerRequestSchema
 } from "@shared/schema";
 import { embeddingsService } from "./services/embeddings";
-import { knowledgeChunks } from "@shared/schema";
+import { knowledgeChunks, materials, processedFiles } from "@shared/schema";
 import { db } from "./db";
+import { sql, eq } from "drizzle-orm";
 import { UploadConfig } from "./config/uploadConfig";
 import { fileDeduplicationService } from "./services/FileDeduplicationService";
 import { processedFileService } from "./services/ProcessedFileService";
@@ -458,6 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let extractedContent = '';
       let aiTitle = '';
       let aiDescription = '';
+      let isReusedFile = false;
 
       if (existingProcessedFile) {
         // File already processed - reuse it!
@@ -469,6 +470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         extractedContent = existingProcessedFile.extractedContent || '';
         aiTitle = existingProcessedFile.aiGeneratedTitle || originalFilename;
         aiDescription = existingProcessedFile.aiGeneratedDescription || '';
+        isReusedFile = true;
 
         // Delete the newly uploaded file since we already have it
         try {
@@ -478,8 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Erro ao remover arquivo duplicado:', err);
         }
 
-        // Increment reference count
-        await processedFileService.incrementReference(existingProcessedFile.id);
+        // NOTE: Reference count increment will happen AFTER material is successfully created
       } else {
         // New file - process it
         console.log(`🆕 Arquivo novo - processando...`);
@@ -514,36 +515,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiTitle = aiMetadata.title;
         aiDescription = aiMetadata.description;
 
-        // Create processed file
-        processedFile = await processedFileService.create({
-          fileHash,
-          filePath,
-          fileName: originalFilename,
-          fileType: detectedType,
-          fileSize,
-          extractedContent,
-          aiGeneratedTitle: aiTitle,
-          aiGeneratedDescription: aiDescription,
-        });
-
-        console.log(`✅ Arquivo processado e salvo`);
+        console.log(`✅ Arquivo processado (aguardando criação no banco)`);
       }
 
-      // Create user's material pointing to the processed file
+      // Prepare material data and validate BEFORE transaction
       const materialData = {
         userId,
         title: aiTitle,
         description: aiDescription,
         type: detectedType,
-        processedFileId: processedFile.id,
+        processedFileId: processedFile?.id, // Will be set inside transaction for new files
         subjectId: req.body.subjectId || undefined,
       };
-
+      
+      // Validate data OUTSIDE transaction to avoid leaving orphaned rows on validation errors
       const validatedData = insertMaterialSchema.parse(materialData);
-      const material = await storage.createMaterial(validatedData);
+      
+      // Create material and processed file atomically in a transaction
+      let material;
+      try {
+        material = await db.transaction(async (tx) => {
+          // For new files, create processed file first (within transaction)
+          if (!isReusedFile) {
+            const processedFileData = {
+              fileHash,
+              filePath,
+              fileName: originalFilename,
+              fileType: detectedType,
+              fileSize,
+              extractedContent,
+              aiGeneratedTitle: aiTitle,
+              aiGeneratedDescription: aiDescription,
+              referenceCount: 1,
+              processingStatus: 'completed' as const,
+            };
+            
+            const [newProcessedFile] = await tx.insert(processedFiles).values(processedFileData).returning();
+            processedFile = newProcessedFile;
+            validatedData.processedFileId = newProcessedFile.id;
+          }
+          
+          // Create material
+          const [newMaterial] = await tx.insert(materials).values(validatedData).returning();
+          
+          // Increment reference count if reusing file (atomically with material creation)
+          if (isReusedFile && processedFile) {
+            await tx
+              .update(processedFiles)
+              .set({ referenceCount: sql`${processedFiles.referenceCount} + 1` })
+              .where(eq(processedFiles.id, processedFile.id));
+          }
+          
+          return newMaterial;
+        });
+      } catch (txError) {
+        // Transaction failed - cleanup uploaded file if it's a new file
+        if (!isReusedFile && filePath && fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+            console.log(`🗑️ Arquivo temporário removido após erro na transação`);
+          } catch (cleanupErr) {
+            console.error('Erro ao limpar arquivo após falha:', cleanupErr);
+          }
+        }
+        throw txError;
+      }
 
       // Migrate to RAG if content is available (only for new files)
-      if (!existingProcessedFile && extractedContent) {
+      if (!isReusedFile && extractedContent) {
         try {
           // Create a temporary material object for RAG with content
           const materialForRAG = { ...material, content: extractedContent };
@@ -552,15 +591,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (error) {
           console.log('⚠️ Falha na migração automática para RAG:', error);
         }
-      } else if (existingProcessedFile) {
+      } else if (isReusedFile) {
         console.log(`📚 Conteúdo já está no RAG (arquivo reutilizado)`);
       }
 
       console.log(`✅ Upload concluído: "${material.title}"`);
       res.json({
         ...material,
-        wasReused: !!existingProcessedFile,
-        processingTime: existingProcessedFile ? 'instantâneo (reutilizado)' : 'processado agora',
+        wasReused: isReusedFile,
+        processingTime: isReusedFile ? 'instantâneo (reutilizado)' : 'processado agora',
       });
     } catch (error) {
       console.error("Error in smart upload:", error);
@@ -577,6 +616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // If file was uploaded, process it
+      let fileUploadData: any = null;
       if (req.file) {
         const filePath = req.file.path;
         const originalFilename = req.file.originalname;
@@ -590,30 +630,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const detectedType = fileExt.substring(1);
         
         // Check if file was already processed
-        const { processedFile, isNew } = await processedFileService.getOrCreate({
-          fileHash,
-          filePath,
-          fileName: originalFilename,
-          fileType: detectedType,
-          fileSize,
-        });
-
-        if (!isNew) {
+        const existingProcessedFile = await processedFileService.findByHash(fileHash);
+        
+        if (existingProcessedFile) {
           // Delete uploaded file since we already have it
           try {
             fs.unlinkSync(filePath);
-            console.log(`🗑️ Arquivo duplicado removido (reutilizando: ${processedFile.filePath})`);
+            console.log(`🗑️ Arquivo duplicado removido (reutilizando: ${existingProcessedFile.filePath})`);
           } catch (err) {
             console.error('Erro ao remover arquivo duplicado:', err);
           }
+          
+          fileUploadData = {
+            processedFileId: existingProcessedFile.id,
+            type: detectedType,
+            isReused: true,
+          };
+        } else {
+          // New file - will be created in transaction
+          fileUploadData = {
+            isReused: false,
+            type: detectedType,
+            processedFileData: {
+              fileHash,
+              filePath,
+              fileName: originalFilename,
+              fileType: detectedType,
+              fileSize,
+              referenceCount: 1,
+              processingStatus: 'completed' as const,
+            }
+          };
         }
         
-        materialData.processedFileId = processedFile.id;
         materialData.type = detectedType;
       }
 
+      // Set processedFileId if reusing
+      if (fileUploadData && fileUploadData.isReused) {
+        materialData.processedFileId = fileUploadData.processedFileId;
+      }
+      
+      // Validate data OUTSIDE transaction to avoid leaving orphaned rows on validation errors
       const validatedData = insertMaterialSchema.parse(materialData);
-      const material = await storage.createMaterial(validatedData);
+      
+      // Create material and processed file atomically in a transaction
+      let material;
+      let tempFilePath = fileUploadData && !fileUploadData.isReused ? fileUploadData.processedFileData.filePath : null;
+      
+      try {
+        material = await db.transaction(async (tx) => {
+          // For new files, create processed file first (within transaction)
+          if (fileUploadData && !fileUploadData.isReused) {
+            const [newProcessedFile] = await tx.insert(processedFiles).values(fileUploadData.processedFileData).returning();
+            validatedData.processedFileId = newProcessedFile.id;
+          }
+          
+          // Create material
+          const [newMaterial] = await tx.insert(materials).values(validatedData).returning();
+          
+          // Increment reference count if reusing file (atomically with material creation)
+          if (fileUploadData && fileUploadData.isReused) {
+            await tx
+              .update(processedFiles)
+              .set({ referenceCount: sql`${processedFiles.referenceCount} + 1` })
+              .where(eq(processedFiles.id, fileUploadData.processedFileId));
+          }
+          
+          return newMaterial;
+        });
+      } catch (txError) {
+        // Transaction failed - cleanup uploaded file if it's a new file
+        if (tempFilePath && fs.existsSync(tempFilePath)) {
+          try {
+            fs.unlinkSync(tempFilePath);
+            console.log(`🗑️ Arquivo temporário removido após erro na transação`);
+          } catch (cleanupErr) {
+            console.error('Erro ao limpar arquivo após falha:', cleanupErr);
+          }
+        }
+        throw txError;
+      }
       
       res.json(material);
     } catch (error) {

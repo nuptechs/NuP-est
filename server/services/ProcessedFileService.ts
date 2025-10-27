@@ -117,8 +117,8 @@ export class ProcessedFileService {
 
   /**
    * Get or create processed file
-   * - If file with same hash exists, increment reference and return it
-   * - If not, create new processed file
+   * - If file with same hash exists, return it (caller must increment reference count)
+   * - If not, create new processed file (with initial reference count of 1)
    */
   async getOrCreate(options: CreateProcessedFileOptions): Promise<{
     processedFile: ProcessedFile;
@@ -127,8 +127,8 @@ export class ProcessedFileService {
     const existing = await this.findByHash(options.fileHash);
 
     if (existing) {
-      // File already processed - increment reference count
-      await this.incrementReference(existing.id);
+      // File already processed - return it
+      // NOTE: Caller must increment reference count AFTER successfully creating their material
       console.log(`[ProcessedFileService] Reusing existing processed file: ${existing.fileName} (hash: ${existing.fileHash.substring(0, 12)}...)`);
       
       return {
@@ -137,7 +137,7 @@ export class ProcessedFileService {
       };
     }
 
-    // New file - create processed file entry
+    // New file - create processed file entry with initial reference count of 1
     const processedFile = await this.create(options);
     console.log(`[ProcessedFileService] Created new processed file: ${processedFile.fileName} (hash: ${processedFile.fileHash.substring(0, 12)}...)`);
     
