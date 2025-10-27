@@ -2640,6 +2640,17 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
     }
   });
   
+  // Helper: Convert string level to decimal value
+  const levelToDecimal = (level?: string): string | null => {
+    if (!level) return null;
+    const mapping: Record<string, string> = {
+      'high': '1.0',
+      'medium': '0.5',
+      'low': '0.25',
+    };
+    return mapping[level.toLowerCase()] || null;
+  };
+  
   // Endpoint: Update profile based on interaction
   app.post('/api/profile/interaction', isAuthenticated, async (req: any, res) => {
     try {
@@ -2655,14 +2666,18 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         return res.status(403).json({ message: "Unauthorized" });
       }
       
+      // Convert string levels to decimal values
+      const engagement = levelToDecimal(validatedData.engagement);
+      const comprehension = levelToDecimal(validatedData.comprehension);
+      
       // Log interaction
       const interaction = await storage.createInteractionLog({
         userId,
         assistantId: validatedData.assistantId,
         interactionType: validatedData.interactionType,
         discoveries: validatedData.interactionData,
-        engagementLevel: validatedData.engagement || null,
-        comprehensionLevel: validatedData.comprehension || null,
+        engagementLevel: engagement,
+        comprehensionLevel: comprehension,
       });
       
       // Initialize service with StudentProfileGenerator
@@ -2676,8 +2691,8 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         {
           interactionType: validatedData.interactionType,
           discoveries: validatedData.interactionData,
-          engagementLevel: validatedData.engagement ? parseFloat(validatedData.engagement) : undefined,
-          comprehensionLevel: validatedData.comprehension ? parseFloat(validatedData.comprehension) : undefined,
+          engagementLevel: engagement ? parseFloat(engagement) : undefined,
+          comprehensionLevel: comprehension ? parseFloat(comprehension) : undefined,
         }
       );
       
