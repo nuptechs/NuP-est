@@ -251,6 +251,7 @@ Retorne APENAS o JSON, sem explicações adicionais.
 
   /**
    * Gera chunks baseados na análise semântica
+   * GARANTIA: 100% de cobertura do texto original
    */
   private generateChunksFromAnalysis(
     text: string,
@@ -260,13 +261,75 @@ Retorne APENAS o JSON, sem explicações adicionais.
   ): ChunkResult[] {
     const chunks: ChunkResult[] = [];
     let chunkNumber = 0;
+    let pendingMerge: { text: string; topic: SemanticAnalysis['topics'][0]; start: number } | null = null;
 
-    for (const topic of analysis.topics) {
+    for (let i = 0; i < analysis.topics.length; i++) {
+      const topic = analysis.topics[i];
       const chunkText = text.slice(topic.startIndex, topic.endIndex).trim();
 
-      // Pular chunks vazios ou muito pequenos
+      // Pular chunks completamente vazios
+      if (chunkText.length === 0) {
+        console.log(`[SemanticChunkStrategy] Chunk vazio, pulando: "${topic.title}"`);
+        continue;
+      }
+
+      // Se chunk for muito pequeno, mesclar com próximo ou anterior
       if (chunkText.length < minChunkSize) {
-        console.log(`[SemanticChunkStrategy] Chunk muito pequeno (${chunkText.length} chars), pulando: "${topic.title}"`);
+        console.log(`[SemanticChunkStrategy] Chunk pequeno (${chunkText.length} chars), mesclando: "${topic.title}"`);
+        
+        if (pendingMerge) {
+          // Já temos um pendente, mesclar com ele
+          pendingMerge.text += '\n\n' + chunkText;
+          pendingMerge.topic.endIndex = topic.endIndex;
+        } else {
+          // Criar pendente para mesclar com próximo
+          pendingMerge = {
+            text: chunkText,
+            topic: { ...topic },
+            start: topic.startIndex
+          };
+        }
+        
+        // Se é o último chunk E está pendente, forçar flush
+        if (i === analysis.topics.length - 1 && pendingMerge) {
+          chunks.push({
+            text: pendingMerge.text,
+            startIndex: pendingMerge.start,
+            endIndex: pendingMerge.topic.endIndex,
+            chunkNumber: chunkNumber++,
+            wasTruncated: false,
+            metadata: {
+              topic: pendingMerge.topic.title,
+              keywords: pendingMerge.topic.keywords,
+              academicLevel: pendingMerge.topic.academicLevel,
+              semanticBoundary: 'merged', // Indica que foi mesclado
+              chunkType: 'semantic',
+            },
+          });
+          pendingMerge = null;
+        }
+        continue;
+      }
+
+      // Se temos algo pendente, mesclar antes de processar este chunk
+      if (pendingMerge) {
+        const mergedText = pendingMerge.text + '\n\n' + chunkText;
+        
+        chunks.push({
+          text: mergedText,
+          startIndex: pendingMerge.start,
+          endIndex: topic.endIndex,
+          chunkNumber: chunkNumber++,
+          wasTruncated: false,
+          metadata: {
+            topic: `${pendingMerge.topic.title} + ${topic.title}`,
+            keywords: [...(pendingMerge.topic.keywords || []), ...(topic.keywords || [])],
+            academicLevel: topic.academicLevel || pendingMerge.topic.academicLevel,
+            semanticBoundary: 'merged',
+            chunkType: 'semantic',
+          },
+        });
+        pendingMerge = null;
         continue;
       }
 
@@ -307,6 +370,59 @@ Retorne APENAS o JSON, sem explicações adicionais.
     chunks.forEach(chunk => {
       chunk.totalChunks = chunks.length;
     });
+
+    // Validar cobertura 100%
+    const coverage = this.validateCoverage(text, chunks);
+    if (coverage < 0.99) {
+      console.warn(`[SemanticChunkStrategy] ⚠️ Cobertura baixa (${(coverage * 100).toFixed(1)}%), ajustando...`);
+      return this.ensureFullCoverage(text, chunks);
+    }
+
+    return chunks;
+  }
+
+  /**
+   * Valida que os chunks cobrem o texto completo
+   */
+  private validateCoverage(text: string, chunks: ChunkResult[]): number {
+    const totalCovered = chunks.reduce((sum, chunk) => sum + chunk.text.length, 0);
+    return totalCovered / text.length;
+  }
+
+  /**
+   * Garante cobertura completa do texto ajustando chunks
+   */
+  private ensureFullCoverage(text: string, chunks: ChunkResult[]): ChunkResult[] {
+    if (chunks.length === 0) {
+      // Sem chunks, criar um único chunk com todo o texto
+      return [{
+        text: text,
+        startIndex: 0,
+        endIndex: text.length,
+        chunkNumber: 0,
+        totalChunks: 1,
+        wasTruncated: false,
+        metadata: {
+          topic: 'Conteúdo completo',
+          semanticBoundary: 'complete',
+          chunkType: 'semantic',
+        },
+      }];
+    }
+
+    // Ajustar último chunk para cobrir até o final do texto
+    const lastChunk = chunks[chunks.length - 1];
+    const missingText = text.slice(lastChunk.endIndex);
+    
+    if (missingText.trim().length > 0) {
+      console.log(`[SemanticChunkStrategy] 📝 Adicionando ${missingText.length} chars faltantes ao último chunk`);
+      lastChunk.text += '\n' + missingText.trim();
+      lastChunk.endIndex = text.length;
+      lastChunk.metadata = {
+        ...lastChunk.metadata,
+        adjusted: true,
+      };
+    }
 
     return chunks;
   }

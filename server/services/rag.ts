@@ -261,8 +261,8 @@ INSTRUÇÕES:
     try {
       console.log(`📝 RAG: Adicionando documento "${title}" à base...`);
 
-      // 1. Dividir conteúdo em chunks inteligentes
-      const chunks = this.splitIntoChunks(content);
+      // 1. Dividir conteúdo em chunks inteligentes usando análise semântica com IA
+      const chunks = await this.splitIntoChunks(content);
       
       // 2. Adicionar ao Pinecone
       await pineconeService.upsertDocument(documentId, chunks, {
@@ -293,9 +293,46 @@ INSTRUÇÕES:
   }
 
   /**
-   * Divide texto em chunks inteligentes
+   * Divide texto em chunks inteligentes usando análise semântica com IA
+   * Migrado para usar TextChunker com perfil 'semantic-default'
    */
-  private splitIntoChunks(text: string, maxChunkSize: number = 1000): { content: string; chunkIndex: number }[] {
+  private async splitIntoChunks(text: string): Promise<{ content: string; chunkIndex: number }[]> {
+    // Importar TextChunker dinamicamente
+    const { TextChunker } = await import('./chunking/TextChunker');
+    
+    console.log(`🧩 [RAG] Usando chunking semântico com IA para melhor qualidade...`);
+    
+    try {
+      // Usar perfil semantic-default (IA identifica quebras semânticas)
+      const chunkResults = await TextChunker.chunk(text, 'semantic-default');
+      
+      // Converter para formato esperado pelo Pinecone service
+      const chunks = chunkResults.map((result, index) => ({
+        content: result.text,
+        chunkIndex: index,
+        metadata: result.metadata // Preservar metadados semânticos
+      }));
+      
+      console.log(`✅ [RAG] ${chunks.length} chunks semânticos gerados`);
+      return chunks;
+      
+    } catch (error) {
+      console.warn(`⚠️ [RAG] Falha no chunking semântico, usando fallback sentence-aware:`, error);
+      
+      // Fallback: usar sentence-aware strategy se IA falhar
+      const chunkResults = await TextChunker.chunk(text, 'rag-default');
+      return chunkResults.map((result, index) => ({
+        content: result.text,
+        chunkIndex: index
+      }));
+    }
+  }
+  
+  /**
+   * DEPRECATED: Método antigo de chunking (mantido para referência)
+   * Usar splitIntoChunks() que agora usa TextChunker semântico
+   */
+  private _splitIntoChunksLegacy(text: string, maxChunkSize: number = 1000): { content: string; chunkIndex: number }[] {
     const chunks: { content: string; chunkIndex: number }[] = [];
     
     // Dividir por parágrafos primeiro

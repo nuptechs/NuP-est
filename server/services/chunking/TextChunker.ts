@@ -36,9 +36,16 @@ import type {
 import { CHUNK_PROFILES } from './types';
 import { SentenceAwareChunkStrategy } from './strategies/SentenceAwareChunkStrategy';
 import { SimpleLimitChunkStrategy } from './strategies/SimpleLimitChunkStrategy';
+import { SemanticChunkStrategy } from './strategies/SemanticChunkStrategy';
 
 export class TextChunker {
   private static strategies: Map<string, IChunkingStrategy> = new Map<string, IChunkingStrategy>();
+  
+  static {
+    this.registerStrategy(new SentenceAwareChunkStrategy());
+    this.registerStrategy(new SimpleLimitChunkStrategy());
+    this.registerStrategy(new SemanticChunkStrategy());
+  }
 
   /**
    * Divide texto em chunks usando perfil ou configuração customizada

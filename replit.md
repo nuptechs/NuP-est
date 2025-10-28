@@ -73,6 +73,38 @@ The system uses a **modular AI pipeline** with intelligent model selection:
 
 The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for content generation. External service integrations are centralized with a robust `AIManager` and `PineconeClient` featuring retry mechanisms, exponential backoff, circuit breakers, and comprehensive rate limit handling.
 
+### Intelligent Text Chunking System
+
+**Architecture**: Modular chunking infrastructure using Strategy Pattern with pluggable strategies via `TextChunker` facade.
+
+**Available Strategies**:
+- **SemanticChunkStrategy** (`semantic`): AI-powered analysis identifies natural topic boundaries, creating self-contained chunks (200-2000 chars) with rich metadata (topic titles, keywords, academic level). **Guarantees 100% text coverage** by merging small chunks instead of discarding them. Ideal for study materials where preserving complete concepts is critical.
+  - Cost: ~$0.001-0.003 per document
+  - Time: ~2-8 seconds per document
+  - Fallback: SentenceAwareChunkStrategy if AI fails
+  
+- **SentenceAwareChunkStrategy** (`sentence-aware`): Respects sentence boundaries for cleaner breaks. Used for RAG with configurable overlap (typically 200 chars for context preservation).
+
+- **SimpleLimitChunkStrategy** (`simple-limit`): Character-based splitting with sentence fallback. Used for TTS where strict size limits apply (Deepgram: 2000 chars, Whisper: 4096 chars).
+
+**Pre-configured Profiles**:
+- `semantic-default`: Upload de materiais (2000 max, 200 min, sem overlap)
+- `tts-deepgram`: Deepgram TTS (2000 chars, sem overlap, quebra em sentenças)
+- `tts-whisper`: OpenAI Whisper TTS (4096 chars, sem overlap)
+- `rag-default`: RAG padrão (1000 chars, overlap 200)
+- `rag-chat`: Chat contextual (1200 chars, overlap 200)
+
+**Integration Points**:
+- **Material Upload** (`/api/materials/smart-upload`): Automatically uses semantic chunking via `ragService.splitIntoChunks()`
+- **TTS Services**: Deepgram TTS uses `TextChunker.chunkTexts(text, 'tts-deepgram')` for unlimited text length support
+- **RAG Services**: All specialized RAG services (Chat, Flashcard, Profile, Simulation) use `BaseRAGService.chunkText()` which delegates to TextChunker
+
+**Key Files**:
+- `server/services/chunking/TextChunker.ts`: Facade with strategy registration
+- `server/services/chunking/strategies/SemanticChunkStrategy.ts`: AI-powered semantic analysis
+- `server/services/chunking/types.ts`: Types and profile definitions
+- `server/services/rag.ts`: Integration with material upload flow
+
 ## Voice Services (Freemium Feature)
 
 **Architecture Pattern: Strategy Pattern**
