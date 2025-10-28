@@ -90,7 +90,7 @@ export interface ChunkResult {
     academicLevel?: 'básico' | 'intermediário' | 'avançado';
     
     /** Tipo de fronteira semântica */
-    semanticBoundary?: 'complete' | 'merged' | 'split_part';
+    semanticBoundary?: 'complete' | 'merged' | 'split_part' | 'gap-filled' | 'gap-analyzed' | 'gap-fallback';
     
     /** Tipo de chunk */
     chunkType?: 'semantic' | 'sentence-aware' | 'simple';

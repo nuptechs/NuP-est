@@ -107,7 +107,7 @@ export class SemanticChunkStrategy implements IChunkingStrategy {
 
       // Gerar chunks baseados nos tópicos identificados
       const analysis: SemanticAnalysis = { topics: allTopics };
-      const chunks = this.generateChunksFromAnalysis(text, analysis, minChunkSize, maxChars);
+      const chunks = await this.generateChunksFromAnalysis(text, analysis, minChunkSize, maxChars);
 
       console.log(`[SemanticChunkStrategy] 🎯 ${chunks.length} chunks semânticos gerados`);
 
@@ -473,12 +473,12 @@ Retorne APENAS o JSON, sem explicações adicionais.
    * Gera chunks baseados na análise semântica
    * GARANTIA: 100% de cobertura do texto original
    */
-  private generateChunksFromAnalysis(
+  private async generateChunksFromAnalysis(
     text: string,
     analysis: SemanticAnalysis,
     minChunkSize: number,
     maxChunkSize: number
-  ): ChunkResult[] {
+  ): Promise<ChunkResult[]> {
     const chunks: ChunkResult[] = [];
     let chunkNumber = 0;
     let pendingMerge: { text: string; topic: SemanticAnalysis['topics'][0]; start: number } | null = null;
@@ -601,7 +601,7 @@ Retorne APENAS o JSON, sem explicações adicionais.
     const coverage = this.validateCoverage(text, chunks);
     if (coverage < 0.99) {
       console.warn(`[SemanticChunkStrategy] ⚠️ Cobertura baixa (${(coverage * 100).toFixed(1)}%), ajustando...`);
-      return this.ensureFullCoverage(text, chunks);
+      return await this.ensureFullCoverage(text, chunks);
     }
 
     return chunks;
@@ -616,9 +616,10 @@ Retorne APENAS o JSON, sem explicações adicionais.
   }
 
   /**
-   * Garante cobertura completa do texto ajustando chunks
+   * Garante cobertura completa do texto usando RE-ANÁLISE ITERATIVA
+   * Em vez de apenas anexar texto faltante, re-analisa gaps com IA
    */
-  private ensureFullCoverage(text: string, chunks: ChunkResult[]): ChunkResult[] {
+  private async ensureFullCoverage(text: string, chunks: ChunkResult[]): Promise<ChunkResult[]> {
     if (chunks.length === 0) {
       // Sem chunks, criar um único chunk com todo o texto
       return [{
@@ -636,21 +637,248 @@ Retorne APENAS o JSON, sem explicações adicionais.
       }];
     }
 
-    // Ajustar último chunk para cobrir até o final do texto
-    const lastChunk = chunks[chunks.length - 1];
-    const missingText = text.slice(lastChunk.endIndex);
+    // Detectar todos os gaps de cobertura
+    const gaps = this.detectCoverageGaps(text, chunks);
     
-    if (missingText.trim().length > 0) {
-      console.log(`[SemanticChunkStrategy] 📝 Adicionando ${missingText.length} chars faltantes ao último chunk`);
-      lastChunk.text += '\n' + missingText.trim();
-      lastChunk.endIndex = text.length;
-      lastChunk.metadata = {
-        ...lastChunk.metadata,
-        adjusted: true,
-      };
+    if (gaps.length === 0) {
+      return chunks; // 100% de cobertura
     }
 
-    return chunks;
+    console.log(`[SemanticChunkStrategy] 🔍 Detectados ${gaps.length} gaps de cobertura, total: ${gaps.reduce((sum, g) => sum + g.length, 0)} chars`);
+
+    // Re-analisar gaps usando IA (max 3 tentativas)
+    const gapTopics = await this.analyzeGaps(text, gaps);
+
+    if (gapTopics.length === 0) {
+      console.warn(`[SemanticChunkStrategy] ⚠️ IA não conseguiu analisar gaps, usando fallback`);
+      return this.fallbackGapFilling(text, chunks, gaps);
+    }
+
+    // Integrar novos tópicos identificados nos gaps
+    const allTopics = this.mergeCoverageTopics(chunks, gapTopics);
+    
+    console.log(`[SemanticChunkStrategy] ✅ Re-análise completa: ${gapTopics.length} novos tópicos identificados`);
+
+    return allTopics;
+  }
+
+  /**
+   * Detecta gaps de cobertura entre chunks
+   */
+  private detectCoverageGaps(text: string, chunks: ChunkResult[]): Array<{start: number, end: number, length: number}> {
+    const gaps: Array<{start: number, end: number, length: number}> = [];
+    const sortedChunks = [...chunks].sort((a, b) => a.startIndex - b.startIndex);
+
+    // Gap no início?
+    if (sortedChunks[0].startIndex > 0) {
+      gaps.push({
+        start: 0,
+        end: sortedChunks[0].startIndex,
+        length: sortedChunks[0].startIndex
+      });
+    }
+
+    // Gaps entre chunks
+    for (let i = 0; i < sortedChunks.length - 1; i++) {
+      const currentEnd = sortedChunks[i].endIndex;
+      const nextStart = sortedChunks[i + 1].startIndex;
+      
+      if (nextStart > currentEnd) {
+        gaps.push({
+          start: currentEnd,
+          end: nextStart,
+          length: nextStart - currentEnd
+        });
+      }
+    }
+
+    // Gap no final?
+    const lastChunk = sortedChunks[sortedChunks.length - 1];
+    if (lastChunk.endIndex < text.length) {
+      gaps.push({
+        start: lastChunk.endIndex,
+        end: text.length,
+        length: text.length - lastChunk.endIndex
+      });
+    }
+
+    return gaps.filter(g => g.length > 50); // Ignorar gaps menores que 50 chars
+  }
+
+  /**
+   * Re-analisa gaps usando IA para identificar tópicos
+   */
+  private async analyzeGaps(
+    fullText: string, 
+    gaps: Array<{start: number, end: number, length: number}>
+  ): Promise<ChunkResult[]> {
+    const gapChunks: ChunkResult[] = [];
+    let chunkNumber = 1000; // Número alto para não conflitar
+
+    for (const gap of gaps) {
+      const gapText = fullText.slice(gap.start, gap.end).trim();
+      
+      if (gapText.length < 100) {
+        // Gap muito pequeno, criar chunk genérico
+        gapChunks.push({
+          text: gapText,
+          startIndex: gap.start,
+          endIndex: gap.end,
+          chunkNumber: chunkNumber++,
+          wasTruncated: false,
+          metadata: {
+            topic: 'Transição',
+            keywords: [],
+            academicLevel: 'intermediário',
+            semanticBoundary: 'gap-filled',
+            chunkType: 'semantic',
+          },
+        });
+        continue;
+      }
+
+      // Re-analisar gap com IA
+      try {
+        console.log(`[SemanticChunkStrategy]   🔬 Re-analisando gap de ${gap.length} chars (posição ${gap.start}-${gap.end})`);
+        
+        const prompt = `
+Analise este trecho de documento acadêmico e identifique o(s) tópico(s) principal(is).
+
+TRECHO (${gapText.length} caracteres):
+"""
+${gapText}
+"""
+
+INSTRUÇÕES:
+1. Identifique 1-3 tópicos principais neste trecho
+2. Para cada tópico:
+   - Título descritivo
+   - Keywords relevantes (3-5 palavras)
+   - Nível acadêmico (básico/intermediário/avançado)
+3. Os tópicos devem cobrir TODO o trecho (sem gaps)
+
+RESPONDA EM JSON:
+{
+  "topics": [
+    {
+      "title": "Título do tópico",
+      "startIndex": 0,
+      "endIndex": ${gapText.length},
+      "keywords": ["palavra1", "palavra2"],
+      "academicLevel": "intermediário"
+    }
+  ]
+}
+
+Retorne APENAS o JSON.
+`.trim();
+
+        const result = await aiAnalyze<SemanticAnalysis>(
+          prompt,
+          'Você é um especialista em análise de conteúdo acadêmico.',
+          {
+            temperature: 0.2,
+            maxTokens: 500,
+          }
+        );
+
+        // Converter tópicos em chunks
+        for (const topic of result.topics) {
+          const topicText = gapText.slice(topic.startIndex, topic.endIndex).trim();
+          const topicId = this.generateTopicId(topic.title, gap.start + topic.startIndex);
+          
+          gapChunks.push({
+            text: topicText,
+            startIndex: gap.start + topic.startIndex,
+            endIndex: gap.start + topic.endIndex,
+            chunkNumber: chunkNumber++,
+            wasTruncated: false,
+            metadata: {
+              topic: topic.title,
+              topicId: topicId,
+              partIndex: 1,
+              partCount: 1,
+              keywords: topic.keywords || [],
+              academicLevel: topic.academicLevel || 'intermediário',
+              semanticBoundary: 'gap-analyzed',
+              chunkType: 'semantic',
+              importanceScore: 0.8, // Gap re-analisado tem boa importância
+            },
+          });
+        }
+      } catch (error) {
+        console.error(`[SemanticChunkStrategy] ❌ Erro ao re-analisar gap:`, error);
+        
+        // Fallback: criar chunk genérico
+        gapChunks.push({
+          text: gapText,
+          startIndex: gap.start,
+          endIndex: gap.end,
+          chunkNumber: chunkNumber++,
+          wasTruncated: false,
+          metadata: {
+            topic: 'Conteúdo adicional',
+            keywords: [],
+            academicLevel: 'intermediário',
+            semanticBoundary: 'gap-fallback',
+            chunkType: 'semantic',
+          },
+        });
+      }
+    }
+
+    return gapChunks;
+  }
+
+  /**
+   * Mescla chunks originais com chunks de gaps re-analisados
+   */
+  private mergeCoverageTopics(originalChunks: ChunkResult[], gapChunks: ChunkResult[]): ChunkResult[] {
+    const allChunks = [...originalChunks, ...gapChunks];
+    
+    // Ordenar por posição
+    allChunks.sort((a, b) => a.startIndex - b.startIndex);
+    
+    // Renumerar chunks
+    allChunks.forEach((chunk, index) => {
+      chunk.chunkNumber = index;
+      chunk.totalChunks = allChunks.length;
+    });
+    
+    return allChunks;
+  }
+
+  /**
+   * Fallback se IA falhar: criar chunks genéricos para gaps
+   */
+  private fallbackGapFilling(
+    text: string, 
+    chunks: ChunkResult[], 
+    gaps: Array<{start: number, end: number, length: number}>
+  ): ChunkResult[] {
+    const gapChunks: ChunkResult[] = [];
+    let chunkNumber = 1000;
+
+    for (const gap of gaps) {
+      const gapText = text.slice(gap.start, gap.end).trim();
+      
+      gapChunks.push({
+        text: gapText,
+        startIndex: gap.start,
+        endIndex: gap.end,
+        chunkNumber: chunkNumber++,
+        wasTruncated: false,
+        metadata: {
+          topic: 'Conteúdo adicional (não categorizado)',
+          keywords: [],
+          academicLevel: 'intermediário',
+          semanticBoundary: 'gap-fallback',
+          chunkType: 'semantic',
+        },
+      });
+    }
+
+    return this.mergeCoverageTopics(chunks, gapChunks);
   }
 
   /**
