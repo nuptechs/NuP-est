@@ -204,6 +204,7 @@ export const processedFiles = pgTable("processed_files", {
   fileName: text("file_name").notNull(), // Original filename
   fileType: varchar("file_type").notNull(), // pdf, document, spreadsheet, etc.
   fileSize: integer("file_size"), // Size in bytes
+  pageCount: integer("page_count"), // Number of pages (for PDFs/documents)
   
   // Extracted content (shared processing result)
   extractedContent: text("extracted_content"),

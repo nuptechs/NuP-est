@@ -146,7 +146,7 @@ export class FileProcessorService {
   }
 
   /**
-   * Processa arquivo PDF usando processador avançado
+   * Processa arquivo PDF usando processador avançado com fallback para pdf-parse
    */
   private async processPDF(filePath: string): Promise<ExtractedContent> {
     try {
@@ -173,9 +173,27 @@ export class FileProcessorService {
           pageCount: structure.totalPages
         }
       };
-    } catch (error) {
-      console.error('❌ Erro ao processar PDF:', error);
-      throw new Error('Falha ao processar arquivo PDF');
+    } catch (advancedError) {
+      console.warn('⚠️ Processamento avançado falhou, usando fallback pdf-parse:', (advancedError as Error).message);
+      
+      // FALLBACK: Use pdf-parse for basic extraction
+      try {
+        const pdfParse = (await import('pdf-parse')).default;
+        const dataBuffer = fs.readFileSync(filePath);
+        const data = await pdfParse(dataBuffer);
+        
+        console.log(`✅ Fallback bem-sucedido: ${data.numpages} páginas, ${data.text.length} caracteres`);
+        
+        return {
+          text: data.text,
+          metadata: {
+            pageCount: data.numpages
+          }
+        };
+      } catch (fallbackError) {
+        console.error('❌ Fallback também falhou:', fallbackError);
+        throw new Error(`Falha ao processar arquivo PDF: ${(advancedError as Error).message}`);
+      }
     }
   }
 
