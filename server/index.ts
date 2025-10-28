@@ -4,6 +4,9 @@ import { setupVite, serveStatic, log } from "./vite";
 
 // PDF worker não é mais necessário com newEditalService
 
+// Import background worker for large document processing (auto-starts)
+import './services/large-document-processing/BackgroundWorker';
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

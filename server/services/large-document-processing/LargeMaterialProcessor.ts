@@ -13,7 +13,7 @@
 import { documentStructureAnalyzer } from './DocumentStructureAnalyzer';
 import { intelligentDocumentSplitter } from './IntelligentDocumentSplitter';
 import { jobQueue } from './JobQueue';
-import { textChunker } from '../chunking/TextChunker';
+import { TextChunker } from '../chunking/TextChunker';
 import { pineconeService } from '../pinecone';
 import type { DocumentMetadata } from './types';
 import type { ChunkResult } from '../chunking/types';
@@ -112,7 +112,8 @@ export class LargeMaterialProcessor {
 
       // CHUNKING SEMÂNTICO
       console.log(`[LargeMaterialProcessor]   🔍 Executando chunking semântico...`);
-      const chunks = await textChunker.chunk(partText, {
+      const chunker = new TextChunker();
+      const chunks = await chunker.chunk(partText, {
         profile: 'rag',
         maxChars: 1200,
       });
