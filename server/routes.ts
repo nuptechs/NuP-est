@@ -830,6 +830,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Large document processing routes
+  app.post('/api/materials/:id/large-process', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Get material and verify ownership
+      const material = await storage.getMaterial(id);
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+      
+      if (material.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Get processed file
+      if (!material.processedFileId) {
+        return res.status(400).json({ message: "Material has no file" });
+      }
+      
+      const processedFile = await processedFileService.findById(material.processedFileId);
+      if (!processedFile) {
+        return res.status(404).json({ message: "Processed file not found" });
+      }
+      
+      // Validate file exists
+      if (!fs.existsSync(processedFile.filePath)) {
+        return res.status(404).json({ message: "File not found on disk" });
+      }
+      
+      // Import large document processing service
+      const { largeMaterialProcessor } = await import('./services/large-document-processing');
+      const { fileProcessorService } = await import('./services/fileProcessor');
+      
+      // Extract text from file
+      const { text, pageCount } = await fileProcessorService.processFile(
+        processedFile.filePath,
+        processedFile.fileName
+      );
+      
+      // Validate this is indeed a large document
+      if (!pageCount || pageCount < 250) {
+        return res.status(400).json({ 
+          message: "Document is not large enough for async processing. Use regular upload instead.",
+          pageCount 
+        });
+      }
+      
+      // Initiate processing
+      console.log(`🚀 Iniciando processamento assíncrono de documento: ${material.title}`);
+      const jobId = await largeMaterialProcessor.initiateProcessing(
+        userId,
+        material.id,
+        processedFile.filePath,
+        processedFile.fileName,
+        text,
+        {
+          fileName: processedFile.fileName,
+          fileSize: processedFile.fileSize,
+          pageCount,
+        }
+      );
+      
+      res.json({
+        success: true,
+        jobId,
+        message: "Background processing initiated",
+        estimatedTime: Math.ceil((pageCount * 1.2) / 60), // minutes
+      });
+    } catch (error) {
+      console.error("Error initiating large document processing:", error);
+      res.status(500).json({ 
+        message: "Failed to initiate processing: " + (error as Error).message 
+      });
+    }
+  });
+  
+  app.get('/api/jobs/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Import job queue
+      const { jobQueue } = await import('./services/large-document-processing');
+      
+      // Get job
+      const job = await jobQueue.getJob(id);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Verify ownership
+      if (job.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Get detailed status
+      const status = await jobQueue.getJobStatus(id);
+      
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching job status:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch job status: " + (error as Error).message 
+      });
+    }
+  });
+
   // Goal routes
   app.get('/api/goals', isAuthenticated, async (req: any, res) => {
     try {
