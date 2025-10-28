@@ -71,6 +71,19 @@ The system uses a **modular AI pipeline** with intelligent model selection:
 - Each category has domain-specific pedagogical approaches (mathematical rigor, critical analysis, biological processes)
 - Priority levels (high/medium/low) influence model selection and difficulty calibration
 
+**Intelligent Auto-Categorization** (October 2025):
+- **Architecture**: 3-phase categorization with pattern matching → AI fallback → safe default
+- **Phase 1 - Pattern Matching** (Free, instant): Static keyword mapping for common subjects (e.g., "Direito" → humanas, "Cálculo" → exatas, "Biologia" → biologicas). 95% confidence when matched.
+- **Phase 2 - AI Fallback** (GPT-4o-mini): For unknown subjects, AI analyzes subject name and suggests category with confidence score. Only auto-fills if confidence > 70%.
+- **Phase 3 - Safe Default**: If AI fails, defaults to "humanas" (most common in standardized tests) with 30% confidence.
+- **UX Features**: 
+  - Auto-suggestion with 800ms debounce (reduces API calls)
+  - Visual feedback: "Sugerindo..." (Sparkles icon) → "Sugerido pela IA" (CheckCircle icon)
+  - Manual override always allowed (removes "Sugerido pela IA" badge)
+  - Only triggers for NEW subjects (not when editing existing ones)
+- **API Endpoint**: `POST /api/subjects/suggest-category` with `{ name: string }` → returns `{ category, confidence, source, reasoning }`
+- **Files**: `server/services/subject-categorization.ts`, `client/src/components/subjects/subject-form.tsx`
+
 The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for content generation. External service integrations are centralized with a robust `AIManager` and `PineconeClient` featuring retry mechanisms, exponential backoff, circuit breakers, and comprehensive rate limit handling.
 
 ### Intelligent Text Chunking System
