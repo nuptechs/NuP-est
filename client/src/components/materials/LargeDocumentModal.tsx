@@ -95,8 +95,12 @@ export default function LargeDocumentModal({
     switch (phase) {
       case 'analyzing':
         return 'Analisando estrutura do documento...';
+      case 'splitting':
+        return 'Dividindo documento em partes inteligentes...';
       case 'chunking':
         return 'Processando e dividindo conteúdo...';
+      case 'indexing':
+        return 'Indexando chunks para busca RAG...';
       case 'consolidating':
         return 'Finalizando e consolidando resultados...';
       case 'completed':

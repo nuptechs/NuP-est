@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface JobStatus {
   id: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  currentPhase?: 'pending' | 'analyzing' | 'chunking' | 'consolidating' | 'completed';
+  currentPhase?: 'pending' | 'analyzing' | 'splitting' | 'chunking' | 'indexing' | 'consolidating' | 'completed';
   totalParts?: number;
   completedParts?: number;
   progressPercentage?: number;
@@ -44,6 +44,7 @@ export function useJobStatus({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasShownErrorToast = useRef(false); // Prevent toast spam
   const { toast } = useToast();
 
   // Fetch job status
@@ -111,6 +112,16 @@ export function useJobStatus({
       setError(error);
       setIsLoading(false);
       onError?.(error);
+      
+      // Only show toast once to avoid spam on transient network issues
+      if (!hasShownErrorToast.current) {
+        hasShownErrorToast.current = true;
+        toast({
+          title: 'Erro ao buscar status',
+          description: 'Não foi possível obter o status do processamento. Tentando novamente...',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
