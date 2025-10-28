@@ -867,7 +867,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Material has no file" });
       }
       
-      const processedFile = await processedFileService.findById(material.processedFileId);
+      const [processedFile] = await db
+        .select()
+        .from(processedFiles)
+        .where(eq(processedFiles.id, material.processedFileId))
+        .limit(1);
+        
       if (!processedFile) {
         return res.status(404).json({ message: "Processed file not found" });
       }
@@ -914,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         jobId,
         message: "Background processing initiated",
-        estimatedTime: Math.ceil((pageCount * 1.2) / 60), // minutes
+        estimatedTime: Math.ceil((pageCount / 250) + 5), // minutes: 1min per 250 pages + 5min base
       });
     } catch (error) {
       console.error("Error initiating large document processing:", error);
