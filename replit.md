@@ -1,6 +1,6 @@
 # Overview
 
-NuP-Study is an AI-powered adaptive study management platform designed to personalize learning experiences through deep user profiling and intelligent content delivery. It provides a comprehensive setup, an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The project aims for a polished, professional user experience with intuitive navigation and adaptive learning strategies, ultimately enhancing learning efficiency and engagement. The business vision is to provide a competitive edge in the e-learning market by offering a truly personalized and adaptive learning journey.
+NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It offers a comprehensive setup, an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The project aims for a polished, professional user experience with adaptive learning strategies to enhance learning efficiency and engagement. The business vision is to provide a competitive edge in the e-learning market by offering a truly personalized and adaptive learning journey.
 
 # User Preferences
 
@@ -12,177 +12,51 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 ## Frontend Architecture
 
-The client is built with React 18, TypeScript, and Vite. It utilizes `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI primitives and Tailwind CSS for styling. React Hook Form with Zod handles form validation. The UI is profile-driven, adapting to user study patterns, and features a centralized dashboard with a guided setup flow. A unified design system ensures consistency across spacing, typography, colors, and components, inspired by modern design patterns (Notion/Linear/Figma style). All 17 application pages have been redesigned for a professional user experience. Features like rich Markdown content rendering with syntax highlighting and intelligent semantic highlighting are integrated into components like Flashcards to enhance academic content presentation.
-
-**Reusable UI Components:**
-- `Hint` component (`client/src/components/ui/hint.tsx`): Encapsulated tooltip system based on Radix UI, providing accessible hints with configurable positioning, delays, and animations. Minimalista e moderno, integrado com sistema de configuração centralizado.
-- Hints Configuration (`client/src/config/hints.ts`): Sistema centralizado para manter todas as mensagens de hints da aplicação, facilitando tradução, atualização e consistência.
+The client is built with React 18, TypeScript, and Vite, utilizing `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI primitives and Tailwind CSS for styling. React Hook Form with Zod handles form validation. The UI is profile-driven and features a centralized dashboard with a guided setup flow. A unified design system ensures consistency, inspired by modern design patterns. Features include rich Markdown content rendering with syntax highlighting.
 
 ## Backend Architecture
 
 The server uses Express.js and TypeScript (ESM format) with Drizzle ORM for type-safe PostgreSQL interactions. Replit Auth with Passport.js manages authentication, express-session handles sessions, and multer manages file uploads. The API is RESTful with consistent error handling.
 
-### Modular AI Pipeline Architecture (New)
+### Modular AI Pipeline Architecture
 
-**StudyContextBuilder** (`server/services/adaptive-learning/StudyContextBuilder.ts`):
-- Aggregates comprehensive study context: user profile, subject (category/priority), materials, performance data, RAG chunks
-- Parallel data fetching for performance optimization
-- Integrates with Pinecone for RAG-enhanced content generation
+The system employs a modular AI pipeline for adaptive learning, featuring:
+-   **StudyContextBuilder**: Aggregates user profile, subject, materials, performance data, and RAG chunks.
+-   **Prompt Strategies**: Category-specific pedagogical approaches (`ExactasPromptStrategy`, `HumanasPromptStrategy`, `BiologicasPromptStrategy`).
+-   **AIContentPipeline**: Manages content generation flow from context to AI execution, with priority-based model selection (DeepSeek R1 for HIGH priority, GPT-4o-mini for MEDIUM/LOW).
+-   **QuestionGeneratorTool**: Generates adaptive questions using category-specific strategies and RAG enrichment.
 
-**Prompt Strategies** (Category-specific pedagogical approaches):
-- `ExactasPromptStrategy`: Mathematical rigor, step-by-step problem solving, formulas (Math, Physics, Chemistry)
-- `HumanasPromptStrategy`: Critical analysis, interpretation, contextualization (History, Law, Philosophy)
-- `BiologicasPromptStrategy`: Biological processes, systems integration, clinical reasoning (Biology, Medicine)
-- Interface-based design (`IPromptStrategy`) allows A/B testing strategies without breaking production
+### Intelligent Auto-Categorization
 
-**AIContentPipeline** (`server/services/adaptive-learning/pipeline/AIContentPipeline.ts`):
-- Structured flow: Context → Strategy Selection → AI Execution → Validation → Result
-- Priority-based model selection: HIGH priority → DeepSeek R1, MEDIUM/LOW → GPT-4o-mini
-- Quality validation with automatic retry logic
-- Telemetry and cost tracking
+A 3-phase system categorizes subjects:
+1.  **Pattern Matching**: Static keyword mapping for common subjects.
+2.  **AI Fallback (GPT-4o-mini)**: Analyzes unknown subjects and suggests categories with confidence.
+3.  **Safe Default**: Defaults to "humanas" if AI categorization fails.
+This system includes UX features like auto-suggestion with debounce, visual feedback, and manual override.
 
-**QuestionGeneratorTool** (`server/services/adaptive-learning/tools/QuestionGeneratorTool.ts`):
-- Implements `ToolCapability` interface for orchestration compatibility
-- Generates adaptive questions using category-specific strategies
-- RAG enrichment from uploaded materials
-- Automatic question persistence to database
-- Quality scoring and metadata tracking
+### Intelligent Text Chunking System
 
-**Legacy AI Services**:
-Core AI services include Adaptive Assessment, Student Profile Generation, Continuous Discovery, Personalized Assistant, and Adaptive Content Delivery. Key API endpoints facilitate adaptive questions, hints, explanations, chat interactions, and assessment processing. Security features include backend-controlled assessment completion, layered Zod validation, ownership checks, and question persistence. Flashcard image uploads are handled through a dedicated authenticated endpoint, storing images locally and serving them statically. AI chat token limits have been significantly increased to support detailed academic responses.
+A modular chunking infrastructure uses a Strategy Pattern with pluggable strategies via a `TextChunker` facade.
+-   **SemanticChunkStrategy**: Hierarchical AI-powered analysis to identify natural topic boundaries, ensuring 100% text coverage and semantic completeness, with rich metadata.
+-   **SentenceAwareChunkStrategy**: Respects sentence boundaries for cleaner breaks, used for RAG.
+-   **SimpleLimitChunkStrategy**: Character-based splitting with sentence fallback, used for TTS.
+Pre-configured profiles exist for material upload, TTS services, and RAG.
 
 ## Data Architecture
 
-A PostgreSQL database managed by Drizzle ORM stores user data, subjects, topics, study materials, goals, sessions, and comprehensive AI-related data including learning difficulties, versioned student profiles, assistant instances, and interaction logs. The schema supports referential integrity and versioning.
+A PostgreSQL database managed by Drizzle ORM stores all application data, including comprehensive AI-related data such as learning difficulties, versioned student profiles, assistant instances, and interaction logs.
 
 ## Authentication & Authorization
 
 Authentication is handled via Replit OAuth (OpenID Connect) using secure session-based authentication with HttpOnly cookies and route-level middleware protection.
 
-## AI Integration
-
-The system uses a **modular AI pipeline** with intelligent model selection:
-- **DeepSeek R1** (via OpenRouter): For HIGH-priority subjects requiring advanced reasoning
-- **GPT-4o-mini** (OpenAI): For MEDIUM/LOW-priority subjects, balancing speed and cost
-- **Pinecone**: Vector database for RAG-enhanced content generation from uploaded materials
-
-**Category-Aware Content Generation**:
-- Subject categories (exatas/humanas/biologicas) trigger specialized prompt strategies
-- Each category has domain-specific pedagogical approaches (mathematical rigor, critical analysis, biological processes)
-- Priority levels (high/medium/low) influence model selection and difficulty calibration
-
-**Intelligent Auto-Categorization** (October 2025):
-- **Architecture**: 3-phase categorization with pattern matching → AI fallback → safe default
-- **Phase 1 - Pattern Matching** (Free, instant): Static keyword mapping for common subjects (e.g., "Direito" → humanas, "Cálculo" → exatas, "Biologia" → biologicas). 95% confidence when matched.
-- **Phase 2 - AI Fallback** (GPT-4o-mini): For unknown subjects, AI analyzes subject name and suggests category with confidence score. Only auto-fills if confidence > 70%.
-- **Phase 3 - Safe Default**: If AI fails, defaults to "humanas" (most common in standardized tests) with 30% confidence.
-- **UX Features**: 
-  - Auto-suggestion with 800ms debounce (reduces API calls)
-  - Visual feedback: "Sugerindo..." (Sparkles icon) → "Sugerido pela IA" (CheckCircle icon)
-  - Manual override always allowed (removes "Sugerido pela IA" badge)
-  - Only triggers for NEW subjects (not when editing existing ones)
-- **API Endpoint**: `POST /api/subjects/suggest-category` with `{ name: string }` → returns `{ category, confidence, source, reasoning }`
-- **Files**: `server/services/subject-categorization.ts`, `client/src/components/subjects/subject-form.tsx`
-
-The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for content generation. External service integrations are centralized with a robust `AIManager` and `PineconeClient` featuring retry mechanisms, exponential backoff, circuit breakers, and comprehensive rate limit handling.
-
-### Intelligent Text Chunking System
-
-**Architecture**: Modular chunking infrastructure using Strategy Pattern with pluggable strategies via `TextChunker` facade.
-
-**Available Strategies**:
-- **SemanticChunkStrategy** (`semantic`): **Hierarchical AI-powered analysis** in 2 phases identifies natural topic boundaries, creating self-contained chunks (200-1200 chars) with rich metadata. **Guarantees 100% text coverage** and semantic completeness.
-  - **Phase 1 - Planning**: IA analisa amostra estratégica (início+meio+fim) e identifica TODAS seções principais (sem limite)
-  - **Phase 2 - Execution**: Para cada seção, IA analisa em detalhes e identifica tópicos/conceitos específicos
-  - **Semantic Tracking**: Tópicos grandes são divididos mas mantêm rastreabilidade via `topicId`, `partIndex/partCount`
-  - **Metadata**: topic, topicId, partIndex, partCount, keywords, academicLevel, importanceScore (para re-ranking futuro)
-  - Cost: ~$0.002-0.005 per document (2 AI calls: overview + detailed analysis)
-  - Time: ~5-15 seconds per document
-  - Scalability: Processa documentos de qualquer tamanho (100k+ chars, 50+ seções)
-  - Fallback: SentenceAwareChunkStrategy if AI fails
-  
-- **SentenceAwareChunkStrategy** (`sentence-aware`): Respects sentence boundaries for cleaner breaks. Used for RAG with configurable overlap (typically 200 chars for context preservation).
-
-- **SimpleLimitChunkStrategy** (`simple-limit`): Character-based splitting with sentence fallback. Used for TTS where strict size limits apply (Deepgram: 2000 chars, Whisper: 4096 chars).
-
-**Pre-configured Profiles**:
-- `semantic-default`: Upload de materiais (2000 max, 200 min, sem overlap)
-- `tts-deepgram`: Deepgram TTS (2000 chars, sem overlap, quebra em sentenças)
-- `tts-whisper`: OpenAI Whisper TTS (4096 chars, sem overlap)
-- `rag-default`: RAG padrão (1000 chars, overlap 200)
-- `rag-chat`: Chat contextual (1200 chars, overlap 200)
-
-**Integration Points**:
-- **Material Upload** (`/api/materials/smart-upload`): Automatically uses semantic chunking via `ragService.splitIntoChunks()`
-- **TTS Services**: Deepgram TTS uses `TextChunker.chunkTexts(text, 'tts-deepgram')` for unlimited text length support
-- **RAG Services**: All specialized RAG services (Chat, Flashcard, Profile, Simulation) use `BaseRAGService.chunkText()` which delegates to TextChunker
-
-**Key Files**:
-- `server/services/chunking/TextChunker.ts`: Facade with strategy registration
-- `server/services/chunking/strategies/SemanticChunkStrategy.ts`: Hierarchical AI-powered semantic analysis (2-phase)
-- `server/services/chunking/types.ts`: Types and profile definitions (enriched ChunkResult metadata)
-- `server/services/rag.ts`: Integration with material upload flow
-
-**Future Enhancements (Architecture Ready)**:
-- **Async Processing**: For documents >20 sections, process in background with job queue + WebSocket notifications
-- **Re-ranking**: Use importanceScore, topicId, and semantic metadata to improve RAG retrieval quality
-- **Caching**: Cache AI analysis for repeated identical documents to reduce costs
-
 ## Voice Services (Freemium Feature)
 
-**Architecture Pattern: Strategy Pattern**
-- `IVoiceService` interface defines common contract for all voice implementations
-- `VoiceServiceFactory` selects appropriate implementation based on user plan
-- **Configuration**: Centralized in `client/src/services/voice/config.ts` for easy provider switching
-
-**Implementations:**
-
-1. **NativeVoiceService** (Free Tier - 🆓 Básico):
-   - Uses browser Web Speech API
-   - **Pros**: Free, low latency, streaming transcription
-   - **Cons**: Chrome/Edge only, quality varies, Google server dependency
-   - **Use cases**: Prototyping, basic voice input for free users
-
-2. **DeepgramVoiceService** (Premium - ⚡ **CURRENT**):
-   - **STT**: Deepgram Nova-3 ($0.0043/min) - 99% accuracy, <300ms latency
-   - **TTS**: Deepgram Aura - natural voice synthesis
-   - **Pros**: Best cost-benefit (40% cheaper than OpenAI), ultra-low latency (<300ms vs 2-4s), billing per second
-   - **Cons**: Limited TTS voices compared to OpenAI
-   - **Backend Routes**: 
-     - `POST /api/voice/transcribe-deepgram` - Audio → Text
-     - `POST /api/voice/synthesize-deepgram` - Text → Audio (2000 char limit)
-
-3. **WhisperVoiceService** (Premium - ⭐ Alternative):
-   - **STT**: OpenAI Whisper API ($0.006/min) - superior accuracy (~99%)
-   - **TTS**: OpenAI TTS API ($0.015/1K chars) - 6 natural voices
-   - **Pros**: Cross-browser, multilingual (50+ languages), professional quality, more voice options
-   - **Cons**: Higher latency (~2-4s), more expensive
-   - **Backend Routes**: 
-     - `POST /api/voice/transcribe` - Audio → Text (25MB limit)
-     - `POST /api/voice/synthesize` - Text → Audio (4096 char limit)
-
-**Quick Provider Switch:**
-Edit `client/src/services/voice/config.ts` → change `premiumProvider: 'deepgram'` to `'whisper'`
-
-**Integration:**
-- `VoiceToggle` component in AssistantChat shows tier indicator (Básico 🆓 / Premium ⭐)
-- `SpeakButton` component in AI messages enables listening to responses (TTS)
-- Transcribed text auto-populates message input
-- Error handling with user-friendly feedback
-- Automatic cleanup of temporary audio files
-
-**TTS Features:**
-- **Modo Básico 🆓**: Uses browser speechSynthesis API (plays directly, no audio download)
-- **Modo Premium ⭐**: Uses OpenAI TTS API (generates high-quality MP3, requires credits)
-- Button appears on hover over AI messages
-- Visual feedback during generation (loading spinner)
-- Pause/resume controls for playback
-
-**Security:**
-- API keys secured in backend only
-- Audio uploads validated (format, size limits)
-- Authentication required for all voice endpoints
-- Premium enforcement prepared (commented TODOs for future activation)
+An architecture using the Strategy Pattern provides voice services:
+-   **NativeVoiceService (Free Tier)**: Uses browser Web Speech API for basic functionality.
+-   **DeepgramVoiceService (Premium - Current)**: Utilizes Deepgram Nova-3 for STT and Deepgram Aura for TTS, offering high accuracy and low latency.
+-   **WhisperVoiceService (Premium - Alternative)**: Uses OpenAI Whisper API for STT and OpenAI TTS API for superior accuracy and more voice options.
+This system integrates TTS for AI responses and STT for user input, with security measures for API keys and audio processing.
 
 # External Dependencies
 
@@ -194,8 +68,10 @@ Edit `client/src/services/voice/config.ts` → change `premiumProvider: 'deepgra
 -   **Replit Auth**: OAuth provider using OpenID Connect.
 
 ## AI Services
--   **OpenAI API**: For GPT model integration.
--   **OpenRouter**: For advanced AI capabilities.
+-   **OpenAI API**: For GPT model integration and Whisper/TTS.
+-   **OpenRouter**: For advanced AI capabilities (DeepSeek R1).
+-   **Pinecone**: Vector database for RAG-enhanced content generation.
+-   **Deepgram**: For premium STT (Nova-3) and TTS (Aura) services.
 
 ## UI & Styling
 -   **shadcn/ui**: Component library.
