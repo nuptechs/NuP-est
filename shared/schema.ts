@@ -585,7 +585,7 @@ export const jobStatusEnum = pgEnum("job_status", [
 ]);
 
 export const jobTypeEnum = pgEnum("job_type", [
-  "pdf_processing", "edital_processing", "document_analysis", "file_processing"
+  "pdf_processing", "edital_processing", "document_analysis", "file_processing", "large_document_processing"
 ]);
 
 export const fileTypeEnum = pgEnum("file_type", [
@@ -624,7 +624,45 @@ export const processingJobs = pgTable("processing_jobs", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_processing_jobs_user").on(table.userId),
+  index("idx_processing_jobs_status").on(table.status),
+  index("idx_processing_jobs_type").on(table.type),
+]);
+
+// Parts for large document processing jobs
+export const processingJobParts = pgTable("processing_job_parts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobId: varchar("job_id").notNull().references(() => processingJobs.id, { onDelete: "cascade" }),
+  
+  // Part information
+  partNumber: integer("part_number").notNull(), // 1, 2, 3...
+  totalParts: integer("total_parts").notNull(), // Total number of parts for context
+  
+  // Document section being processed
+  sectionTitle: text("section_title"), // E.g., "Capítulos 1-5: Direito Constitucional"
+  startPage: integer("start_page"),
+  endPage: integer("end_page"),
+  startIndex: integer("start_index"), // Character position in original text
+  endIndex: integer("end_index"),
+  
+  // Processing status
+  status: jobStatusEnum("status").default("pending").notNull(),
+  attempts: integer("attempts").default(0),
+  
+  // Results
+  chunksGenerated: integer("chunks_generated").default(0),
+  errorMessage: text("error_message"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_job_parts_job").on(table.jobId),
+  index("idx_job_parts_status").on(table.status),
+]);
 
 // ===== EDITAIS =====
 export const editais = pgTable("editais", {
@@ -1503,6 +1541,22 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   }),
 }));
 
+// Processing Jobs Relations
+export const processingJobsRelations = relations(processingJobs, ({ one, many }) => ({
+  user: one(users, {
+    fields: [processingJobs.userId],
+    references: [users.id],
+  }),
+  parts: many(processingJobParts),
+}));
+
+export const processingJobPartsRelations = relations(processingJobParts, ({ one }) => ({
+  job: one(processingJobs, {
+    fields: [processingJobParts.jobId],
+    references: [processingJobs.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -1648,6 +1702,14 @@ export const insertKnowledgeChunkSchema = createInsertSchema(knowledgeChunks).om
 });
 
 export const insertProcessingJobSchema = createInsertSchema(processingJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  startedAt: true,
+  completedAt: true,
+});
+
+export const insertProcessingJobPartSchema = createInsertSchema(processingJobParts).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -1817,6 +1879,8 @@ export type SiteSearchType = typeof siteSearchTypes.$inferSelect;
 export type InsertSiteSearchType = z.infer<typeof insertSiteSearchTypeSchema>;
 export type ProcessingJob = typeof processingJobs.$inferSelect;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
+export type ProcessingJobPart = typeof processingJobParts.$inferSelect;
+export type InsertProcessingJobPart = z.infer<typeof insertProcessingJobPartSchema>;
 
 // === TIPOS DO SISTEMA DE ASSISTENTES PERSONALIZADOS ===
 export type LearningDifficultyCatalog = typeof learningDifficultiesCatalog.$inferSelect;
