@@ -245,6 +245,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Suggest category for a subject (intelligent auto-categorization)
+  app.post('/api/subjects/suggest-category', isAuthenticated, async (req: any, res) => {
+    try {
+      const { name } = req.body;
+      
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ message: "Subject name is required" });
+      }
+      
+      const { suggestSubjectCategory } = await import('./services/subject-categorization.js');
+      const suggestion = await suggestSubjectCategory(name);
+      
+      res.json(suggestion);
+    } catch (error) {
+      console.error("Error suggesting category:", error);
+      res.status(500).json({ 
+        message: "Failed to suggest category",
+        // Fallback seguro
+        category: 'humanas',
+        confidence: 0.3,
+        source: 'fallback'
+      });
+    }
+  });
+
   app.post('/api/subjects', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
