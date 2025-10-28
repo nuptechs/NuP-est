@@ -37,8 +37,11 @@ export const VOICE_CONFIG = {
   /**
    * Provider usado para usuários premium.
    * Troque aqui para mudar o provider de voz globalmente.
+   * 
+   * NOTA: Deepgram Aura não suporta português (apenas inglês e espanhol).
+   * Usando Whisper (OpenAI TTS) que suporta português nativamente.
    */
-  premiumProvider: 'deepgram' as VoiceServiceType,
+  premiumProvider: 'whisper' as VoiceServiceType,
   
   /**
    * Provider usado para usuários free tier.
