@@ -48,14 +48,14 @@ export class TextChunker {
    * 
    * @param text - Texto a ser dividido
    * @param profileOrOptions - Perfil pré-configurado ou opções customizadas
-   * @returns Array de resultados de chunking com metadados
+   * @returns Array de resultados de chunking com metadados (pode ser assíncrono)
    */
   static chunk(
     text: string,
     profileOrOptions: ChunkProfile | ChunkOptions
-  ): ChunkResult[] {
+  ): ChunkResult[] | Promise<ChunkResult[]> {
     const options = this.resolveOptions(profileOrOptions);
-    const strategy = this.selectStrategy(options);
+    const strategy = this.selectStrategy(options, profileOrOptions);
     
     return strategy.chunk(text, options);
   }
@@ -66,13 +66,13 @@ export class TextChunker {
    * 
    * @param text - Texto a ser dividido
    * @param profileOrOptions - Perfil pré-configurado ou opções customizadas
-   * @returns Array de strings (textos dos chunks)
+   * @returns Array de strings (textos dos chunks) - pode ser assíncrono
    */
-  static chunkTexts(
+  static async chunkTexts(
     text: string,
     profileOrOptions: ChunkProfile | ChunkOptions
-  ): string[] {
-    const results = this.chunk(text, profileOrOptions);
+  ): Promise<string[]> {
+    const results = await this.chunk(text, profileOrOptions);
     return results.map(r => r.text);
   }
 
@@ -132,7 +132,19 @@ export class TextChunker {
   /**
    * Seleciona estratégia adequada baseada nas opções
    */
-  private static selectStrategy(options: ChunkOptions): IChunkingStrategy {
+  private static selectStrategy(
+    options: ChunkOptions,
+    profileOrOptions: ChunkProfile | ChunkOptions
+  ): IChunkingStrategy {
+    // Se o perfil é 'semantic-default', usar estratégia semântica
+    if (typeof profileOrOptions === 'string' && profileOrOptions === 'semantic-default') {
+      const semanticStrategy = this.strategies.get('semantic');
+      if (semanticStrategy) {
+        return semanticStrategy;
+      }
+      console.warn('[TextChunker] Estratégia semântica não registrada, usando sentence-aware');
+    }
+
     // Se tem overlap, usa sentence-aware (para RAG)
     if (options.overlapChars && options.overlapChars > 0) {
       return this.strategies.get('sentence-aware')!;

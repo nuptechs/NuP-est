@@ -262,13 +262,13 @@ export class ChatRAGService extends BaseRAGService {
    * Chunking especializado para conversação
    * Identifica tópicos, entidades e valor conversacional
    */
-  private chunkForConversation(content: string): Array<{
+  private async chunkForConversation(content: string): Promise<Array<{
     content: string;
     topics: string[];
     entities: string[];
     conversationalValue: number;
-  }> {
-    const baseChunks = this.chunkText(content);
+  }>> {
+    const baseChunks = await this.chunkText(content);
     
     return baseChunks.map(chunk => ({
       content: chunk,

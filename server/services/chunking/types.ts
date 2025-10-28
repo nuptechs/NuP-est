@@ -17,6 +17,7 @@ export type ChunkProfile =
   | 'rag-default'     // 1000 chars, overlap 200, quebra semântica
   | 'rag-chat'        // 1200 chars, overlap 200, contexto conversacional
   | 'upload-standard' // Processamento de uploads
+  | 'semantic-default' // Análise semântica com IA (adaptativo)
   | 'custom';         // Configuração customizada
 
 /**
@@ -81,9 +82,9 @@ export interface IChunkingStrategy {
    * Divide texto em chunks segundo a estratégia
    * @param text - Texto a ser dividido
    * @param options - Opções de configuração
-   * @returns Array de resultados de chunking
+   * @returns Array de resultados de chunking (pode ser assíncrono)
    */
-  chunk(text: string, options: ChunkOptions): ChunkResult[];
+  chunk(text: string, options: ChunkOptions): ChunkResult[] | Promise<ChunkResult[]>;
   
   /**
    * Valida se as opções são compatíveis com esta estratégia
@@ -134,6 +135,14 @@ export const CHUNK_PROFILES: Record<ChunkProfile, ChunkOptions> = {
     overlapChars: 100,
     splitOn: 'paragraph',
     minChunkSize: 100,
+    allowTruncation: false,
+    preserveFormatting: true,
+  },
+  'semantic-default': {
+    maxChars: 2000,      // Limite máximo por chunk
+    overlapChars: 0,     // Sem overlap (chunks semânticos são autocontidos)
+    splitOn: 'paragraph',
+    minChunkSize: 200,   // Mínimo para conceitos terem sentido
     allowTruncation: false,
     preserveFormatting: true,
   },

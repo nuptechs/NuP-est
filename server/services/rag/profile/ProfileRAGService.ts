@@ -220,14 +220,14 @@ export class ProfileRAGService extends BaseRAGService {
   /**
    * Chunking especializado para dados de perfil
    */
-  private chunkForProfile(content: string): Array<{
+  private async chunkForProfile(content: string): Promise<Array<{
     content: string;
     profileData: string[];
     studyPatterns: string[];
     preferences: string[];
     learningStyle: string;
-  }> {
-    const baseChunks = this.chunkText(content);
+  }>> {
+    const baseChunks = await this.chunkText(content);
     
     return baseChunks.map(chunk => ({
       content: chunk,

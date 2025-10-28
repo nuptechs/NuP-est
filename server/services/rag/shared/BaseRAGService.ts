@@ -95,11 +95,11 @@ export abstract class BaseRAGService {
    * Funcionalidade comum: chunking inteligente
    * MIGRADO: Agora usa TextChunker com sentence-aware strategy
    */
-  protected chunkText(text: string): string[] {
+  protected async chunkText(text: string): Promise<string[]> {
     const { chunkSize, overlapSize } = this.config;
     
     // Usa TextChunker com configuração customizada
-    return TextChunker.chunkTexts(text, {
+    return await TextChunker.chunkTexts(text, {
       maxChars: chunkSize || 1000,
       overlapChars: overlapSize || 200,
       splitOn: 'sentence',

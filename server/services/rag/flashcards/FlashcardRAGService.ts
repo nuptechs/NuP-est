@@ -195,13 +195,13 @@ export class FlashcardRAGService extends BaseRAGService {
    * Chunking especializado para flashcards
    * Identifica conceitos, definições e termos importantes
    */
-  private chunkForFlashcards(content: string): Array<{
+  private async chunkForFlashcards(content: string): Promise<Array<{
     content: string;
     concepts: string[];
     definitions: string[];
     importance: 'high' | 'medium' | 'low';
-  }> {
-    const baseChunks = this.chunkText(content);
+  }>> {
+    const baseChunks = await this.chunkText(content);
     
     return baseChunks.map(chunk => ({
       content: chunk,

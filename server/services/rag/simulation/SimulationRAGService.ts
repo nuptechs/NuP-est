@@ -260,7 +260,7 @@ export class SimulationRAGService extends BaseRAGService {
   /**
    * Chunking especializado para questões de simulado
    */
-  private chunkForSimulations(content: string): Array<{
+  private async chunkForSimulations(content: string): Promise<Array<{
     content: string;
     questions: string[];
     subjects: string[];
@@ -268,8 +268,8 @@ export class SimulationRAGService extends BaseRAGService {
     examType: string;
     year: number;
     institution: string;
-  }> {
-    const baseChunks = this.chunkText(content);
+  }>> {
+    const baseChunks = await this.chunkText(content);
     
     return baseChunks.map(chunk => ({
       content: chunk,
