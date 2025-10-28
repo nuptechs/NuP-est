@@ -887,10 +887,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { fileProcessorService } = await import('./services/fileProcessor');
       
       // Extract text from file
-      const { text, pageCount } = await fileProcessorService.processFile(
+      const result = await fileProcessorService.processFile(
         processedFile.filePath,
         processedFile.fileName
       );
+      const text = result.text;
+      const pageCount = result.metadata?.pageCount || processedFile.pageCount || 0;
       
       // Validate this is indeed a large document
       if (!pageCount || pageCount < 250) {

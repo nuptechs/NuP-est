@@ -146,7 +146,7 @@ export default function MaterialDragDrop({ subjectId, onSuccess }: MaterialDragD
               requiresAsyncProcessing: true,
               materialId: data.id,
               pageCount: data.pageCount,
-              estimatedTime: Math.ceil((data.pageCount * 1.2) / 60), // minutes
+              estimatedTime: Math.ceil((data.pageCount / 250) + 5), // minutes: 1min per 250 pages + 5min base
             });
           }
           return updated;
@@ -158,7 +158,7 @@ export default function MaterialDragDrop({ subjectId, onSuccess }: MaterialDragD
           materialId: data.id,
           materialTitle: data.title,
           pageCount: data.pageCount,
-          estimatedTime: Math.ceil((data.pageCount * 1.2) / 60),
+          estimatedTime: Math.ceil((data.pageCount / 250) + 5), // minutes: 1min per 250 pages + 5min base
         });
 
         // Don't show regular toast or remove from list yet
