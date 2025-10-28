@@ -146,7 +146,7 @@ export class DeepgramVoiceService implements IVoiceService {
     }
   }
 
-  async synthesize(text: string, voice: string = 'aura-asteria-en'): Promise<SynthesisResult> {
+  async synthesize(text: string, voice: string = 'aura-asteria-pt'): Promise<SynthesisResult> {
     console.log('[Deepgram] Sintetizando áudio...');
 
     try {

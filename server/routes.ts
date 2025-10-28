@@ -3364,7 +3364,7 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
    */
   app.post('/api/voice/synthesize-deepgram', isAuthenticated, async (req: any, res) => {
     try {
-      const { text, voice = 'aura-asteria-en' } = req.body;
+      const { text, voice = 'aura-asteria-pt' } = req.body;
 
       if (!text) {
         return res.status(400).json({ error: "Texto não fornecido" });

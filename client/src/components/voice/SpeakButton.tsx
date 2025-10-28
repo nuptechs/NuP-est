@@ -66,7 +66,7 @@ export function SpeakButton({ text, isPremium, voice, className }: SpeakButtonPr
       
       // Define voz padrão baseada no provider
       const defaultVoice = serviceType === 'deepgram' 
-        ? 'aura-asteria-en' 
+        ? 'aura-asteria-pt' 
         : serviceType === 'whisper' 
           ? 'alloy' 
           : undefined;
