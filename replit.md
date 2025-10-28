@@ -78,9 +78,14 @@ The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for co
 **Architecture**: Modular chunking infrastructure using Strategy Pattern with pluggable strategies via `TextChunker` facade.
 
 **Available Strategies**:
-- **SemanticChunkStrategy** (`semantic`): AI-powered analysis identifies natural topic boundaries, creating self-contained chunks (200-2000 chars) with rich metadata (topic titles, keywords, academic level). **Guarantees 100% text coverage** by merging small chunks instead of discarding them. Ideal for study materials where preserving complete concepts is critical.
-  - Cost: ~$0.001-0.003 per document
-  - Time: ~2-8 seconds per document
+- **SemanticChunkStrategy** (`semantic`): **Hierarchical AI-powered analysis** in 2 phases identifies natural topic boundaries, creating self-contained chunks (200-1200 chars) with rich metadata. **Guarantees 100% text coverage** and semantic completeness.
+  - **Phase 1 - Planning**: IA analisa amostra estratégica (início+meio+fim) e identifica TODAS seções principais (sem limite)
+  - **Phase 2 - Execution**: Para cada seção, IA analisa em detalhes e identifica tópicos/conceitos específicos
+  - **Semantic Tracking**: Tópicos grandes são divididos mas mantêm rastreabilidade via `topicId`, `partIndex/partCount`
+  - **Metadata**: topic, topicId, partIndex, partCount, keywords, academicLevel, importanceScore (para re-ranking futuro)
+  - Cost: ~$0.002-0.005 per document (2 AI calls: overview + detailed analysis)
+  - Time: ~5-15 seconds per document
+  - Scalability: Processa documentos de qualquer tamanho (100k+ chars, 50+ seções)
   - Fallback: SentenceAwareChunkStrategy if AI fails
   
 - **SentenceAwareChunkStrategy** (`sentence-aware`): Respects sentence boundaries for cleaner breaks. Used for RAG with configurable overlap (typically 200 chars for context preservation).
@@ -101,9 +106,14 @@ The system can process uploaded study materials (PDF, DOC, DOCX, TXT, MD) for co
 
 **Key Files**:
 - `server/services/chunking/TextChunker.ts`: Facade with strategy registration
-- `server/services/chunking/strategies/SemanticChunkStrategy.ts`: AI-powered semantic analysis
-- `server/services/chunking/types.ts`: Types and profile definitions
+- `server/services/chunking/strategies/SemanticChunkStrategy.ts`: Hierarchical AI-powered semantic analysis (2-phase)
+- `server/services/chunking/types.ts`: Types and profile definitions (enriched ChunkResult metadata)
 - `server/services/rag.ts`: Integration with material upload flow
+
+**Future Enhancements (Architecture Ready)**:
+- **Async Processing**: For documents >20 sections, process in background with job queue + WebSocket notifications
+- **Re-ranking**: Use importanceScore, topicId, and semantic metadata to improve RAG retrieval quality
+- **Caching**: Cache AI analysis for repeated identical documents to reduce costs
 
 ## Voice Services (Freemium Feature)
 
