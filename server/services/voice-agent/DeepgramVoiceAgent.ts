@@ -360,7 +360,8 @@ export class DeepgramVoiceAgent extends EventEmitter {
    * Limpa todas as sessões (útil para shutdown)
    */
   cleanup(): void {
-    for (const sessionId of this.sessions.keys()) {
+    const sessionIds = Array.from(this.sessions.keys());
+    for (const sessionId of sessionIds) {
       this.cleanupSession(sessionId);
     }
   }

@@ -24,6 +24,7 @@ import AiAssistant from "@/components/dashboard/ai-assistant";
 import PersonalizedAssistant from "@/pages/personalized-assistant";
 import GuidedStudy from "@/pages/guided-study";
 import Topics from "@/pages/topics";
+import VoiceAgentTestPage from "@/pages/VoiceAgentTestPage";
 
 // Componente para redirecionamento adequado usando wouter
 function Redirect({ to }: { to: string }) {
@@ -75,6 +76,7 @@ function Router() {
           <Route path="/topics" component={Topics} />
           <Route path="/admin/search-config" component={AdminSearchConfig} />
           <Route path="/search" component={IntegratedSearch} />
+          <Route path="/voice-agent-test" component={VoiceAgentTestPage} />
           
           <Route component={NotFound} />
         </Switch>
