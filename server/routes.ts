@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const { fileProcessorService } = await import('./services/fileProcessor');
             const result = await fileProcessorService.processFile(filePath, originalFilename);
             extractedContent = result.text;
-            pageCount = result.pageCount || 0;
+            pageCount = result.metadata?.pageCount || 0;
             console.log(`📝 Conteúdo extraído: ${extractedContent.length} caracteres, ${pageCount} páginas`);
           } else if (fileExt === '.doc') {
             console.log('⚠️ Arquivos .DOC têm suporte limitado');
