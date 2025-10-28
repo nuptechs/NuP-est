@@ -74,6 +74,17 @@ export class SemanticChunkStrategy implements IChunkingStrategy {
 
     const { maxChars = 1200, minChunkSize = 200 } = options;
 
+    // LIMITE DE SEGURANÇA: Documentos > 1 MB podem causar OOM
+    const MAX_DOCUMENT_SIZE = 1_000_000; // 1 MB
+    if (text.length > MAX_DOCUMENT_SIZE) {
+      console.error(`[SemanticChunkStrategy] ❌ Documento muito grande: ${text.length} chars (máximo: ${MAX_DOCUMENT_SIZE})`);
+      throw new Error(
+        `Documento muito grande (${(text.length / 1024).toFixed(0)} KB). ` +
+        `O processamento semântico suporta até ${(MAX_DOCUMENT_SIZE / 1024).toFixed(0)} KB. ` +
+        `Por favor, divida o documento em partes menores ou use um arquivo menor.`
+      );
+    }
+
     console.log(`[SemanticChunkStrategy] 🔍 Iniciando análise hierárquica de ${text.length} caracteres...`);
 
     try {
@@ -215,9 +226,9 @@ Retorne APENAS o JSON, sem explicações adicionais.
     sectionTitle: string,
     maxChunkSize: number
   ): Promise<SemanticAnalysis['topics']> {
-    // Limitar análise a 20k chars por seção (para não sobrecarregar a IA)
-    const textToAnalyze = sectionText.length > 20000
-      ? sectionText.substring(0, 20000)
+    // Limitar análise a 10k chars por seção (reduzido para evitar OOM)
+    const textToAnalyze = sectionText.length > 10000
+      ? sectionText.substring(0, 10000)
       : sectionText;
 
     const prompt = `
