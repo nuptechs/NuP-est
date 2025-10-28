@@ -112,11 +112,7 @@ export class LargeMaterialProcessor {
 
       // CHUNKING SEMÂNTICO
       console.log(`[LargeMaterialProcessor]   🔍 Executando chunking semântico...`);
-      const chunker = new TextChunker();
-      const chunks = await chunker.chunk(partText, {
-        profile: 'rag',
-        maxChars: 1200,
-      });
+      const chunks = await TextChunker.chunk(partText, 'rag-chat');
 
       console.log(`[LargeMaterialProcessor]   ✅ Gerados ${chunks.length} chunks semânticos`);
 
@@ -124,32 +120,26 @@ export class LargeMaterialProcessor {
       console.log(`[LargeMaterialProcessor]   📤 Indexando no Pinecone...`);
       const materialId = (job.metadata as any)?.materialId;
       if (materialId) {
-        // Add part metadata to chunks
-        const chunksWithPartMetadata = chunks.map((chunk: ChunkResult) => ({
-          text: chunk.text,
-          metadata: {
+        // Format chunks for Pinecone (required format: { content, chunkIndex })
+        const chunksForPinecone = chunks.map((chunk: ChunkResult, index: number) => ({
+          content: chunk.text,
+          chunkIndex: index,
+        }));
+
+        // Index all chunks in a single batch
+        await pineconeService.upsertDocument(
+          `${materialId}_part${part.partNumber}`,
+          chunksForPinecone,
+          {
+            userId: job.userId!,
+            category: 'material',
             materialId,
             jobId,
             partId,
             partNumber: part.partNumber,
-            sectionTitle: part.sectionTitle,
-            ...chunk.metadata,
-          },
-        }));
-
-        // Index each chunk in Pinecone
-        for (const chunk of chunksWithPartMetadata) {
-          await pineconeService.upsertDocument(
-            `${materialId}_part${part.partNumber}_${Date.now()}`,
-            chunk.text,
-            {
-              userId: job.userId!,
-              category: 'material',
-              materialId,
-              ...chunk.metadata,
-            }
-          );
-        }
+            sectionTitle: part.sectionTitle || undefined,
+          }
+        );
         
         console.log(`[LargeMaterialProcessor]   ✅ ${chunks.length} chunks indexados no Pinecone`);
       }
