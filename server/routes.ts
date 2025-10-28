@@ -3501,5 +3501,10 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
   app.use("/api/admin", adminRouter);
 
   const httpServer = createServer(app);
+  
+  // Setup Voice Agent WebSocket routes
+  const { setupVoiceAgentRoutes } = await import("./routes/voiceAgent");
+  setupVoiceAgentRoutes(app, httpServer);
+  
   return httpServer;
 }
