@@ -14,8 +14,10 @@ import {
   File as FileIcon,
   X,
   Sparkles,
-  Check
+  Check,
+  Clock
 } from "lucide-react";
+import LargeDocumentModal from "./LargeDocumentModal";
 
 interface MaterialDragDropProps {
   subjectId?: string;
@@ -25,11 +27,15 @@ interface MaterialDragDropProps {
 interface UploadingFile {
   file: File;
   progress: number;
-  status: 'uploading' | 'processing' | 'complete' | 'error';
+  status: 'uploading' | 'processing' | 'complete' | 'error' | 'large_document';
   aiTitle?: string;
   aiSummary?: string;
   detectedType?: string;
   error?: string;
+  requiresAsyncProcessing?: boolean;
+  materialId?: string;
+  pageCount?: number;
+  estimatedTime?: number;
 }
 
 // Mapa de extensões para tipos e ícones
@@ -86,6 +92,17 @@ export default function MaterialDragDrop({ subjectId, onSuccess }: MaterialDragD
   const queryClient = useQueryClient();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Map<string, UploadingFile>>(new Map());
+  
+  // Large document modal state
+  const [largeDocumentModal, setLargeDocumentModal] = useState<{
+    isOpen: boolean;
+    materialId?: string;
+    materialTitle?: string;
+    pageCount?: number;
+    estimatedTime?: number;
+  }>({
+    isOpen: false,
+  });
 
   const uploadMutation = useMutation({
     mutationFn: async ({ file, fileId }: { file: File; fileId: string }) => {
@@ -110,7 +127,45 @@ export default function MaterialDragDrop({ subjectId, onSuccess }: MaterialDragD
       return response.json();
     },
     onSuccess: (data, { fileId }) => {
-      // Update file status
+      // Check if this is a large document requiring async processing
+      if (data.requiresAsyncProcessing) {
+        console.log(`[DragDrop] Large document detected: ${data.title} (${data.pageCount} páginas)`);
+        
+        // Update file status
+        setUploadingFiles(prev => {
+          const updated = new Map(prev);
+          const file = updated.get(fileId);
+          if (file) {
+            updated.set(fileId, {
+              ...file,
+              status: 'large_document',
+              progress: 100,
+              aiTitle: data.title,
+              aiSummary: data.description,
+              detectedType: data.type,
+              requiresAsyncProcessing: true,
+              materialId: data.id,
+              pageCount: data.pageCount,
+              estimatedTime: Math.ceil((data.pageCount * 1.2) / 60), // minutes
+            });
+          }
+          return updated;
+        });
+
+        // Show large document modal
+        setLargeDocumentModal({
+          isOpen: true,
+          materialId: data.id,
+          materialTitle: data.title,
+          pageCount: data.pageCount,
+          estimatedTime: Math.ceil((data.pageCount * 1.2) / 60),
+        });
+
+        // Don't show regular toast or remove from list yet
+        return;
+      }
+
+      // Regular small document - handle normally
       setUploadingFiles(prev => {
         const updated = new Map(prev);
         const file = updated.get(fileId);
@@ -240,6 +295,35 @@ export default function MaterialDragDrop({ subjectId, onSuccess }: MaterialDragD
   };
 
   return (
+    <>
+      {/* Large Document Modal */}
+      {largeDocumentModal.isOpen && largeDocumentModal.materialId && (
+        <LargeDocumentModal
+          isOpen={largeDocumentModal.isOpen}
+          onClose={() => {
+            setLargeDocumentModal({ isOpen: false });
+            // Remove from uploading list
+            const fileToRemove = Array.from(uploadingFiles.entries()).find(
+              ([, file]) => file.materialId === largeDocumentModal.materialId
+            );
+            if (fileToRemove) {
+              setUploadingFiles(prev => {
+                const updated = new Map(prev);
+                updated.delete(fileToRemove[0]);
+                return updated;
+              });
+            }
+            // Invalidate queries
+            queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+            onSuccess?.();
+          }}
+          materialId={largeDocumentModal.materialId}
+          materialTitle={largeDocumentModal.materialTitle || ''}
+          pageCount={largeDocumentModal.pageCount || 0}
+          estimatedTime={largeDocumentModal.estimatedTime || 0}
+        />
+      )}
+    
     <div className="space-y-4" data-testid="drag-drop-area">
       {/* Drag and Drop Zone */}
       <div
@@ -342,6 +426,13 @@ export default function MaterialDragDrop({ subjectId, onSuccess }: MaterialDragD
                             </div>
                           )}
                           
+                          {fileData.status === 'large_document' && (
+                            <Badge variant="secondary" className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Processamento em andamento
+                            </Badge>
+                          )}
+                          
                           {fileData.status === 'error' && (
                             <Button
                               variant="ghost"
@@ -385,5 +476,6 @@ export default function MaterialDragDrop({ subjectId, onSuccess }: MaterialDragD
         </div>
       )}
     </div>
+    </>
   );
 }
