@@ -1,7 +1,8 @@
 # Relatório de Validação do Sistema de Chunking
 
 **Data:** 28/10/2025  
-**Status:** ✅ TODOS OS TESTES PASSARAM
+**Status:** ✅ TODOS OS TESTES PASSARAM - VALIDAÇÃO RAG COMPLETA  
+**Última atualização:** 28/10/2025 00:15 UTC
 
 ---
 
@@ -98,6 +99,36 @@ O sistema modular de chunking foi implementado e **validado com sucesso**. Todas
 
 ---
 
+## 🚨 Bugs Críticos Encontrados e Corrigidos (RAG)
+
+### Bug #4: Loop Infinito no RAG (202 chunks para 1034 caracteres)
+**Problema:** `SentenceAwareChunkStrategy` estava gerando 202 chunks para um texto de apenas 1034 caracteres, com taxa de overlap absurda de 1963%.
+
+**Causa Raiz:** 
+1. Cálculo do `actualChunkLength` usava `chunkText.length` APÓS `.trim()`, não o tamanho real no texto original
+2. Falta de break após último chunk, permitindo geração infinita de micro-chunks
+
+**Solução:**
+```typescript
+// ANTES
+const actualChunkLength = chunkText.length; // ❌ Tamanho após trim
+const nextStart = start + actualChunkLength - safeOverlap;
+
+// DEPOIS
+const actualChunkLength = actualEnd - start; // ✅ Tamanho real
+const nextStart = start + actualChunkLength - safeOverlap;
+
+// + Adicionar break após último chunk
+if (isLastChunk) break;
+```
+
+**Resultado:**
+- Chunks gerados: 202 → **2** ✅
+- Taxa de overlap: 1963% → **19.3%** ✅
+- Overlap total: 20300 chars → **200 chars** ✅
+
+---
+
 ## 🔧 Correções Aplicadas
 
 ### 1. **Perda de Caracteres em Chunks**
@@ -148,10 +179,12 @@ const defaultVoice = serviceType === 'deepgram'
 
 | Métrica | Resultado |
 |---------|-----------|
-| Testes passados | 9/9 (100%) |
-| Perda de caracteres | 0 chars |
+| Testes passados | 12/12 (100%) |
+| Perda de caracteres (TTS) | 0 chars |
+| Perda de caracteres (RAG) | 0 chars |
 | Chunks finais incluídos | 100% |
-| RAG overlap funcionando | ✅ Sim |
+| RAG overlap funcionando | ✅ Sim (19.3% taxa ideal) |
+| RAG chunks otimizados | ✅ Sim (202 → 2 chunks) |
 | Edge cases cobertos | ✅ Sim |
 | Compatibilidade retroativa | ✅ Mantida |
 
@@ -182,5 +215,24 @@ O sistema de chunking está **100% funcional** e **não apresenta nenhum impacto
 
 ---
 
+---
+
+## ✅ Validação RAG - Processamento Semântico
+
+### Teste com Texto Acadêmico (Fotossíntese)
+- **Texto:** 1034 caracteres
+- **Chunks gerados:** 2 (ideal)
+- **Overlap:** 200 caracteres (exatamente como configurado)
+- **Cobertura:** 100% do texto original
+- **Taxa de overlap:** 19.3% (saudável)
+
+### Comparação Antes/Depois da Correção
+| Métrica | Antes (BUG) | Depois (CORRIGIDO) |
+|---------|-------------|---------------------|
+| Chunks gerados | 202 | **2** ✅ |
+| Overlap total | 20300 chars | **200 chars** ✅ |
+| Taxa de overlap | 1963% | **19.3%** ✅ |
+| Perda de contexto | Não | **Não** ✅ |
+
 **Assinado:** Replit Agent  
-**Data:** 28/10/2025 00:04:30 UTC
+**Data:** 28/10/2025 00:15:00 UTC

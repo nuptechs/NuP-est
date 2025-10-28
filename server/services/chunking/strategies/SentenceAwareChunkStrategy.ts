@@ -72,13 +72,19 @@ export class SentenceAwareChunkStrategy implements IChunkingStrategy {
         });
       }
       
-      // Calcula próximo início com overlap seguro
-      const actualChunkLength = chunkText.length;
+      // Se este era o último chunk, parar
+      if (isLastChunk) break;
+      
+      // CORREÇÃO: Usar actualEnd - start (tamanho real do chunk no texto original)
+      // em vez de chunkText.length (que pode estar modificado por trim)
+      const actualChunkLength = actualEnd - start;
       const safeOverlap = Math.min(overlapChars, actualChunkLength - 1);
       const nextStart = start + actualChunkLength - safeOverlap;
       
-      // Garante progresso mínimo (previne loop infinito)
-      start = Math.max(nextStart, start + 1);
+      // Garante progresso mínimo significativo (previne loop infinito)
+      // Se o overlap for muito grande, garante pelo menos 10% de progresso
+      const minProgress = Math.max(1, Math.floor(actualChunkLength * 0.1));
+      start = Math.max(nextStart, start + minProgress);
       
       if (start >= text.length) break;
     }
