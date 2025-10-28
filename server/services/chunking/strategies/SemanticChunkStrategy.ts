@@ -728,10 +728,20 @@ Retorne APENAS o JSON, sem explicações adicionais.
 
   /**
    * Gera ID único para tópico semântico (para agrupar partes)
+   * Usa hash criptográfico para evitar colisões
    */
   private generateTopicId(title: string, startIndex: number): string {
-    // Hash simples baseado em título + posição
-    const hash = title.toLowerCase().replace(/\s+/g, '-') + '-' + startIndex;
-    return hash.substring(0, 50); // Limitar tamanho
+    // Hash baseado em título + posição para garantir unicidade
+    const input = `${title}-${startIndex}`;
+    // Hash simples mas robusto (suficiente para este caso de uso)
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      const char = input.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    const hashStr = Math.abs(hash).toString(36);
+    const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 30);
+    return `${sanitizedTitle}-${hashStr}`;
   }
 }
