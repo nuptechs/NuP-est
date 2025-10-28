@@ -1,31 +1,46 @@
 /**
- * SEMANTIC CHUNKING STRATEGY
+ * SEMANTIC CHUNKING STRATEGY - HIERÁRQUICA
  * 
- * Estratégia adaptativa que usa IA para identificar quebras semânticas naturais.
+ * Estratégia adaptativa que usa IA em 2 passos para identificar quebras semânticas naturais.
  * Ideal para materiais de estudo onde preservar conceitos completos é crítico.
  * 
- * FUNCIONAMENTO:
- * 1. Analisa documento com IA (GPT-4o-mini via OpenRouter)
- * 2. Identifica tópicos, subtópicos e conceitos principais
- * 3. Gera chunks com tamanhos variáveis (200-2000 chars)
+ * FUNCIONAMENTO (ANÁLISE HIERÁRQUICA):
+ * 1. PASSO 1: Sumário Estratégico - IA lê documento completo e identifica grandes seções
+ * 2. PASSO 2: Análise Detalhada - Para cada seção, IA identifica tópicos/conceitos
+ * 3. Gera chunks com tamanhos variáveis (200-1200 chars)
  * 4. Cada chunk = 1 unidade semântica autocontida
  * 
  * VANTAGENS:
  * ✅ Preserva contexto completo de cada conceito
+ * ✅ Não quebra assuntos no meio (respeita estrutura natural)
  * ✅ Busca RAG retorna trechos coerentes
  * ✅ Questões geradas têm todo contexto necessário
- * ✅ Flexível para diferentes tipos de conteúdo acadêmico
+ * ✅ Escala para documentos grandes (100k+ caracteres)
  * 
  * CUSTOS:
- * ~$0.001-0.003 por documento (análise única por upload)
- * +2-5 segundos de processamento adicional
+ * ~$0.002-0.005 por documento (2 chamadas de IA por upload)
+ * +5-15 segundos de processamento adicional
  */
 
 import type { IChunkingStrategy, ChunkOptions, ChunkResult } from '../types';
 import { aiAnalyze } from '../../ai/index';
 
 /**
- * Resultado da análise semântica feita pela IA
+ * Sumário do documento (Passo 1)
+ */
+interface DocumentOverview {
+  title: string;
+  type: 'apostila' | 'aula' | 'resumo' | 'artigo' | 'livro' | 'outro';
+  sections: {
+    title: string;
+    startIndex: number;
+    endIndex: number;
+    description: string;
+  }[];
+}
+
+/**
+ * Resultado da análise semântica detalhada (Passo 2)
  */
 interface SemanticAnalysis {
   topics: {
@@ -57,27 +72,51 @@ export class SemanticChunkStrategy implements IChunkingStrategy {
       throw new Error(`[${this.name}] Opções inválidas`);
     }
 
-    const { maxChars = 2000, minChunkSize = 200 } = options;
+    const { maxChars = 1200, minChunkSize = 200 } = options;
 
-    console.log(`[SemanticChunkStrategy] Iniciando análise semântica de ${text.length} caracteres...`);
+    console.log(`[SemanticChunkStrategy] 🔍 Iniciando análise hierárquica de ${text.length} caracteres...`);
 
     try {
-      // Passo 1: Análise semântica com IA
-      const analysis = await this.analyzeSemanticStructure(text, maxChars);
+      // PASSO 1: Sumário Estratégico (documento completo)
+      console.log(`[SemanticChunkStrategy] 📋 PASSO 1: Analisando estrutura geral do documento...`);
+      const overview = await this.analyzeDocumentOverview(text);
+      console.log(`[SemanticChunkStrategy] ✅ Identificadas ${overview.sections.length} seções principais`);
 
-      console.log(`[SemanticChunkStrategy] Análise concluída: ${analysis.topics.length} tópicos identificados`);
+      // PASSO 2: Análise Detalhada (seção por seção)
+      console.log(`[SemanticChunkStrategy] 📖 PASSO 2: Analisando cada seção em detalhes...`);
+      const allTopics: SemanticAnalysis['topics'] = [];
 
-      // Passo 2: Gerar chunks baseados nos tópicos identificados
+      for (let i = 0; i < overview.sections.length; i++) {
+        const section = overview.sections[i];
+        const sectionText = text.substring(section.startIndex, section.endIndex);
+        
+        console.log(`[SemanticChunkStrategy]   → Seção ${i + 1}/${overview.sections.length}: "${section.title}" (${sectionText.length} chars)`);
+        
+        const sectionTopics = await this.analyzeSectionDetails(
+          sectionText, 
+          section.startIndex,
+          section.title,
+          maxChars
+        );
+        
+        allTopics.push(...sectionTopics);
+        console.log(`[SemanticChunkStrategy]   ✓ ${sectionTopics.length} tópicos identificados nesta seção`);
+      }
+
+      console.log(`[SemanticChunkStrategy] ✅ Análise hierárquica concluída: ${allTopics.length} tópicos totais`);
+
+      // Gerar chunks baseados nos tópicos identificados
+      const analysis: SemanticAnalysis = { topics: allTopics };
       const chunks = this.generateChunksFromAnalysis(text, analysis, minChunkSize, maxChars);
 
-      console.log(`[SemanticChunkStrategy] ${chunks.length} chunks gerados com tamanhos variáveis`);
+      console.log(`[SemanticChunkStrategy] 🎯 ${chunks.length} chunks semânticos gerados`);
 
       return chunks;
     } catch (error) {
-      console.error(`[SemanticChunkStrategy] Erro na análise semântica:`, error);
+      console.error(`[SemanticChunkStrategy] ❌ Erro na análise semântica:`, error);
       
       // Fallback: usar estratégia sentence-aware se IA falhar
-      console.warn(`[SemanticChunkStrategy] Usando fallback para estratégia sentence-aware`);
+      console.warn(`[SemanticChunkStrategy] ⚠️ Usando fallback para estratégia sentence-aware`);
       const { SentenceAwareChunkStrategy } = await import('./SentenceAwareChunkStrategy');
       const fallbackStrategy = new SentenceAwareChunkStrategy();
       return fallbackStrategy.chunk(text, options);
@@ -85,69 +124,248 @@ export class SemanticChunkStrategy implements IChunkingStrategy {
   }
 
   /**
-   * Analisa estrutura semântica do texto usando IA
+   * PASSO 1: Analisa estrutura geral do documento (sumário estratégico)
+   * Lê o documento completo e identifica grandes seções/capítulos
    */
-  private async analyzeSemanticStructure(
-    text: string, 
-    maxChunkSize: number
-  ): Promise<SemanticAnalysis> {
-    // Limitar texto para análise (não enviar >10k chars para IA)
-    const textToAnalyze = text.length > 10000 
-      ? text.substring(0, 10000) + '\n...[texto truncado para análise]'
-      : text;
+  private async analyzeDocumentOverview(text: string): Promise<DocumentOverview> {
+    // Criar amostra estratégica: início + meio + fim
+    const sampleSize = 3000;
+    const beginning = text.substring(0, sampleSize);
+    const middle = text.substring(Math.floor(text.length / 2) - sampleSize / 2, Math.floor(text.length / 2) + sampleSize / 2);
+    const end = text.substring(Math.max(0, text.length - sampleSize));
+    
+    const strategicSample = `
+=== INÍCIO DO DOCUMENTO ===
+${beginning}
+
+=== MEIO DO DOCUMENTO ===
+${middle}
+
+=== FIM DO DOCUMENTO ===
+${end}
+`.trim();
 
     const prompt = `
-Analise este texto acadêmico e identifique tópicos/subtópicos principais para chunking semântico.
+Analise este documento acadêmico e identifique sua estrutura principal (seções/capítulos).
 
-TEXTO:
+DOCUMENTO (Tamanho completo: ${text.length} caracteres):
+"""
+${strategicSample}
+"""
+
+INSTRUÇÕES:
+1. Identifique o tipo de documento (apostila, aula, resumo, artigo, livro)
+2. Identifique as PRINCIPAIS SEÇÕES/CAPÍTULOS (máximo 10)
+3. Para cada seção, estime:
+   - Título descritivo
+   - Posição aproximada no documento (startIndex, endIndex)
+   - Breve descrição do conteúdo
+
+IMPORTANTE:
+- Use o tamanho total (${text.length} chars) para estimar posições
+- Distribua as seções ao longo de todo o documento
+- Seções devem cobrir 100% do texto (sem gaps)
+- Não crie seções muito pequenas (mínimo ~10% do documento cada)
+
+RESPONDA EM JSON:
+{
+  "title": "Título do documento",
+  "type": "apostila",
+  "sections": [
+    {
+      "title": "Introdução",
+      "startIndex": 0,
+      "endIndex": 50000,
+      "description": "Conceitos iniciais e apresentação"
+    }
+  ]
+}
+
+Retorne APENAS o JSON, sem explicações adicionais.
+`.trim();
+
+    try {
+      const result = await aiAnalyze<DocumentOverview>(
+        prompt,
+        'Você é um especialista em análise de estrutura de documentos acadêmicos.',
+        {
+          temperature: 0.3,
+          maxTokens: 1500,
+        }
+      );
+
+      // Validar e ajustar seções para cobrir 100% do documento
+      return this.validateOverview(result, text.length);
+    } catch (error) {
+      // Fallback: criar seções fixas de 50k caracteres
+      console.warn(`[SemanticChunkStrategy] Falha no overview, usando divisão automática`);
+      return this.createAutomaticSections(text.length);
+    }
+  }
+
+  /**
+   * PASSO 2: Analisa uma seção específica em detalhes
+   * Identifica tópicos/conceitos dentro da seção
+   */
+  private async analyzeSectionDetails(
+    sectionText: string,
+    offsetIndex: number,
+    sectionTitle: string,
+    maxChunkSize: number
+  ): Promise<SemanticAnalysis['topics']> {
+    // Limitar análise a 20k chars por seção (para não sobrecarregar a IA)
+    const textToAnalyze = sectionText.length > 20000
+      ? sectionText.substring(0, 20000)
+      : sectionText;
+
+    const prompt = `
+Analise esta seção de um documento acadêmico e identifique tópicos/conceitos para chunking semântico.
+
+SEÇÃO: ${sectionTitle}
+TEXTO (${sectionText.length} caracteres):
 """
 ${textToAnalyze}
 """
 
 INSTRUÇÕES:
-1. Identifique os principais tópicos/conceitos do texto
-2. Para cada tópico, determine:
-   - Título descritivo
-   - Posição aproximada no texto (caracteres)
+1. Identifique os principais tópicos/conceitos desta seção
+2. Para cada tópico:
+   - Título descritivo e específico
+   - Posição no texto (startIndex, endIndex - relativos ao início da seção)
    - Palavras-chave principais (3-5 palavras)
    - Nível acadêmico (básico/intermediário/avançado)
-3. Cada chunk deve ser autocontido (conceito completo)
-4. Tamanho ideal de chunks: ${Math.floor(maxChunkSize * 0.6)}-${maxChunkSize} caracteres
-5. Mínimo: 200 caracteres por chunk
+3. Cada tópico deve ser autocontido (conceito completo)
+4. Tamanho ideal: ${Math.floor(maxChunkSize * 0.6)}-${maxChunkSize} caracteres
+5. Mínimo: 200 caracteres
 
 RESPONDA EM JSON:
 {
   "topics": [
     {
-      "title": "Título do tópico",
+      "title": "Conceito X",
       "startIndex": 0,
-      "endIndex": 500,
-      "keywords": ["palavra1", "palavra2"],
+      "endIndex": 800,
+      "keywords": ["termo1", "termo2"],
       "academicLevel": "intermediário"
     }
-  ],
-  "summary": "Resumo geral do documento em 1-2 frases"
+  ]
 }
 
-IMPORTANTE: Use posições aproximadas baseadas no comprimento do texto original (${text.length} caracteres).
+IMPORTANTE: Posições devem ser relativas ao início do texto fornecido.
 Retorne APENAS o JSON, sem explicações adicionais.
 `.trim();
 
     try {
-      const result = await aiAnalyze<SemanticAnalysis>(
+      const result = await aiAnalyze<Pick<SemanticAnalysis, 'topics'>>(
         prompt,
         'Você é um especialista em análise de conteúdo acadêmico e identificação de estruturas semânticas.',
         {
-          temperature: 0.3, // Baixa temperatura para consistência
+          temperature: 0.3,
           maxTokens: 2000,
         }
       );
 
-      // Validar e ajustar índices se necessário
-      return this.validateAndAdjustAnalysis(result, text.length);
+      // Ajustar índices para posição absoluta no documento
+      return result.topics.map(topic => ({
+        ...topic,
+        startIndex: topic.startIndex + offsetIndex,
+        endIndex: topic.endIndex + offsetIndex,
+      }));
     } catch (error) {
-      throw new Error(`Falha na análise semântica: ${(error as Error).message}`);
+      console.error(`[SemanticChunkStrategy] Erro ao analisar seção "${sectionTitle}":`, error);
+      // Retornar seção completa como um único tópico
+      return [{
+        title: sectionTitle,
+        startIndex: offsetIndex,
+        endIndex: offsetIndex + sectionText.length,
+        keywords: [],
+        academicLevel: 'intermediário',
+      }];
     }
+  }
+
+  /**
+   * Valida e ajusta o overview do documento
+   */
+  private validateOverview(overview: DocumentOverview, textLength: number): DocumentOverview {
+    const sections = overview.sections || [];
+    
+    if (sections.length === 0) {
+      return this.createAutomaticSections(textLength);
+    }
+
+    // Ajustar índices e garantir cobertura completa
+    const adjustedSections = sections.map((section, index) => {
+      let startIndex = Math.max(0, Math.min(section.startIndex, textLength - 1));
+      let endIndex = Math.max(startIndex + 1, Math.min(section.endIndex, textLength));
+      
+      // Última seção deve ir até o final
+      if (index === sections.length - 1) {
+        endIndex = textLength;
+      }
+      
+      return {
+        ...section,
+        startIndex,
+        endIndex,
+      };
+    });
+
+    // Ordenar por startIndex
+    adjustedSections.sort((a, b) => a.startIndex - b.startIndex);
+
+    // Garantir que primeira seção começa em 0
+    if (adjustedSections[0].startIndex > 0) {
+      adjustedSections[0].startIndex = 0;
+    }
+
+    // Preencher gaps entre seções
+    for (let i = 0; i < adjustedSections.length - 1; i++) {
+      const current = adjustedSections[i];
+      const next = adjustedSections[i + 1];
+      
+      if (current.endIndex < next.startIndex) {
+        // Estender seção atual até início da próxima
+        current.endIndex = next.startIndex;
+      } else if (current.endIndex > next.startIndex) {
+        // Ajustar início da próxima seção
+        next.startIndex = current.endIndex;
+      }
+    }
+
+    return {
+      ...overview,
+      sections: adjustedSections,
+    };
+  }
+
+  /**
+   * Cria seções automáticas quando IA falha
+   */
+  private createAutomaticSections(textLength: number): DocumentOverview {
+    const sectionSize = 50000; // 50k chars por seção
+    const sections: DocumentOverview['sections'] = [];
+    
+    let start = 0;
+    let sectionNum = 1;
+    
+    while (start < textLength) {
+      const end = Math.min(start + sectionSize, textLength);
+      sections.push({
+        title: `Seção ${sectionNum}`,
+        startIndex: start,
+        endIndex: end,
+        description: `Conteúdo do documento (${start}-${end})`,
+      });
+      start = end;
+      sectionNum++;
+    }
+
+    return {
+      title: 'Documento',
+      type: 'outro',
+      sections,
+    };
   }
 
   /**

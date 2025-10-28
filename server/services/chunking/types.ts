@@ -41,6 +41,9 @@ export interface ChunkOptions {
   
   /** Preservar formatação (paragraphs, line breaks) */
   preserveFormatting?: boolean;
+  
+  /** Estratégia de chunking a ser utilizada */
+  strategy?: 'simple-limit' | 'sentence-aware' | 'semantic';
 }
 
 /**
@@ -139,12 +142,13 @@ export const CHUNK_PROFILES: Record<ChunkProfile, ChunkOptions> = {
     preserveFormatting: true,
   },
   'semantic-default': {
-    maxChars: 2000,      // Limite máximo por chunk
+    maxChars: 1200,      // Reduzido para respeitar limite de 36KB do Google Embeddings
     overlapChars: 0,     // Sem overlap (chunks semânticos são autocontidos)
     splitOn: 'paragraph',
     minChunkSize: 200,   // Mínimo para conceitos terem sentido
     allowTruncation: false,
     preserveFormatting: true,
+    strategy: 'semantic', // Usar análise hierárquica com IA
   },
   'custom': {
     maxChars: 1000,
