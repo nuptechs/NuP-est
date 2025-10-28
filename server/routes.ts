@@ -484,6 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let processedFile;
       let extractedContent = '';
+      let pageCount = 0;
       let aiTitle = '';
       let aiDescription = '';
       let isReusedFile = false;
@@ -496,6 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         processedFile = existingProcessedFile;
         extractedContent = existingProcessedFile.extractedContent || '';
+        pageCount = existingProcessedFile.pageCount || 0;
         aiTitle = existingProcessedFile.aiGeneratedTitle || originalFilename;
         aiDescription = existingProcessedFile.aiGeneratedDescription || '';
         isReusedFile = true;
@@ -519,8 +521,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             extractedContent = fs.readFileSync(filePath, 'utf-8');
             console.log(`📝 Conteúdo texto extraído: ${extractedContent.length} caracteres`);
           } else if (['.pdf', '.docx'].includes(fileExt)) {
-            extractedContent = await aiService.extractTextFromFile(filePath);
-            console.log(`📝 Conteúdo extraído: ${extractedContent.length} caracteres`);
+            // Use fileProcessor to get both text and pageCount
+            const { fileProcessorService } = await import('./services/fileProcessor');
+            const result = await fileProcessorService.processFile(filePath, originalFilename);
+            extractedContent = result.text;
+            pageCount = result.pageCount || 0;
+            console.log(`📝 Conteúdo extraído: ${extractedContent.length} caracteres, ${pageCount} páginas`);
           } else if (fileExt === '.doc') {
             console.log('⚠️ Arquivos .DOC têm suporte limitado');
             extractedContent = '';
@@ -572,6 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               fileType: detectedType,
               fileSize,
               extractedContent,
+              pageCount,
               aiGeneratedTitle: aiTitle,
               aiGeneratedDescription: aiDescription,
               referenceCount: 1,
@@ -609,18 +616,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw txError;
       }
 
-      // Migrate to RAG if content is available (only for new files)
-      if (!isReusedFile && extractedContent) {
-        try {
-          // Create a temporary material object for RAG with content
-          const materialForRAG = { ...material, content: extractedContent };
-          await aiService.migrateToRAG(materialForRAG, userId);
-          console.log(`📚 Material migrado para RAG: ${material.title}`);
-        } catch (error) {
-          console.log('⚠️ Falha na migração automática para RAG:', error);
+      // Check if this is a large document requiring async processing
+      const requiresAsyncProcessing = pageCount > 250;
+      
+      if (requiresAsyncProcessing) {
+        console.log(`📦 Documento grande detectado (${pageCount} páginas) - processamento assíncrono recomendado`);
+      } else {
+        // Migrate to RAG if content is available (only for new files and small documents)
+        if (!isReusedFile && extractedContent) {
+          try {
+            // Create a temporary material object for RAG with content
+            const materialForRAG = { ...material, content: extractedContent };
+            await aiService.migrateToRAG(materialForRAG, userId);
+            console.log(`📚 Material migrado para RAG: ${material.title}`);
+          } catch (error) {
+            console.log('⚠️ Falha na migração automática para RAG:', error);
+          }
+        } else if (isReusedFile) {
+          console.log(`📚 Conteúdo já está no RAG (arquivo reutilizado)`);
         }
-      } else if (isReusedFile) {
-        console.log(`📚 Conteúdo já está no RAG (arquivo reutilizado)`);
       }
 
       // FASE 1: Process content categorization if file has text content
@@ -645,6 +659,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...material,
         wasReused: isReusedFile,
         processingTime: isReusedFile ? 'instantâneo (reutilizado)' : 'processado agora',
+        requiresAsyncProcessing,
+        pageCount,
       });
     } catch (error) {
       console.error("Error in smart upload:", error);
