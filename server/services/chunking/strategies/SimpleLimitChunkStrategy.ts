@@ -49,15 +49,19 @@ export class SimpleLimitChunkStrategy implements IChunkingStrategy {
         }
       }
       
-      const trimmedChunk = chunkText.trim();
-      
       // Sempre adicionar último chunk, mesmo se menor que minChunkSize
       const isLastChunk = actualEnd >= text.length;
       
-      // Adiciona chunk se atender tamanho mínimo OU se for o último chunk
-      if (trimmedChunk.length >= minChunkSize || isLastChunk) {
+      // IMPORTANTE: Para TTS sem overlap, NÃO fazer trim para preservar todos os caracteres
+      // Apenas verificar se o chunk não está vazio (só whitespace)
+      const hasContent = chunkText.trim().length > 0;
+      
+      // Adiciona chunk se:
+      // 1. Tiver conteúdo (não apenas whitespace)
+      // 2. Atender tamanho mínimo OU ser o último chunk
+      if (hasContent && (chunkText.length >= minChunkSize || isLastChunk)) {
         chunks.push({
-          text: trimmedChunk,
+          text: chunkText, // NÃO trim - preserva espaços
           startIndex: start,
           endIndex: actualEnd,
           chunkNumber: chunkNumber++,

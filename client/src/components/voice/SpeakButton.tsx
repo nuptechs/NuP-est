@@ -20,7 +20,7 @@ interface SpeakButtonProps {
   className?: string;
 }
 
-export function SpeakButton({ text, isPremium, voice = 'alloy', className }: SpeakButtonProps) {
+export function SpeakButton({ text, isPremium, voice, className }: SpeakButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -61,7 +61,17 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
 
     try {
       const voiceService = VoiceServiceFactory.create(isPremium);
-      console.log('[SpeakButton] VoiceService criado:', voiceService.getMetadata().type);
+      const serviceType = voiceService.getMetadata().type;
+      console.log('[SpeakButton] VoiceService criado:', serviceType);
+      
+      // Define voz padrão baseada no provider
+      const defaultVoice = serviceType === 'deepgram' 
+        ? 'aura-asteria-en' 
+        : serviceType === 'whisper' 
+          ? 'alloy' 
+          : undefined;
+      
+      const effectiveVoice = voice || defaultVoice;
       
       if (!isPremium) {
         // Modo Básico: speechSynthesis toca diretamente (não retorna áudio)
@@ -126,7 +136,8 @@ export function SpeakButton({ text, isPremium, voice = 'alloy', className }: Spe
       } else {
         // Modo Premium: Whisper/Deepgram retorna áudio MP3
         // Backend agora cuida do chunking automaticamente
-        const result = await voiceService.synthesize(text, voice);
+        console.log('[SpeakButton] Sintetizando com voz:', effectiveVoice);
+        const result = await voiceService.synthesize(text, effectiveVoice!);
         
         // Converter base64 para Blob
         let audioBlob: Blob;
