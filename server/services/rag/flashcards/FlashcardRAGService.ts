@@ -27,7 +27,7 @@ export class FlashcardRAGService extends BaseRAGService {
       'Flashcard document processing',
       async () => {
         // Chunking especializado para flashcards
-        const chunks = this.chunkForFlashcards(document.content);
+        const chunks = await this.chunkForFlashcards(document.content);
         
         // Processar cada chunk
         const processedChunks = await Promise.all(

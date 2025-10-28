@@ -34,7 +34,7 @@ export class ChatRAGService extends BaseRAGService {
       'Chat context document processing',
       async () => {
         // Chunking conversacional
-        const chunks = this.chunkForConversation(document.content);
+        const chunks = await this.chunkForConversation(document.content);
         
         // Processar cada chunk
         const processedChunks = await Promise.all(

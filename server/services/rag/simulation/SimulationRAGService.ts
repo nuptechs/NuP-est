@@ -27,7 +27,7 @@ export class SimulationRAGService extends BaseRAGService {
       'Simulation document processing',
       async () => {
         // Chunking especializado para questões
-        const chunks = this.chunkForSimulations(document.content);
+        const chunks = await this.chunkForSimulations(document.content);
         
         // Processar cada chunk
         const processedChunks = await Promise.all(

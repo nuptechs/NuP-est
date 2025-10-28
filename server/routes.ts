@@ -3231,7 +3231,7 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
         console.log(`[Deepgram/TTS] Texto longo detectado (${text.length} chars), usando chunking...`);
         
         // Dividir texto em chunks de 2000 caracteres
-        const textChunks = TextChunker.chunkTexts(text, 'tts-deepgram');
+        const textChunks = await TextChunker.chunkTexts(text, 'tts-deepgram');
         console.log(`[Deepgram/TTS] Dividido em ${textChunks.length} chunks`);
         
         // Processar cada chunk e coletar áudios

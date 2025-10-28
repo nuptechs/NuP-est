@@ -38,10 +38,7 @@ import { SentenceAwareChunkStrategy } from './strategies/SentenceAwareChunkStrat
 import { SimpleLimitChunkStrategy } from './strategies/SimpleLimitChunkStrategy';
 
 export class TextChunker {
-  private static strategies: Map<string, IChunkingStrategy> = new Map([
-    ['sentence-aware', new SentenceAwareChunkStrategy()],
-    ['simple-limit', new SimpleLimitChunkStrategy()],
-  ]);
+  private static strategies: Map<string, IChunkingStrategy> = new Map<string, IChunkingStrategy>();
 
   /**
    * Divide texto em chunks usando perfil ou configuração customizada

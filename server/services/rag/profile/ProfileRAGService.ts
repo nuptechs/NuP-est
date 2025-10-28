@@ -27,7 +27,7 @@ export class ProfileRAGService extends BaseRAGService {
       'Profile document processing',
       async () => {
         // Chunking especializado para dados de perfil
-        const chunks = this.chunkForProfile(document.content);
+        const chunks = await this.chunkForProfile(document.content);
         
         // Processar cada chunk
         const processedChunks = await Promise.all(
