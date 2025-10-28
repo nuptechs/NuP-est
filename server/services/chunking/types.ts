@@ -47,7 +47,7 @@ export interface ChunkOptions {
 }
 
 /**
- * Resultado do chunking com metadados
+ * Resultado do chunking com metadados semânticos enriquecidos
  */
 export interface ChunkResult {
   /** Texto do chunk */
@@ -59,7 +59,7 @@ export interface ChunkResult {
   /** Posição final no texto original (caractere) */
   endIndex: number;
   
-  /** Número do chunk na sequência */
+  /** Número do chunk na sequência global */
   chunkNumber: number;
   
   /** Total de chunks gerados */
@@ -69,7 +69,38 @@ export interface ChunkResult {
   wasTruncated?: boolean;
   
   /** Metadados adicionais */
-  metadata?: Record<string, any>;
+  metadata?: {
+    /** Título do tópico semântico */
+    topic?: string;
+    
+    /** ID único do tópico semântico (para agrupar partes) */
+    topicId?: string;
+    
+    /** Se este chunk é parte de um tópico maior dividido */
+    partIndex?: number; // 1, 2, 3...
+    partCount?: number; // Total de partes (ex: 3)
+    
+    /** Caminho semântico hierárquico */
+    semanticPath?: string[]; // Ex: ["Direito Tributário", "Receitas Públicas", "Conceito de Tributos"]
+    
+    /** Palavras-chave do tópico */
+    keywords?: string[];
+    
+    /** Nível acadêmico */
+    academicLevel?: 'básico' | 'intermediário' | 'avançado';
+    
+    /** Tipo de fronteira semântica */
+    semanticBoundary?: 'complete' | 'merged' | 'split_part';
+    
+    /** Tipo de chunk */
+    chunkType?: 'semantic' | 'sentence-aware' | 'simple';
+    
+    /** Score de importância (para re-ranking futuro) */
+    importanceScore?: number;
+    
+    /** Outros metadados customizados */
+    [key: string]: any;
+  };
 }
 
 /**

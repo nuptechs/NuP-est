@@ -155,17 +155,19 @@ ${strategicSample}
 
 INSTRUÇÕES:
 1. Identifique o tipo de documento (apostila, aula, resumo, artigo, livro)
-2. Identifique as PRINCIPAIS SEÇÕES/CAPÍTULOS (máximo 10)
+2. Identifique TODAS as seções/capítulos principais do documento
 3. Para cada seção, estime:
-   - Título descritivo
+   - Título descritivo específico
    - Posição aproximada no documento (startIndex, endIndex)
-   - Breve descrição do conteúdo
+   - Breve descrição do conteúdo (1 frase)
 
 IMPORTANTE:
+- Identifique quantas seções forem necessárias (sem limite)
 - Use o tamanho total (${text.length} chars) para estimar posições
-- Distribua as seções ao longo de todo o documento
+- Distribua as seções ao longo de TODO o documento
 - Seções devem cobrir 100% do texto (sem gaps)
-- Não crie seções muito pequenas (mínimo ~10% do documento cada)
+- Tamanho mínimo por seção: ~5000 caracteres (exceto introdução/conclusão)
+- Seja específico nos títulos (não use "Seção 1", use o tema real)
 
 RESPONDA EM JSON:
 {
@@ -551,11 +553,11 @@ Retorne APENAS o JSON, sem explicações adicionais.
         continue;
       }
 
-      // Se chunk for muito grande, dividir em sub-chunks (usando sentence-aware)
+      // Se chunk for muito grande, dividir mantendo rastreabilidade semântica
       if (chunkText.length > maxChunkSize) {
         console.log(`[SemanticChunkStrategy] Chunk grande (${chunkText.length} chars), subdividindo: "${topic.title}"`);
         
-        const subChunks = this.subdivideChunk(
+        const subChunks = this.subdivideTopicWithSemanticTracking(
           chunkText,
           topic,
           topic.startIndex,
@@ -566,7 +568,9 @@ Retorne APENAS o JSON, sem explicações adicionais.
         chunks.push(...subChunks);
         chunkNumber += subChunks.length;
       } else {
-        // Chunk dentro do tamanho ideal
+        // Chunk dentro do tamanho ideal - tópico completo em um único chunk
+        const topicId = this.generateTopicId(topic.title, topic.startIndex);
+        
         chunks.push({
           text: chunkText,
           startIndex: topic.startIndex,
@@ -575,10 +579,14 @@ Retorne APENAS o JSON, sem explicações adicionais.
           wasTruncated: false,
           metadata: {
             topic: topic.title,
+            topicId: topicId,
+            partIndex: 1,
+            partCount: 1,
             keywords: topic.keywords,
             academicLevel: topic.academicLevel,
             semanticBoundary: 'complete', // Indica conceito completo
             chunkType: 'semantic',
+            importanceScore: 1.0, // Tópico completo tem máxima importância
           },
         });
       }
@@ -646,9 +654,10 @@ Retorne APENAS o JSON, sem explicações adicionais.
   }
 
   /**
-   * Subdivide chunks grandes usando quebras de sentença
+   * Subdivide tópico grande mantendo rastreabilidade semântica
+   * NOVO: Adiciona topicId, partIndex/partCount para agrupar chunks do mesmo tópico
    */
-  private subdivideChunk(
+  private subdivideTopicWithSemanticTracking(
     chunkText: string,
     topic: SemanticAnalysis['topics'][0],
     baseStartIndex: number,
@@ -657,14 +666,21 @@ Retorne APENAS o JSON, sem explicações adicionais.
   ): ChunkResult[] {
     const subChunks: ChunkResult[] = [];
     let start = 0;
-    let subNumber = 0;
+
+    // Calcular número total de partes antecipadamente
+    const estimatedParts = Math.ceil(chunkText.length / maxChunkSize);
+    
+    // Gerar ID único para este tópico semântico
+    const topicId = this.generateTopicId(topic.title, baseStartIndex);
+
+    console.log(`[SemanticChunkStrategy]   └─ Dividindo "${topic.title}" em ~${estimatedParts} partes (topicId: ${topicId})`);
 
     while (start < chunkText.length) {
       const end = Math.min(start + maxChunkSize, chunkText.length);
       let subChunkText = chunkText.slice(start, end);
       let actualEnd = end;
 
-      // Tentar quebrar em sentença
+      // Tentar quebrar em sentença para não cortar no meio
       if (end < chunkText.length) {
         const lastSentence = subChunkText.lastIndexOf('. ');
         if (lastSentence > maxChunkSize * 0.6) {
@@ -673,25 +689,49 @@ Retorne APENAS o JSON, sem explicações adicionais.
         }
       }
 
+      const partIndex = subChunks.length + 1;
+
       subChunks.push({
         text: subChunkText.trim(),
         startIndex: baseStartIndex + start,
         endIndex: baseStartIndex + actualEnd,
-        chunkNumber: startingChunkNumber + subNumber,
+        chunkNumber: startingChunkNumber + subChunks.length,
         wasTruncated: false,
         metadata: {
-          topic: `${topic.title} (parte ${subNumber + 1})`,
+          topic: topic.title,
+          topicId: topicId,
+          partIndex: partIndex,
+          partCount: estimatedParts, // Será atualizado ao final
           keywords: topic.keywords,
           academicLevel: topic.academicLevel,
-          semanticBoundary: subNumber === 0 ? 'start' : 'continuation',
-          chunkType: 'semantic-subdivision',
+          semanticBoundary: 'split_part',
+          chunkType: 'semantic',
+          importanceScore: partIndex === 1 ? 1.0 : 0.8, // Primeira parte tem maior importância
         },
       });
 
       start = actualEnd;
-      subNumber++;
     }
 
+    // Atualizar partCount real em todos os chunks
+    const actualPartCount = subChunks.length;
+    subChunks.forEach(chunk => {
+      if (chunk.metadata) {
+        chunk.metadata.partCount = actualPartCount;
+      }
+    });
+
+    console.log(`[SemanticChunkStrategy]   ✓ Gerou ${actualPartCount} partes para "${topic.title}"`);
+
     return subChunks;
+  }
+
+  /**
+   * Gera ID único para tópico semântico (para agrupar partes)
+   */
+  private generateTopicId(title: string, startIndex: number): string {
+    // Hash simples baseado em título + posição
+    const hash = title.toLowerCase().replace(/\s+/g, '-') + '-' + startIndex;
+    return hash.substring(0, 50); // Limitar tamanho
   }
 }
