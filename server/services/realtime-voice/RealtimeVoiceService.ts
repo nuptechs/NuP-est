@@ -23,17 +23,14 @@ import { eq } from 'drizzle-orm';
 
 export class RealtimeVoiceService {
   private sessions: Map<string, RealtimeSession> = new Map();
-  private provider: IRealtimeVoiceProvider;
+  private providers: Map<string, IRealtimeVoiceProvider> = new Map();
   private functions: Map<string, AssistantFunction> = new Map();
 
   constructor(
     private apiKey: string,
     private providerType: 'openai' | 'deepgram' = 'openai'
   ) {
-    // Factory pattern: criar provider baseado no tipo
-    this.provider = this.createProvider(providerType, apiKey);
-    
-    // Registrar funções padrão
+    // Registrar funções padrão (compartilhadas entre providers)
     this.registerDefaultFunctions();
   }
 
@@ -46,65 +43,97 @@ export class RealtimeVoiceService {
     config?: Partial<RealtimeSessionConfig>
   ): Promise<string> {
     const sessionId = `rtv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    let provider: IRealtimeVoiceProvider | undefined;
 
-    // Buscar contexto do aluno do DB
-    const studentContext = await this.fetchStudentContext(userId);
+    try {
+      // Buscar contexto do aluno do DB
+      const studentContext = await this.fetchStudentContext(userId);
 
-    // Configuração padrão
-    const fullConfig: RealtimeSessionConfig = {
-      userId,
-      sessionId,
-      voice: 'alloy',
-      language: 'pt-BR',
-      temperature: 0.7,
-      inputAudioFormat: 'pcm16',
-      outputAudioFormat: 'pcm16',
-      sampleRate: 24000,
-      vadEnabled: true,
-      vadThreshold: 0.5,
-      vadSilenceDuration: 500,
-      enableTranscription: true,
-      enableFunctionCalling: true,
-      systemPrompt: this.buildSystemPrompt(studentContext),
-      ...config,
-    };
+      // Configuração padrão
+      const fullConfig: RealtimeSessionConfig = {
+        userId,
+        sessionId,
+        voice: 'alloy',
+        language: 'pt-BR',
+        temperature: 0.7,
+        inputAudioFormat: 'pcm16',
+        outputAudioFormat: 'pcm16',
+        sampleRate: 24000,
+        vadEnabled: true,
+        vadThreshold: 0.5,
+        vadSilenceDuration: 500,
+        enableTranscription: true,
+        enableFunctionCalling: true,
+        systemPrompt: this.buildSystemPrompt(studentContext),
+        ...config,
+      };
 
-    // Criar sessão
-    const session: RealtimeSession = {
-      id: sessionId,
-      userId,
-      clientWs,
-      config: fullConfig,
-      studentContext,
-      conversationHistory: [],
-      createdAt: new Date(),
-      lastActivity: new Date(),
-    };
+      // Criar sessão
+      const session: RealtimeSession = {
+        id: sessionId,
+        userId,
+        clientWs,
+        config: fullConfig,
+        studentContext,
+        conversationHistory: [],
+        createdAt: new Date(),
+        lastActivity: new Date(),
+      };
 
-    this.sessions.set(sessionId, session);
+      this.sessions.set(sessionId, session);
 
-    // Conectar provider
-    const providerSessionId = await this.provider.connect(fullConfig);
-    session.providerSessionId = providerSessionId;
+      // Criar provider específico para esta sessão
+      provider = this.createProvider(this.providerType, this.apiKey);
+      this.providers.set(sessionId, provider);
 
-    // Setup event handlers
-    this.setupProviderHandlers(sessionId);
-    this.setupClientHandlers(sessionId);
+      // Registrar funções no provider da sessão
+      for (const func of this.functions.values()) {
+        provider.registerFunction(func);
+      }
 
-    // Atualizar contexto no provider
-    if (studentContext) {
-      await this.provider.updateStudentContext(studentContext);
+      // Conectar provider (pode falhar)
+      const providerSessionId = await provider.connect(fullConfig);
+      session.providerSessionId = providerSessionId;
+
+      // Setup event handlers
+      this.setupProviderHandlers(sessionId);
+      this.setupClientHandlers(sessionId);
+
+      // Atualizar contexto no provider
+      if (studentContext) {
+        await provider.updateStudentContext(studentContext);
+      }
+
+      // Notificar cliente
+      this.sendToClient(sessionId, {
+        type: 'session_started',
+        sessionId,
+      });
+
+      console.log(`[RealtimeVoice] Sessão criada: ${sessionId} (provider: ${provider.name})`);
+
+      return sessionId;
+      
+    } catch (error) {
+      // Cleanup em caso de erro
+      console.error(`[RealtimeVoice] Erro ao criar sessão ${sessionId}:`, error);
+      
+      // Remover sessão e provider dos Maps
+      this.sessions.delete(sessionId);
+      
+      if (provider) {
+        try {
+          await provider.disconnect();
+        } catch (disconnectError) {
+          console.error(`[RealtimeVoice] Erro ao desconectar provider durante cleanup:`, disconnectError);
+        }
+      }
+      
+      this.providers.delete(sessionId);
+      
+      // Re-throw para notificar caller
+      throw error;
     }
-
-    // Notificar cliente
-    this.sendToClient(sessionId, {
-      type: 'session_started',
-      sessionId,
-    });
-
-    console.log(`[RealtimeVoice] Sessão criada: ${sessionId} (provider: ${this.provider.name})`);
-
-    return sessionId;
   }
 
   /**
@@ -114,7 +143,11 @@ export class RealtimeVoiceService {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
-    await this.provider.disconnect();
+    const provider = this.providers.get(sessionId);
+    if (provider) {
+      await provider.disconnect();
+      this.providers.delete(sessionId);
+    }
     
     this.sendToClient(sessionId, { type: 'session_ended' });
     
@@ -148,7 +181,7 @@ export class RealtimeVoiceService {
 
   private registerFunction(func: AssistantFunction): void {
     this.functions.set(func.name, func);
-    this.provider.registerFunction(func);
+    // Funções serão registradas quando criar cada provider de sessão
   }
 
   private async fetchStudentContext(userId: string): Promise<StudentContext | undefined> {
@@ -230,7 +263,10 @@ Use essas funções quando precisar de informações sobre o aluno para personal
   }
 
   private setupProviderHandlers(sessionId: string): void {
-    this.provider.on(async (event) => {
+    const provider = this.providers.get(sessionId);
+    if (!provider) return;
+
+    provider.on(async (event) => {
       const session = this.sessions.get(sessionId);
       if (!session) return;
 
@@ -302,17 +338,20 @@ Use essas funções quando precisar de informações sobre o aluno para personal
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
+    const provider = this.providers.get(sessionId);
+    if (!provider) return;
+
     session.clientWs.on('message', async (data) => {
       try {
         const message: ClientToServerMessage = JSON.parse(data.toString());
         
         switch (message.type) {
           case 'audio_chunk':
-            this.provider.sendAudio(message.audio);
+            provider.sendAudio(message.audio);
             break;
 
           case 'interrupt':
-            this.provider.interrupt();
+            provider.interrupt();
             break;
 
           case 'end_session':
@@ -338,10 +377,13 @@ Use essas funções quando precisar de informações sobre o aluno para personal
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
+    const provider = this.providers.get(sessionId);
+    if (!provider) return;
+
     const func = this.functions.get(functionName);
     if (!func) {
       console.warn(`[RealtimeVoice] Função desconhecida: ${functionName}`);
-      this.provider.sendFunctionResult(callId, { error: 'Função não encontrada' });
+      provider.sendFunctionResult(callId, { error: 'Função não encontrada' });
       return;
     }
 
@@ -358,11 +400,11 @@ Use essas funções quando precisar de informações sobre o aluno para personal
 
       console.log(`[RealtimeVoice] Resultado:`, result);
 
-      this.provider.sendFunctionResult(callId, result);
+      provider.sendFunctionResult(callId, result);
 
     } catch (error) {
       console.error(`[RealtimeVoice] Erro ao executar função ${functionName}:`, error);
-      this.provider.sendFunctionResult(callId, { error: 'Erro ao executar função' });
+      provider.sendFunctionResult(callId, { error: 'Erro ao executar função' });
     }
   }
 
@@ -382,6 +424,7 @@ Use essas funções quando precisar de informações sobre o aluno para personal
   }
 
   getProviderName(): string {
-    return this.provider.name;
+    // Retorna nome baseado no tipo configurado
+    return this.providerType === 'openai' ? 'OpenAI Realtime' : 'Deepgram Aura';
   }
 }

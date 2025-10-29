@@ -1,6 +1,6 @@
 # Overview
 
-NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It offers a comprehensive setup, an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The project aims for a polished, professional user experience with adaptive learning strategies to enhance learning efficiency and engagement. The business vision is to provide a competitive edge in the e-learning market by offering a truly personalized and adaptive learning journey.
+NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It offers a comprehensive setup, an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The platform features **Professor IA**, an advanced conversational AI tutor with ultra-low latency voice interactions (<500ms) that creates the experience of learning from a dedicated human teacher. The project aims for a polished, professional user experience with adaptive learning strategies to enhance learning efficiency and engagement. The business vision is to provide a competitive edge in the e-learning market by offering a truly personalized and adaptive learning journey.
 
 # User Preferences
 
@@ -52,11 +52,29 @@ Authentication is handled via Replit OAuth (OpenID Connect) using secure session
 
 ## Voice Services (Freemium Feature)
 
+### Traditional Voice Pipeline (Conversational Voice)
 An architecture using the Strategy Pattern provides voice services:
 -   **NativeVoiceService (Free Tier)**: Uses browser Web Speech API for basic functionality.
--   **DeepgramVoiceService (Premium - Current)**: Utilizes Deepgram Nova-3 for STT and Deepgram Aura for TTS, offering high accuracy and low latency.
--   **WhisperVoiceService (Premium - Alternative)**: Uses OpenAI Whisper API for STT and OpenAI TTS API for superior accuracy and more voice options.
-This system integrates TTS for AI responses and STT for user input, with security measures for API keys and audio processing.
+-   **DeepgramVoiceService (Premium)**: Utilizes Deepgram Nova-3 for STT and OpenAI TTS for responses (~2-3s latency).
+-   **WhisperVoiceService (Premium - Alternative)**: Uses OpenAI Whisper API for STT and OpenAI TTS API for superior accuracy.
+
+### Realtime Voice System (Professor IA - Phase 1 Completed)
+**Production-ready modular architecture** for ultra-low latency voice conversations:
+-   **Architecture**: Provider-agnostic design using Strategy Pattern - swap providers with 1 line of code
+-   **OpenAI Realtime API**: Native bidirectional audio streaming with <500ms latency
+-   **Multi-session support**: Isolated providers per session, supports multiple simultaneous students
+-   **Function Calling**: Real-time student context retrieval (profile, subject knowledge, learning history)
+-   **Error handling**: Robust cleanup prevents memory leaks, production-ready
+-   **Adaptive pedagogy**: Automatically adjusts teaching style based on student profile (ADHD, dislexia, learning objectives)
+-   **Cost**: ~$0.24/min (vs $0.18/min traditional, but 5x lower latency and natural interruptions)
+
+Key files:
+- `server/services/realtime-voice/RealtimeVoiceService.ts` - Orchestrator
+- `server/services/realtime-voice/providers/OpenAIRealtimeProvider.ts` - OpenAI implementation
+- `server/services/realtime-voice/providers/IRealtimeVoiceProvider.ts` - Provider interface
+- `server/services/realtime-voice/functions/getStudentContext.ts` - Function calling
+- `server/routes/realtimeVoice.ts` - WebSocket routes
+- `server/services/realtime-voice/README.md` - Complete documentation
 
 # External Dependencies
 
