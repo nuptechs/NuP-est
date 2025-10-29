@@ -72,9 +72,32 @@ Key files:
 - `server/services/realtime-voice/RealtimeVoiceService.ts` - Orchestrator
 - `server/services/realtime-voice/providers/OpenAIRealtimeProvider.ts` - OpenAI implementation
 - `server/services/realtime-voice/providers/IRealtimeVoiceProvider.ts` - Provider interface
-- `server/services/realtime-voice/functions/getStudentContext.ts` - Function calling
+- `server/services/realtime-voice/functions/getStudentContext.ts` - Function calling (uses Student Profile Engine)
+- `server/services/realtime-voice/functions/endConversation.ts` - Autonomous conversation ending
 - `server/routes/realtimeVoice.ts` - WebSocket routes
 - `server/services/realtime-voice/README.md` - Complete documentation
+
+### Student Profile Engine (Production-Ready)
+**Modular system for enriched student profiles** with pre-processed data to avoid expensive API calls during voice sessions:
+-   **Architecture**: 3-component modular design - ProfileAnalyzer (metrics/evolution), ConversationTracker (AI-powered conversation analysis), StudentProfileService (orchestrator/façade)
+-   **Snapshot-based**: Data is processed in background and saved as snapshots; reading is instantaneous (10-50ms vs 500-2000ms processing)
+-   **Automatic conversation tracking**: Tracks Professor IA sessions, analyzes them with GPT-4o-mini, extracts topics/concepts/understanding/sentiment
+-   **Rich metrics**: Overall accuracy, study hours, weekly/monthly progress, improvement trends, strong/weak subjects, current focus
+-   **Behavioral patterns**: Study streak, preferred study time, average session duration, engagement level
+-   **AI-generated recommendations**: Next topics, recommended actions, motivational messages
+-   **Integration**: Professor IA's get_student_context() fetches enriched profile instantly during real-time voice
+
+Database tables:
+- `student_profiles_enriched` - Enriched profile snapshots (updated in background)
+- `conversation_summaries` - Full conversation analysis with AI insights
+- `profile_metrics` - Detailed metrics by category/period (reserved for future)
+
+Key files:
+- `server/services/student-profile-engine/StudentProfileService.ts` - Public interface/orchestrator
+- `server/services/student-profile-engine/ProfileAnalyzer.ts` - Metrics & evolution analysis
+- `server/services/student-profile-engine/ConversationTracker.ts` - AI conversation analysis
+- `server/services/student-profile-engine/types.ts` - TypeScript interfaces
+- `server/services/student-profile-engine/README.md` - Complete documentation
 
 # External Dependencies
 
