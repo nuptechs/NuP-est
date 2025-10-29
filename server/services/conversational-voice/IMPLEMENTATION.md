@@ -8,18 +8,20 @@ Sistema de conversação por voz em tempo real para o Professor IA, com transcri
 
 ```
 Usuário (voz) 
-    ↓ [Microfone → AudioCapture PCM]
+    ↓ [Microfone → AudioCapture PCM linear16]
     ↓ [WebSocket]
 Servidor
-    ↓ [Deepgram STT Nova-2]
+    ↓ [Deepgram STT Nova-2 - pt-BR]
 Transcrição (texto)
-    ↓ [OpenAI GPT-4]
+    ↓ [OpenAI GPT-4o-mini]
 Resposta (texto)
-    ↓ [Deepgram TTS Aura]
+    ↓ [OpenAI TTS - voz "nova"]
 Servidor
-    ↓ [WebSocket → AudioContext]
+    ↓ [WebSocket → AudioContext (MP3)]
 Usuário (voz)
 ```
+
+**Nota**: Deepgram Aura TTS não suporta português (apenas EN/ES), por isso usamos OpenAI TTS.
 
 ## ✨ Melhorias Implementadas (Oct 29, 2025)
 
@@ -100,9 +102,15 @@ Usuário (voz)
 ### Variáveis de Ambiente
 
 ```bash
-DEEPGRAM_API_KEY=xxx  # Para STT e TTS
-OPENAI_API_KEY=xxx    # Para GPT-4
+DEEPGRAM_API_KEY=xxx  # Para STT (Speech-to-Text)
+OPENAI_API_KEY=xxx    # Para GPT-4o-mini + TTS (Text-to-Speech)
 ```
+
+**Por que OpenAI TTS?**
+- Deepgram Aura TTS não suporta português (apenas inglês e espanhol)
+- OpenAI TTS tem excelente qualidade em português
+- Voz "nova" é natural e feminina
+- Formato MP3 (menor tamanho, browser decodifica nativamente)
 
 ### Configuração do Cliente
 

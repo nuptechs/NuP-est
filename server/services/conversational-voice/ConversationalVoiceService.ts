@@ -320,6 +320,7 @@ export class ConversationalVoiceService {
 
   /**
    * Converte texto em áudio e envia para cliente
+   * Usa OpenAI TTS (Deepgram Aura não suporta português)
    */
   private async speakText(sessionId: string, text: string): Promise<void> {
     const session = this.sessions.get(sessionId);
@@ -329,50 +330,34 @@ export class ConversationalVoiceService {
       session.isSpeaking = true;
       this.sendToClient(sessionId, { type: 'speaking', text });
 
-      const deepgram = createClient(this.deepgramApiKey);
+      console.log(`[ConversationalVoice] Gerando áudio (OpenAI TTS): "${text.substring(0, 50)}..."`);
 
-      const response = await deepgram.speak.request(
-        { text },
-        {
-          model: 'aura-asteria-pt',
-          encoding: 'linear16',
-          sample_rate: 24000,
-        }
-      );
+      // Usar OpenAI TTS (suporta português)
+      const mp3Response = await this.openaiClient.audio.speech.create({
+        model: 'tts-1',
+        voice: 'nova', // Voz feminina natural
+        input: text,
+        speed: 1.0,
+      });
 
-      const stream = await response.getStream();
-      if (!stream) {
-        throw new Error('Erro ao obter stream de áudio');
-      }
-
-      // Processar chunks de áudio
-      const chunks: Buffer[] = [];
-      const reader = stream.getReader();
-      
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(Buffer.from(value));
-        }
-      } finally {
-        reader.releaseLock();
-      }
-
-      // Combinar chunks e enviar
-      const audioBuffer = Buffer.concat(chunks);
+      // Converter resposta para buffer
+      const arrayBuffer = await mp3Response.arrayBuffer();
+      const audioBuffer = Buffer.from(arrayBuffer);
       const base64Audio = audioBuffer.toString('base64');
 
       this.sendToClient(sessionId, {
         type: 'audio',
         data: base64Audio,
+        format: 'mp3', // Informar formato para o cliente
       });
 
       session.isSpeaking = false;
       this.sendToClient(sessionId, { type: 'done' });
 
+      console.log(`[ConversationalVoice] Áudio gerado: ${audioBuffer.length} bytes (mp3)`);
+
     } catch (error) {
-      console.error(`[ConversationalVoice] Erro ao gerar áudio:`, error);
+      console.error(`[ConversationalVoice] ❌ Erro ao gerar áudio:`, error);
       session.isSpeaking = false;
       this.sendToClient(sessionId, {
         type: 'error',

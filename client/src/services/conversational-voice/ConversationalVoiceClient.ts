@@ -236,7 +236,7 @@ export class ConversationalVoiceClient {
         break;
 
       case 'audio':
-        this.playAudio(message.data);
+        this.playAudio(message.data, message.format);
         break;
 
       case 'done':
@@ -252,7 +252,7 @@ export class ConversationalVoiceClient {
   /**
    * Reproduz áudio recebido
    */
-  private async playAudio(base64Audio: string): Promise<void> {
+  private async playAudio(base64Audio: string, format?: string): Promise<void> {
     try {
       if (!this.audioContext) {
         this.audioContext = new AudioContext();
@@ -265,12 +265,14 @@ export class ConversationalVoiceClient {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Decodificar áudio
+      // Decodificar áudio (AudioContext detecta formato automaticamente: mp3, wav, etc)
       const audioBuffer = await this.audioContext.decodeAudioData(bytes.buffer);
 
       // Adicionar à fila e reproduzir
       this.audioQueue.push(audioBuffer);
       this.processAudioQueue();
+      
+      this.log(`Áudio decodificado: ${format || 'auto'}, ${audioBuffer.duration.toFixed(2)}s`);
 
     } catch (error) {
       console.error('[ConversationalVoice] Erro ao reproduzir áudio:', error);

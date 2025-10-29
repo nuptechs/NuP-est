@@ -11,7 +11,7 @@ export type ServerMessage =
   | { type: 'transcript'; text: string; isFinal: boolean }
   | { type: 'thinking' }
   | { type: 'speaking'; text: string }
-  | { type: 'audio'; data: string }
+  | { type: 'audio'; data: string; format?: string }
   | { type: 'done' }
   | { type: 'error'; error: string };
 

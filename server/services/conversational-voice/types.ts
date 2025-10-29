@@ -58,7 +58,7 @@ export interface CreateSessionOptions {
  * Mensagens do cliente
  */
 export type ClientMessage =
-  | { type: 'audio'; data: string } // Base64 audio
+  | { type: 'audio'; data: string; format?: string } // Base64 audio
   | { type: 'start_listening' }
   | { type: 'stop_listening' }
   | { type: 'interrupt' }
@@ -73,7 +73,7 @@ export type ServerMessage =
   | { type: 'transcript'; text: string; isFinal: boolean }
   | { type: 'thinking' }
   | { type: 'speaking'; text: string }
-  | { type: 'audio'; data: string } // Base64 audio
+  | { type: 'audio'; data: string; format?: string } // Base64 audio
   | { type: 'done' }
   | { type: 'error'; error: string };
 
