@@ -108,6 +108,12 @@ export class ConversationTracker {
    * Analisa conversa usando IA (GPT-4o-mini)
    */
   private async analyzeConversation(messages: ConversationMessage[]): Promise<ConversationAnalysis> {
+    // Verificar se API key está configurada
+    if (!this.openaiApiKey) {
+      console.warn('[ConversationTracker] OpenAI API key não configurada, usando análise fallback');
+      return this.simpleFallbackAnalysis(messages);
+    }
+
     try {
       // Montar contexto da conversa
       const conversationText = messages

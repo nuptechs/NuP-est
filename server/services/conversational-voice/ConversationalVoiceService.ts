@@ -426,7 +426,7 @@ export class ConversationalVoiceService {
       
       // Converter histórico para formato esperado
       const messages = session.conversationHistory.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
+        role: (msg.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
         content: msg.content,
         timestamp: new Date(),
       }));
