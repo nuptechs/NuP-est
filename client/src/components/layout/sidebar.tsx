@@ -31,6 +31,12 @@ const navigationSections = [
     items: [
       { name: "Progresso", href: "/analytics", icon: "fa-chart-line" },
     ]
+  },
+  {
+    title: "Admin",
+    items: [
+      { name: "Perfis de Estudantes", href: "/admin/profiles", icon: "fa-users-cog" },
+    ]
   }
 ];
 
