@@ -11,14 +11,16 @@ import type {
   ConversationalVoiceClientCallbacks,
   ConversationalVoiceClientConfig,
 } from './types';
+import { AudioCapture } from './AudioCapture';
 
 export class ConversationalVoiceClient {
   private ws: WebSocket | null = null;
-  private mediaRecorder: MediaRecorder | null = null;
+  private audioCapture: AudioCapture | null = null;
   private audioContext: AudioContext | null = null;
   private audioQueue: AudioBuffer[] = [];
   private isPlaying: boolean = false;
   private canSendAudio: boolean = false;
+  private currentVolume: number = 0;
 
   private connectionState: ConnectionState = 'disconnected';
   private conversationState: ConversationState = 'idle';
@@ -114,51 +116,52 @@ export class ConversationalVoiceClient {
       throw new Error('Não conectado ao servidor');
     }
 
-    if (this.mediaRecorder) {
+    if (this.audioCapture) {
       this.log('Já está ouvindo');
       return;
     }
 
     try {
-      // Solicitar permissão de microfone
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: this.config.sampleRate,
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
+      // Criar captura de áudio PCM
+      this.audioCapture = new AudioCapture({
+        sampleRate: this.config.sampleRate || 16000,
+        onAudioData: (pcmData: Int16Array) => {
+          if (!this.canSendAudio || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            return;
+          }
 
-      // Criar MediaRecorder
-      this.mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-      });
-
-      this.mediaRecorder.ondataavailable = async (event) => {
-        if (event.data.size > 0 && this.ws?.readyState === WebSocket.OPEN && this.canSendAudio) {
-          // Converter blob para base64
-          const arrayBuffer = await event.data.arrayBuffer();
+          // Converter Int16Array para base64
+          const bytes = new Uint8Array(pcmData.buffer);
           const base64 = btoa(
-            new Uint8Array(arrayBuffer).reduce(
-              (data, byte) => data + String.fromCharCode(byte),
-              ''
-            )
+            Array.from(bytes)
+              .map((byte) => String.fromCharCode(byte))
+              .join('')
           );
 
           // Enviar ao servidor
           this.sendMessage({ type: 'audio', data: base64 });
-        }
-      };
+        },
+        onError: (error) => {
+          console.error('[ConversationalVoice] Erro captura:', error);
+          this.callbacks.onError?.(error.message);
+        },
+        onVolumeChange: (volume) => {
+          this.currentVolume = volume;
+          // Callback para UI mostrar medidor de volume
+          if (this.callbacks.onVolumeChange) {
+            this.callbacks.onVolumeChange(volume);
+          }
+        },
+      });
 
-      // Capturar em chunks de 100ms
-      this.mediaRecorder.start(100);
+      // Iniciar captura
+      await this.audioCapture.start();
 
       // Notificar servidor para iniciar escuta
       this.sendMessage({ type: 'start_listening' });
 
-      this.log('Iniciou captura de áudio');
-    } catch (error) {
+      this.log('Iniciou captura de áudio PCM');
+    } catch (error: any) {
       console.error('[ConversationalVoice] Erro ao iniciar captura:', error);
       this.callbacks.onError?.('Erro ao acessar microfone');
       throw error;
@@ -169,11 +172,11 @@ export class ConversationalVoiceClient {
    * Para captura de áudio
    */
   stopListening(): void {
-    if (this.mediaRecorder) {
-      this.mediaRecorder.stop();
-      this.mediaRecorder.stream.getTracks().forEach((track) => track.stop());
-      this.mediaRecorder = null;
+    if (this.audioCapture) {
+      this.audioCapture.stop();
+      this.audioCapture = null;
       this.canSendAudio = false;
+      this.currentVolume = 0;
 
       // Notificar servidor
       this.sendMessage({ type: 'stop_listening' });
@@ -379,6 +382,10 @@ export class ConversationalVoiceClient {
   }
 
   isListening(): boolean {
-    return this.mediaRecorder !== null;
+    return this.audioCapture !== null && this.audioCapture.getIsCapturing();
+  }
+
+  getCurrentVolume(): number {
+    return this.currentVolume;
   }
 }

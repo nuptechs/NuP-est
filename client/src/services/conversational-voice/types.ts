@@ -44,6 +44,7 @@ export interface ConversationalVoiceClientCallbacks {
   onTranscript?: (text: string, isFinal: boolean) => void;
   onAssistantMessage?: (text: string) => void;
   onAudio?: (audioData: string) => void;
+  onVolumeChange?: (volume: number) => void;
   onError?: (error: string) => void;
 }
 

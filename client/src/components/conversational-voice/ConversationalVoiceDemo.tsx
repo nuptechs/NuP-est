@@ -14,9 +14,11 @@ export function ConversationalVoiceDemo() {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [conversationState, setConversationState] = useState<ConversationState>('idle');
   const [transcript, setTranscript] = useState('');
+  const [partialTranscript, setPartialTranscript] = useState('');
   const [assistantMessage, setAssistantMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [volume, setVolume] = useState(0);
 
   const clientRef = useRef<ConversationalVoiceClient | null>(null);
 
@@ -29,9 +31,13 @@ export function ConversationalVoiceDemo() {
         onTranscript: (text, isFinal) => {
           if (isFinal) {
             setTranscript(text);
+            setPartialTranscript('');
+          } else {
+            setPartialTranscript(text);
           }
         },
         onAssistantMessage: setAssistantMessage,
+        onVolumeChange: setVolume,
         onError: (err) => {
           setError(err);
           setTimeout(() => setError(null), 5000);
@@ -39,6 +45,7 @@ export function ConversationalVoiceDemo() {
       },
       {
         debug: true,
+        sampleRate: 16000,
       }
     );
 
@@ -193,6 +200,22 @@ export function ConversationalVoiceDemo() {
             </div>
           )}
 
+          {/* Medidor de Volume */}
+          {isListening && (
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm text-muted-foreground">
+                Nível de Áudio:
+              </h3>
+              <div className="w-full h-4 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-100"
+                  style={{ width: `${volume * 100}%` }}
+                  data-testid="volume-meter"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Transcrição */}
           <div className="space-y-2">
             <h3 className="font-semibold text-sm text-muted-foreground">Você disse:</h3>
@@ -200,7 +223,16 @@ export function ConversationalVoiceDemo() {
               className="p-4 bg-muted rounded-lg min-h-[60px]"
               data-testid="text-transcript"
             >
-              {transcript || (
+              {transcript || partialTranscript ? (
+                <>
+                  {transcript && (
+                    <div className="font-semibold text-foreground">{transcript}</div>
+                  )}
+                  {partialTranscript && !transcript && (
+                    <div className="text-muted-foreground italic">{partialTranscript}...</div>
+                  )}
+                </>
+              ) : (
                 <span className="text-muted-foreground italic">Nenhuma transcrição ainda...</span>
               )}
             </div>

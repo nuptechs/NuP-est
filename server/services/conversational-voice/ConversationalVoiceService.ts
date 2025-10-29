@@ -145,8 +145,8 @@ export class ConversationalVoiceService {
       const connection = deepgram.listen.live({
         model: 'nova-2',
         language: session.assistantConfig.language,
-        encoding: 'opus',
-        sample_rate: 48000,
+        encoding: 'linear16',
+        sample_rate: 16000,
         channels: 1,
         smart_format: true,
         interim_results: true,
@@ -154,12 +154,17 @@ export class ConversationalVoiceService {
         vad_events: true,
       });
 
+      console.log(`[ConversationalVoice] Deepgram STT configurado: linear16, 16kHz, ${session.assistantConfig.language}`);
+
       // Evento: transcrição recebida
       connection.on(LiveTranscriptionEvents.Transcript, (data) => {
         const transcript = data.channel.alternatives[0]?.transcript;
         if (!transcript) return;
 
         const isFinal = data.is_final;
+        const confidence = data.channel.alternatives[0]?.confidence || 0;
+
+        console.log(`[ConversationalVoice] Transcrição (${sessionId}): "${transcript}" [final:${isFinal}, conf:${confidence.toFixed(2)}]`);
 
         if (isFinal) {
           session.currentTranscript = transcript;
@@ -172,6 +177,7 @@ export class ConversationalVoiceService {
           // Processar com OpenAI
           this.processWithAI(sessionId, transcript);
         } else {
+          // Enviar transcrição parcial para feedback imediato
           this.sendToClient(sessionId, {
             type: 'transcript',
             text: transcript,
@@ -182,10 +188,10 @@ export class ConversationalVoiceService {
 
       // Evento: erro
       connection.on(LiveTranscriptionEvents.Error, (error) => {
-        console.error(`[ConversationalVoice] Erro STT:`, error);
+        console.error(`[ConversationalVoice] ❌ Erro STT (${sessionId}):`, JSON.stringify(error, null, 2));
         this.sendToClient(sessionId, {
           type: 'error',
-          error: 'Erro na transcrição de áudio',
+          error: `Erro STT: ${error.message || 'Desconhecido'}`,
         });
       });
 
@@ -199,10 +205,14 @@ export class ConversationalVoiceService {
       });
 
       // Evento: conexão fechada
-      connection.on(LiveTranscriptionEvents.Close, () => {
-        console.log(`[ConversationalVoice] STT desconectado (${sessionId})`);
+      connection.on(LiveTranscriptionEvents.Close, (closeEvent) => {
+        console.log(`[ConversationalVoice] STT desconectado (${sessionId})`, {
+          code: closeEvent?.code,
+          reason: closeEvent?.reason || 'Normal closure',
+        });
         session.sttWs = null;
         session.isListening = false;
+        session.isListeningReady = false;
       });
 
     } catch (error) {
@@ -248,10 +258,13 @@ export class ConversationalVoiceService {
       // Converter base64 para buffer
       const buffer = Buffer.from(audioData, 'base64');
       
+      // Log detalhado apenas para debug (comentar em produção)
+      // console.log(`[ConversationalVoice] Enviando ${buffer.length} bytes para Deepgram`);
+      
       // Enviar para Deepgram STT
       session.sttWs.send(buffer);
     } catch (error) {
-      console.error(`[ConversationalVoice] Erro ao processar áudio:`, error);
+      console.error(`[ConversationalVoice] ❌ Erro ao processar áudio:`, error);
     }
   }
 
