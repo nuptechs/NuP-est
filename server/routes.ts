@@ -3505,6 +3505,10 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
   // Setup Voice Agent WebSocket routes
   const { setupVoiceAgentRoutes } = await import("./routes/voiceAgent");
   setupVoiceAgentRoutes(app, httpServer);
+
+  // Setup Conversational Voice WebSocket routes (Deepgram STT + OpenAI + TTS)
+  const { setupConversationalVoiceRoutes } = await import("./routes/conversationalVoice");
+  setupConversationalVoiceRoutes(app, httpServer);
   
   return httpServer;
 }

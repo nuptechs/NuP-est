@@ -25,6 +25,7 @@ import PersonalizedAssistant from "@/pages/personalized-assistant";
 import GuidedStudy from "@/pages/guided-study";
 import Topics from "@/pages/topics";
 import VoiceAgentTestPage from "@/pages/VoiceAgentTestPage";
+import ConversationalVoiceTestPage from "@/pages/ConversationalVoiceTestPage";
 
 // Componente para redirecionamento adequado usando wouter
 function Redirect({ to }: { to: string }) {
@@ -42,8 +43,9 @@ function Router() {
 
   return (
     <Switch>
-      {/* Rota pública para teste de Voice Agent */}
+      {/* Rotas públicas para teste de Voice */}
       <Route path="/voice-agent-test" component={VoiceAgentTestPage} />
+      <Route path="/conversational-voice-test" component={ConversationalVoiceTestPage} />
       
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
