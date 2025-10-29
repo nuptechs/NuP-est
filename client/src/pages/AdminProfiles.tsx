@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import AppLayout from "@/components/layout/app-layout";
+import UnifiedShell from "@/components/layout/unified-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,7 +117,7 @@ export default function AdminProfiles() {
   });
 
   return (
-    <AppLayout>
+    <UnifiedShell>
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -405,6 +405,6 @@ export default function AdminProfiles() {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </UnifiedShell>
   );
 }
