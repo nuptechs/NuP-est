@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mic, MicOff, Phone, PhoneOff, AlertCircle, Brain, Waves } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Mic, MicOff, Phone, PhoneOff, AlertCircle, Brain, Waves, Timer } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function ProfessorIA() {
@@ -19,11 +20,15 @@ export default function ProfessorIA() {
     transcripts,
     isConnected,
     autoInterruptEnabled,
+    maxResponseTime,
     connect,
     disconnect,
     interrupt,
     toggleAutoInterrupt,
+    setMaxResponseTime,
   } = useRealtimeVoice();
+
+  const [localMaxTime, setLocalMaxTime] = useState(maxResponseTime);
 
   const getStateConfig = () => {
     switch (state) {
@@ -165,7 +170,7 @@ export default function ProfessorIA() {
               <CardHeader>
                 <CardTitle className="text-lg">Configurações</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium">Interrupção Automática</p>
@@ -182,6 +187,31 @@ export default function ProfessorIA() {
                   >
                     {autoInterruptEnabled ? "Ativado" : "Desativado"}
                   </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Timer className="w-4 h-4 text-gray-500" />
+                      <p className="text-sm font-medium">Tempo Máximo de Resposta</p>
+                    </div>
+                    <span className="text-sm font-semibold text-blue-600">
+                      {localMaxTime}s
+                    </span>
+                  </div>
+                  <Slider
+                    value={[localMaxTime]}
+                    onValueChange={(value) => setLocalMaxTime(value[0])}
+                    onValueCommit={(value) => setMaxResponseTime(value[0])}
+                    min={10}
+                    max={60}
+                    step={5}
+                    className="cursor-pointer"
+                    data-testid="slider-max-response-time"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Professor dará respostas mais concisas e objetivas (10-60 segundos)
+                  </p>
                 </div>
               </CardContent>
             </Card>

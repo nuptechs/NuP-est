@@ -17,6 +17,7 @@ import type {
 import type { IRealtimeVoiceProvider } from './providers/IRealtimeVoiceProvider.js';
 import { OpenAIRealtimeProvider } from './providers/OpenAIRealtimeProvider.js';
 import { getStudentContextFunction, getSubjectKnowledgeFunction } from './functions/getStudentContext.js';
+import { QuestionRefiner } from './QuestionRefiner.js';
 import { db } from '../../db.js';
 import { users } from '../../../shared/schema.js';
 import { eq } from 'drizzle-orm';
@@ -25,13 +26,19 @@ export class RealtimeVoiceService {
   private sessions: Map<string, RealtimeSession> = new Map();
   private providers: Map<string, IRealtimeVoiceProvider> = new Map();
   private functions: Map<string, AssistantFunction> = new Map();
+  private questionRefiner: QuestionRefiner;
 
   constructor(
     private apiKey: string,
-    private providerType: 'openai' | 'deepgram' = 'openai'
+    private providerType: 'openai' | 'deepgram' = 'openai',
+    private maxResponseTime: number = 30 // Tempo máximo de resposta em segundos
   ) {
     // Registrar funções padrão (compartilhadas entre providers)
     this.registerDefaultFunctions();
+    
+    // Inicializar Question Refiner
+    this.questionRefiner = new QuestionRefiner(apiKey, maxResponseTime);
+    console.log(`[RealtimeVoice] QuestionRefiner inicializado (max: ${maxResponseTime}s)`);
   }
 
   /**
@@ -87,7 +94,7 @@ export class RealtimeVoiceService {
       this.providers.set(sessionId, provider);
 
       // Registrar funções no provider da sessão
-      for (const func of this.functions.values()) {
+      for (const func of Array.from(this.functions.values())) {
         provider.registerFunction(func);
       }
 
@@ -216,12 +223,14 @@ export class RealtimeVoiceService {
 
 Seu papel é ensinar de forma didática, paciente e motivadora, adaptando-se ao perfil do aluno.
 
+${this.questionRefiner.generateTeacherInstructions()}
+
 INSTRUÇÕES GERAIS:
 - Sempre em português brasileiro
 - Use linguagem clara e apropriada
 - Seja encorajador e positivo
 - Explique conceitos de forma gradual
-- Use exemplos práticos quando possível
+- Use exemplos práticos quando possível (mas breves)
 - Pergunte se o aluno entendeu antes de avançar
 - Adapte ritmo e profundidade ao nível do aluno`;
 
@@ -289,9 +298,26 @@ Use essas funções quando precisar de informações sobre o aluno para personal
           });
           
           if (event.isFinal) {
+            // Refinar pergunta antes de processar
+            const refinedQuestion = await this.questionRefiner.refineQuestion(
+              event.text,
+              {
+                name: session.studentContext?.name,
+                learningDifficulties: session.studentContext?.learningDifficulties || [],
+                learningObjectives: session.studentContext?.studyObjective ? [session.studentContext.studyObjective] : [],
+                currentSubject: undefined, // TODO: rastrear matéria atual
+                category: undefined, // TODO: rastrear categoria
+              }
+            );
+            
+            console.log(`[RealtimeVoice] Pergunta original: "${event.text}"`);
+            if (refinedQuestion.refined !== event.text) {
+              console.log(`[RealtimeVoice] Pergunta refinada: "${refinedQuestion.refined}"`);
+            }
+            
             session.conversationHistory.push({
               role: 'user',
-              content: event.text,
+              content: refinedQuestion.refined, // Salvar versão refinada
             });
           }
           break;
@@ -426,5 +452,20 @@ Use essas funções quando precisar de informações sobre o aluno para personal
   getProviderName(): string {
     // Retorna nome baseado no tipo configurado
     return this.providerType === 'openai' ? 'OpenAI Realtime' : 'Deepgram Aura';
+  }
+
+  /**
+   * Atualiza tempo máximo de resposta
+   */
+  setMaxResponseTime(seconds: number): void {
+    this.questionRefiner.setMaxResponseTime(seconds);
+    console.log(`[RealtimeVoice] Tempo máximo de resposta atualizado: ${seconds}s`);
+  }
+
+  /**
+   * Obtém tempo máximo de resposta
+   */
+  getMaxResponseTime(): number {
+    return this.questionRefiner.getMaxResponseTime();
   }
 }

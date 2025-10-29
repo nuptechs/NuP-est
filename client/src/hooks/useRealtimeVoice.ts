@@ -19,10 +19,12 @@ interface UseRealtimeVoiceReturn {
   transcripts: TranscriptMessage[];
   isConnected: boolean;
   autoInterruptEnabled: boolean;
+  maxResponseTime: number;
   connect: () => Promise<void>;
   disconnect: () => void;
   interrupt: () => void;
   toggleAutoInterrupt: () => void;
+  setMaxResponseTime: (seconds: number) => Promise<void>;
 }
 
 export function useRealtimeVoice(): UseRealtimeVoiceReturn {
@@ -31,6 +33,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [autoInterruptEnabled, setAutoInterruptEnabled] = useState(true);
+  const [maxResponseTime, setMaxResponseTimeState] = useState(30);
 
   const wsRef = useRef<WebSocket | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -398,6 +401,25 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     });
   }, []);
 
+  // Atualizar tempo máximo de resposta
+  const setMaxResponseTime = useCallback(async (seconds: number) => {
+    try {
+      const response = await fetch('/api/realtime-voice/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maxResponseTime: seconds }),
+      });
+
+      if (!response.ok) throw new Error('Erro ao atualizar configuração');
+
+      const data = await response.json();
+      setMaxResponseTimeState(data.maxResponseTime);
+      console.log(`[RealtimeVoice] Tempo máximo atualizado: ${data.maxResponseTime}s`);
+    } catch (err) {
+      console.error('[RealtimeVoice] Erro ao atualizar tempo máximo:', err);
+    }
+  }, []);
+
   // Cleanup ao desmontar
   useEffect(() => {
     return () => {
@@ -405,15 +427,33 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     };
   }, [disconnect]);
 
+  // Carregar configurações ao montar
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await fetch('/api/realtime-voice/config');
+        if (response.ok) {
+          const data = await response.json();
+          setMaxResponseTimeState(data.maxResponseTime);
+        }
+      } catch (err) {
+        console.error('[RealtimeVoice] Erro ao carregar configuração:', err);
+      }
+    };
+    loadConfig();
+  }, []);
+
   return {
     state,
     error,
     transcripts,
     isConnected,
     autoInterruptEnabled,
+    maxResponseTime,
     connect,
     disconnect,
     interrupt,
     toggleAutoInterrupt,
+    setMaxResponseTime,
   };
 }

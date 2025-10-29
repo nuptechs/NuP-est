@@ -65,4 +65,37 @@ export function setupRealtimeVoiceRoutes(app: Express): void {
       status: 'ok',
     });
   });
+
+  /**
+   * Endpoint para obter configurações (HTTP)
+   */
+  app.get('/api/realtime-voice/config', (req, res) => {
+    res.json({
+      maxResponseTime: voiceService.getMaxResponseTime(),
+      provider: voiceService.getProviderName(),
+    });
+  });
+
+  /**
+   * Endpoint para atualizar configurações (HTTP)
+   */
+  app.post('/api/realtime-voice/config', (req, res) => {
+    try {
+      const { maxResponseTime } = req.body;
+      
+      if (maxResponseTime !== undefined) {
+        voiceService.setMaxResponseTime(maxResponseTime);
+      }
+      
+      res.json({
+        success: true,
+        maxResponseTime: voiceService.getMaxResponseTime(),
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
 }
