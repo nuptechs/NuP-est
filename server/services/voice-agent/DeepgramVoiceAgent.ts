@@ -130,16 +130,13 @@ export class DeepgramVoiceAgent extends EventEmitter {
     }
 
     return new Promise((resolve, reject) => {
-      const url = DEEPGRAM_VOICE_AGENT_URL;
+      // Voice Agent V1 usa query parameter para autenticação
+      const url = `${DEEPGRAM_VOICE_AGENT_URL}?apikey=${this.apiKey}`;
       
-      console.log(`[VoiceAgent] Conectando ao Deepgram:`, url);
+      console.log(`[VoiceAgent] Conectando ao Deepgram Voice Agent V1`);
       console.log(`[VoiceAgent] API Key (primeiros 8 chars):`, this.apiKey.substring(0, 8) + '...');
       
-      const dgWs = new WebSocket(url, {
-        headers: {
-          'Authorization': `Token ${this.apiKey}`,
-        },
-      });
+      const dgWs = new WebSocket(url);
 
       let connectionTimeout = setTimeout(() => {
         dgWs.close();

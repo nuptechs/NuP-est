@@ -62,10 +62,10 @@ export const DEFAULT_THINK_CONFIG: Omit<ThinkConfig, 'instructions'> = {
 };
 
 /**
- * URL do WebSocket Deepgram Voice Agent
+ * URL do WebSocket Deepgram Voice Agent (V1 - 2025)
  * Documentação: https://developers.deepgram.com/docs/voice-agent
  */
-export const DEEPGRAM_VOICE_AGENT_URL = 'wss://api.deepgram.com/v1/agent';
+export const DEEPGRAM_VOICE_AGENT_URL = 'wss://agent.deepgram.com/v1/agent/converse';
 
 /**
  * Configurações de timeout e keep-alive
