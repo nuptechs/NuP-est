@@ -486,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if file was already processed
       const existingProcessedFile = await processedFileService.findByHash(fileHash);
       
-      let processedFile;
+      let processedFile: any = null;
       let extractedContent = '';
       let pageCount = 0;
       let aiTitle = '';
@@ -916,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         text,
         {
           fileName: processedFile.fileName,
-          fileSize: processedFile.fileSize,
+          fileSize: processedFile.fileSize || 0,
           pageCount,
         }
       );
@@ -2500,11 +2500,16 @@ Responda em JSON no formato:
       // Use topicId if available, otherwise use subjectId
       const targetId = validatedData.topicId || validatedData.subjectId;
       
+      // Convert difficulty to number if it's a string
+      const difficulty = typeof validatedData.difficulty === 'string' 
+        ? parseFloat(validatedData.difficulty) 
+        : validatedData.difficulty;
+      
       // Generate question
       const question = await contentDelivery.generateQuestion(
         validatedData.assistantId,
         targetId,
-        validatedData.difficulty
+        difficulty
       );
       
       // Save question to database for hint/explanation tracking
@@ -2609,7 +2614,7 @@ Responda em JSON no formato:
       const explanation = await contentDelivery.generateExplanation(
         validatedData.assistantId,
         validatedData.concept,
-        validatedData.context
+        validatedData.context || ''
       );
       
       res.json(explanation);
