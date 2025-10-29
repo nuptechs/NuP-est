@@ -111,13 +111,27 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
       const alignedLength = bytes.length - (bytes.length % 2);
       const alignedBytes = bytes.slice(0, alignedLength);
 
-      // Converter PCM16 para Float32
+      // Converter PCM16 para Float32 com melhor qualidade
       const pcm16 = new Int16Array(alignedBytes.buffer, alignedBytes.byteOffset, alignedBytes.length / 2);
       const float32 = new Float32Array(pcm16.length);
       
+      // Conversão PCM16 -> Float32 com normalização correta
+      const scale = 1.0 / 32768.0; // 2^15
       for (let i = 0; i < pcm16.length; i++) {
-        // Normalizar para [-1, 1]
-        float32[i] = Math.max(-1, Math.min(1, pcm16[i] / 32768));
+        float32[i] = pcm16[i] * scale;
+      }
+
+      // Aplicar fade-in suave no início do chunk (primeiros 50 samples)
+      const fadeLength = Math.min(50, float32.length);
+      for (let i = 0; i < fadeLength; i++) {
+        const fadeGain = i / fadeLength;
+        float32[i] *= fadeGain;
+      }
+
+      // Aplicar fade-out suave no final do chunk (últimos 50 samples)
+      for (let i = 0; i < fadeLength; i++) {
+        const fadeGain = i / fadeLength;
+        float32[float32.length - 1 - i] *= fadeGain;
       }
 
       // Criar AudioBuffer
@@ -151,15 +165,27 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     const audioBuffer = audioQueueRef.current.shift();
     if (!audioBuffer || !audioContextRef.current) return;
 
+    // Criar source e gain node para controle de volume
     const source = audioContextRef.current.createBufferSource();
+    const gainNode = audioContextRef.current.createGain();
+    
     source.buffer = audioBuffer as any;
-    source.connect(audioContextRef.current.destination);
+    
+    // Conectar: source -> gainNode -> destination
+    source.connect(gainNode);
+    gainNode.connect(audioContextRef.current.destination);
+    
+    // Volume suave (previne clipping e distorção)
+    gainNode.gain.value = 0.85;
 
     currentAudioSourceRef.current = source;
 
     source.onended = () => {
       currentAudioSourceRef.current = null;
-      playNextInQueue();
+      // Pequena pausa entre chunks para evitar cliques (10ms)
+      setTimeout(() => {
+        playNextInQueue();
+      }, 10);
     };
 
     source.start(0);
@@ -174,6 +200,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
+          autoGainControl: true, // Melhora qualidade do microfone
         },
       });
 

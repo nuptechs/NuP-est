@@ -290,6 +290,12 @@ export class OpenAIRealtimeProvider implements IRealtimeVoiceProvider {
         break;
 
       case 'error':
+        // Ignorar erro de cancelamento quando não há resposta ativa (não é crítico)
+        if (event.error?.code === 'response_cancel_not_active') {
+          console.log('[OpenAIRealtime] Tentativa de cancelar resposta inexistente (ignorado)');
+          break;
+        }
+        
         console.error('[OpenAIRealtime] Erro do servidor:', event.error);
         this.emit({
           type: 'error',
