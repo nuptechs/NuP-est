@@ -238,42 +238,43 @@ router.post("/student-profiles/backfill", isAuthenticated, async (req, res) => {
     
     console.log(`[Admin] Encontrados ${allUsers.length} usuários para processar`);
     
-    // Processar todos em paralelo (mas limitando para não sobrecarregar)
-    const batchSize = 5; // Processar 5 por vez
-    const results = {
-      total: allUsers.length,
-      processed: 0,
-      failed: 0,
-      errors: [] as any[],
-    };
+    // Disparar processamento em background (não bloqueante)
+    const batchSize = 5;
     
-    for (let i = 0; i < allUsers.length; i += batchSize) {
-      const batch = allUsers.slice(i, i + batchSize);
+    // Processar em background sem bloquear resposta
+    (async () => {
+      let processed = 0;
+      let failed = 0;
       
-      await Promise.allSettled(
-        batch.map(async (user) => {
-          try {
-            await studentProfileService.updateProfile(user.id);
-            results.processed++;
-            console.log(`[Admin] Perfil processado: ${user.id} (${results.processed}/${results.total})`);
-          } catch (error) {
-            results.failed++;
-            results.errors.push({ userId: user.id, error: String(error) });
-            console.error(`[Admin] Erro ao processar ${user.id}:`, error);
-          }
-        })
-      );
-    }
+      for (let i = 0; i < allUsers.length; i += batchSize) {
+        const batch = allUsers.slice(i, i + batchSize);
+        
+        await Promise.allSettled(
+          batch.map(async (user) => {
+            try {
+              await studentProfileService.updateProfile(user.id);
+              processed++;
+              console.log(`[Admin] Perfil processado: ${user.id} (${processed}/${allUsers.length})`);
+            } catch (error) {
+              failed++;
+              console.error(`[Admin] Erro ao processar ${user.id}:`, error);
+            }
+          })
+        );
+      }
+      
+      console.log(`[Admin] Backfill concluído: ${processed} processados, ${failed} falharam`);
+    })().catch(err => console.error('[Admin] Erro fatal no backfill:', err));
     
-    console.log(`[Admin] Backfill concluído: ${results.processed} processados, ${results.failed} falharam`);
-    
+    // Responder imediatamente
     res.json({
-      message: 'Backfill concluído',
-      results,
+      message: 'Backfill iniciado em background',
+      total: allUsers.length,
+      status: 'processing',
     });
   } catch (error) {
-    console.error('[Admin] Erro no backfill:', error);
-    res.status(500).json({ error: 'Erro ao executar backfill' });
+    console.error('[Admin] Erro ao iniciar backfill:', error);
+    res.status(500).json({ error: 'Erro ao iniciar backfill' });
   }
 });
 
@@ -282,19 +283,24 @@ router.post("/student-profiles/:userId/refresh", isAuthenticated, async (req, re
   try {
     const { userId } = req.params;
     
-    console.log(`[Admin] Atualizando perfil: ${userId}`);
+    console.log(`[Admin] Disparando atualização de perfil: ${userId}`);
     
-    await studentProfileService.updateProfile(userId);
+    // Disparar atualização em background
+    studentProfileService.updateProfile(userId).catch(err => {
+      console.error(`[Admin] Erro ao atualizar perfil ${userId}:`, err);
+    });
     
+    // Retornar perfil existente imediatamente
     const profile = await studentProfileService.getEnrichedProfile(userId);
     
     res.json({
-      message: 'Perfil atualizado com sucesso',
-      profile,
+      message: 'Atualização de perfil iniciada em background',
+      status: 'processing',
+      currentProfile: profile,
     });
   } catch (error) {
-    console.error(`[Admin] Erro ao atualizar perfil ${req.params.userId}:`, error);
-    res.status(500).json({ error: 'Erro ao atualizar perfil' });
+    console.error(`[Admin] Erro ao buscar perfil ${req.params.userId}:`, error);
+    res.status(500).json({ error: 'Erro ao processar requisição' });
   }
 });
 
