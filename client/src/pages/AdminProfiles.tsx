@@ -9,21 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { 
   PlayCircle, 
   RefreshCw, 
   Eye, 
-  Users, 
   TrendingUp, 
   Clock, 
   Award,
   Brain,
   MessageCircle,
   Target,
-  Sparkles,
-  ChevronDown
+  Sparkles
 } from "lucide-react";
 
 interface EnrichedProfile {
@@ -79,9 +76,19 @@ export default function AdminProfiles() {
     return null;
   }
 
-  // Query: Get all users (simplified - you may need to create this endpoint)
-  const { data: users = [] } = useQuery<Array<{ id: string; username?: string; email?: string }>>({
-    queryKey: ['/api/users'],
+  // Query: Get all enriched profiles
+  const { data: profiles = [], isLoading: isLoadingProfiles } = useQuery<EnrichedProfile[]>({
+    queryKey: ['/api/admin/student-profiles/all'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/student-profiles/all', {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 404) return [];
+        throw new Error('Failed to fetch profiles');
+      }
+      return response.json();
+    },
   });
 
   // Mutation: Run backfill
@@ -174,13 +181,13 @@ export default function AdminProfiles() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Perfis Processados</CardTitle>
+              <Brain className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-users">{users.length}</div>
+              <div className="text-2xl font-bold" data-testid="text-total-profiles">{profiles.length}</div>
               <p className="text-xs text-muted-foreground">
-                Usuários cadastrados
+                Perfis enriquecidos disponíveis
               </p>
             </CardContent>
           </Card>
@@ -199,64 +206,50 @@ export default function AdminProfiles() {
           </Card>
         </div>
 
-        {/* Info Card - Collapsible */}
-        <Collapsible className="mb-6">
-          <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-blue-900 dark:text-blue-100 text-base">
-                    ℹ️ Como Funciona o Sistema de Perfis
-                  </CardTitle>
-                  <ChevronDown className="h-4 w-4 text-blue-900 dark:text-blue-100 transition-transform" />
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="text-blue-800 dark:text-blue-200 space-y-3 text-sm pt-0">
-                <div>
-                  <p className="font-semibold mb-1">Processamento Automático</p>
-                  <p className="text-xs">Perfis são atualizados automaticamente após:</p>
-                  <ul className="list-disc list-inside space-y-0.5 ml-4 text-xs mt-1">
-                    <li>Resposta a exercícios</li>
-                    <li>Conclusão de sessões de estudo</li>
-                    <li>Conversas com Professor IA</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-semibold mb-1">Botão "Processar Todos"</p>
-                  <p className="text-xs">Use para processar usuários existentes pela primeira vez ou recalcular todos os perfis em lote.</p>
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-
-        {/* Users List */}
+        {/* Profiles List */}
         <Card>
           <CardHeader>
-            <CardTitle>Usuários</CardTitle>
+            <CardTitle>Perfis de Alunos</CardTitle>
             <CardDescription>
-              Clique em um usuário para ver o perfil enriquecido
+              Clique em um perfil para ver os detalhes completos
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[400px]">
-              <div className="space-y-2">
-                {users.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Nenhum usuário encontrado
-                  </p>
-                ) : (
-                  users.map((user) => (
+            {isLoadingProfiles ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-2">
+                  {profiles.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      <p className="mb-2">Nenhum perfil processado ainda</p>
+                      <p className="text-sm">Clique em "Processar Todos" para gerar os perfis</p>
+                    </div>
+                  ) : (
+                    profiles.map((profile) => (
                     <div
-                      key={user.id}
+                      key={profile.userId}
                       className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent transition-colors"
-                      data-testid={`card-user-${user.id}`}
+                      data-testid={`card-profile-${profile.userId}`}
                     >
-                      <div>
-                        <p className="font-medium">{user.username || user.email || 'Usuário'}</p>
-                        <p className="text-sm text-muted-foreground">ID: {user.id}</p>
+                      <div className="flex-1">
+                        <p className="font-medium">ID: {profile.userId}</p>
+                        <div className="flex gap-4 mt-1 text-sm text-muted-foreground">
+                          {profile.overallAccuracy !== null && profile.overallAccuracy !== undefined && (
+                            <span>Precisão: {(Number(profile.overallAccuracy) * 100).toFixed(0)}%</span>
+                          )}
+                          {profile.totalStudyHours !== null && profile.totalStudyHours !== undefined && (
+                            <span>Horas: {Number(profile.totalStudyHours).toFixed(1)}h</span>
+                          )}
+                          {profile.studyStreak !== null && profile.studyStreak > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Sparkles className="h-3 w-3" />
+                              {profile.studyStreak} dias
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="flex gap-2">
@@ -265,11 +258,11 @@ export default function AdminProfiles() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setSelectedUserId(user.id)}
-                              data-testid={`button-view-profile-${user.id}`}
+                              onClick={() => setSelectedUserId(profile.userId)}
+                              data-testid={`button-view-profile-${profile.userId}`}
                             >
                               <Eye className="h-4 w-4 mr-2" />
-                              Ver Perfil
+                              Ver Detalhes
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -410,9 +403,9 @@ export default function AdminProfiles() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => refreshMutation.mutate(user.id)}
+                          onClick={() => refreshMutation.mutate(profile.userId)}
                           disabled={refreshMutation.isPending}
-                          data-testid={`button-refresh-${user.id}`}
+                          data-testid={`button-refresh-${profile.userId}`}
                         >
                           <RefreshCw className={`h-4 w-4 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
                         </Button>
@@ -420,8 +413,9 @@ export default function AdminProfiles() {
                     </div>
                   ))
                 )}
-              </div>
-            </ScrollArea>
+                </div>
+              </ScrollArea>
+            )}
           </CardContent>
         </Card>
       </div>

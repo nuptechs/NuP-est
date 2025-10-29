@@ -95,6 +95,19 @@ export class StudentProfileService {
   }
 
   /**
+   * Busca todos os perfis enriquecidos existentes
+   */
+  async getAllEnrichedProfiles(): Promise<StudentProfileEnriched[]> {
+    try {
+      const profiles = await db.select().from(studentProfilesEnriched);
+      return profiles;
+    } catch (error) {
+      console.error('[StudentProfileService] Erro ao buscar todos os perfis:', error);
+      return [];
+    }
+  }
+
+  /**
    * Atualiza perfil completo (processamento em background)
    * Deve ser chamado após sessões de estudo, conversas, etc
    */

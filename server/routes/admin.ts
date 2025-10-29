@@ -304,6 +304,17 @@ router.post("/student-profiles/:userId/refresh", isAuthenticated, async (req, re
   }
 });
 
+// Listar todos os perfis enriquecidos
+router.get("/student-profiles/all", isAuthenticated, async (req, res) => {
+  try {
+    const profiles = await studentProfileService.getAllEnrichedProfiles();
+    res.json(profiles);
+  } catch (error) {
+    console.error(`[Admin] Erro ao buscar todos os perfis:`, error);
+    res.status(500).json({ error: 'Erro ao buscar perfis' });
+  }
+});
+
 // Visualizar perfil enriquecido de um usuário
 router.get("/student-profiles/:userId", isAuthenticated, async (req, res) => {
   try {
