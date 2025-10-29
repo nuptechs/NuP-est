@@ -18,9 +18,11 @@ interface UseRealtimeVoiceReturn {
   error: string | null;
   transcripts: TranscriptMessage[];
   isConnected: boolean;
+  autoInterruptEnabled: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   interrupt: () => void;
+  toggleAutoInterrupt: () => void;
 }
 
 export function useRealtimeVoice(): UseRealtimeVoiceReturn {
@@ -28,6 +30,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
   const [error, setError] = useState<string | null>(null);
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [autoInterruptEnabled, setAutoInterruptEnabled] = useState(true);
 
   const wsRef = useRef<WebSocket | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -35,9 +38,25 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioQueueRef = useRef<AudioBuffer[]>([]);
   const isPlayingRef = useRef(false);
+  const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  
+  // VAD (Voice Activity Detection) para interrupção automática
+  const vadThreshold = 0.02; // Limite para detectar fala (ajustável)
+  const vadConsecutiveFrames = 3; // Frames consecutivos acima do threshold
+  const vadFrameCountRef = useRef(0);
 
   // Limpar recursos de áudio
   const cleanupAudio = useCallback(() => {
+    // Parar áudio atual se estiver tocando
+    if (currentAudioSourceRef.current) {
+      try {
+        currentAudioSourceRef.current.stop();
+      } catch (e) {
+        // Ignorar erro se já parou
+      }
+      currentAudioSourceRef.current = null;
+    }
+
     if (processorRef.current) {
       processorRef.current.disconnect();
       processorRef.current = null;
@@ -55,6 +74,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
 
     audioQueueRef.current = [];
     isPlayingRef.current = false;
+    vadFrameCountRef.current = 0;
   }, []);
 
   // Converter Float32 para PCM16
@@ -117,6 +137,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
   const playNextInQueue = useCallback(async () => {
     if (audioQueueRef.current.length === 0) {
       isPlayingRef.current = false;
+      currentAudioSourceRef.current = null;
       setState('listening');
       return;
     }
@@ -131,7 +152,10 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     source.buffer = audioBuffer as any;
     source.connect(audioContextRef.current.destination);
 
+    currentAudioSourceRef.current = source;
+
     source.onended = () => {
+      currentAudioSourceRef.current = null;
       playNextInQueue();
     };
 
@@ -162,6 +186,46 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
         const inputData = e.inputBuffer.getChannelData(0);
+        
+        // VAD: Calcular RMS (Root Mean Square) do áudio de entrada
+        let sum = 0;
+        for (let i = 0; i < inputData.length; i++) {
+          sum += inputData[i] * inputData[i];
+        }
+        const rms = Math.sqrt(sum / inputData.length);
+
+        // Detectar se usuário está falando (apenas se auto-interrupt estiver ativado)
+        if (rms > vadThreshold) {
+          vadFrameCountRef.current++;
+          
+          // Se detectar voz consistente E professor está falando E auto-interrupt ativo, interromper
+          if (autoInterruptEnabled && vadFrameCountRef.current >= vadConsecutiveFrames && isPlayingRef.current) {
+            console.log('[RealtimeVoice] 🔴 Interrupção automática detectada (VAD)');
+            
+            // Parar áudio imediatamente
+            if (currentAudioSourceRef.current) {
+              try {
+                currentAudioSourceRef.current.stop();
+              } catch (e) {
+                // Ignorar
+              }
+              currentAudioSourceRef.current = null;
+            }
+            
+            // Limpar fila de áudio
+            audioQueueRef.current = [];
+            isPlayingRef.current = false;
+            
+            // Enviar comando de interrupção ao servidor
+            wsRef.current.send(JSON.stringify({ type: 'interrupt' }));
+            
+            setState('listening');
+          }
+        } else {
+          // Reset contador se silêncio
+          vadFrameCountRef.current = 0;
+        }
+
         const pcm16 = floatTo16BitPCM(inputData);
 
         // Converter para base64
@@ -300,14 +364,38 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     setState('idle');
   }, [cleanupAudio]);
 
-  // Interromper professor
+  // Interromper professor (manual ou automático)
   const interrupt = useCallback(() => {
+    console.log('[RealtimeVoice] Interrompendo professor...');
+    
+    // Parar áudio atual imediatamente
+    if (currentAudioSourceRef.current) {
+      try {
+        currentAudioSourceRef.current.stop();
+      } catch (e) {
+        // Ignorar erro se já parou
+      }
+      currentAudioSourceRef.current = null;
+    }
+    
+    // Limpar fila de áudio pendente
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
+    
+    // Enviar comando ao servidor
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'interrupt' }));
-      audioQueueRef.current = [];
-      isPlayingRef.current = false;
-      setState('listening');
     }
+    
+    setState('listening');
+  }, []);
+
+  // Toggle auto-interrupt
+  const toggleAutoInterrupt = useCallback(() => {
+    setAutoInterruptEnabled(prev => {
+      console.log(`[RealtimeVoice] Interrupção automática: ${!prev ? 'ATIVADA' : 'DESATIVADA'}`);
+      return !prev;
+    });
   }, []);
 
   // Cleanup ao desmontar
@@ -322,8 +410,10 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     error,
     transcripts,
     isConnected,
+    autoInterruptEnabled,
     connect,
     disconnect,
     interrupt,
+    toggleAutoInterrupt,
   };
 }

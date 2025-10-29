@@ -18,9 +18,11 @@ export default function ProfessorIA() {
     error,
     transcripts,
     isConnected,
+    autoInterruptEnabled,
     connect,
     disconnect,
     interrupt,
+    toggleAutoInterrupt,
   } = useRealtimeVoice();
 
   const getStateConfig = () => {
@@ -158,6 +160,32 @@ export default function ProfessorIA() {
               </CardContent>
             </Card>
 
+            {/* Configurações */}
+            <Card data-testid="card-settings">
+              <CardHeader>
+                <CardTitle className="text-lg">Configurações</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Interrupção Automática</p>
+                    <p className="text-xs text-gray-500">
+                      Permite interromper o professor quando você começa a falar
+                    </p>
+                  </div>
+                  <Button
+                    onClick={toggleAutoInterrupt}
+                    variant={autoInterruptEnabled ? "default" : "outline"}
+                    size="sm"
+                    data-testid="button-toggle-auto-interrupt"
+                    className={autoInterruptEnabled ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    {autoInterruptEnabled ? "Ativado" : "Desativado"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Instruções */}
             <Card data-testid="card-instructions">
               <CardHeader>
@@ -174,7 +202,11 @@ export default function ProfessorIA() {
                 </div>
                 <div className="flex gap-2">
                   <span className="font-semibold min-w-[20px]">3.</span>
-                  <span>Você pode interromper o professor a qualquer momento</span>
+                  <span>
+                    {autoInterruptEnabled 
+                      ? "Você pode interromper o professor automaticamente quando começar a falar"
+                      : "Clique em 'Interromper' para parar o professor"}
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   <span className="font-semibold min-w-[20px]">4.</span>
