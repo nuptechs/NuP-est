@@ -1,25 +1,38 @@
 /**
  * Function calling: Buscar contexto do aluno
- * Permite que o Professor IA acesse perfil, matéria atual, nível, etc
+ * Permite que o Professor IA acesse perfil enriquecido, métricas, conversas, etc
+ * 
+ * IMPORTANTE: Usa Student Profile Engine para dados sempre atualizados e processados
  */
 
 import type { AssistantFunction, StudentContext } from '../types.js';
+import { StudentProfileService } from '../../student-profile-engine/index.js';
 import { db } from '../../../db.js';
-import { users, subjects, subjectKnowledge } from '../../../../shared/schema.js';
-import { eq, desc } from 'drizzle-orm';
+import { subjectKnowledge } from '../../../../shared/schema.js';
+import { eq } from 'drizzle-orm';
+
+// Inicializar Student Profile Service (singleton)
+const profileService = new StudentProfileService(process.env.OPENAI_API_KEY || '');
 
 /**
- * Função para buscar contexto completo do aluno
+ * Função para buscar contexto completo e enriquecido do aluno
+ * Agora usa Student Profile Engine para dados processados e sempre atualizados
  */
 export const getStudentContextFunction: AssistantFunction = {
   name: 'get_student_context',
-  description: 'Busca informações detalhadas do aluno incluindo perfil, dificuldades, matéria atual, nível de conhecimento e preferências de aprendizado. Use esta função quando precisar personalizar a explicação ou adaptar seu tom.',
+  description: 'Busca perfil completo do aluno incluindo métricas de performance, evolução temporal, dificuldades identificadas, histórico de conversas, padrões de comportamento e recomendações personalizadas. Os dados são processados em background e sempre atualizados. Use esta função quando precisar personalizar a explicação, adaptar seu tom ou entender o progresso do aluno.',
   parameters: {
     type: 'object',
     properties: {
-      include_subject_details: {
+      include_metrics: {
         type: 'boolean',
-        description: 'Se deve incluir detalhes da matéria sendo estudada (tópicos fracos, fortes, nível)',
+        description: 'Se deve incluir métricas detalhadas (precisão, horas de estudo, evolução)',
+        default: true,
+      },
+      include_conversations: {
+        type: 'boolean',
+        description: 'Se deve incluir resumo das últimas conversas',
+        default: true,
       },
     },
     required: [],
@@ -28,65 +41,68 @@ export const getStudentContextFunction: AssistantFunction = {
     try {
       const { userId } = context;
 
-      // Buscar usuário
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, userId),
-      });
+      // Buscar perfil enriquecido (dados já processados, leitura rápida)
+      const enrichedProfile = await profileService.getEnrichedProfile(userId);
 
-      if (!user) {
-        return { error: 'Aluno não encontrado' };
+      if (!enrichedProfile) {
+        return { error: 'Perfil do aluno não disponível' };
       }
 
-      // Construir contexto básico
-      const studentContext: Partial<StudentContext> = {
-        userId: user.id,
-        name: user.firstName || 'Aluno',
-        age: user.age || undefined,
-        studyProfile: user.studyProfile as any || 'average',
-        learningStyle: user.learningStyle as any || 'mixed',
-        learningDifficulties: [],
-        studyObjective: user.studyObjective || undefined,
-        dailyStudyHours: user.dailyStudyHours ? Number(user.dailyStudyHours) : undefined,
-        needsMotivation: user.needsMotivation || false,
-        prefersExamples: user.prefersExamples !== false,
-        preferredExplanationStyle: user.preferredExplanationStyle as any || 'balanced',
+      // Montar resposta completa
+      const response: any = {
+        userId: enrichedProfile.userId,
+        name: enrichedProfile.name,
+        age: enrichedProfile.age,
+        studyObjective: enrichedProfile.studyObjective,
+        studyProfile: enrichedProfile.studyProfile,
+        learningStyle: enrichedProfile.learningStyle,
+        learningDifficulties: enrichedProfile.learningDifficulties,
+        
+        // Padrões de comportamento
+        studyStreak: enrichedProfile.behavior.studyStreak,
+        preferredStudyTime: enrichedProfile.behavior.preferredStudyTime,
+        engagementLevel: enrichedProfile.behavior.engagementLevel,
+        avgSessionDuration: enrichedProfile.behavior.avgSessionDuration,
+        
+        // Recomendações atuais
+        recommendedActions: enrichedProfile.recommendedActions,
+        nextTopicsToStudy: enrichedProfile.nextTopicsToStudy,
+        motivationalMessage: enrichedProfile.motivationalMessage,
       };
 
-      // Buscar dificuldades de aprendizado
-      // TODO: Implementar quando tiver tabela de dificuldades
-      if (user.customDifficulties) {
-        studentContext.learningDifficulties = [user.customDifficulties];
+      // Incluir métricas detalhadas se solicitado
+      if (args.include_metrics !== false) {
+        response.metrics = {
+          overallAccuracy: enrichedProfile.metrics.overallAccuracy,
+          totalStudyHours: enrichedProfile.metrics.totalStudyHours,
+          totalQuestions: enrichedProfile.metrics.totalQuestions,
+          correctAnswers: enrichedProfile.metrics.correctAnswers,
+          weeklyProgress: enrichedProfile.metrics.weeklyProgress,
+          monthlyProgress: enrichedProfile.metrics.monthlyProgress,
+          improvementTrend: enrichedProfile.metrics.improvementTrend,
+          strongSubjects: enrichedProfile.metrics.strongSubjects,
+          weakSubjects: enrichedProfile.metrics.weakSubjects,
+          currentFocus: enrichedProfile.metrics.currentFocus,
+        };
       }
 
-      // Se solicitado, buscar detalhes da matéria
-      if (args.include_subject_details) {
-        // Buscar matéria mais recente do aluno
-        const recentSubject = await db.query.subjects.findFirst({
-          where: eq(subjects.userId, userId),
-          orderBy: [desc(subjects.updatedAt)],
-        });
-
-        if (recentSubject) {
-          // Buscar conhecimento dessa matéria
-          const knowledge = await db.query.subjectKnowledge.findFirst({
-            where: eq(subjectKnowledge.subjectName, recentSubject.name),
-          });
-
-          studentContext.currentSubject = {
-            name: recentSubject.name,
-            category: recentSubject.category as any,
-            level: knowledge?.currentLevel as any || 'intermediate',
-            weakTopics: knowledge?.weakTopics || [],
-            strongTopics: knowledge?.strongTopics || [],
-          };
-        }
+      // Incluir conversas recentes se solicitado
+      if (args.include_conversations !== false && enrichedProfile.recentConversations.length > 0) {
+        response.recentConversations = enrichedProfile.recentConversations.map(c => ({
+          summary: c.summary,
+          subject: c.subject,
+          topics: c.topics,
+          conceptsExplained: c.conceptsExplained,
+          difficultConcepts: c.difficultConcepts,
+          masteredConcepts: c.masteredConcepts,
+        }));
       }
 
-      return studentContext;
+      return response;
 
     } catch (error) {
       console.error('[getStudentContext] Erro:', error);
-      return { error: 'Erro ao buscar contexto do aluno' };
+      return { error: 'Erro ao buscar perfil do aluno' };
     }
   },
 };
