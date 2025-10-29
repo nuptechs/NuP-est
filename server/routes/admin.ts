@@ -1,10 +1,14 @@
 import { Router } from "express";
 import { db } from "../db";
-import { searchSites, siteSearchTypes, insertSearchSiteSchema, insertSiteSearchTypeSchema } from "@shared/schema";
+import { searchSites, siteSearchTypes, insertSearchSiteSchema, insertSiteSearchTypeSchema, users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { isAuthenticated } from "../replitAuth";
+import { StudentProfileService } from "../services/student-profile-engine/index.js";
 
 const router = Router();
+
+// Initialize Student Profile Service
+const studentProfileService = new StudentProfileService(process.env.OPENAI_API_KEY || '');
 
 // ===== ROUTES DE SITES DE BUSCA =====
 
@@ -221,5 +225,95 @@ router.put("/search-sites/:id/types", isAuthenticated, async (req, res) => {
 });
 
 // TODO: Implementar testes de scraping quando necessário
+
+// ===== STUDENT PROFILE ENGINE =====
+
+// Backfill: processar perfis de todos os usuários existentes
+router.post("/student-profiles/backfill", isAuthenticated, async (req, res) => {
+  try {
+    console.log('[Admin] Iniciando backfill de perfis de alunos...');
+    
+    // Buscar todos os usuários
+    const allUsers = await db.select({ id: users.id }).from(users);
+    
+    console.log(`[Admin] Encontrados ${allUsers.length} usuários para processar`);
+    
+    // Processar todos em paralelo (mas limitando para não sobrecarregar)
+    const batchSize = 5; // Processar 5 por vez
+    const results = {
+      total: allUsers.length,
+      processed: 0,
+      failed: 0,
+      errors: [] as any[],
+    };
+    
+    for (let i = 0; i < allUsers.length; i += batchSize) {
+      const batch = allUsers.slice(i, i + batchSize);
+      
+      await Promise.allSettled(
+        batch.map(async (user) => {
+          try {
+            await studentProfileService.updateProfile(user.id);
+            results.processed++;
+            console.log(`[Admin] Perfil processado: ${user.id} (${results.processed}/${results.total})`);
+          } catch (error) {
+            results.failed++;
+            results.errors.push({ userId: user.id, error: String(error) });
+            console.error(`[Admin] Erro ao processar ${user.id}:`, error);
+          }
+        })
+      );
+    }
+    
+    console.log(`[Admin] Backfill concluído: ${results.processed} processados, ${results.failed} falharam`);
+    
+    res.json({
+      message: 'Backfill concluído',
+      results,
+    });
+  } catch (error) {
+    console.error('[Admin] Erro no backfill:', error);
+    res.status(500).json({ error: 'Erro ao executar backfill' });
+  }
+});
+
+// Atualizar perfil de um usuário específico
+router.post("/student-profiles/:userId/refresh", isAuthenticated, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    console.log(`[Admin] Atualizando perfil: ${userId}`);
+    
+    await studentProfileService.updateProfile(userId);
+    
+    const profile = await studentProfileService.getEnrichedProfile(userId);
+    
+    res.json({
+      message: 'Perfil atualizado com sucesso',
+      profile,
+    });
+  } catch (error) {
+    console.error(`[Admin] Erro ao atualizar perfil ${req.params.userId}:`, error);
+    res.status(500).json({ error: 'Erro ao atualizar perfil' });
+  }
+});
+
+// Visualizar perfil enriquecido de um usuário
+router.get("/student-profiles/:userId", isAuthenticated, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const profile = await studentProfileService.getEnrichedProfile(userId);
+    
+    if (!profile) {
+      return res.status(404).json({ error: 'Perfil não encontrado' });
+    }
+    
+    res.json(profile);
+  } catch (error) {
+    console.error(`[Admin] Erro ao buscar perfil ${req.params.userId}:`, error);
+    res.status(500).json({ error: 'Erro ao buscar perfil' });
+  }
+});
 
 export default router;
