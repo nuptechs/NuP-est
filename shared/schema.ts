@@ -1055,6 +1055,133 @@ export const chatMessages = pgTable("chat_messages", {
   index("idx_chat_messages_user").on(table.userId, table.createdAt),
 ]);
 
+// ========== STUDENT PROFILE ENGINE ==========
+// Perfil enriquecido do aluno (snapshot processado e sempre atualizado)
+export const studentProfilesEnriched = pgTable("student_profiles_enriched", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  
+  // === PERFIL BÁSICO (snapshot otimizado) ===
+  name: varchar("name").notNull(),
+  age: integer("age"),
+  studyObjective: text("study_objective"),
+  studyProfile: varchar("study_profile"),
+  learningStyle: varchar("learning_style"),
+  learningDifficulties: text("learning_difficulties").array().default(sql`'{}'::text[]`),
+  
+  // === MÉTRICAS AGREGADAS (processadas em background) ===
+  totalStudyHours: decimal("total_study_hours", { precision: 10, scale: 2 }).default("0"),
+  totalQuestions: integer("total_questions").default(0),
+  correctAnswers: integer("correct_answers").default(0),
+  overallAccuracy: decimal("overall_accuracy", { precision: 5, scale: 2 }).default("0"), // %
+  
+  // === EVOLUÇÃO (calculada periodicamente) ===
+  weeklyProgress: decimal("weekly_progress", { precision: 5, scale: 2 }).default("0"), // % de melhoria
+  monthlyProgress: decimal("monthly_progress", { precision: 5, scale: 2 }).default("0"),
+  improvementTrend: varchar("improvement_trend"), // "ascending", "stable", "declining"
+  
+  // === TÓPICOS E MATÉRIAS ===
+  strongSubjects: text("strong_subjects").array().default(sql`'{}'::text[]`),
+  weakSubjects: text("weak_subjects").array().default(sql`'{}'::text[]`),
+  currentFocus: text("current_focus").array().default(sql`'{}'::text[]`), // matérias em estudo ativo
+  
+  // === PADRÕES DE COMPORTAMENTO ===
+  studyStreak: integer("study_streak").default(0), // dias consecutivos estudando
+  avgSessionDuration: integer("avg_session_duration"), // minutos
+  preferredStudyTime: varchar("preferred_study_time"), // detectado automaticamente
+  engagementLevel: varchar("engagement_level"), // "high", "medium", "low"
+  
+  // === HISTÓRICO DE CONVERSAS (últimas N conversas resumidas) ===
+  recentConversationsSummary: jsonb("recent_conversations_summary"), // últimas 5-10 conversas resumidas
+  lastConversationDate: timestamp("last_conversation_date"),
+  totalConversations: integer("total_conversations").default(0),
+  
+  // === RECOMENDAÇÕES ATUAIS (geradas por IA) ===
+  recommendedActions: text("recommended_actions").array().default(sql`'{}'::text[]`),
+  nextTopicsToStudy: text("next_topics_to_study").array().default(sql`'{}'::text[]`),
+  motivationalMessage: text("motivational_message"),
+  
+  // === TIMESTAMPS ===
+  lastProcessedAt: timestamp("last_processed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_student_profiles_enriched_user").on(table.userId),
+]);
+
+// Resumos de conversas com Professor IA
+export const conversationSummaries = pgTable("conversation_summaries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sessionId: varchar("session_id").notNull(), // ID da sessão do Professor IA
+  
+  // === METADATA DA CONVERSA ===
+  startedAt: timestamp("started_at").notNull(),
+  endedAt: timestamp("ended_at"),
+  duration: integer("duration"), // segundos
+  
+  // === CONTEÚDO DA CONVERSA ===
+  subject: varchar("subject"), // matéria principal discutida
+  topics: text("topics").array().default(sql`'{}'::text[]`), // tópicos abordados
+  
+  // === RESUMO GERADO POR IA ===
+  summary: text("summary"), // resumo automático da conversa
+  keyPoints: text("key_points").array().default(sql`'{}'::text[]`), // pontos principais
+  questionsAsked: integer("questions_asked").default(0),
+  conceptsExplained: text("concepts_explained").array().default(sql`'{}'::text[]`),
+  
+  // === ANÁLISE DE COMPREENSÃO ===
+  studentUnderstanding: varchar("student_understanding"), // "excellent", "good", "partial", "struggling"
+  difficultConcepts: text("difficult_concepts").array().default(sql`'{}'::text[]`),
+  masteredConcepts: text("mastered_concepts").array().default(sql`'{}'::text[]`),
+  
+  // === SENTIMENTO E ENGAJAMENTO ===
+  studentSentiment: varchar("student_sentiment"), // "motivated", "neutral", "frustrated"
+  engagementScore: decimal("engagement_score", { precision: 3, scale: 2 }), // 0-5
+  
+  // === TRANSCRIÇÃO COMPLETA (opcional) ===
+  fullTranscript: text("full_transcript"), // transcrição completa se necessário
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_conversation_summaries_user").on(table.userId, table.startedAt),
+  index("idx_conversation_summaries_session").on(table.sessionId),
+]);
+
+// Métricas detalhadas de performance (calculadas periodicamente)
+export const profileMetrics = pgTable("profile_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // === PERÍODO DE MEDIÇÃO ===
+  metricType: varchar("metric_type").notNull(), // "daily", "weekly", "monthly"
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  
+  // === MÉTRICAS DE ESTUDO ===
+  studyHours: decimal("study_hours", { precision: 6, scale: 2 }).default("0"),
+  sessionsCount: integer("sessions_count").default(0),
+  avgSessionDuration: integer("avg_session_duration"), // minutos
+  
+  // === MÉTRICAS DE PERFORMANCE ===
+  questionsAnswered: integer("questions_answered").default(0),
+  correctAnswers: integer("correct_answers").default(0),
+  accuracy: decimal("accuracy", { precision: 5, scale: 2 }).default("0"), // %
+  
+  // === MÉTRICAS DE CONVERSAS ===
+  conversationsCount: integer("conversations_count").default(0),
+  avgConversationDuration: integer("avg_conversation_duration"), // segundos
+  topicsDiscussed: text("topics_discussed").array().default(sql`'{}'::text[]`),
+  
+  // === COMPARAÇÃO COM PERÍODO ANTERIOR ===
+  accuracyChange: decimal("accuracy_change", { precision: 5, scale: 2 }), // % de mudança
+  studyHoursChange: decimal("study_hours_change", { precision: 5, scale: 2 }),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_profile_metrics_user_period").on(table.userId, table.metricType, table.periodStart),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   knowledgeAreas: many(knowledgeAreas),
@@ -1085,6 +1212,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   interactionLogs: many(interactionLogs),
   assistantMemories: many(assistantMemory),
   chatMessages: many(chatMessages),
+  // === RELAÇÕES DO STUDENT PROFILE ENGINE ===
+  enrichedProfile: many(studentProfilesEnriched),
+  conversationSummaries: many(conversationSummaries),
+  profileMetrics: many(profileMetrics),
 }));
 
 export const knowledgeAreasRelations = relations(knowledgeAreas, ({ one, many }) => ({
@@ -1542,6 +1673,28 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   }),
 }));
 
+// Student Profile Engine Relations
+export const studentProfilesEnrichedRelations = relations(studentProfilesEnriched, ({ one }) => ({
+  user: one(users, {
+    fields: [studentProfilesEnriched.userId],
+    references: [users.id],
+  }),
+}));
+
+export const conversationSummariesRelations = relations(conversationSummaries, ({ one }) => ({
+  user: one(users, {
+    fields: [conversationSummaries.userId],
+    references: [users.id],
+  }),
+}));
+
+export const profileMetricsRelations = relations(profileMetrics, ({ one }) => ({
+  user: one(users, {
+    fields: [profileMetrics.userId],
+    references: [users.id],
+  }),
+}));
+
 // Processing Jobs Relations
 export const processingJobsRelations = relations(processingJobs, ({ one, many }) => ({
   user: one(users, {
@@ -1817,6 +1970,24 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   createdAt: true,
 });
 
+// Student Profile Engine Insert Schemas
+export const insertStudentProfileEnrichedSchema = createInsertSchema(studentProfilesEnriched).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastProcessedAt: true,
+});
+
+export const insertConversationSummarySchema = createInsertSchema(conversationSummaries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProfileMetricSchema = createInsertSchema(profileMetrics).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -1910,6 +2081,14 @@ export type AssistantMemory = typeof assistantMemory.$inferSelect;
 export type InsertAssistantMemory = z.infer<typeof insertAssistantMemorySchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+// Student Profile Engine Types
+export type StudentProfileEnriched = typeof studentProfilesEnriched.$inferSelect;
+export type InsertStudentProfileEnriched = z.infer<typeof insertStudentProfileEnrichedSchema>;
+export type ConversationSummary = typeof conversationSummaries.$inferSelect;
+export type InsertConversationSummary = z.infer<typeof insertConversationSummarySchema>;
+export type ProfileMetric = typeof profileMetrics.$inferSelect;
+export type InsertProfileMetric = z.infer<typeof insertProfileMetricSchema>;
 
 // === API REQUEST VALIDATION SCHEMAS ===
 export const generateQuestionRequestSchema = z.object({
