@@ -1,0 +1,322 @@
+/**
+ * Hook para gerenciar conexão WebSocket com Professor IA
+ * Captura áudio do microfone, envia para servidor, recebe e reproduz respostas
+ */
+
+import { useState, useRef, useCallback, useEffect } from 'react';
+
+type VoiceState = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
+
+interface TranscriptMessage {
+  type: 'input' | 'output';
+  text: string;
+  timestamp: Date;
+}
+
+interface UseRealtimeVoiceReturn {
+  state: VoiceState;
+  error: string | null;
+  transcripts: TranscriptMessage[];
+  isConnected: boolean;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+  interrupt: () => void;
+}
+
+export function useRealtimeVoice(): UseRealtimeVoiceReturn {
+  const [state, setState] = useState<VoiceState>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioQueueRef = useRef<AudioBuffer[]>([]);
+  const isPlayingRef = useRef(false);
+
+  // Limpar recursos de áudio
+  const cleanupAudio = useCallback(() => {
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
+  }, []);
+
+  // Converter Float32 para PCM16
+  const floatTo16BitPCM = useCallback((float32Array: Float32Array): Int16Array => {
+    const int16Array = new Int16Array(float32Array.length);
+    for (let i = 0; i < float32Array.length; i++) {
+      const s = Math.max(-1, Math.min(1, float32Array[i]));
+      int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    return int16Array;
+  }, []);
+
+  // Reproduzir áudio recebido
+  const playAudioChunk = useCallback(async (base64Audio: string) => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      }
+
+      const audioContext = audioContextRef.current;
+
+      // Decodificar base64 para ArrayBuffer
+      const binaryString = atob(base64Audio);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Converter PCM16 para Float32
+      const pcm16 = new Int16Array(bytes.buffer);
+      const float32 = new Float32Array(pcm16.length);
+      for (let i = 0; i < pcm16.length; i++) {
+        float32[i] = pcm16[i] / (pcm16[i] < 0 ? 0x8000 : 0x7FFF);
+      }
+
+      // Criar AudioBuffer
+      const audioBuffer = audioContext.createBuffer(1, float32.length, 24000);
+      audioBuffer.getChannelData(0).set(float32);
+
+      // Adicionar à fila
+      audioQueueRef.current.push(audioBuffer);
+
+      // Iniciar reprodução se não estiver tocando
+      if (!isPlayingRef.current) {
+        playNextInQueue();
+      }
+
+    } catch (err) {
+      console.error('[RealtimeVoice] Erro ao reproduzir áudio:', err);
+    }
+  }, []);
+
+  const playNextInQueue = useCallback(async () => {
+    if (audioQueueRef.current.length === 0) {
+      isPlayingRef.current = false;
+      setState('listening');
+      return;
+    }
+
+    isPlayingRef.current = true;
+    setState('speaking');
+
+    const audioBuffer = audioQueueRef.current.shift();
+    if (!audioBuffer || !audioContextRef.current) return;
+
+    const source = audioContextRef.current.createBufferSource();
+    source.buffer = audioBuffer as any;
+    source.connect(audioContextRef.current.destination);
+
+    source.onended = () => {
+      playNextInQueue();
+    };
+
+    source.start(0);
+  }, []);
+
+  // Iniciar captura de microfone
+  const startMicrophone = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 24000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+
+      mediaStreamRef.current = stream;
+      audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+
+      processorRef.current = processor;
+
+      processor.onaudioprocess = (e) => {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcm16 = floatTo16BitPCM(inputData);
+
+        // Converter para base64
+        const uint8Array = new Uint8Array(pcm16.buffer);
+        const base64 = btoa(String.fromCharCode(...Array.from(uint8Array)));
+
+        // Enviar para servidor
+        wsRef.current.send(JSON.stringify({
+          type: 'audio_chunk',
+          audio: base64,
+        }));
+      };
+
+      source.connect(processor);
+      processor.connect(audioContextRef.current.destination);
+
+      console.log('[RealtimeVoice] Microfone iniciado');
+    } catch (err) {
+      console.error('[RealtimeVoice] Erro ao acessar microfone:', err);
+      throw new Error('Não foi possível acessar o microfone');
+    }
+  }, [floatTo16BitPCM]);
+
+  // Conectar ao WebSocket
+  const connect = useCallback(async () => {
+    try {
+      setState('connecting');
+      setError(null);
+
+      // Fechar conexão anterior se existir
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+
+      // Criar WebSocket
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/api/realtime-voice`;
+
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = async () => {
+        console.log('[RealtimeVoice] Conectado ao servidor');
+        setIsConnected(true);
+        setState('listening');
+
+        // Iniciar microfone
+        await startMicrophone();
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+
+          switch (message.type) {
+            case 'session_started':
+              console.log('[RealtimeVoice] Sessão iniciada:', message.sessionId);
+              break;
+
+            case 'audio_output':
+              playAudioChunk(message.audio);
+              break;
+
+            case 'transcript_input':
+              if (message.isFinal) {
+                setTranscripts(prev => [...prev, {
+                  type: 'input',
+                  text: message.text,
+                  timestamp: new Date(),
+                }]);
+              }
+              break;
+
+            case 'transcript_output':
+              setTranscripts(prev => [...prev, {
+                type: 'output',
+                text: message.text,
+                timestamp: new Date(),
+              }]);
+              break;
+
+            case 'listening':
+              setState('listening');
+              break;
+
+            case 'thinking':
+              setState('thinking');
+              break;
+
+            case 'error':
+              console.error('[RealtimeVoice] Erro do servidor:', message.error);
+              setError(message.error);
+              setState('error');
+              break;
+
+            case 'session_ended':
+              console.log('[RealtimeVoice] Sessão encerrada');
+              disconnect();
+              break;
+          }
+        } catch (err) {
+          console.error('[RealtimeVoice] Erro ao processar mensagem:', err);
+        }
+      };
+
+      ws.onerror = (event) => {
+        console.error('[RealtimeVoice] Erro WebSocket:', event);
+        setError('Erro na conexão com o servidor');
+        setState('error');
+      };
+
+      ws.onclose = () => {
+        console.log('[RealtimeVoice] Conexão fechada');
+        setIsConnected(false);
+        setState('idle');
+        cleanupAudio();
+      };
+
+    } catch (err: any) {
+      console.error('[RealtimeVoice] Erro ao conectar:', err);
+      setError(err.message || 'Erro ao conectar');
+      setState('error');
+    }
+  }, [startMicrophone, playAudioChunk, cleanupAudio]);
+
+  // Desconectar
+  const disconnect = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.send(JSON.stringify({ type: 'end_session' }));
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    cleanupAudio();
+    setIsConnected(false);
+    setState('idle');
+  }, [cleanupAudio]);
+
+  // Interromper professor
+  const interrupt = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'interrupt' }));
+      audioQueueRef.current = [];
+      isPlayingRef.current = false;
+      setState('listening');
+    }
+  }, []);
+
+  // Cleanup ao desmontar
+  useEffect(() => {
+    return () => {
+      disconnect();
+    };
+  }, [disconnect]);
+
+  return {
+    state,
+    error,
+    transcripts,
+    isConnected,
+    connect,
+    disconnect,
+    interrupt,
+  };
+}

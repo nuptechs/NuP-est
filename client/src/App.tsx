@@ -26,6 +26,7 @@ import GuidedStudy from "@/pages/guided-study";
 import Topics from "@/pages/topics";
 import VoiceAgentTestPage from "@/pages/VoiceAgentTestPage";
 import ConversationalVoiceTestPage from "@/pages/ConversationalVoiceTestPage";
+import ProfessorIA from "@/pages/ProfessorIA";
 
 // Componente para redirecionamento adequado usando wouter
 function Redirect({ to }: { to: string }) {
@@ -46,6 +47,7 @@ function Router() {
       {/* Rotas públicas para teste de Voice */}
       <Route path="/voice-agent-test" component={VoiceAgentTestPage} />
       <Route path="/conversational-voice-test" component={ConversationalVoiceTestPage} />
+      <Route path="/professor-ia" component={ProfessorIA} />
       
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
