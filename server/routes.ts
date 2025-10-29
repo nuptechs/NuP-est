@@ -48,6 +48,7 @@ import { ContinuousDiscoveryService } from './services/personalized-assistant/Co
 import { AdaptiveAssessmentService } from './services/personalized-assistant/AdaptiveAssessmentService';
 import { StudentProfileGenerator } from './services/personalized-assistant/StudentProfileGenerator';
 import { DailyStudyPlannerService } from './services/study-planner/DailyStudyPlannerService';
+import { StudentProfileService } from './services/student-profile-engine/index.js';
 
 // Usar configurações centralizadas
 const upload = UploadConfig.createMaterialUpload();
@@ -95,6 +96,9 @@ function calculateSpacedRepetition(
     nextReview
   };
 }
+
+// Initialize Student Profile Service (singleton)
+const studentProfileService = new StudentProfileService(process.env.OPENAI_API_KEY || '');
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -1396,6 +1400,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const attempt = await storage.createQuestionAttempt(validatedData);
+      
+      // Atualizar perfil do aluno em background (não bloqueia resposta)
+      studentProfileService.updateProfile(userId).catch(err => {
+        console.error('[QuestionAttempts] Erro ao atualizar perfil:', err);
+      });
+      
       res.json(attempt);
     } catch (error) {
       console.error("Error creating question attempt:", error);
