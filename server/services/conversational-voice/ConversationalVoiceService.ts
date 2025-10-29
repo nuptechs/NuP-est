@@ -18,15 +18,18 @@ import {
   DEFAULT_AUDIO_CONFIG,
   DEFAULT_ASSISTANT_CONFIG,
 } from './types.js';
+import { StudentProfileService } from '../student-profile-engine/index.js';
 
 export class ConversationalVoiceService {
   private sessions: Map<string, ConversationSession> = new Map();
   private deepgramApiKey: string;
   private openaiClient: OpenAI;
+  private profileService: StudentProfileService;
 
   constructor(deepgramApiKey: string, openaiApiKey: string) {
     this.deepgramApiKey = deepgramApiKey;
     this.openaiClient = new OpenAI({ apiKey: openaiApiKey });
+    this.profileService = new StudentProfileService(openaiApiKey);
   }
 
   /**
@@ -415,6 +418,35 @@ export class ConversationalVoiceService {
     // Fechar STT se ativo
     if (session.sttWs) {
       (session.sttWs as any).finish?.();
+    }
+
+    // Salvar conversa no Student Profile Engine (se houver mensagens)
+    if (session.conversationHistory.length > 0) {
+      console.log(`[ConversationalVoice] Disparando salvamento de conversa: ${session.conversationHistory.length} mensagens`);
+      
+      // Converter histórico para formato esperado
+      const messages = session.conversationHistory.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+        timestamp: new Date(),
+      }));
+      
+      // Rastrear conversa em background (não bloqueia encerramento)
+      this.profileService.trackConversation(
+        session.userId,
+        sessionId,
+        messages,
+        session.createdAt,
+        new Date()
+      ).then(() => {
+        console.log(`[ConversationalVoice] Conversa salva com sucesso`);
+        // Atualizar perfil em background
+        return this.profileService.updateProfile(session.userId);
+      }).then(() => {
+        console.log(`[ConversationalVoice] Perfil atualizado com sucesso`);
+      }).catch(error => {
+        console.error(`[ConversationalVoice] Erro ao salvar conversa/perfil:`, error);
+      });
     }
 
     this.sessions.delete(sessionId);

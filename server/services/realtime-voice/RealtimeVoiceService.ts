@@ -167,30 +167,31 @@ export class RealtimeVoiceService {
     
     // Salvar conversa no Student Profile Engine (se houver mensagens)
     if (session.conversationHistory.length > 0) {
-      try {
-        console.log(`[RealtimeVoice] Salvando conversa: ${session.conversationHistory.length} mensagens`);
-        
-        // Converter histórico para formato esperado
-        const messages = session.conversationHistory.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-          timestamp: new Date(), // Usar timestamp atual (pode melhorar depois)
-        }));
-        
-        // Rastrear conversa (atualiza perfil em background)
-        await this.profileService.trackConversation(
-          session.userId,
-          sessionId,
-          messages,
-          session.createdAt,
-          new Date() // endedAt = agora
-        );
-        
+      console.log(`[RealtimeVoice] Disparando salvamento de conversa: ${session.conversationHistory.length} mensagens`);
+      
+      // Converter histórico para formato esperado
+      const messages = session.conversationHistory.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(),
+      }));
+      
+      // Rastrear conversa em background (não bloqueia encerramento)
+      this.profileService.trackConversation(
+        session.userId,
+        sessionId,
+        messages,
+        session.createdAt,
+        new Date()
+      ).then(() => {
         console.log(`[RealtimeVoice] Conversa salva com sucesso`);
-      } catch (error) {
-        console.error(`[RealtimeVoice] Erro ao salvar conversa:`, error);
-        // Não bloquear encerramento da sessão por erro no salvamento
-      }
+        // Atualizar perfil em background
+        return this.profileService.updateProfile(session.userId);
+      }).then(() => {
+        console.log(`[RealtimeVoice] Perfil atualizado com sucesso`);
+      }).catch(error => {
+        console.error(`[RealtimeVoice] Erro ao salvar conversa/perfil:`, error);
+      });
     }
     
     this.sessions.delete(sessionId);
