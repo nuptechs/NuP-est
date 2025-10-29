@@ -1106,10 +1106,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/study-sessions/:id/complete', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const { id } = req.params;
       const { score } = req.body;
       
       const session = await storage.completeStudySession(id, score);
+      
+      // Atualizar perfil do aluno em background (não bloqueia resposta)
+      studentProfileService.updateProfile(userId).catch(err => {
+        console.error('[StudySessions] Erro ao atualizar perfil:', err);
+      });
+      
       res.json(session);
     } catch (error) {
       console.error("Error completing study session:", error);
