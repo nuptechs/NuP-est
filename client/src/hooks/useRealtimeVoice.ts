@@ -78,16 +78,23 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
 
       // Decodificar base64 para ArrayBuffer
       const binaryString = atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
+      const length = binaryString.length;
+      const bytes = new Uint8Array(length);
+      for (let i = 0; i < length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
+      // Garantir alinhamento correto (PCM16 = 2 bytes por sample)
+      const alignedLength = bytes.length - (bytes.length % 2);
+      const alignedBytes = bytes.slice(0, alignedLength);
+
       // Converter PCM16 para Float32
-      const pcm16 = new Int16Array(bytes.buffer);
+      const pcm16 = new Int16Array(alignedBytes.buffer, alignedBytes.byteOffset, alignedBytes.length / 2);
       const float32 = new Float32Array(pcm16.length);
+      
       for (let i = 0; i < pcm16.length; i++) {
-        float32[i] = pcm16[i] / (pcm16[i] < 0 ? 0x8000 : 0x7FFF);
+        // Normalizar para [-1, 1]
+        float32[i] = Math.max(-1, Math.min(1, pcm16[i] / 32768));
       }
 
       // Criar AudioBuffer

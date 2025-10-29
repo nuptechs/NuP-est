@@ -28,15 +28,16 @@ export function setupRealtimeVoiceRoutes(app: Express): void {
   expressWsApp.app.ws('/api/realtime-voice', async (ws, req) => {
     console.log('[RealtimeVoice] Nova conexão WebSocket');
 
-    // Obter usuário autenticado
+    // Obter usuário autenticado (WebSocket não suporta middleware, verificar manualmente)
     const user = (req as any).user;
-    if (!user) {
-      ws.send(JSON.stringify({ type: 'error', error: 'Não autenticado' }));
+    if (!user || !user.claims || !user.claims.sub) {
+      console.error('[RealtimeVoice] Usuário não autenticado ou sem claims');
+      ws.send(JSON.stringify({ type: 'error', error: 'Não autenticado. Por favor, faça login.' }));
       ws.close();
       return;
     }
 
-    const userId = user.id;
+    const userId = user.claims.sub;
 
     try {
       // Criar sessão de voz

@@ -31,6 +31,9 @@ export class OpenAIRealtimeProvider implements IRealtimeVoiceProvider {
   // Métricas
   private inputTokens = 0;
   private outputTokens = 0;
+  
+  // Acumuladores de transcrição
+  private currentTranscriptOutput: string = '';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -248,10 +251,19 @@ export class OpenAIRealtimeProvider implements IRealtimeVoiceProvider {
         break;
 
       case 'response.audio_transcript.delta':
-        this.emit({
-          type: 'transcript_output',
-          text: event.delta || '',
-        });
+        // Acumular deltas (OpenAI envia palavra por palavra)
+        this.currentTranscriptOutput += event.delta || '';
+        break;
+      
+      case 'response.audio_transcript.done':
+        // Emitir transcrição completa
+        if (this.currentTranscriptOutput) {
+          this.emit({
+            type: 'transcript_output',
+            text: this.currentTranscriptOutput,
+          });
+          this.currentTranscriptOutput = '';
+        }
         break;
 
       case 'response.created':
