@@ -19,6 +19,7 @@ import { OpenAIRealtimeProvider } from './providers/OpenAIRealtimeProvider.js';
 import { getStudentContextFunction, getSubjectKnowledgeFunction } from './functions/getStudentContext.js';
 import { endConversationFunction } from './functions/endConversation.js';
 import { QuestionRefiner } from './QuestionRefiner.js';
+import { StudentProfileService } from '../student-profile-engine/index.js';
 import { db } from '../../db.js';
 import { users } from '../../../shared/schema.js';
 import { eq } from 'drizzle-orm';
@@ -28,6 +29,7 @@ export class RealtimeVoiceService {
   private providers: Map<string, IRealtimeVoiceProvider> = new Map();
   private functions: Map<string, AssistantFunction> = new Map();
   private questionRefiner: QuestionRefiner;
+  private profileService: StudentProfileService;
 
   constructor(
     private apiKey: string,
@@ -40,6 +42,10 @@ export class RealtimeVoiceService {
     // Inicializar Question Refiner
     this.questionRefiner = new QuestionRefiner(apiKey, maxResponseTime);
     console.log(`[RealtimeVoice] QuestionRefiner inicializado (max: ${maxResponseTime}s)`);
+    
+    // Inicializar Student Profile Service
+    this.profileService = new StudentProfileService(apiKey);
+    console.log(`[RealtimeVoice] Student Profile Service inicializado`);
   }
 
   /**
@@ -158,6 +164,34 @@ export class RealtimeVoiceService {
     }
     
     this.sendToClient(sessionId, { type: 'session_ended' });
+    
+    // Salvar conversa no Student Profile Engine (se houver mensagens)
+    if (session.conversationHistory.length > 0) {
+      try {
+        console.log(`[RealtimeVoice] Salvando conversa: ${session.conversationHistory.length} mensagens`);
+        
+        // Converter histórico para formato esperado
+        const messages = session.conversationHistory.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(), // Usar timestamp atual (pode melhorar depois)
+        }));
+        
+        // Rastrear conversa (atualiza perfil em background)
+        await this.profileService.trackConversation(
+          session.userId,
+          sessionId,
+          messages,
+          session.createdAt,
+          new Date() // endedAt = agora
+        );
+        
+        console.log(`[RealtimeVoice] Conversa salva com sucesso`);
+      } catch (error) {
+        console.error(`[RealtimeVoice] Erro ao salvar conversa:`, error);
+        // Não bloquear encerramento da sessão por erro no salvamento
+      }
+    }
     
     this.sessions.delete(sessionId);
     console.log(`[RealtimeVoice] Sessão encerrada: ${sessionId}`);
@@ -345,6 +379,12 @@ Exemplo: Se o aluno diz "tchau", você responde algo como "Até logo! Bons estud
           this.sendToClient(sessionId, {
             type: 'transcript_output',
             text: event.text,
+          });
+          
+          // Adicionar resposta do assistente ao histórico
+          session.conversationHistory.push({
+            role: 'assistant',
+            content: event.text,
           });
           break;
 
