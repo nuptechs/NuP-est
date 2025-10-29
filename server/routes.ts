@@ -3509,6 +3509,10 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
   // Setup Conversational Voice WebSocket routes (Deepgram STT + OpenAI + TTS)
   const { setupConversationalVoiceRoutes } = await import("./routes/conversationalVoice");
   setupConversationalVoiceRoutes(app, httpServer);
+
+  // Setup Realtime Voice routes (Professor IA com OpenAI Realtime API - baixa latência)
+  const { setupRealtimeVoiceRoutes } = await import("./routes/realtimeVoice.js");
+  setupRealtimeVoiceRoutes(app);
   
   return httpServer;
 }
