@@ -17,6 +17,7 @@ import type {
 import type { IRealtimeVoiceProvider } from './providers/IRealtimeVoiceProvider.js';
 import { OpenAIRealtimeProvider } from './providers/OpenAIRealtimeProvider.js';
 import { getStudentContextFunction, getSubjectKnowledgeFunction } from './functions/getStudentContext.js';
+import { endConversationFunction } from './functions/endConversation.js';
 import { QuestionRefiner } from './QuestionRefiner.js';
 import { db } from '../../db.js';
 import { users } from '../../../shared/schema.js';
@@ -184,6 +185,9 @@ export class RealtimeVoiceService {
     // Registrar funções de contexto do aluno
     this.registerFunction(getStudentContextFunction);
     this.registerFunction(getSubjectKnowledgeFunction);
+    
+    // Registrar função de encerramento
+    this.registerFunction(endConversationFunction);
   }
 
   private registerFunction(func: AssistantFunction): void {
@@ -265,8 +269,23 @@ INSTRUÇÕES GERAIS:
     prompt += `\n\nFUNÇÕES DISPONÍVEIS:
 - get_student_context(): Busca perfil detalhado do aluno
 - get_subject_knowledge(subject_name): Busca nível em uma matéria específica
+- end_conversation(reason, farewell_message): Encerra a sessão quando a conversa terminar
 
-Use essas funções quando precisar de informações sobre o aluno para personalizar sua explicação.`;
+Use essas funções quando precisar de informações sobre o aluno para personalizar sua explicação.
+
+IMPORTANTE - DETECTAR FIM DA CONVERSA:
+Você deve chamar end_conversation() quando identificar que a conversa chegou ao fim naturalmente:
+- Aluno se despede: "tchau", "até logo", "falou", "vou nessa", "até mais", etc
+- Aluno indica término: "é só isso", "já entendi", "obrigado, isso é suficiente", "tá bom", etc
+- Aluno confirma não ter mais dúvidas: "não tenho mais dúvidas", "entendi tudo", "tá claro", etc
+- Aluno diz que precisa sair: "tenho que ir", "preciso sair", "já vai dar minha aula", etc
+
+Quando detectar qualquer desses sinais:
+1. Responda brevemente de forma amigável
+2. Chame end_conversation() com o motivo apropriado e uma mensagem curta de despedida
+3. A sessão será encerrada automaticamente após você falar a despedida
+
+Exemplo: Se o aluno diz "tchau", você responde algo como "Até logo! Bons estudos!" e chama end_conversation(reason="despedida", farewell_message="Até a próxima!").`;
 
     return prompt;
   }
@@ -427,6 +446,15 @@ Use essas funções quando precisar de informações sobre o aluno para personal
       console.log(`[RealtimeVoice] Resultado:`, result);
 
       provider.sendFunctionResult(callId, result);
+
+      // Se a função indicar que deve fechar a conexão (ex: end_conversation)
+      if (result && result.shouldClose === true) {
+        console.log(`[RealtimeVoice] Função solicitou encerramento da sessão: ${functionName}`);
+        // Aguardar um pouco para a IA processar a resposta final antes de fechar
+        setTimeout(async () => {
+          await this.endSession(sessionId);
+        }, 2000); // 2 segundos para a IA falar a mensagem de despedida
+      }
 
     } catch (error) {
       console.error(`[RealtimeVoice] Erro ao executar função ${functionName}:`, error);
