@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 import UnifiedShell from "@/components/layout/unified-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { 
   PlayCircle, 
@@ -20,7 +22,8 @@ import {
   Brain,
   MessageCircle,
   Target,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from "lucide-react";
 
 interface EnrichedProfile {
@@ -49,8 +52,32 @@ interface EnrichedProfile {
 }
 
 export default function AdminProfiles() {
+  const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      window.location.href = "/api/login";
+    }
+  }, [isAuthenticated, isLoading]);
+
+  if (isLoading) {
+    return (
+      <UnifiedShell>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Carregando...</p>
+          </div>
+        </div>
+      </UnifiedShell>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   // Query: Get all users (simplified - you may need to create this endpoint)
   const { data: users = [] } = useQuery<Array<{ id: string; username?: string; email?: string }>>({
@@ -60,9 +87,7 @@ export default function AdminProfiles() {
   // Mutation: Run backfill
   const backfillMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/admin/student-profiles/backfill', {
-        method: 'POST',
-      });
+      return await apiRequest('POST', '/api/admin/student-profiles/backfill', null);
     },
     onSuccess: (data: any) => {
       toast({
@@ -82,9 +107,7 @@ export default function AdminProfiles() {
   // Mutation: Refresh single user
   const refreshMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/student-profiles/${userId}/refresh`, {
-        method: 'POST',
-      });
+      return await apiRequest('POST', `/api/admin/student-profiles/${userId}/refresh`, null);
     },
     onSuccess: () => {
       toast({
@@ -129,7 +152,6 @@ export default function AdminProfiles() {
           </div>
           
           <Button
-            size="lg"
             onClick={() => backfillMutation.mutate()}
             disabled={backfillMutation.isPending}
             data-testid="button-run-backfill"
@@ -149,7 +171,7 @@ export default function AdminProfiles() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
@@ -165,52 +187,50 @@ export default function AdminProfiles() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sistema</CardTitle>
-              <Brain className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Student Profile Engine</div>
-              <p className="text-xs text-muted-foreground">
-                Análise automática de perfis
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Status</CardTitle>
+              <CardTitle className="text-sm font-medium">Status do Sistema</CardTitle>
               <Sparkles className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">Ativo</div>
               <p className="text-xs text-muted-foreground">
-                Atualizações automáticas
+                Atualizações automáticas após exercícios, sessões e conversas
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Info Card */}
-        <Card className="mb-8 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
-          <CardHeader>
-            <CardTitle className="text-blue-900 dark:text-blue-100">
-              Como Funciona
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-blue-800 dark:text-blue-200 space-y-2">
-            <p>
-              <strong>Processamento Automático:</strong> Perfis são atualizados automaticamente após:
-            </p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>Resposta a exercícios</li>
-              <li>Conclusão de sessões de estudo</li>
-              <li>Conversas com Professor IA</li>
-            </ul>
-            <p className="mt-4">
-              <strong>Botão "Processar Todos":</strong> Use para processar usuários existentes pela primeira vez ou recalcular todos os perfis.
-            </p>
-          </CardContent>
-        </Card>
+        {/* Info Card - Collapsible */}
+        <Collapsible className="mb-6">
+          <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-blue-900 dark:text-blue-100 text-base">
+                    ℹ️ Como Funciona o Sistema de Perfis
+                  </CardTitle>
+                  <ChevronDown className="h-4 w-4 text-blue-900 dark:text-blue-100 transition-transform" />
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="text-blue-800 dark:text-blue-200 space-y-3 text-sm pt-0">
+                <div>
+                  <p className="font-semibold mb-1">Processamento Automático</p>
+                  <p className="text-xs">Perfis são atualizados automaticamente após:</p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-4 text-xs mt-1">
+                    <li>Resposta a exercícios</li>
+                    <li>Conclusão de sessões de estudo</li>
+                    <li>Conversas com Professor IA</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">Botão "Processar Todos"</p>
+                  <p className="text-xs">Use para processar usuários existentes pela primeira vez ou recalcular todos os perfis em lote.</p>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Users List */}
         <Card>
