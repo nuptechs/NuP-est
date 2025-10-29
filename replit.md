@@ -81,11 +81,19 @@ Key files:
 **Modular system for enriched student profiles** with pre-processed data to avoid expensive API calls during voice sessions:
 -   **Architecture**: 3-component modular design - ProfileAnalyzer (metrics/evolution), ConversationTracker (AI-powered conversation analysis), StudentProfileService (orchestrator/façade)
 -   **Snapshot-based**: Data is processed in background and saved as snapshots; reading is instantaneous (10-50ms vs 500-2000ms processing)
--   **Automatic conversation tracking**: Tracks Professor IA sessions, analyzes them with GPT-4o-mini, extracts topics/concepts/understanding/sentiment
+-   **Automatic conversation tracking**: 
+    -   Both voice systems (Realtime & Conversational) track sessions automatically on disconnect
+    -   AI analysis with GPT-4o-mini extracts topics/concepts/understanding/sentiment
+    -   Fire-and-forget pattern: saves conversations without blocking session closure
+-   **Automatic profile updates**: Non-blocking updates triggered by:
+    -   Question attempts (after each answer submission)
+    -   Study session completion (after marking session as complete)
+    -   Voice conversations (after saving conversation summary)
 -   **Rich metrics**: Overall accuracy, study hours, weekly/monthly progress, improvement trends, strong/weak subjects, current focus
 -   **Behavioral patterns**: Study streak, preferred study time, average session duration, engagement level
 -   **AI-generated recommendations**: Next topics, recommended actions, motivational messages
 -   **Integration**: Professor IA's get_student_context() fetches enriched profile instantly during real-time voice
+-   **Admin tools**: Backfill endpoint to process all users, refresh endpoint for single user, view endpoint for enriched profiles
 
 Database tables:
 - `student_profiles_enriched` - Enriched profile snapshots (updated in background)
@@ -97,6 +105,7 @@ Key files:
 - `server/services/student-profile-engine/ProfileAnalyzer.ts` - Metrics & evolution analysis
 - `server/services/student-profile-engine/ConversationTracker.ts` - AI conversation analysis
 - `server/services/student-profile-engine/types.ts` - TypeScript interfaces
+- `server/routes/admin.ts` - Admin endpoints for profile management
 - `server/services/student-profile-engine/README.md` - Complete documentation
 
 # External Dependencies
