@@ -42,6 +42,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Rota pública para teste de Voice Agent */}
+      <Route path="/voice-agent-test" component={VoiceAgentTestPage} />
+      
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : user && !user.studyProfile ? (
@@ -76,7 +79,6 @@ function Router() {
           <Route path="/topics" component={Topics} />
           <Route path="/admin/search-config" component={AdminSearchConfig} />
           <Route path="/search" component={IntegratedSearch} />
-          <Route path="/voice-agent-test" component={VoiceAgentTestPage} />
           
           <Route component={NotFound} />
         </Switch>

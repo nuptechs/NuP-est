@@ -165,13 +165,20 @@ export class DeepgramVoiceAgent extends EventEmitter {
 
       dgWs.on('error', (error) => {
         console.error(`[VoiceAgent] Erro Deepgram (${sessionId}):`, error);
-        this.emit('error', sessionId, error);
-        session.ws.send(
-          JSON.stringify({
-            type: 'error',
-            error: error.message,
-          })
-        );
+        clearTimeout(connectionTimeout);
+        
+        // Notificar cliente
+        if (session.ws.readyState === WebSocket.OPEN) {
+          session.ws.send(
+            JSON.stringify({
+              type: 'error',
+              error: error.message || 'Erro ao conectar ao Deepgram Voice Agent',
+            })
+          );
+        }
+        
+        // Não emitir erro não tratado - apenas logar
+        reject(error);
       });
 
       dgWs.on('close', () => {
