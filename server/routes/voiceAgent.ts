@@ -38,6 +38,7 @@ function getVoiceAgent(): DeepgramVoiceAgent {
     if (!apiKey) {
       throw new Error('DEEPGRAM_API_KEY não configurada');
     }
+    console.log('[VoiceAgent] Inicializando com API key:', apiKey.substring(0, 8) + '...');
     voiceAgent = new DeepgramVoiceAgent(apiKey);
   }
   return voiceAgent;

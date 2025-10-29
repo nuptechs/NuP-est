@@ -130,8 +130,16 @@ export class DeepgramVoiceAgent extends EventEmitter {
     }
 
     return new Promise((resolve, reject) => {
-      const url = `${DEEPGRAM_VOICE_AGENT_URL}?token=${this.apiKey}`;
-      const dgWs = new WebSocket(url);
+      const url = DEEPGRAM_VOICE_AGENT_URL;
+      
+      console.log(`[VoiceAgent] Conectando ao Deepgram:`, url);
+      console.log(`[VoiceAgent] API Key (primeiros 8 chars):`, this.apiKey.substring(0, 8) + '...');
+      
+      const dgWs = new WebSocket(url, {
+        headers: {
+          'Authorization': `Token ${this.apiKey}`,
+        },
+      });
 
       let connectionTimeout = setTimeout(() => {
         dgWs.close();
