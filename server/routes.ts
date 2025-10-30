@@ -5,7 +5,7 @@ import fs from "fs";
 import FormData from "form-data";
 import OpenAI from "openai";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
 import { aiService } from "./services/ai";
 import { ragService } from "./services/rag";
 import { setupRAGRoutes } from "./routes/rag";
@@ -49,6 +49,11 @@ import { AdaptiveAssessmentService } from './services/personalized-assistant/Ada
 import { StudentProfileGenerator } from './services/personalized-assistant/StudentProfileGenerator';
 import { DailyStudyPlannerService } from './services/study-planner/DailyStudyPlannerService';
 import { StudentProfileService } from './services/student-profile-engine/index.js';
+
+// Imports para serviços RAG
+import { TextChunker } from './services/chunking/TextChunker';
+import { bm25Service } from './services/rag/BM25Service';
+import { pineconeService } from './services/pinecone';
 
 // Usar configurações centralizadas
 const upload = UploadConfig.createMaterialUpload();
@@ -3489,6 +3494,68 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
       }
 
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/admin/materials/:materialId/reindex
+   * ADMIN: Reprocessa material para adicionar materialId aos chunks no Pinecone
+   */
+  app.post('/api/admin/materials/:materialId/reindex', isAdmin, async (req: any, res) => {
+    try {
+      const { materialId } = req.params;
+
+      console.log(`[Admin] 🔄 Iniciando reindexação do material ${materialId}`);
+
+      // Buscar material
+      const material = await storage.getMaterial(materialId);
+      if (!material) {
+        return res.status(404).json({ message: "Material não encontrado" });
+      }
+
+      if (!material.content) {
+        return res.status(400).json({ message: "Material não tem conteúdo armazenado" });
+      }
+
+      console.log(`[Admin] 📄 Material: ${material.title}`);
+      console.log(`[Admin] 📝 Conteúdo: ${material.content.length} caracteres`);
+
+      // Fazer chunking semântico
+      const chunks = await TextChunker.chunk(material.content, 'rag-chat');
+      console.log(`[Admin] ✂️ Gerados ${chunks.length} chunks`);
+
+      // Extrair keywords e preparar chunks
+      const chunksForPinecone = chunks.map((chunk: any, index: number) => {
+        const keywords = bm25Service.extractKeywords(chunk.text, 15);
+        return {
+          content: chunk.text,
+          chunkIndex: index,
+          keywords,
+        };
+      });
+
+      // Re-indexar no Pinecone COM materialId
+      await pineconeService.upsertDocument(
+        materialId,
+        chunksForPinecone,
+        {
+          userId: material.userId,
+          title: material.title,
+          category: material.subjectId || 'Geral',
+          materialId: material.id,  // ADICIONAR materialId!
+        }
+      );
+
+      console.log(`[Admin] ✅ Material ${materialId} reindexado com ${chunks.length} chunks`);
+
+      res.json({
+        message: "Material reindexado com sucesso",
+        materialId,
+        chunksIndexed: chunks.length,
+      });
+    } catch (error: any) {
+      console.error("[Admin] ❌ Erro ao reindexar material:", error);
+      res.status(500).json({ message: "Erro ao reindexar material: " + error.message });
     }
   });
 

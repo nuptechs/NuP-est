@@ -1,6 +1,6 @@
 import { pineconeService } from '../pinecone';
 import { bm25Service } from './BM25Service';
-import { rerankingService } from './RerankingService';
+import { rerankingService, type RerankingInput } from './RerankingService';
 
 /**
  * Serviço de busca híbrida que combina:
@@ -58,10 +58,17 @@ export class HybridSearchService {
 
     // ETAPA 1: Buscar TODOS os chunks dos materiais (para BM25 ter acesso completo)
     console.log(`📦 [HybridSearch] Buscando todos os chunks dos materiais...`);
-    const allChunks = await pineconeService.getAllChunksForMaterials(userId, materialIds || []);
+    let allChunks = await pineconeService.getAllChunksForMaterials(userId, materialIds || []);
+    
+    // FALLBACK: Se filtro por materialId falhar (chunks antigos sem materialId), buscar por userId
+    if (allChunks.length === 0 && materialIds && materialIds.length > 0) {
+      console.log(`⚠️ [HybridSearch] Nenhum chunk com materialId - tentando fallback por userId...`);
+      allChunks = await pineconeService.getAllChunksForUser(userId);
+      console.log(`📦 [HybridSearch] Fallback recuperou ${allChunks.length} chunks (SEM filtro por material)`);
+    }
     
     if (allChunks.length === 0) {
-      console.log(`⚠️ [HybridSearch] Nenhum chunk encontrado nos materiais`);
+      console.log(`⚠️ [HybridSearch] Nenhum chunk encontrado mesmo com fallback`);
       return [];
     }
     

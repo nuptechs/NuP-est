@@ -129,6 +129,56 @@ export class PineconeService {
   }
 
   /**
+   * Busca TODOS os chunks de um usuário (fallback quando materialId não existe)
+   */
+  async getAllChunksForUser(
+    userId: string
+  ): Promise<{
+    content: string;
+    title: string;
+    category: string;
+    keywords?: string[];
+    materialId?: string;
+    sectionTitle?: string;
+  }[]> {
+    try {
+      if (!this.index) {
+        await this.initializeIndex();
+      }
+
+      const ones = new Array(768).fill(1);
+      const magnitude = Math.sqrt(ones.reduce((sum, val) => sum + val * val, 0));
+      const normalizedVector = ones.map(val => val / magnitude);
+      
+      const filter: any = { userId };
+
+      const results = await this.index.query({
+        vector: normalizedVector,
+        topK: 10000,
+        filter,
+        includeMetadata: true,
+        includeValues: false,
+      });
+
+      const chunks = results.matches?.map((match: any) => ({
+        content: match.metadata.content,
+        title: match.metadata.title,
+        category: match.metadata.category,
+        keywords: match.metadata.keywords,
+        materialId: match.metadata.materialId,
+        sectionTitle: match.metadata.sectionTitle,
+      })) || [];
+
+      console.log(`📦 [Pinecone] Recuperados ${chunks.length} chunks para userId ${userId} (fallback)`);
+      
+      return chunks;
+    } catch (error) {
+      console.error('❌ Erro ao buscar chunks do usuário:', error);
+      return [];
+    }
+  }
+
+  /**
    * Busca TODOS os chunks de determinados materiais (para BM25)
    * SEM filtro de similaridade - retorna tudo
    */
@@ -140,6 +190,8 @@ export class PineconeService {
     title: string;
     category: string;
     keywords?: string[];
+    materialId?: string;
+    sectionTitle?: string;
   }[]> {
     try {
       if (!this.index) {
