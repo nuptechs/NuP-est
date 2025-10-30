@@ -44,6 +44,8 @@ import {
   Palette,
   Check,
   Settings,
+  ChevronLeft,
+  ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { layout, navigationItems } from "@/lib/design-system";
 import type { BreadcrumbItem } from "@/components/ui/page-header";
@@ -87,9 +89,19 @@ export default function UnifiedShell({
   const [location, navigate] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved === 'true';
+  });
   const [isDark, setIsDark] = useState(() => {
     return currentMode === 'dark';
   });
+
+  const toggleSidebarCollapse = () => {
+    const newState = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newState);
+    localStorage.setItem('sidebar-collapsed', String(newState));
+  };
 
   const getUserInitials = () => {
     if (!user) return "??";
@@ -121,14 +133,24 @@ export default function UnifiedShell({
   return (
     <div className="h-screen bg-background flex overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-card border-r border-border">
+      <aside 
+        className={cn(
+          "hidden lg:flex lg:flex-col bg-card border-r border-border transition-all duration-300 ease-in-out relative",
+          isSidebarCollapsed ? "lg:w-16" : "lg:w-64"
+        )}
+      >
         {/* Logo */}
-        <div className="flex items-center h-14 px-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+        <div className="flex items-center h-14 border-b border-border overflow-hidden">
+          <div className={cn(
+            "flex items-center transition-all duration-300",
+            isSidebarCollapsed ? "px-3 justify-center w-full" : "px-6 gap-3"
+          )}>
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
               <Brain className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-semibold text-foreground">NuP-Study</span>
+            {!isSidebarCollapsed && (
+              <span className="text-xl font-semibold text-foreground whitespace-nowrap">NuP-Study</span>
+            )}
           </div>
         </div>
 
@@ -140,20 +162,34 @@ export default function UnifiedShell({
               (item.href !== "/" && location.startsWith(item.href));
             
             return (
-              <button
-                key={item.href}
-                onClick={() => navigate(item.href)}
-                className={cn(
-                  "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-foreground hover:bg-muted"
-                )}
-                data-testid={`nav-${item.href.slice(1) || 'dashboard'}`}
-              >
-                <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
-                <span>{item.name}</span>
-              </button>
+              <TooltipProvider key={item.href} delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navigate(item.href)}
+                      className={cn(
+                        "w-full flex items-center text-sm font-medium rounded-lg transition-all",
+                        isSidebarCollapsed ? "px-3 py-2.5 justify-center" : "px-3 py-2.5",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-foreground hover:bg-muted"
+                      )}
+                      data-testid={`nav-${item.href.slice(1) || 'dashboard'}`}
+                    >
+                      <Icon className={cn(
+                        "w-5 h-5 flex-shrink-0",
+                        !isSidebarCollapsed && "mr-3"
+                      )} />
+                      {!isSidebarCollapsed && <span>{item.name}</span>}
+                    </button>
+                  </TooltipTrigger>
+                  {isSidebarCollapsed && (
+                    <TooltipContent side="right">
+                      <p>{item.name}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
         </nav>
@@ -163,18 +199,26 @@ export default function UnifiedShell({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors"
+                className={cn(
+                  "w-full flex items-center text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors",
+                  isSidebarCollapsed ? "px-3 py-2.5 justify-center" : "px-3 py-2.5"
+                )}
                 data-testid="user-menu-trigger"
               >
-                <Avatar className="w-8 h-8 mr-3">
+                <Avatar className={cn(
+                  "w-8 h-8 flex-shrink-0",
+                  !isSidebarCollapsed && "mr-3"
+                )}>
                   <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 text-left min-w-0">
-                  <div className="truncate font-medium">{user?.firstName || user?.email}</div>
-                  <div className="text-xs text-muted-foreground">Ver perfil</div>
-                </div>
+                {!isSidebarCollapsed && (
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="truncate font-medium">{user?.firstName || user?.email}</div>
+                    <div className="text-xs text-muted-foreground">Ver perfil</div>
+                  </div>
+                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end">
@@ -250,6 +294,19 @@ export default function UnifiedShell({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Toggle Button */}
+        <button
+          onClick={toggleSidebarCollapse}
+          className="absolute -right-3 top-20 bg-card border border-border rounded-full p-1 shadow-md hover:bg-accent transition-colors z-10"
+          data-testid="button-toggle-sidebar"
+        >
+          {isSidebarCollapsed ? (
+            <ChevronRightIcon className="w-4 h-4 text-foreground" />
+          ) : (
+            <ChevronLeft className="w-4 h-4 text-foreground" />
+          )}
+        </button>
       </aside>
 
       {/* Main Content Area */}
