@@ -1,6 +1,6 @@
 # Overview
 
-NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It offers a comprehensive setup, an intuitive study hub with integrated AI tools, flashcards, knowledge base management, and progress tracking, all tailored to individual learning profiles. The platform features **Professor IA**, an advanced conversational AI tutor with ultra-low latency voice interactions (<500ms) that creates the experience of learning from a dedicated human teacher. The project aims for a polished, professional user experience with adaptive learning strategies to enhance learning efficiency and engagement. The business vision is to provide a competitive edge in the e-learning market by offering a truly personalized and adaptive learning journey.
+NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive setup, an intuitive study hub with AI tools, flashcards, knowledge base management, and progress tracking. The platform features **Professor IA**, an advanced conversational AI tutor with ultra-low latency voice interactions (<500ms), designed to simulate learning from a dedicated human teacher. The project aims for a polished, professional user experience with adaptive learning strategies to enhance learning efficiency and engagement, offering a competitive edge in the e-learning market through truly personalized and adaptive learning journeys.
 
 # User Preferences
 
@@ -12,186 +12,92 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 ## Frontend Architecture
 
-The client is built with React 18, TypeScript, and Vite, utilizing `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI primitives and Tailwind CSS for styling. React Hook Form with Zod handles form validation. The UI is profile-driven and features a centralized dashboard with a guided setup flow. A unified design system ensures consistency, inspired by modern design patterns. Features include rich Markdown content rendering with syntax highlighting.
+The client uses React 18, TypeScript, and Vite, with `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI and Tailwind CSS for styling. Form validation is handled by React Hook Form with Zod. The UI is profile-driven with a centralized dashboard and a guided setup flow, ensuring consistency through a unified design system. It supports rich Markdown content rendering with syntax highlighting.
 
 ## Backend Architecture
 
-The server uses Express.js and TypeScript (ESM format) with Drizzle ORM for type-safe PostgreSQL interactions. Replit Auth with Passport.js manages authentication, express-session handles sessions, and multer manages file uploads. The API is RESTful with consistent error handling.
+The server is built with Express.js and TypeScript (ESM) and uses Drizzle ORM for type-safe PostgreSQL interactions. Replit Auth with Passport.js manages authentication, `express-session` for sessions, and Multer for file uploads. The API is RESTful with consistent error handling.
 
-### Modular AI Pipeline Architecture
+### Modular AI Pipeline
 
-The system employs a modular AI pipeline for adaptive learning, featuring:
--   **StudyContextBuilder**: Aggregates user profile, subject, materials, performance data, and RAG chunks.
--   **Prompt Strategies**: Category-specific pedagogical approaches (`ExactasPromptStrategy`, `HumanasPromptStrategy`, `BiologicasPromptStrategy`).
--   **AIContentPipeline**: Manages content generation flow from context to AI execution, with priority-based model selection (DeepSeek R1 for HIGH priority, GPT-4o-mini for MEDIUM/LOW).
--   **QuestionGeneratorTool**: Generates adaptive questions using category-specific strategies and RAG enrichment.
+An adaptive learning AI pipeline features:
+-   **StudyContextBuilder**: Aggregates user profile, subject, materials, performance, and RAG chunks.
+-   **Prompt Strategies**: Category-specific pedagogical approaches (`Exactas`, `Humanas`, `Biologicas`).
+-   **AIContentPipeline**: Manages content generation, using priority-based model selection (DeepSeek R1 for HIGH, GPT-4o-mini for MEDIUM/LOW).
+-   **QuestionGeneratorTool**: Generates adaptive questions using category-specific strategies and RAG.
 
 ### Intelligent Auto-Categorization
 
 A 3-phase system categorizes subjects:
-1.  **Pattern Matching**: Static keyword mapping for common subjects.
-2.  **AI Fallback (GPT-4o-mini)**: Analyzes unknown subjects and suggests categories with confidence.
-3.  **Safe Default**: Defaults to "humanas" if AI categorization fails.
-This system includes UX features like auto-suggestion with debounce, visual feedback, and manual override.
+1.  **Pattern Matching**: Static keyword mapping.
+2.  **AI Fallback (GPT-4o-mini)**: Analyzes unknown subjects and suggests categories.
+3.  **Safe Default**: Defaults to "humanas" if AI fails.
+Includes UX features like auto-suggestion, visual feedback, and manual override.
 
 ### Intelligent Text Chunking System
 
-A modular chunking infrastructure uses a Strategy Pattern with pluggable strategies via a `TextChunker` facade.
--   **SemanticChunkStrategy**: Hierarchical AI-powered analysis to identify natural topic boundaries, ensuring 100% text coverage and semantic completeness, with rich metadata.
--   **SentenceAwareChunkStrategy**: Respects sentence boundaries for cleaner breaks, used for RAG.
--   **SimpleLimitChunkStrategy**: Character-based splitting with sentence fallback, used for TTS.
-Pre-configured profiles exist for material upload, TTS services, and RAG.
+A modular chunking infrastructure uses a Strategy Pattern with pluggable strategies via a `TextChunker` facade. Strategies include `SemanticChunkStrategy` (AI-powered, hierarchical analysis with rich metadata), `SentenceAwareChunkStrategy` (respects sentence boundaries for RAG), and `SimpleLimitChunkStrategy` (character-based for TTS). Pre-configured profiles exist for material upload, TTS, and RAG.
 
 ### Production RAG System (NotebookLM-Architecture)
-**Zero-hallucination retrieval system** inspired by Google's NotebookLM:
 
-#### Hybrid Search (Semantic + BM25)
--   **BM25Service**: Keyword-based sparse retrieval for exact term matching
--   **Semantic Search**: Dense vector embeddings via Pinecone for context understanding
--   **Weighted Fusion**: Combines semantic (60%) + keyword (40%) scores for optimal precision/recall
--   **Why Hybrid**: Solves semantic-only failures when query terms differ from content terminology
--   **CRITICAL FIX (2025-01-30)**: Automatic fallback mode removes `materialId` filter when legacy chunks lack this metadata, preventing zero-result failures
-
-#### Cross-Encoder Reranking
--   **RerankingService**: LLM-based post-retrieval scoring for final ranking
--   **Relevance Scoring**: GPT-4o-mini evaluates query-document pairs with 0-1 scores
--   **Why Reranking**: Improves precision by 15-30% over embedding similarity alone
-
-#### Metadata Enrichment
--   **Keyword Extraction**: Auto-generates 15 keywords per chunk during indexation
--   **Section Preservation**: Maintains document structure metadata (sectionTitle, partNumber)
--   **Source Attribution**: Complete provenance tracking for citations
--   **Stored in Pinecone**: Keywords, materialId, title, category, jobId, partId
-
-#### Confidence Scoring & Strict Refusal
--   **4-Level Scoring**: none/low/medium/high based on result quality + quantity
--   **Threshold-Based Refusal**: Automatically refuses when confidence=none
--   **Explicit Fallback**: Lists available topics when query not found in materials
--   **Why Critical**: Prevents hallucinations by forcing AI to admit lack of knowledge
--   **CRITICAL FIX (2025-01-30)**: Uses `finalScore` (post-reranking) instead of `similarity`, threshold reduced from 0.30 to 0.20 to minimize false negatives
-
-#### Prompt Engineering
--   **Strict RAG Prompt**: Forces AI to cite sources explicitly or state "not in materials"
--   **Zero Hallucination**: Prohibits use of external knowledge, speculation, or invention
--   **Confidence Integration**: Includes score in prompt for AI awareness of result quality
--   **Citation Enforcement**: Requires "Segundo o Trecho X..." format for all claims
-
-#### Two-Mode Chat Behavior
--   **Subject selected**: Hybrid search → reranking → strict prompt → cited responses
--   **No subject**: General conversational assistant (personality-driven)
-
-#### Technical Stack
--   **Retrieval**: Hybrid (BM25 + Semantic) → Top-K=10, minSimilarity=0.65
--   **Reranking**: LLM-based relevance scoring (batch mode for efficiency)
--   **Indexation**: Semantic chunking + keyword extraction + enriched metadata
--   **Confidence**: Multi-factor scoring (avg finalScore * 0.7 + count factor * 0.3), threshold=0.20
--   **Admin Tools**: `/api/admin/users/:userId/reindex-materials` - Bulk reindex all materials with correct metadata
-
-Key files:
-- `server/services/SubjectRAGService.ts` - RAG orchestrator with confidence scoring
-- `server/services/rag/HybridSearchService.ts` - Hybrid retrieval engine
-- `server/services/rag/BM25Service.ts` - Keyword-based sparse retrieval
-- `server/services/rag/RerankingService.ts` - LLM-based reranking
-- `server/services/pinecone.ts` - Vector store with enriched metadata
-- `server/services/large-document-processing/LargeMaterialProcessor.ts` - Keyword extraction during indexation
-- `server/routes.ts` (line ~2810) - Chat endpoint with RAG/general mode switching
+A zero-hallucination retrieval system inspired by Google's NotebookLM:
+-   **Hybrid Search**: Combines BM25 (keyword-based) and Semantic Search (dense vector embeddings via Pinecone) with weighted fusion (60% semantic, 40% keyword).
+-   **Cross-Encoder Reranking**: LLM-based post-retrieval scoring using GPT-4o-mini to improve precision.
+-   **Metadata Enrichment**: Auto-generates 15 keywords per chunk, preserves document structure, and tracks source attribution. Stored in Pinecone.
+-   **Confidence Scoring & Strict Refusal**: 4-level scoring (none/low/medium/high) with threshold-based refusal (confidence=none) to prevent hallucinations, explicitly listing available topics when a query is not found.
+-   **Prompt Engineering**: Strict RAG prompt forces AI to cite sources or state "not in materials," prohibiting external knowledge or speculation.
+-   **Two-Mode Chat Behavior**: When a subject is selected, it uses hybrid search, reranking, and strict RAG. Otherwise, it acts as a general conversational assistant.
 
 ## Data Architecture
 
-A PostgreSQL database managed by Drizzle ORM stores all application data, including comprehensive AI-related data such as learning difficulties, versioned student profiles, assistant instances, and interaction logs.
+A PostgreSQL database managed by Drizzle ORM stores all application data, including AI-related data like learning difficulties, versioned student profiles, assistant instances, and interaction logs.
 
 ## Authentication & Authorization
 
-Authentication is handled via Replit OAuth (OpenID Connect) using secure session-based authentication with HttpOnly cookies and route-level middleware protection.
-
-### Admin System (Temporary)
-**Basic admin authorization** implemented with `isAdmin` middleware:
--   **Field**: `users.isAdmin` (boolean, default: false) - marks admin users
--   **Middleware**: `isAdmin` in `server/replitAuth.ts` - validates admin status for protected routes
--   **Protected endpoints**: All `/api/admin/*` routes require admin privileges
--   **Security**: Admin endpoints now protected against horizontal privilege escalation
--   **Future**: Will be replaced by NuPtechs central system for centralized user management, authentication, and feature authorization
-
-### Configurable Auto-Refresh System
-**Per-user profile refresh configuration**:
--   **Field**: `users.autoRefreshInterval` (integer, default: 60000ms) - controls profile refresh frequency
--   **Admin interface**: AdminProfiles page includes slider control for per-user configuration
--   **Self-access endpoint**: `/api/users/:userId` - users can only access their own data
--   **Admin endpoints**: `/api/admin/users/:userId` (read), `/api/admin/users/:userId/config` (write)
--   **Validation**: Enforces 5s-5min interval range to prevent abuse
+Authentication uses Replit OAuth (OpenID Connect) with secure session-based authentication via HttpOnly cookies and route-level middleware. An admin system uses an `isAdmin` field in `users` and middleware to protect `/api/admin/*` routes. A configurable auto-refresh system allows per-user profile refresh frequency.
 
 ## Voice Services (Freemium Feature)
 
 ### Traditional Voice Pipeline (Conversational Voice)
-An architecture using the Strategy Pattern provides voice services:
--   **NativeVoiceService (Free Tier)**: Uses browser Web Speech API for basic functionality.
--   **DeepgramVoiceService (Premium)**: Utilizes Deepgram Nova-3 for STT and OpenAI TTS for responses (~2-3s latency).
--   **WhisperVoiceService (Premium - Alternative)**: Uses OpenAI Whisper API for STT and OpenAI TTS API for superior accuracy.
 
-### Realtime Voice System (Professor IA - Phase 1 Completed)
-**Production-ready modular architecture** for ultra-low latency voice conversations:
--   **Architecture**: Provider-agnostic design using Strategy Pattern - swap providers with 1 line of code
--   **OpenAI Realtime API**: Native bidirectional audio streaming with <500ms latency
--   **Multi-session support**: Isolated providers per session, supports multiple simultaneous students
--   **Function Calling**: Real-time student context retrieval (profile, subject knowledge, learning history)
--   **Error handling**: Robust cleanup prevents memory leaks, production-ready
--   **Adaptive pedagogy**: Automatically adjusts teaching style based on student profile (ADHD, dislexia, learning objectives)
--   **Cost**: ~$0.24/min (vs $0.18/min traditional, but 5x lower latency and natural interruptions)
+Uses a Strategy Pattern for voice services:
+-   **NativeVoiceService (Free Tier)**: Browser Web Speech API.
+-   **DeepgramVoiceService (Premium)**: Deepgram Nova-3 for STT, OpenAI TTS for responses.
+-   **WhisperVoiceService (Premium - Alternative)**: OpenAI Whisper API for STT, OpenAI TTS API.
 
-Key files:
-- `server/services/realtime-voice/RealtimeVoiceService.ts` - Orchestrator
-- `server/services/realtime-voice/providers/OpenAIRealtimeProvider.ts` - OpenAI implementation
-- `server/services/realtime-voice/providers/IRealtimeVoiceProvider.ts` - Provider interface
-- `server/services/realtime-voice/functions/getStudentContext.ts` - Function calling (uses Student Profile Engine)
-- `server/services/realtime-voice/functions/endConversation.ts` - Autonomous conversation ending
-- `server/routes/realtimeVoice.ts` - WebSocket routes
-- `server/services/realtime-voice/README.md` - Complete documentation
+### Realtime Voice System (Professor IA)
 
-### Student Profile Engine (Production-Ready)
-**Modular system for enriched student profiles** with pre-processed data to avoid expensive API calls during voice sessions:
--   **Architecture**: 3-component modular design - ProfileAnalyzer (metrics/evolution), ConversationTracker (AI-powered conversation analysis), StudentProfileService (orchestrator/façade)
--   **Snapshot-based**: Data is processed in background and saved as snapshots; reading is instantaneous (10-50ms vs 500-2000ms processing)
--   **Automatic conversation tracking**: 
-    -   Both voice systems (Realtime & Conversational) track sessions automatically on disconnect
-    -   AI analysis with GPT-4o-mini extracts topics/concepts/understanding/sentiment
-    -   Fire-and-forget pattern: saves conversations without blocking session closure
--   **Automatic profile updates**: Non-blocking updates triggered by:
-    -   Question attempts (after each answer submission)
-    -   Study session completion (after marking session as complete)
-    -   Voice conversations (after saving conversation summary)
--   **Rich metrics**: Overall accuracy, study hours, weekly/monthly progress, improvement trends, strong/weak subjects, current focus
--   **Behavioral patterns**: Study streak, preferred study time, average session duration, engagement level
--   **AI-generated recommendations**: Next topics, recommended actions, motivational messages
--   **Integration**: Professor IA's get_student_context() fetches enriched profile instantly during real-time voice
--   **Admin tools**: Backfill endpoint to process all users, refresh endpoint for single user, view endpoint for enriched profiles
+A production-ready, modular architecture for ultra-low latency voice conversations:
+-   **Architecture**: Provider-agnostic design using Strategy Pattern.
+-   **OpenAI Realtime API**: Native bidirectional audio streaming with <500ms latency.
+-   **Multi-session support**: Isolated providers per session.
+-   **Function Calling**: Real-time student context retrieval (profile, subject knowledge, learning history).
+-   **Adaptive pedagogy**: Automatically adjusts teaching style based on student profile.
 
-Database tables:
-- `student_profiles_enriched` - Enriched profile snapshots (updated in background)
-- `conversation_summaries` - Full conversation analysis with AI insights
-- `profile_metrics` - Detailed metrics by category/period (reserved for future)
+### Student Profile Engine
 
-Key files:
-- `server/services/student-profile-engine/StudentProfileService.ts` - Public interface/orchestrator
-- `server/services/student-profile-engine/ProfileAnalyzer.ts` - Metrics & evolution analysis
-- `server/services/student-profile-engine/ConversationTracker.ts` - AI conversation analysis
-- `server/services/student-profile-engine/types.ts` - TypeScript interfaces
-- `server/routes/admin.ts` - Admin endpoints for profile management
-- `server/services/student-profile-engine/README.md` - Complete documentation
+A modular system for enriched student profiles:
+-   **Architecture**: 3-component design: ProfileAnalyzer, ConversationTracker, StudentProfileService.
+-   **Snapshot-based**: Data processed in background and saved as snapshots for instantaneous reading.
+-   **Automatic conversation tracking**: Both voice systems track sessions, with AI analysis (GPT-4o-mini) extracting topics, concepts, understanding, and sentiment.
+-   **Automatic profile updates**: Non-blocking updates triggered by question attempts, study session completion, and voice conversations.
+-   **Rich metrics**: Overall accuracy, study hours, progress trends, strong/weak subjects, behavioral patterns, and AI-generated recommendations.
+-   **Integration**: Professor IA fetches enriched profiles instantly during real-time voice.
 
 # External Dependencies
 
 ## Database & Storage
--   **Neon Database**: Serverless PostgreSQL for production.
+-   **Neon Database**: Serverless PostgreSQL.
 -   **Local File Storage**: For uploaded study materials.
 
 ## Authentication Services
--   **Replit Auth**: OAuth provider using OpenID Connect.
+-   **Replit Auth**: OAuth provider.
 
 ## AI Services
--   **OpenAI API**: For GPT model integration and Whisper/TTS.
--   **OpenRouter**: For advanced AI capabilities (DeepSeek R1).
--   **Pinecone**: Vector database for RAG-enhanced content generation.
--   **Deepgram**: For premium STT (Nova-3) and TTS (Aura) services.
+-   **OpenAI API**: GPT models, Whisper, TTS.
+-   **OpenRouter**: Advanced AI capabilities (DeepSeek R1).
+-   **Pinecone**: Vector database for RAG.
+-   **Deepgram**: Premium STT (Nova-3) and TTS (Aura).
 
 ## UI & Styling
 -   **shadcn/ui**: Component library.
