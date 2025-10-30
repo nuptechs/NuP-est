@@ -2659,6 +2659,11 @@ Responda em JSON no formato:
       const aiManager = getAIManager();
       const contentDelivery = new AdaptiveContentDelivery(storage, aiManager);
       
+      // Garantir que concept existe (required para explicação)
+      if (!validatedData.concept) {
+        return res.status(400).json({ message: "Concept is required for explanation generation" });
+      }
+
       // Generate explanation (only pass context if defined)
       const explanation = validatedData.context
         ? await contentDelivery.generateExplanation(
@@ -3526,7 +3531,7 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
           
           // Validação de path traversal
           if (filePath.startsWith(uploadsRoot) && fs.existsSync(filePath)) {
-            const fileName = processedFile.originalName || `material-${materialId}.${processedFile.fileType}`;
+            const fileName = processedFile.fileName || `material-${materialId}.${processedFile.fileType}`;
             res.download(filePath, fileName);
             return;
           }

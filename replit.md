@@ -50,6 +50,7 @@ Pre-configured profiles exist for material upload, TTS services, and RAG.
 -   **Semantic Search**: Dense vector embeddings via Pinecone for context understanding
 -   **Weighted Fusion**: Combines semantic (60%) + keyword (40%) scores for optimal precision/recall
 -   **Why Hybrid**: Solves semantic-only failures when query terms differ from content terminology
+-   **CRITICAL FIX (2025-01-30)**: Automatic fallback mode removes `materialId` filter when legacy chunks lack this metadata, preventing zero-result failures
 
 #### Cross-Encoder Reranking
 -   **RerankingService**: LLM-based post-retrieval scoring for final ranking
@@ -67,6 +68,7 @@ Pre-configured profiles exist for material upload, TTS services, and RAG.
 -   **Threshold-Based Refusal**: Automatically refuses when confidence=none
 -   **Explicit Fallback**: Lists available topics when query not found in materials
 -   **Why Critical**: Prevents hallucinations by forcing AI to admit lack of knowledge
+-   **CRITICAL FIX (2025-01-30)**: Uses `finalScore` (post-reranking) instead of `similarity`, threshold reduced from 0.30 to 0.20 to minimize false negatives
 
 #### Prompt Engineering
 -   **Strict RAG Prompt**: Forces AI to cite sources explicitly or state "not in materials"
@@ -82,7 +84,8 @@ Pre-configured profiles exist for material upload, TTS services, and RAG.
 -   **Retrieval**: Hybrid (BM25 + Semantic) → Top-K=10, minSimilarity=0.65
 -   **Reranking**: LLM-based relevance scoring (batch mode for efficiency)
 -   **Indexation**: Semantic chunking + keyword extraction + enriched metadata
--   **Confidence**: Multi-factor scoring (avg similarity * 0.7 + count factor * 0.3)
+-   **Confidence**: Multi-factor scoring (avg finalScore * 0.7 + count factor * 0.3), threshold=0.20
+-   **Admin Tools**: `/api/admin/users/:userId/reindex-materials` - Bulk reindex all materials with correct metadata
 
 Key files:
 - `server/services/SubjectRAGService.ts` - RAG orchestrator with confidence scoring

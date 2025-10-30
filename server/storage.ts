@@ -4,6 +4,7 @@ import {
   subjects,
   topics,
   materials,
+  processedFiles,
   goals,
   targets,
   studySessions,
@@ -26,6 +27,7 @@ import {
   type InsertTopic,
   type Material,
   type InsertMaterial,
+  type ProcessedFile,
   type Goal,
   type InsertGoal,
   type Target,
@@ -147,6 +149,9 @@ export interface IStorage {
   createMaterial(material: InsertMaterial): Promise<Material>;
   updateMaterial(id: string, userId: string, updates: Partial<InsertMaterial>): Promise<Material>;
   deleteMaterial(id: string, userId: string): Promise<void>;
+
+  // ProcessedFile operations
+  getProcessedFile(id: string): Promise<ProcessedFile | undefined>;
 
   // Goal operations
   getGoals(userId: string): Promise<Goal[]>;
@@ -605,6 +610,12 @@ export class DatabaseStorage implements IStorage {
     if (result.length === 0) {
       throw new Error("Material not found or access denied");
     }
+  }
+
+  // ProcessedFile operations
+  async getProcessedFile(id: string): Promise<ProcessedFile | undefined> {
+    const [processedFile] = await db.select().from(processedFiles).where(eq(processedFiles.id, id));
+    return processedFile;
   }
 
   // Goal operations
