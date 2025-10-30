@@ -674,17 +674,19 @@ Responda APENAS com um JSON válido neste formato:
 
   /**
    * NOVO: Migra documento para o sistema RAG/Pinecone quando criado
+   * UNIFICADO: Passa materialId para garantir metadata completo
    */
-  async migrateToRAG(document: any, userId: string) {
+  async migrateToRAG(document: any, userId: string, materialId?: string) {
     try {
       await ragService.addDocumentToRAG(
         document.id,
         document.title,
         document.content || '',
         userId,
-        document.category || 'Geral'
+        document.category || 'Geral',
+        materialId || document.id // Sempre passar materialId
       );
-      console.log(`📚 Documento migrado para RAG: ${document.title}`);
+      console.log(`📚 Documento migrado para RAG: ${document.title} (materialId: ${materialId || document.id})`);
     } catch (error) {
       console.error('❌ Erro ao migrar para RAG:', error);
     }

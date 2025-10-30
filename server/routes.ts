@@ -667,25 +667,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw txError;
       }
 
-      // Check if this is a large document requiring async processing
-      const requiresAsyncProcessing = pageCount > 250;
-      
-      if (requiresAsyncProcessing) {
-        console.log(`📦 Documento grande detectado (${pageCount} páginas) - processamento assíncrono recomendado`);
-      } else {
-        // Migrate to RAG if content is available (only for new files and small documents)
-        if (!isReusedFile && extractedContent) {
-          try {
-            // Create a temporary material object for RAG with content
-            const materialForRAG = { ...material, content: extractedContent };
-            await aiService.migrateToRAG(materialForRAG, userId);
-            console.log(`📚 Material migrado para RAG: ${material.title}`);
-          } catch (error) {
-            console.log('⚠️ Falha na migração automática para RAG:', error);
-          }
-        } else if (isReusedFile) {
-          console.log(`📚 Conteúdo já está no RAG (arquivo reutilizado)`);
+      // PIPELINE UNIFICADO: Processar TODOS os documentos automaticamente
+      // (não importa o tamanho - mesmo fluxo para pequenos e grandes)
+      if (!isReusedFile && extractedContent) {
+        try {
+          console.log(`📚 Processando documento para RAG (pipeline unificado)...`);
+          
+          // Create a temporary material object for RAG with content
+          const materialForRAG = { ...material, content: extractedContent };
+          
+          // Passar materialId para garantir metadata completo
+          await aiService.migrateToRAG(materialForRAG, userId, material.id);
+          
+          console.log(`✅ Material indexado no RAG: ${material.title} (${pageCount || 0} págs, materialId: ${material.id})`);
+        } catch (error) {
+          console.log('⚠️ Falha na migração automática para RAG:', error);
         }
+      } else if (isReusedFile) {
+        console.log(`📚 Conteúdo já está no RAG (arquivo reutilizado)`);
       }
 
       // FASE 1: Process content categorization if file has text content
@@ -710,8 +709,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...material,
         wasReused: isReusedFile,
         processingTime: isReusedFile ? 'instantâneo (reutilizado)' : 'processado agora',
-        requiresAsyncProcessing,
         pageCount,
+        indexedInRAG: !isReusedFile && !!extractedContent, // Indica se foi indexado no RAG
       });
     } catch (error) {
       console.error("Error in smart upload:", error);
@@ -2049,11 +2048,11 @@ ${text}`;
         }
       }
 
-      // NOVO: Migrar automaticamente para RAG/Pinecone
+      // NOVO: Migrar automaticamente para RAG/Pinecone (com materialId)
       try {
         if (document.content) {
           console.log(`🚀 Migrando "${document.title}" para RAG/Pinecone...`);
-          await aiService.migrateToRAG(document, userId);
+          await aiService.migrateToRAG(document, userId, document.id);
         }
       } catch (error) {
         console.log('⚠️ Falha na migração automática para RAG:', error);

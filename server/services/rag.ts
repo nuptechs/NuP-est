@@ -250,28 +250,31 @@ INSTRUÇÕES:
 
   /**
    * Adiciona novo documento à base RAG
+   * UNIFICADO: Usa mesmo pipeline que documentos grandes (rag-chat + keywords + materialId)
    */
   async addDocumentToRAG(
     documentId: string,
     title: string,
     content: string,
     userId: string,
-    category: string = 'Geral'
+    category: string = 'Geral',
+    materialId?: string
   ) {
     try {
       console.log(`📝 RAG: Adicionando documento "${title}" à base...`);
 
-      // 1. Dividir conteúdo em chunks inteligentes usando análise semântica com IA
+      // 1. Dividir conteúdo em chunks usando rag-chat (UNIFICADO com documentos grandes)
       const chunks = await this.splitIntoChunks(content);
       
-      // 2. Adicionar ao Pinecone
+      // 2. Adicionar ao Pinecone com metadata enriquecido
       await pineconeService.upsertDocument(documentId, chunks, {
         userId,
         title,
-        category
+        category,
+        materialId: materialId || documentId, // Sempre incluir materialId
       });
 
-      console.log(`✅ RAG: Documento "${title}" indexado com ${chunks.length} chunks`);
+      console.log(`✅ RAG: Documento "${title}" indexado com ${chunks.length} chunks (materialId: ${materialId || documentId})`);
       
     } catch (error) {
       console.error('❌ RAG: Erro ao adicionar documento:', error);
@@ -293,37 +296,49 @@ INSTRUÇÕES:
   }
 
   /**
-   * Divide texto em chunks inteligentes usando análise semântica com IA
-   * Migrado para usar TextChunker com perfil 'semantic-default'
+   * Divide texto em chunks usando rag-chat (UNIFICADO)
+   * + Extração de keywords para BM25 (híbrido search)
+   * Consistente com LargeMaterialProcessor
    */
-  private async splitIntoChunks(text: string): Promise<{ content: string; chunkIndex: number }[]> {
-    // Importar TextChunker dinamicamente
+  private async splitIntoChunks(text: string): Promise<{ content: string; chunkIndex: number; keywords?: string[] }[]> {
+    // Importar dependências
     const { TextChunker } = await import('./chunking/TextChunker');
+    const { bm25Service } = await import('./rag/BM25Service');
     
-    console.log(`🧩 [RAG] Usando chunking semântico com IA para melhor qualidade...`);
+    console.log(`🧩 [RAG] Usando chunking rag-chat (pipeline unificado)...`);
     
     try {
-      // Usar perfil semantic-default (IA identifica quebras semânticas)
-      const chunkResults = await TextChunker.chunk(text, 'semantic-default');
+      // Usar perfil rag-chat (MESMO que documentos grandes)
+      // maxChars: 1200, overlapChars: 200, splitOn: paragraph
+      const chunkResults = await TextChunker.chunk(text, 'rag-chat');
       
-      // Converter para formato esperado pelo Pinecone service
-      const chunks = chunkResults.map((result, index) => ({
-        content: result.text,
-        chunkIndex: index,
-        metadata: result.metadata // Preservar metadados semânticos
-      }));
+      // Converter para formato esperado + extrair keywords
+      const chunks = chunkResults.map((result, index) => {
+        // Extrair 15 keywords do chunk para facilitar keyword search (BM25)
+        const keywords = bm25Service.extractKeywords(result.text, 15);
+        
+        return {
+          content: result.text,
+          chunkIndex: index,
+          keywords, // Incluir keywords para busca híbrida
+          metadata: result.metadata // Preservar metadados
+        };
+      });
       
-      console.log(`✅ [RAG] ${chunks.length} chunks semânticos gerados`);
+      console.log(`✅ [RAG] ${chunks.length} chunks gerados (rag-chat + keywords)`);
       return chunks;
       
     } catch (error) {
-      console.warn(`⚠️ [RAG] Falha no chunking semântico, usando fallback sentence-aware:`, error);
+      console.warn(`⚠️ [RAG] Falha no chunking, usando fallback rag-default:`, error);
       
-      // Fallback: usar sentence-aware strategy se IA falhar
+      // Fallback: usar rag-default strategy
       const chunkResults = await TextChunker.chunk(text, 'rag-default');
+      const { bm25Service } = await import('./rag/BM25Service');
+      
       return chunkResults.map((result, index) => ({
         content: result.text,
-        chunkIndex: index
+        chunkIndex: index,
+        keywords: bm25Service.extractKeywords(result.text, 15)
       }));
     }
   }
