@@ -177,17 +177,76 @@ function parseAIResponseRobust(response: string, context: string): any {
       }
     }
     
-    // Tentativa 4: Buscar qualquer array
+    // Tentativa 4: Buscar e reparar array de questões (quiz)
+    if (!parsed && context.includes('quiz')) {
+      try {
+        console.log(`🔧 Tentando reparar array de questões...`);
+        
+        // Buscar início do array
+        const arrayMatch = response.match(/\[([\s\S]*)/);
+        if (arrayMatch) {
+          let arrayContent = arrayMatch[1];
+          
+          // Contar chaves e colchetes para detectar incompletude
+          const openBraces = (arrayContent.match(/\{/g) || []).length;
+          const closeBraces = (arrayContent.match(/\}/g) || []).length;
+          const openBrackets = (arrayContent.match(/\[/g) || []).length;
+          const closeBrackets = (arrayContent.match(/\]/g) || []).length;
+          
+          const missingBraces = openBraces - closeBraces;
+          const missingBrackets = openBrackets - closeBrackets;
+          
+          console.log(`📊 Análise: { abertas: ${openBraces}, fechadas: ${closeBraces}, faltam: ${missingBraces}`);
+          console.log(`📊 Análise: [ abertas: ${openBrackets}, fechadas: ${closeBrackets}, faltam: ${missingBrackets}`);
+          
+          // Se há questões incompletas, tentar reparar
+          if (missingBraces > 0 || missingBrackets > 0) {
+            console.log(`🔧 Reparando JSON incompleto...`);
+            
+            // Adicionar chaves faltantes
+            for (let i = 0; i < missingBraces; i++) {
+              arrayContent += '}';
+            }
+            
+            // Adicionar colchetes faltantes (menos 1 do array principal que adicionaremos)
+            for (let i = 0; i < missingBrackets; i++) {
+              arrayContent += ']';
+            }
+            
+            // Se não termina com ], adicionar para fechar o array principal
+            if (!arrayContent.trim().endsWith(']')) {
+              arrayContent += ']';
+            }
+          }
+          
+          // Tentar parsear o array reparado
+          const fullJson = `[${arrayContent}`;
+          const questionsArray = JSON.parse(fullJson);
+          
+          // Filtrar apenas questões válidas
+          const validQuestions = questionsArray.filter((q: any) => 
+            q && typeof q === 'object' && q.question && Array.isArray(q.options)
+          );
+          
+          parsed = validQuestions;
+          console.log(`✅ Array reparado (método 4 - quiz): ${validQuestions.length} questões válidas`);
+        }
+      } catch (e) {
+        console.log(`⚠️ Método 4 (quiz repair) falhou:`, e);
+      }
+    }
+    
+    // Tentativa 5: Buscar qualquer array (método original)
     if (!parsed) {
       try {
         const arrayMatch = response.match(/\[([\s\S]*?)\]/);
         if (arrayMatch) {
           const arrayContent = JSON.parse(arrayMatch[0]);
-          parsed = { data: arrayContent };
-          console.log(`✅ JSON parseado (método 4 - array genérico):`, parsed);
+          parsed = Array.isArray(arrayContent) ? arrayContent : { data: arrayContent };
+          console.log(`✅ JSON parseado (método 5 - array genérico):`, parsed);
         }
       } catch (e) {
-        console.log(`⚠️ Método 4 falhou:`, e);
+        console.log(`⚠️ Método 5 falhou:`, e);
       }
     }
     

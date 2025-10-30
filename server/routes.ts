@@ -2256,7 +2256,7 @@ IMPORTANTE: Gere questões de qualidade acadêmica que realmente testem o conhec
       // Usar sistema de injeção de dependência para análise COM TOKENS ADEQUADOS
       const result = await aiAnalyze<{ questions?: any[] } | any[]>(
         prompt,
-        `Você é um gerador de questões educacionais especializado. Gere questões de múltipla escolha conforme especificado.`,
+        `[quiz] Você é um gerador de questões educacionais especializado. Gere questões de múltipla escolha conforme especificado.`,
         {
           temperature: 0.7,
           maxTokens: 8000  // ✅ AUMENTADO para garantir resposta completa
