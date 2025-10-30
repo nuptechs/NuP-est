@@ -12,6 +12,11 @@ interface PineconeMetadata {
   category: string;
   chunkIndex: number;
   content: string;
+  materialId?: string; // ID do material (para filtrar RAG por matéria)
+  jobId?: string; // ID do job de processamento (para grandes documentos)
+  partId?: string; // ID da parte do documento
+  partNumber?: number; // Número da parte
+  sectionTitle?: string; // Título da seção
 }
 
 export class PineconeService {

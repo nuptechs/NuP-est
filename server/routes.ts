@@ -2653,12 +2653,17 @@ Responda em JSON no formato:
       const aiManager = getAIManager();
       const contentDelivery = new AdaptiveContentDelivery(storage, aiManager);
       
-      // Generate explanation
-      const explanation = await contentDelivery.generateExplanation(
-        validatedData.assistantId,
-        validatedData.concept,
-        validatedData.context ?? ''
-      );
+      // Generate explanation (only pass context if defined)
+      const explanation = validatedData.context
+        ? await contentDelivery.generateExplanation(
+            validatedData.assistantId,
+            validatedData.concept,
+            validatedData.context
+          )
+        : await contentDelivery.generateExplanation(
+            validatedData.assistantId,
+            validatedData.concept
+          );
       
       res.json(explanation);
     } catch (error: any) {
@@ -2793,9 +2798,6 @@ Responda em JSON no formato:
       const assistantCore = new PersonalizedAssistantCore(storage);
       const aiManager = getAIManager();
       
-      // Build conversation context with recent messages
-      const context = await assistantCore.buildConversationContext(validatedData.assistantId);
-      
       // Get recent chat history for AI context
       const recentMessages = await storage.getChatMessages(validatedData.assistantId, 10);
       const conversationHistory = recentMessages.map(msg => ({
@@ -2803,29 +2805,95 @@ Responda em JSON no formato:
         content: msg.content
       }));
       
-      // Build system message with context
-      const systemMessage = `Você é um assistente de estudos personalizado com a seguinte personalidade: ${assistant.personality}.
+      let systemMessage: string;
+      let aiResponse: any;
+      
+      // MODO RAG ESTRITO: Se matéria selecionada, responder APENAS com base nos materiais
+      if (validatedData.subjectId) {
+        console.log(`📚 [Chat] Modo RAG ESTRITO ativado para subjectId: ${validatedData.subjectId}`);
+        
+        const { SubjectRAGService } = await import('./services/SubjectRAGService');
+        const ragService = new SubjectRAGService(storage);
+        
+        // Buscar contexto RAG dos materiais da matéria
+        const ragContext = await ragService.getSubjectContext(
+          userId,
+          validatedData.subjectId,
+          validatedData.message,
+          {
+            topK: 5,
+            minSimilarity: 0.7,
+          }
+        );
+        
+        console.log(`📖 [Chat] RAG Context: hasContext=${ragContext.hasContext}, sources=${ragContext.sources.length}, materials=${ragContext.materialCount}`);
+        
+        if (!ragContext.hasContext) {
+          // Sem contexto relevante - informar estudante sobre materiais disponíveis
+          const noContextMessage = ragContext.materialCount === 0
+            ? `Ainda não há materiais carregados para esta matéria. Por favor, faça upload de PDFs, documentos ou outros materiais para que eu possa te ajudar com base neles.`
+            : `Esse assunto não é abordado nos materiais de referência que você carregou.\n\n**Tópicos disponíveis nos seus materiais:**\n${ragContext.availableTopics.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\nPosso te explicar sobre algum desses tópicos!`;
+          
+          // Salvar resposta indicando falta de contexto
+          aiResponse = {
+            content: noContextMessage,
+            model: 'rag-fallback',
+          };
+        } else {
+          // Construir prompt ESTRITO baseado no contexto RAG
+          systemMessage = ragService.buildStrictPrompt(
+            ragContext.context,
+            ragContext.availableTopics,
+            validatedData.message
+          );
+          
+          // Build messages array for AI with RAG context
+          const messages = [
+            { role: 'system' as const, content: systemMessage },
+            ...conversationHistory.slice(-3).map(msg => ({
+              role: msg.role as 'user' | 'assistant',
+              content: msg.content
+            })),
+            { role: 'user' as const, content: validatedData.message }
+          ];
+          
+          // Chamar IA com contexto RAG estrito
+          aiResponse = await aiManager.request({
+            messages,
+            temperature: 0.3, // Temperatura baixa para respostas mais precisas
+            maxTokens: 3800,
+          });
+          
+          console.log(`✅ [Chat] RAG response generated from ${ragContext.sources.length} sources`);
+        }
+      } else {
+        // MODO GERAL: Sem matéria selecionada, assistente conversacional normal
+        console.log(`💬 [Chat] Modo conversacional GERAL (sem matéria)`);
+        
+        const context = await assistantCore.buildConversationContext(validatedData.assistantId);
+        
+        // Build system message with context
+        systemMessage = `Você é um assistente de estudos personalizado com a seguinte personalidade: ${assistant.personality}.
 ${assistant.name ? `Nome: ${assistant.name}` : ''}
 ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
 
-      // Build messages array for AI
-      const messages = [
-        { role: 'system' as const, content: systemMessage },
-        ...conversationHistory.map(msg => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content
-        })),
-        { role: 'user' as const, content: validatedData.message }
-      ];
+        // Build messages array for AI
+        const messages = [
+          { role: 'system' as const, content: systemMessage },
+          ...conversationHistory.map(msg => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content
+          })),
+          { role: 'user' as const, content: validatedData.message }
+        ];
 
-      // Generate AI response with realistic token limit for academic answers
-      // GPT-4o-mini max output: ~4096 tokens. Using 3800 to stay within limits.
-      // For longer responses, consider switching to deepseek-r1 (15000 tokens)
-      const aiResponse = await aiManager.request({
-        messages,
-        temperature: 0.7,
-        maxTokens: 3800, // Realistic limit for GPT-4o-mini academic responses
-      });
+        // Generate AI response
+        aiResponse = await aiManager.request({
+          messages,
+          temperature: 0.7,
+          maxTokens: 3800,
+        });
+      }
       
       const processingTime = Date.now() - startTime;
       

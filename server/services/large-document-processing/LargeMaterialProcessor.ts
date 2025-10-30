@@ -119,6 +119,8 @@ export class LargeMaterialProcessor {
       // INDEXAÇÃO RAG (Pinecone)
       console.log(`[LargeMaterialProcessor]   📤 Indexando no Pinecone...`);
       const materialId = (job.metadata as any)?.materialId;
+      const materialTitle = (job.metadata as any)?.title || part.sectionTitle || `Material ${materialId}`;
+      
       if (materialId) {
         // Format chunks for Pinecone (required format: { content, chunkIndex })
         const chunksForPinecone = chunks.map((chunk: ChunkResult, index: number) => ({
@@ -132,6 +134,7 @@ export class LargeMaterialProcessor {
           chunksForPinecone,
           {
             userId: job.userId!,
+            title: materialTitle,
             category: 'material',
             materialId,
             jobId,

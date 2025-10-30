@@ -42,6 +42,23 @@ A modular chunking infrastructure uses a Strategy Pattern with pluggable strateg
 -   **SimpleLimitChunkStrategy**: Character-based splitting with sentence fallback, used for TTS.
 Pre-configured profiles exist for material upload, TTS services, and RAG.
 
+### RAG-Constrained Subject Chat (NotebookLM-style)
+**Strict material-only responses** for subject-based chat interactions:
+-   **SubjectRAGService**: Dedicated service for strict RAG queries scoped to subject materials
+-   **Multi-material filtering**: PineconeService supports filtering by array of materialIds
+-   **Two-mode chat behavior**:
+    -   **Subject selected**: Responds ONLY based on uploaded materials (RAG strict mode)
+    -   **No subject**: General conversational assistant (personality-driven)
+-   **Anti-hallucination prompt**: Explicit instructions forcing AI to cite sources or state "not in materials"
+-   **Fallback responses**: When topic not found, lists available topics from materials
+-   **Context enrichment**: Top-K semantic search (default: 5 chunks, 0.7 similarity threshold)
+-   **Source attribution**: Shows which materials/chunks were used for each response
+
+Key files:
+- `server/services/SubjectRAGService.ts` - Strict RAG orchestrator
+- `server/services/pinecone.ts` - Enhanced with materialIds array filtering
+- `server/routes.ts` (line ~2810) - Chat endpoint with RAG/general mode switching
+
 ## Data Architecture
 
 A PostgreSQL database managed by Drizzle ORM stores all application data, including comprehensive AI-related data such as learning difficulties, versioned student profiles, assistant instances, and interaction logs.
