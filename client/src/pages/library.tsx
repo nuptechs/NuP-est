@@ -461,7 +461,13 @@ export default function Library() {
                         <img 
                           src={getMaterialImage(item.type)} 
                           alt={`${item.type} icon`}
-                          className="h-10 w-10 rounded-lg object-cover"
+                          className="h-10 w-10 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/api/materials/${item.id}/download`;
+                          }}
+                          title="Clique para fazer download"
+                          data-testid={`button-download-${item.id}`}
                         />
                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button

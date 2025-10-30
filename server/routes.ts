@@ -3498,6 +3498,79 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
   });
 
   /**
+   * GET /api/materials/:materialId/download
+   * Download material file
+   */
+  app.get('/api/materials/:materialId/download', isAuthenticated, async (req: any, res) => {
+    try {
+      const { materialId } = req.params;
+      const userId = req.user.claims.sub;
+
+      // Buscar material
+      const material = await storage.getMaterial(materialId);
+      if (!material) {
+        return res.status(404).json({ message: "Material não encontrado" });
+      }
+
+      // Verificar ownership
+      if (material.userId !== userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      // PRIORIDADE 1: Se tem processedFileId, buscar arquivo processado
+      if (material.processedFileId) {
+        const processedFile = await storage.getProcessedFile(material.processedFileId);
+        if (processedFile && processedFile.filePath) {
+          const uploadsRoot = path.join(process.cwd(), 'uploads');
+          const filePath = path.resolve(process.cwd(), processedFile.filePath);
+          
+          // Validação de path traversal
+          if (filePath.startsWith(uploadsRoot) && fs.existsSync(filePath)) {
+            const fileName = processedFile.originalName || `material-${materialId}.${processedFile.fileType}`;
+            res.download(filePath, fileName);
+            return;
+          }
+        }
+      }
+
+      // PRIORIDADE 2: Arquivo original via Material schema (materiais antigos e uploads diretos)
+      // Verificar se Material tem campos filePath/originalFilename
+      const materialAny = material as any;
+      if (materialAny.filePath) {
+        const uploadsRoot = path.join(process.cwd(), 'uploads');
+        const filePath = path.resolve(process.cwd(), materialAny.filePath);
+        
+        // Validação de path traversal
+        if (filePath.startsWith(uploadsRoot) && fs.existsSync(filePath)) {
+          const fileName = materialAny.originalFilename || material.title;
+          res.download(filePath, fileName);
+          return;
+        }
+      }
+
+      // PRIORIDADE 3: se tem conteúdo mas não tem arquivo, retornar como .txt
+      if (material.content) {
+        const fileName = `${material.title}.txt`;
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Content-Type', 'text/plain');
+        res.send(material.content);
+        return;
+      }
+
+      // Se tem URL, redirecionar
+      if (material.url) {
+        res.redirect(material.url);
+        return;
+      }
+
+      return res.status(404).json({ message: "Arquivo não encontrado" });
+    } catch (error: any) {
+      console.error("[Download] ❌ Erro ao fazer download:", error);
+      res.status(500).json({ message: "Erro ao fazer download: " + error.message });
+    }
+  });
+
+  /**
    * POST /api/admin/materials/:materialId/reindex
    * ADMIN: Reprocessa material para adicionar materialId aos chunks no Pinecone
    */
