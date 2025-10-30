@@ -72,6 +72,9 @@ export const users = pgTable("users", {
   onboardingCompleted: boolean("onboarding_completed").default(false),
   initialAssessmentCompleted: boolean("initial_assessment_completed").default(false),
   
+  // ===== CONFIGURAÇÕES ADMINISTRATIVAS =====
+  autoRefreshInterval: integer("auto_refresh_interval").default(60000), // Intervalo de atualização automática em ms (padrão: 60 segundos)
+  
   // ===== TIMESTAMPS =====
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

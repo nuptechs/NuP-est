@@ -333,4 +333,48 @@ router.get("/student-profiles/:userId", isAuthenticated, async (req, res) => {
   }
 });
 
+// ===== CONFIGURAÇÕES DE USUÁRIO =====
+
+// Atualizar configurações de auto-refresh de um usuário
+router.patch("/users/:userId/config", isAuthenticated, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { autoRefreshInterval } = req.body;
+    
+    if (autoRefreshInterval !== undefined) {
+      // Validar intervalo (mínimo 5 segundos, máximo 5 minutos)
+      const minInterval = 5000; // 5 segundos
+      const maxInterval = 300000; // 5 minutos
+      
+      if (autoRefreshInterval < minInterval || autoRefreshInterval > maxInterval) {
+        return res.status(400).json({ 
+          error: 'Intervalo inválido',
+          details: `O intervalo deve estar entre ${minInterval}ms e ${maxInterval}ms`
+        });
+      }
+    }
+    
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        autoRefreshInterval,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    res.json({
+      message: 'Configuração atualizada com sucesso',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error(`[Admin] Erro ao atualizar configuração do usuário ${req.params.userId}:`, error);
+    res.status(500).json({ error: 'Erro ao atualizar configuração' });
+  }
+});
+
 export default router;
