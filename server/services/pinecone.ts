@@ -131,7 +131,8 @@ export class PineconeService {
       topK?: number;
       category?: string;
       minSimilarity?: number;
-      documentId?: string; // NOVO: filtrar por documento específico
+      documentId?: string; // Filtrar por documento específico (legado)
+      materialIds?: string[]; // NOVO: filtrar por múltiplos materiais
     } = {}
   ): Promise<{
     content: string;
@@ -144,7 +145,7 @@ export class PineconeService {
         await this.initializeIndex();
       }
 
-      const { topK = 5, category, minSimilarity = 0.1, documentId } = options;
+      const { topK = 5, category, minSimilarity = 0.1, documentId, materialIds } = options;
 
       // Gerar embedding da query
       const queryEmbedding = await embeddingsService.generateEmbedding(query);
@@ -157,6 +158,11 @@ export class PineconeService {
       if (documentId) {
         filter.documentId = documentId; // CRÍTICO: filtrar apenas este documento
         console.log(`🎯 Filtrando RAG por documento específico: ${documentId}`);
+      }
+      if (materialIds && materialIds.length > 0) {
+        // Pinecone suporta $in para array de valores
+        filter.materialId = { $in: materialIds };
+        console.log(`🎯 Filtrando RAG por ${materialIds.length} materiais: ${materialIds.join(', ')}`);
       }
 
       // Buscar no Pinecone
