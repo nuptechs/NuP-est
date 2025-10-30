@@ -105,32 +105,23 @@ export default function PersonalizedAssistantPage() {
         !sidebarCollapsed && 'w-80'
       )}>
         {/* Assistant Header */}
-        <div className={cn(
-          "p-6 border-b transition-all duration-300",
-          sidebarCollapsed && "p-3"
-        )}>
+        <div className="flex items-center h-14 border-b border-border overflow-hidden">
           <div className={cn(
-            "flex items-center mb-3 transition-all duration-300",
-            sidebarCollapsed ? "justify-center flex-col gap-2" : "gap-3"
+            "flex items-center transition-all duration-300",
+            sidebarCollapsed ? "px-3 justify-center w-full" : "px-6 gap-3"
           )}>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
             {!sidebarCollapsed && (
               <div>
                 <h2 className="font-semibold text-sm" data-testid="text-assistant-name">
-                  {assistant?.name || "Meu Assistente"}
+                  {assistant?.name || "Meu Assistente IA"}
                 </h2>
                 <p className="text-xs text-muted-foreground">Seu tutor pessoal</p>
               </div>
             )}
+            {sidebarCollapsed && (
+              <div className="text-xs font-semibold text-center">IA</div>
+            )}
           </div>
-          {profile && !sidebarCollapsed && (
-            <div className="flex gap-2">
-              <Badge variant="secondary" className="text-xs">{profile.primaryGoal}</Badge>
-              <Badge variant="outline" className="text-xs">v{profile.version}</Badge>
-            </div>
-          )}
         </div>
 
         {/* Subject/Topic Selection */}
@@ -224,7 +215,7 @@ export default function PersonalizedAssistantPage() {
         {/* Toggle Button */}
         <button
           onClick={toggleSidebarCollapse}
-          className="hidden lg:flex absolute -right-3 top-20 bg-card border border-border rounded-full p-1 shadow-md hover:bg-accent transition-colors z-10"
+          className="hidden lg:flex absolute -right-3 top-16 bg-card border border-border rounded-full p-1 shadow-md hover:bg-accent transition-colors z-10"
           data-testid="button-toggle-sidebar"
         >
           {sidebarCollapsed ? (
@@ -243,29 +234,27 @@ export default function PersonalizedAssistantPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-b px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)} className="lg:hidden">
-                <Brain className="h-4 w-4" />
-              </Button>
-              <Breadcrumbs className="hidden sm:flex" />
-            </div>
-            <div className="flex items-center gap-3">
-              {activeTab === "chat" && (
-                <p className="text-sm text-muted-foreground hidden md:block">
-                  Converse com seu assistente
-                </p>
-              )}
-              {selectedSubject && (activeTab === "questions" || activeTab === "assessment") && (
-                <Badge variant="secondary">
-                  <BookOpen className="h-3 w-3 mr-1" />
-                  {subjects.find(s => s.id === selectedSubject)?.name}
-                </Badge>
-              )}
-            </div>
+        <header className="h-14 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 flex items-center justify-between px-4 gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)} className="lg:hidden h-9 w-9 p-0">
+              <Brain className="h-4 w-4" />
+            </Button>
+            <Breadcrumbs className="hidden sm:flex" />
           </div>
-        </div>
+          <div className="flex items-center gap-3">
+            {activeTab === "chat" && (
+              <p className="text-sm text-muted-foreground hidden md:block">
+                Converse com seu assistente
+              </p>
+            )}
+            {selectedSubject && (activeTab === "questions" || activeTab === "assessment") && (
+              <Badge variant="secondary">
+                <BookOpen className="h-3 w-3 mr-1" />
+                {subjects.find(s => s.id === selectedSubject)?.name}
+              </Badge>
+            )}
+          </div>
+        </header>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
