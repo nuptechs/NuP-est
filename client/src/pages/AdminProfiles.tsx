@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { 
   PlayCircle, 
@@ -20,7 +21,8 @@ import {
   Brain,
   MessageCircle,
   Target,
-  Sparkles
+  Sparkles,
+  Settings
 } from "lucide-react";
 
 interface EnrichedProfile {
@@ -52,6 +54,7 @@ export default function AdminProfiles() {
   const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(60000);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -144,6 +147,48 @@ export default function AdminProfiles() {
       return response.json();
     },
     enabled: !!selectedUserId,
+  });
+
+  // Query: Get user data (for autoRefreshInterval)
+  const { data: userData } = useQuery<{ autoRefreshInterval: number }>({
+    queryKey: ['/api/users', selectedUserId],
+    queryFn: async () => {
+      if (!selectedUserId) throw new Error('No user selected');
+      const response = await fetch(`/api/users/${selectedUserId}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    },
+    enabled: !!selectedUserId,
+  });
+
+  // Update local state when userData changes
+  useEffect(() => {
+    if (userData?.autoRefreshInterval) {
+      setAutoRefreshInterval(userData.autoRefreshInterval);
+    }
+  }, [userData]);
+
+  // Mutation: Update user config
+  const updateConfigMutation = useMutation({
+    mutationFn: async ({ userId, autoRefreshInterval }: { userId: string; autoRefreshInterval: number }) => {
+      return await apiRequest('PATCH', `/api/admin/users/${userId}/config`, { autoRefreshInterval });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Configuração atualizada!",
+        description: "O intervalo de atualização foi salvo.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', selectedUserId] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar configuração",
+        description: error.message || "Tente novamente",
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -379,16 +424,68 @@ export default function AdminProfiles() {
 
                                 {/* Last Conversation */}
                                 {selectedProfile.lastConversationSummary && (
-                                  <div>
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                      <MessageCircle className="h-4 w-4" />
-                                      Última Conversa
-                                    </h3>
-                                    <p className="text-sm bg-muted p-3 rounded-lg">
-                                      {selectedProfile.lastConversationSummary}
-                                    </p>
-                                  </div>
+                                  <>
+                                    <div>
+                                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                                        <MessageCircle className="h-4 w-4" />
+                                        Última Conversa
+                                      </h3>
+                                      <p className="text-sm bg-muted p-3 rounded-lg">
+                                        {selectedProfile.lastConversationSummary}
+                                      </p>
+                                    </div>
+                                    <Separator />
+                                  </>
                                 )}
+
+                                {/* User Configuration */}
+                                <div>
+                                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                                    <Settings className="h-4 w-4" />
+                                    Configurações
+                                  </h3>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <label className="text-sm font-medium">
+                                          Intervalo de Atualização Automática
+                                        </label>
+                                        <span className="text-sm text-muted-foreground">
+                                          {autoRefreshInterval / 1000}s
+                                        </span>
+                                      </div>
+                                      <Slider
+                                        value={[autoRefreshInterval]}
+                                        onValueChange={(value) => setAutoRefreshInterval(value[0])}
+                                        min={5000}
+                                        max={300000}
+                                        step={5000}
+                                        className="mb-2"
+                                        data-testid="slider-auto-refresh"
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        Define o intervalo de atualização automática do plano de estudos (5s - 300s)
+                                      </p>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        if (selectedUserId) {
+                                          updateConfigMutation.mutate({
+                                            userId: selectedUserId,
+                                            autoRefreshInterval,
+                                          });
+                                        }
+                                      }}
+                                      disabled={updateConfigMutation.isPending}
+                                      data-testid="button-save-config"
+                                    >
+                                      {updateConfigMutation.isPending ? 'Salvando...' : 'Salvar Configuração'}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                <Separator />
 
                                 {/* Update Info */}
                                 <div className="text-xs text-muted-foreground flex items-center gap-2">
