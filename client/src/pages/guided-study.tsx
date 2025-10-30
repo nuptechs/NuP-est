@@ -8,6 +8,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import UnifiedShell from "@/components/layout/unified-shell";
 import ModernPageHeader from "@/components/ui/modern-page-header";
 import ModernEmptyState from "@/components/ui/modern-empty-state";
@@ -25,7 +26,7 @@ import {
   Sparkles,
   BookOpen,
   Trophy,
-  RefreshCw
+  Mic
 } from "lucide-react";
 
 interface StudyTask {
@@ -51,6 +52,7 @@ interface DailyPlan {
 export default function GuidedStudyPage() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -60,6 +62,7 @@ export default function GuidedStudyPage() {
   const { data: dailyPlan, isLoading, refetch } = useQuery<DailyPlan>({
     queryKey: ['/api/study-planner/today'],
     enabled: isAuthenticated,
+    refetchInterval: 60000,
   });
 
   const completeTaskMutation = useMutation({
@@ -123,9 +126,9 @@ export default function GuidedStudyPage() {
           description={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
           icon={Sparkles}
           actions={
-            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh-plan">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
+            <Button variant="default" onClick={() => navigate('/professor-ia')} data-testid="button-professor-ia">
+              <Mic className="h-4 w-4 mr-2" />
+              Professor IA
             </Button>
           }
         />
