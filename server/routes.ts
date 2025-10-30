@@ -124,7 +124,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Map to only return needed fields
       const filteredUsers = allUsers.map(user => ({
         id: user.id,
-        username: user.username,
         email: user.email,
       }));
       
@@ -961,6 +960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fileName: processedFile.fileName,
           fileSize: processedFile.fileSize || 0,
           pageCount,
+          fileType: processedFile.fileType,
         }
       );
       
@@ -2657,7 +2657,7 @@ Responda em JSON no formato:
       const explanation = await contentDelivery.generateExplanation(
         validatedData.assistantId,
         validatedData.concept,
-        validatedData.context || ''
+        validatedData.context ?? ''
       );
       
       res.json(explanation);
