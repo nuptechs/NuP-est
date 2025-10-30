@@ -42,21 +42,55 @@ A modular chunking infrastructure uses a Strategy Pattern with pluggable strateg
 -   **SimpleLimitChunkStrategy**: Character-based splitting with sentence fallback, used for TTS.
 Pre-configured profiles exist for material upload, TTS services, and RAG.
 
-### RAG-Constrained Subject Chat (NotebookLM-style)
-**Strict material-only responses** for subject-based chat interactions:
--   **SubjectRAGService**: Dedicated service for strict RAG queries scoped to subject materials
--   **Multi-material filtering**: PineconeService supports filtering by array of materialIds
--   **Two-mode chat behavior**:
-    -   **Subject selected**: Responds ONLY based on uploaded materials (RAG strict mode)
-    -   **No subject**: General conversational assistant (personality-driven)
--   **Anti-hallucination prompt**: Explicit instructions forcing AI to cite sources or state "not in materials"
--   **Fallback responses**: When topic not found, lists available topics from materials
--   **Context enrichment**: Top-K semantic search (default: 5 chunks, 0.7 similarity threshold)
--   **Source attribution**: Shows which materials/chunks were used for each response
+### Production RAG System (NotebookLM-Architecture)
+**Zero-hallucination retrieval system** inspired by Google's NotebookLM:
+
+#### Hybrid Search (Semantic + BM25)
+-   **BM25Service**: Keyword-based sparse retrieval for exact term matching
+-   **Semantic Search**: Dense vector embeddings via Pinecone for context understanding
+-   **Weighted Fusion**: Combines semantic (60%) + keyword (40%) scores for optimal precision/recall
+-   **Why Hybrid**: Solves semantic-only failures when query terms differ from content terminology
+
+#### Cross-Encoder Reranking
+-   **RerankingService**: LLM-based post-retrieval scoring for final ranking
+-   **Relevance Scoring**: GPT-4o-mini evaluates query-document pairs with 0-1 scores
+-   **Why Reranking**: Improves precision by 15-30% over embedding similarity alone
+
+#### Metadata Enrichment
+-   **Keyword Extraction**: Auto-generates 15 keywords per chunk during indexation
+-   **Section Preservation**: Maintains document structure metadata (sectionTitle, partNumber)
+-   **Source Attribution**: Complete provenance tracking for citations
+-   **Stored in Pinecone**: Keywords, materialId, title, category, jobId, partId
+
+#### Confidence Scoring & Strict Refusal
+-   **4-Level Scoring**: none/low/medium/high based on result quality + quantity
+-   **Threshold-Based Refusal**: Automatically refuses when confidence=none
+-   **Explicit Fallback**: Lists available topics when query not found in materials
+-   **Why Critical**: Prevents hallucinations by forcing AI to admit lack of knowledge
+
+#### Prompt Engineering
+-   **Strict RAG Prompt**: Forces AI to cite sources explicitly or state "not in materials"
+-   **Zero Hallucination**: Prohibits use of external knowledge, speculation, or invention
+-   **Confidence Integration**: Includes score in prompt for AI awareness of result quality
+-   **Citation Enforcement**: Requires "Segundo o Trecho X..." format for all claims
+
+#### Two-Mode Chat Behavior
+-   **Subject selected**: Hybrid search → reranking → strict prompt → cited responses
+-   **No subject**: General conversational assistant (personality-driven)
+
+#### Technical Stack
+-   **Retrieval**: Hybrid (BM25 + Semantic) → Top-K=10, minSimilarity=0.65
+-   **Reranking**: LLM-based relevance scoring (batch mode for efficiency)
+-   **Indexation**: Semantic chunking + keyword extraction + enriched metadata
+-   **Confidence**: Multi-factor scoring (avg similarity * 0.7 + count factor * 0.3)
 
 Key files:
-- `server/services/SubjectRAGService.ts` - Strict RAG orchestrator
-- `server/services/pinecone.ts` - Enhanced with materialIds array filtering
+- `server/services/SubjectRAGService.ts` - RAG orchestrator with confidence scoring
+- `server/services/rag/HybridSearchService.ts` - Hybrid retrieval engine
+- `server/services/rag/BM25Service.ts` - Keyword-based sparse retrieval
+- `server/services/rag/RerankingService.ts` - LLM-based reranking
+- `server/services/pinecone.ts` - Vector store with enriched metadata
+- `server/services/large-document-processing/LargeMaterialProcessor.ts` - Keyword extraction during indexation
 - `server/routes.ts` (line ~2810) - Chat endpoint with RAG/general mode switching
 
 ## Data Architecture

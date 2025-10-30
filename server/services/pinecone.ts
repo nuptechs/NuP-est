@@ -17,6 +17,7 @@ interface PineconeMetadata {
   partId?: string; // ID da parte do documento
   partNumber?: number; // Número da parte
   sectionTitle?: string; // Título da seção
+  keywords?: string[]; // Keywords extraídas para facilitar busca híbrida
 }
 
 export class PineconeService {
@@ -85,8 +86,8 @@ export class PineconeService {
    */
   async upsertDocument(
     documentId: string,
-    chunks: { content: string; chunkIndex: number }[],
-    metadata: Omit<PineconeMetadata, 'chunkIndex' | 'content'>
+    chunks: { content: string; chunkIndex: number; keywords?: string[] }[],
+    metadata: Omit<PineconeMetadata, 'chunkIndex' | 'content' | 'keywords'>
   ) {
     try {
       if (!this.index) {
@@ -108,6 +109,7 @@ export class PineconeService {
           ...metadata,
           chunkIndex: chunk.chunkIndex,
           content: chunk.content,
+          keywords: chunk.keywords, // Incluir keywords na metadata
         }
       }));
 
@@ -123,6 +125,66 @@ export class PineconeService {
     } catch (error) {
       console.error('❌ Erro ao fazer upsert no Pinecone:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Busca TODOS os chunks de determinados materiais (para BM25)
+   * SEM filtro de similaridade - retorna tudo
+   */
+  async getAllChunksForMaterials(
+    userId: string,
+    materialIds: string[]
+  ): Promise<{
+    content: string;
+    title: string;
+    category: string;
+    keywords?: string[];
+  }[]> {
+    try {
+      if (!this.index) {
+        await this.initializeIndex();
+      }
+
+      if (!materialIds || materialIds.length === 0) {
+        return [];
+      }
+
+      // Buscar TODOS os chunks desses materiais
+      // NOTA: Pinecone rejeita vector zero, então usamos vector normalizado de 1s
+      // Idealmente deveria ter índice BM25 separado, mas como workaround funcional:
+      const ones = new Array(768).fill(1);
+      const magnitude = Math.sqrt(ones.reduce((sum, val) => sum + val * val, 0));
+      const normalizedVector = ones.map(val => val / magnitude);
+      
+      const filter: any = { 
+        userId,
+        materialId: { $in: materialIds }
+      };
+
+      const results = await this.index.query({
+        vector: normalizedVector,
+        topK: 10000, // Número alto para pegar todos
+        filter,
+        includeMetadata: true,
+        includeValues: false,
+      });
+
+      const chunks = results.matches?.map((match: any) => ({
+        content: match.metadata.content,
+        title: match.metadata.title,
+        category: match.metadata.category,
+        keywords: match.metadata.keywords,
+        materialId: match.metadata.materialId, // Para citações
+        sectionTitle: match.metadata.sectionTitle, // Para citações
+      })) || [];
+
+      console.log(`📦 [Pinecone] Recuperados ${chunks.length} chunks para BM25 de ${materialIds.length} materiais`);
+      
+      return chunks;
+    } catch (error) {
+      console.error('❌ Erro ao buscar todos os chunks:', error);
+      return [];
     }
   }
 

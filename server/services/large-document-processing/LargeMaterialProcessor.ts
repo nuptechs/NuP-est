@@ -15,6 +15,7 @@ import { intelligentDocumentSplitter } from './IntelligentDocumentSplitter';
 import { jobQueue } from './JobQueue';
 import { TextChunker } from '../chunking/TextChunker';
 import { pineconeService } from '../pinecone';
+import { bm25Service } from '../rag/BM25Service';
 import type { DocumentMetadata } from './types';
 import type { ChunkResult } from '../chunking/types';
 
@@ -122,11 +123,17 @@ export class LargeMaterialProcessor {
       const materialTitle = (job.metadata as any)?.title || part.sectionTitle || `Material ${materialId}`;
       
       if (materialId) {
-        // Format chunks for Pinecone (required format: { content, chunkIndex })
-        const chunksForPinecone = chunks.map((chunk: ChunkResult, index: number) => ({
-          content: chunk.text,
-          chunkIndex: index,
-        }));
+        // Format chunks for Pinecone com metadata enriquecida
+        const chunksForPinecone = chunks.map((chunk: ChunkResult, index: number) => {
+          // Extrair keywords do chunk para facilitar keyword search
+          const keywords = bm25Service.extractKeywords(chunk.text, 15);
+          
+          return {
+            content: chunk.text,
+            chunkIndex: index,
+            keywords, // Adicionar keywords para metadata enrichment
+          };
+        });
 
         // Index all chunks in a single batch
         await pineconeService.upsertDocument(
@@ -144,7 +151,7 @@ export class LargeMaterialProcessor {
           }
         );
         
-        console.log(`[LargeMaterialProcessor]   ✅ ${chunks.length} chunks indexados no Pinecone`);
+        console.log(`[LargeMaterialProcessor]   ✅ ${chunks.length} chunks indexados no Pinecone (com keywords)`);
       }
 
       // Update part as completed

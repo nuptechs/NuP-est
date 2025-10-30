@@ -2845,7 +2845,8 @@ Responda em JSON no formato:
           systemMessage = ragService.buildStrictPrompt(
             ragContext.context,
             ragContext.availableTopics,
-            validatedData.message
+            validatedData.message,
+            ragContext.confidence // Passar confidence para strict refusal logic
           );
           
           // Build messages array for AI with RAG context
