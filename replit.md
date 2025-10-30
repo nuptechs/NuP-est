@@ -50,6 +50,22 @@ A PostgreSQL database managed by Drizzle ORM stores all application data, includ
 
 Authentication is handled via Replit OAuth (OpenID Connect) using secure session-based authentication with HttpOnly cookies and route-level middleware protection.
 
+### Admin System (Temporary)
+**Basic admin authorization** implemented with `isAdmin` middleware:
+-   **Field**: `users.isAdmin` (boolean, default: false) - marks admin users
+-   **Middleware**: `isAdmin` in `server/replitAuth.ts` - validates admin status for protected routes
+-   **Protected endpoints**: All `/api/admin/*` routes require admin privileges
+-   **Security**: Admin endpoints now protected against horizontal privilege escalation
+-   **Future**: Will be replaced by NuPtechs central system for centralized user management, authentication, and feature authorization
+
+### Configurable Auto-Refresh System
+**Per-user profile refresh configuration**:
+-   **Field**: `users.autoRefreshInterval` (integer, default: 60000ms) - controls profile refresh frequency
+-   **Admin interface**: AdminProfiles page includes slider control for per-user configuration
+-   **Self-access endpoint**: `/api/users/:userId` - users can only access their own data
+-   **Admin endpoints**: `/api/admin/users/:userId` (read), `/api/admin/users/:userId/config` (write)
+-   **Validation**: Enforces 5s-5min interval range to prevent abuse
+
 ## Voice Services (Freemium Feature)
 
 ### Traditional Voice Pipeline (Conversational Voice)
