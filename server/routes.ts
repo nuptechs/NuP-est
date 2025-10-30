@@ -3571,6 +3571,104 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
   });
 
   /**
+   * POST /api/admin/users/:userId/reindex-materials
+   * ADMIN: Reindexar TODOS os materiais de um usuário
+   * Útil para corrigir chunks legados sem materialId
+   */
+  app.post('/api/admin/users/:userId/reindex-materials', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+
+      console.log(`[Admin] 🔄 Iniciando reindexação de TODOS materiais do usuário ${userId}`);
+
+      // Buscar TODOS os materiais do usuário (sem filtro por subjectId)
+      const allMaterials = await storage.getMaterials(userId);
+      
+      if (allMaterials.length === 0) {
+        return res.status(404).json({ message: "Nenhum material encontrado para este usuário" });
+      }
+
+      console.log(`[Admin] 📚 Encontrados ${allMaterials.length} materiais para reindexar`);
+
+      // Estatísticas
+      const stats = {
+        total: allMaterials.length,
+        success: 0,
+        failed: 0,
+        skipped: 0,
+        totalChunks: 0,
+        errors: [] as Array<{ materialId: string; title: string; error: string }>,
+      };
+
+      // Reindexar cada material
+      for (const material of allMaterials) {
+        try {
+          console.log(`[Admin] 📄 Processando: ${material.title} (${material.id})`);
+
+          // Skip se não tem conteúdo
+          if (!material.content) {
+            console.log(`[Admin] ⏭️ Pulando ${material.title} - sem conteúdo`);
+            stats.skipped++;
+            continue;
+          }
+
+          // Fazer chunking semântico
+          const chunks = await TextChunker.chunk(material.content, 'rag-chat');
+          console.log(`[Admin] ✂️ ${material.title}: ${chunks.length} chunks`);
+
+          // Extrair keywords e preparar chunks
+          const chunksForPinecone = chunks.map((chunk: any, index: number) => {
+            const keywords = bm25Service.extractKeywords(chunk.text, 15);
+            return {
+              content: chunk.text,
+              chunkIndex: index,
+              keywords,
+            };
+          });
+
+          // Re-indexar no Pinecone COM materialId
+          await pineconeService.upsertDocument(
+            material.id,
+            chunksForPinecone,
+            {
+              userId: material.userId,
+              title: material.title,
+              category: material.subjectId || 'Geral',
+              materialId: material.id,  // ADICIONAR materialId!
+            }
+          );
+
+          stats.success++;
+          stats.totalChunks += chunks.length;
+          console.log(`[Admin] ✅ ${material.title}: ${chunks.length} chunks reindexados`);
+
+        } catch (error: any) {
+          console.error(`[Admin] ❌ Erro ao reindexar ${material.title}:`, error);
+          stats.failed++;
+          stats.errors.push({
+            materialId: material.id,
+            title: material.title,
+            error: error.message,
+          });
+        }
+      }
+
+      console.log(`[Admin] 🎉 Reindexação concluída!`);
+      console.log(`[Admin] ✅ Sucesso: ${stats.success} | ❌ Falhas: ${stats.failed} | ⏭️ Pulados: ${stats.skipped}`);
+      console.log(`[Admin] 📦 Total de chunks: ${stats.totalChunks}`);
+
+      res.json({
+        message: "Reindexação concluída",
+        userId,
+        stats,
+      });
+    } catch (error: any) {
+      console.error("[Admin] ❌ Erro ao reindexar materiais:", error);
+      res.status(500).json({ message: "Erro ao reindexar materiais: " + error.message });
+    }
+  });
+
+  /**
    * POST /api/admin/materials/:materialId/reindex
    * ADMIN: Reprocessa material para adicionar materialId aos chunks no Pinecone
    */

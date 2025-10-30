@@ -55,35 +55,44 @@ export class HybridSearchService {
     } = options;
 
     console.log(`🔍 [HybridSearch] Iniciando busca híbrida REAL para: "${query}"`);
+    console.log(`📋 [HybridSearch] Filtros: materialIds=${materialIds?.length || 0}, userId=${userId}, category=${category || 'N/A'}`);
 
     // ETAPA 1: Buscar TODOS os chunks dos materiais (para BM25 ter acesso completo)
     console.log(`📦 [HybridSearch] Buscando todos os chunks dos materiais...`);
     let allChunks = await pineconeService.getAllChunksForMaterials(userId, materialIds || []);
     
     // FALLBACK: Se filtro por materialId falhar (chunks antigos sem materialId), buscar por userId
+    // CRÍTICO: Quando entramos no fallback, precisamos REMOVER o filtro materialIds da busca semântica também!
+    let useFallbackMode = false;
     if (allChunks.length === 0 && materialIds && materialIds.length > 0) {
-      console.log(`⚠️ [HybridSearch] Nenhum chunk com materialId - tentando fallback por userId...`);
+      console.log(`⚠️ [HybridSearch] Nenhum chunk com materialId - ativando FALLBACK MODE`);
       allChunks = await pineconeService.getAllChunksForUser(userId);
-      console.log(`📦 [HybridSearch] Fallback recuperou ${allChunks.length} chunks (SEM filtro por material)`);
+      useFallbackMode = true;
+      console.log(`📦 [HybridSearch] FALLBACK MODE ativado: ${allChunks.length} chunks recuperados (SEM filtro de material)`);
     }
     
     if (allChunks.length === 0) {
-      console.log(`⚠️ [HybridSearch] Nenhum chunk encontrado mesmo com fallback`);
+      console.log(`❌ [HybridSearch] Nenhum chunk encontrado mesmo com fallback`);
       return [];
     }
     
     console.log(`📊 [HybridSearch] Total de ${allChunks.length} chunks disponíveis para busca`);
 
     // ETAPA 2: Busca semântica (Pinecone) - paralela à BM25
+    // CORREÇÃO CRÍTICA: Se estamos em fallback mode, NÃO filtrar por materialIds!
+    const semanticSearchOptions = {
+      topK: topK * 3, // Buscar mais resultados para ter pool maior
+      minSimilarity: Math.max(minSimilarity * 0.5, 0.3), // Threshold mais permissivo
+      materialIds: useFallbackMode ? undefined : materialIds, // <-- CORREÇÃO: Remove filtro em fallback mode
+      category,
+    };
+
+    console.log(`🔎 [HybridSearch] Busca semântica: ${useFallbackMode ? 'SEM filtro materialIds (fallback)' : `COM filtro materialIds (${materialIds?.length})`}`);
+
     const semanticResults = await pineconeService.searchSimilarContent(
       query,
       userId,
-      {
-        topK: topK * 3, // Buscar mais resultados para ter pool maior
-        minSimilarity: Math.max(minSimilarity * 0.5, 0.3), // Threshold mais permissivo
-        materialIds,
-        category,
-      }
+      semanticSearchOptions
     );
 
     console.log(`📊 [HybridSearch] Busca semântica retornou ${semanticResults.length} resultados`);

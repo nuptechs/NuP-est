@@ -126,6 +126,9 @@ export class SubjectRAGService {
   /**
    * Calcula confidence score baseado nos resultados da busca
    * Retorna nível de confiança: none, low, medium, high
+   * 
+   * CORREÇÃO CRÍTICA: Usa finalScore (após reranking) ao invés de similarity
+   * Piso mínimo de 0.20 para evitar falsos negativos
    */
   private calculateConfidence(results: any[]): {
     score: number;
@@ -133,6 +136,7 @@ export class SubjectRAGService {
     reason: string;
   } {
     if (results.length === 0) {
+      console.log(`⚠️ [Confidence] NONE - Nenhum resultado encontrado`);
       return {
         score: 0,
         level: 'none',
@@ -140,35 +144,45 @@ export class SubjectRAGService {
       };
     }
 
-    // Calcular score médio dos top-3 resultados
+    // CORREÇÃO CRÍTICA: Usar finalScore (após reranking) ao invés de similarity
+    // finalScore combina semantic + BM25 + reranking, é a métrica mais precisa
     const top3 = results.slice(0, Math.min(3, results.length));
-    const avgScore = top3.reduce((sum, r) => sum + r.similarity, 0) / top3.length;
+    const avgScore = top3.reduce((sum, r) => {
+      // Prioridade: finalScore > fusedScore > similarity
+      const score = r.finalScore ?? r.fusedScore ?? r.similarity ?? 0;
+      return sum + score;
+    }, 0) / top3.length;
     
     // Considerar também quantidade de resultados
     const countFactor = Math.min(results.length / 5, 1); // Máximo 1 com 5+ resultados
     
     // Score final combina qualidade (avgScore) e quantidade (countFactor)
-    const finalScore = avgScore * 0.7 + countFactor * 0.3;
+    const combinedScore = avgScore * 0.7 + countFactor * 0.3;
 
     // Determinar nível baseado em thresholds
+    // CORREÇÃO: Piso reduzido de 0.3 para 0.20 para evitar falsos negativos
     let level: 'none' | 'low' | 'medium' | 'high';
     let reason: string;
 
-    if (finalScore >= 0.7) {
+    if (combinedScore >= 0.7) {
       level = 'high';
       reason = `Encontrados ${results.length} resultados altamente relevantes (score médio: ${avgScore.toFixed(2)})`;
-    } else if (finalScore >= 0.5) {
+    } else if (combinedScore >= 0.5) {
       level = 'medium';
       reason = `Encontrados ${results.length} resultados moderadamente relevantes (score médio: ${avgScore.toFixed(2)})`;
-    } else if (finalScore >= 0.3) {
+    } else if (combinedScore >= 0.20) {  // <-- PISO REDUZIDO: 0.30 → 0.20
       level = 'low';
-      reason = `Apenas ${results.length} resultados com baixa relevância (score médio: ${avgScore.toFixed(2)})`;
+      reason = `Encontrados ${results.length} resultados com relevância detectada (score médio: ${avgScore.toFixed(2)})`;
     } else {
       level = 'none';
-      reason = `Resultados com relevância muito baixa (score médio: ${avgScore.toFixed(2)})`;
+      reason = `Resultados com relevância muito baixa (score médio: ${avgScore.toFixed(2)}) - threshold mínimo: 0.20`;
     }
 
-    return { score: finalScore, level, reason };
+    console.log(`📊 [Confidence] Level: ${level} | Score: ${combinedScore.toFixed(3)} | AvgScore: ${avgScore.toFixed(3)} | Count: ${results.length}`);
+    console.log(`📋 [Confidence] Reason: ${reason}`);
+    console.log(`🔍 [Confidence] Top-3 scores: ${top3.map(r => (r.finalScore ?? r.fusedScore ?? r.similarity ?? 0).toFixed(3)).join(', ')}`);
+
+    return { score: combinedScore, level, reason };
   }
 
   /**
