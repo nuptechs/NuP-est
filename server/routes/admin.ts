@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../db";
 import { searchSites, siteSearchTypes, insertSearchSiteSchema, insertSiteSearchTypeSchema, users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { isAuthenticated } from "../replitAuth";
+import { isAuthenticated, isAdmin } from "../replitAuth";
 import { StudentProfileService } from "../services/student-profile-engine/index.js";
 
 const router = Router();
@@ -335,8 +335,29 @@ router.get("/student-profiles/:userId", isAuthenticated, async (req, res) => {
 
 // ===== CONFIGURAÇÕES DE USUÁRIO =====
 
-// Atualizar configurações de auto-refresh de um usuário
-router.patch("/users/:userId/config", isAuthenticated, async (req, res) => {
+// Get user data (admin only - full access)
+router.get("/users/:userId", isAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    res.json(user);
+  } catch (error) {
+    console.error(`[Admin] Erro ao buscar usuário ${req.params.userId}:`, error);
+    res.status(500).json({ error: 'Erro ao buscar usuário' });
+  }
+});
+
+// Atualizar configurações de auto-refresh de um usuário (admin only)
+router.patch("/users/:userId/config", isAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
     const { autoRefreshInterval } = req.body;

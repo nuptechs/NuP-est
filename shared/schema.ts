@@ -74,6 +74,7 @@ export const users = pgTable("users", {
   
   // ===== CONFIGURAÇÕES ADMINISTRATIVAS =====
   autoRefreshInterval: integer("auto_refresh_interval").default(60000), // Intervalo de atualização automática em ms (padrão: 60 segundos)
+  isAdmin: boolean("is_admin").default(false), // TEMPORÁRIO: será substituído pelo sistema central NuPtechs
   
   // ===== TIMESTAMPS =====
   createdAt: timestamp("created_at").defaultNow(),

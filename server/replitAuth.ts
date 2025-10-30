@@ -155,3 +155,25 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return;
   }
 };
+
+// TEMPORÁRIO: Middleware de verificação de admin
+// Será substituído pelo sistema central NuPtechs quando integrado
+export const isAdmin: RequestHandler = async (req: any, res, next) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  
+  try {
+    const userId = req.user.claims.sub;
+    const user = await storage.getUser(userId);
+    
+    if (!user || !(user as any).isAdmin) {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    next();
+  } catch (error) {
+    console.error("Error checking admin status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

@@ -151,10 +151,10 @@ export default function AdminProfiles() {
 
   // Query: Get user data (for autoRefreshInterval)
   const { data: userData } = useQuery<{ autoRefreshInterval: number }>({
-    queryKey: ['/api/users', selectedUserId],
+    queryKey: ['/api/admin/users', selectedUserId],
     queryFn: async () => {
       if (!selectedUserId) throw new Error('No user selected');
-      const response = await fetch(`/api/users/${selectedUserId}`, {
+      const response = await fetch(`/api/admin/users/${selectedUserId}`, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch user');
@@ -180,7 +180,8 @@ export default function AdminProfiles() {
         title: "Configuração atualizada!",
         description: "O intervalo de atualização foi salvo.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/users', selectedUserId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', selectedUserId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
     },
     onError: (error: any) => {
       toast({

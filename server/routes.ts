@@ -135,10 +135,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get specific user by ID (admin endpoint)
+  // Get specific user by ID (only allows user to access their own data)
   app.get('/api/users/:userId', isAuthenticated, async (req: any, res) => {
     try {
       const { userId } = req.params;
+      const currentUserId = req.user.claims.sub;
+      
+      // Only allow user to access their own data
+      if (userId !== currentUserId) {
+        return res.status(403).json({ message: "Forbidden: You can only access your own data" });
+      }
+      
       const [user] = await db.select().from(users).where(eq(users.id, userId));
       
       if (!user) {
