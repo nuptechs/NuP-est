@@ -72,6 +72,7 @@ const iconMap: Record<string, any> = {
   Zap,
   Target,
   BarChart3,
+  Settings,
 };
 
 export default function UnifiedShell({ 

@@ -188,6 +188,12 @@ export const navigationItems = [
     icon: "BarChart3",
     description: "Progresso detalhado",
   },
+  {
+    name: "Admin",
+    href: "/admin/profiles",
+    icon: "Settings",
+    description: "Gerenciar perfis",
+  },
 ] as const;
 
 // Type exports
