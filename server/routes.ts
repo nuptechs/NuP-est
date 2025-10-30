@@ -135,6 +135,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get specific user by ID (admin endpoint)
+  app.get('/api/users/:userId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Update user profile
   app.patch('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
