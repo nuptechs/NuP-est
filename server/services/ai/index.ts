@@ -187,49 +187,49 @@ function parseAIResponseRobust(response: string, context: string): any {
         if (arrayMatch) {
           let arrayContent = arrayMatch[1];
           
-          // Contar chaves e colchetes para detectar incompletude
-          const openBraces = (arrayContent.match(/\{/g) || []).length;
-          const closeBraces = (arrayContent.match(/\}/g) || []).length;
-          const openBrackets = (arrayContent.match(/\[/g) || []).length;
-          const closeBrackets = (arrayContent.match(/\]/g) || []).length;
+          // ESTRATÉGIA: Descartar última questão truncada e parsear as completas
+          // Encontrar todos os objetos completos no array
+          const completeObjects: any[] = [];
+          let currentDepth = 0;
+          let currentObject = '';
+          let inString = false;
+          let escapeNext = false;
           
-          const missingBraces = openBraces - closeBraces;
-          const missingBrackets = openBrackets - closeBrackets;
-          
-          console.log(`📊 Análise: { abertas: ${openBraces}, fechadas: ${closeBraces}, faltam: ${missingBraces}`);
-          console.log(`📊 Análise: [ abertas: ${openBrackets}, fechadas: ${closeBrackets}, faltam: ${missingBrackets}`);
-          
-          // Se há questões incompletas, tentar reparar
-          if (missingBraces > 0 || missingBrackets > 0) {
-            console.log(`🔧 Reparando JSON incompleto...`);
+          for (let i = 0; i < arrayContent.length; i++) {
+            const char = arrayContent[i];
             
-            // Adicionar chaves faltantes
-            for (let i = 0; i < missingBraces; i++) {
-              arrayContent += '}';
+            // Gerenciar strings (para não contar {} dentro de strings)
+            if (char === '"' && !escapeNext) {
+              inString = !inString;
+            }
+            escapeNext = char === '\\' && !escapeNext;
+            
+            if (!inString) {
+              if (char === '{') currentDepth++;
+              if (char === '}') currentDepth--;
             }
             
-            // Adicionar colchetes faltantes (menos 1 do array principal que adicionaremos)
-            for (let i = 0; i < missingBrackets; i++) {
-              arrayContent += ']';
-            }
+            currentObject += char;
             
-            // Se não termina com ], adicionar para fechar o array principal
-            if (!arrayContent.trim().endsWith(']')) {
-              arrayContent += ']';
+            // Quando completamos um objeto (depth volta a 0 após fechar um {)
+            if (currentDepth === 0 && currentObject.trim().startsWith('{')) {
+              try {
+                const parsedObj = JSON.parse(currentObject.trim().replace(/,$/, ''));
+                if (parsedObj.question && Array.isArray(parsedObj.options)) {
+                  completeObjects.push(parsedObj);
+                  console.log(`✅ Questão ${completeObjects.length} extraída com sucesso`);
+                }
+              } catch (parseErr) {
+                console.log(`⚠️ Objeto não parseável, pulando...`);
+              }
+              currentObject = '';
             }
           }
           
-          // Tentar parsear o array reparado
-          const fullJson = `[${arrayContent}`;
-          const questionsArray = JSON.parse(fullJson);
-          
-          // Filtrar apenas questões válidas
-          const validQuestions = questionsArray.filter((q: any) => 
-            q && typeof q === 'object' && q.question && Array.isArray(q.options)
-          );
-          
-          parsed = validQuestions;
-          console.log(`✅ Array reparado (método 4 - quiz): ${validQuestions.length} questões válidas`);
+          if (completeObjects.length > 0) {
+            parsed = completeObjects;
+            console.log(`✅ Array reparado (método 4 - quiz): ${completeObjects.length} questões completas extraídas`);
+          }
         }
       } catch (e) {
         console.log(`⚠️ Método 4 (quiz repair) falhou:`, e);
@@ -287,6 +287,7 @@ export async function aiAnalyze<T = any>(
   options: {
     temperature?: number;
     maxTokens?: number;
+    context?: string;  // Contexto para o parser (ex: 'quiz', 'flashcard')
   } = {}
 ): Promise<T> {
   const aiManager = getAIManager();
@@ -307,6 +308,7 @@ export async function aiAnalyze<T = any>(
     question: content
   });
   
-  // Parser robusto e flexível para JSON (mesmo que criamos para editais)
-  return parseAIResponseRobust(response.content, 'resultado da análise');
+  // Parser robusto e flexível para JSON - usa contexto customizado se fornecido
+  const parsingContext = options.context || 'resultado da análise';
+  return parseAIResponseRobust(response.content, parsingContext);
 }
