@@ -50,7 +50,7 @@ interface DailyPlan {
 }
 
 export default function GuidedStudyPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   
@@ -59,10 +59,13 @@ export default function GuidedStudyPage() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
 
+  // Get user's auto-refresh interval (default to 60000ms if not set)
+  const autoRefreshInterval = (user as any)?.autoRefreshInterval || 60000;
+
   const { data: dailyPlan, isLoading, refetch } = useQuery<DailyPlan>({
     queryKey: ['/api/study-planner/today'],
     enabled: isAuthenticated,
-    refetchInterval: 60000,
+    refetchInterval: autoRefreshInterval,
   });
 
   const completeTaskMutation = useMutation({
