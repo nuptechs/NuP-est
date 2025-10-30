@@ -1,0 +1,100 @@
+
+🔄 Iniciando reindexação COMPLETA
+
+📚 Encontrados 15 materiais totais
+
+
+[1/15] ----------------------------------------
+📄 DCO 4
+✂️  1 chunks
+✅ Pinecone conectado ao índice: nup-est-knowledge
+✅ Pinecone conectado ao índice: nup-est-knowledge
+🔄 Processando 1 chunks para Pinecone...
+📤 Batch 1 enviado para Pinecone
+✅ Documento 5f4c5e64-c2ce-4090-8217-cb461075894c indexado no Pinecone com 1 chunks
+✅ Reindexado
+
+
+[2/15] ----------------------------------------
+📄 DCO 5
+✂️  1 chunks
+🔄 Processando 1 chunks para Pinecone...
+📤 Batch 1 enviado para Pinecone
+✅ Documento f5f42f88-dd73-436a-8d81-d8349554a763 indexado no Pinecone com 1 chunks
+✅ Reindexado
+
+
+[3/15] ----------------------------------------
+📄 DCO 7
+✂️  338 chunks
+🔄 Processando 338 chunks para Pinecone...
+📤 Batch 1 enviado para Pinecone
+📤 Batch 2 enviado para Pinecone
+📤 Batch 3 enviado para Pinecone
+📤 Batch 4 enviado para Pinecone
+✅ Documento ce92f858-da5e-423a-bec0-d0a04216b6f9 indexado no Pinecone com 338 chunks
+✅ Reindexado
+
+
+[4/15] ----------------------------------------
+📄 DCO 8 
+✂️  338 chunks
+🔄 Processando 338 chunks para Pinecone...
+📤 Batch 1 enviado para Pinecone
+📤 Batch 2 enviado para Pinecone
+📤 Batch 3 enviado para Pinecone
+📤 Batch 4 enviado para Pinecone
+✅ Documento e0389d16-d3e6-4789-b6d3-f5436855242f indexado no Pinecone com 338 chunks
+✅ Reindexado
+
+
+[5/15] ----------------------------------------
+📄 DCO9
+✂️  338 chunks
+🔄 Processando 338 chunks para Pinecone...
+📤 Batch 1 enviado para Pinecone
+📤 Batch 2 enviado para Pinecone
+📤 Batch 3 enviado para Pinecone
+📤 Batch 4 enviado para Pinecone
+✅ Documento 66e85b7e-3781-4a42-8e0c-977ed56a20d5 indexado no Pinecone com 338 chunks
+✅ Reindexado
+
+
+[6/15] ----------------------------------------
+📄 DCO
+✂️  338 chunks
+🔄 Processando 338 chunks para Pinecone...
+📤 Batch 1 enviado para Pinecone
+📤 Batch 2 enviado para Pinecone
+📤 Batch 3 enviado para Pinecone
+📤 Batch 4 enviado para Pinecone
+✅ Documento 6d346b71-85cc-4b5d-aad4-091f88327065 indexado no Pinecone com 338 chunks
+✅ Reindexado
+
+
+[7/15] ----------------------------------------
+📄 DT
+✂️  243 chunks
+🔄 Processando 243 chunks para Pinecone...
+📤 Batch 1 enviado para Pinecone
+📤 Batch 2 enviado para Pinecone
+📤 Batch 3 enviado para Pinecone
+✅ Documento b07709f3-0e05-49a6-b180-bb033707aa40 indexado no Pinecone com 243 chunks
+✅ Reindexado
+
+
+[8/15] ----------------------------------------
+📄 DT2
+✂️  243 chunks
+🔄 Processando 243 chunks para Pinecone...
+📤 Batch 1 enviado para Pinecone
+📤 Batch 2 enviado para Pinecone
+📤 Batch 3 enviado para Pinecone
+✅ Documento de7c5463-700d-4be6-85b5-82bf600e6b7f indexado no Pinecone com 243 chunks
+✅ Reindexado
+
+
+[9/15] ----------------------------------------
+📄 DCO Livro
+✂️  5475 chunks
+🔄 Processando 5475 chunks para Pinecone...
