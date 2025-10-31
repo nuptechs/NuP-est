@@ -41,7 +41,7 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Better error handling: localized messages for AI generation with detailed feedback
   - MiniMap opcional: toggle button na toolbar, desativado por padrão, preserva funcionalidade completa
 
-**2025-10-31: Sistema de Customização Avançada (SimpleMind-Inspired) - Core Completo ✅**
+**2025-10-31: Sistema de Customização Avançada (SimpleMind-Inspired) - COMPLETO ✅**
 - **Arquitetura de 3 Níveis (COMPLETO):**
   - Level 1: Style Sheets globais (built-in + user custom)
   - Level 2: Mind Map Styles (overrides por mapa específico)
@@ -51,7 +51,7 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Clean & Minimal (Light/Dark), Bright Colors, Natural Colors, Pastel Dreams
   - Ocean Blue, Sunset Warm, Monochrome Elegant, Forest Green
   - Purple Majesty, Minimal Wireframe, Neon Cyberpunk
-  - Todos com edgeStyles e nodeStyles completos
+  - Todos com edgeStyles, nodeStyles e colorPalette completos
 - **Customization Options (COMPLETO):**
   - Node shapes: rounded, rectangle, circle, hexagon, diamond, pill
   - Colors: fill, border, text (color picker com HEX input)
@@ -59,11 +59,16 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Typography: font size (10-32px), weight (normal/medium/semibold/bold)
   - Edge types: smoothstep, straight, step, bezier
   - Edge properties: color, width (1-10px), animated toggle
-- **Color Modes Definidos:**
-  - Type-based: cor por tipo de nó (root/branch/leaf) ✅ Implementado
-  - Level-based: cor por nível hierárquico (0, 1, 2, ...) ⏸️ Pendente runtime logic
-  - Branch-based: filhos herdam cor do pai ⏸️ Pendente runtime logic
-  - Performance-based: cor por desempenho do aluno (adaptive learning) ✅ Implementado
+- **Color Modes (TODOS IMPLEMENTADOS):**
+  - Type-based: cor por tipo de nó (root/branch/leaf) ✅
+  - Level-based: cor por nível hierárquico (0, 1, 2, ...) usando BFS ✅
+  - Branch-based: filhos herdam cor do pai (hash consistente do branchId) ✅
+  - Performance-based: cor por desempenho do aluno (adaptive learning) ✅
+- **Hierarchy Calculation System:**
+  - BFS algorithm em `hierarchyUtils.ts` para calcular levels e branchIds
+  - `enrichNodesWithHierarchy()` enriquece nodes com metadata hierárquica
+  - Recalculação automática em TODAS as operações que modificam topologia (addNode, deleteNode, addEdge, deleteEdge, applyEdgesChange, loadMindMap)
+  - `getColorFromPalette()` helper para wrap-around de paletas
 - **UI Components (COMPLETO):**
   - StylePanel: painel lateral com 3 tabs (Temas, Nós, Linhas)
   - Color picker com preview e HEX input
@@ -85,7 +90,7 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Fallback em cascata: Element > Map > Sheet > DEFAULT
   - Preserva valores falsy válidos (animated=false) com nullish coalescing
   - 100% à prova de crashes (architect-reviewed)
-- **Status:** Core system completo e robusto. Pendente: level-based/branch-based runtime logic, API backend para persistência de estilos customizados, testes end-to-end
+- **Status:** Sistema de customização SimpleMind-inspired totalmente funcional. Pendente: API backend para persistência de estilos customizados, testes end-to-end
 
 **2025-10-31: Materiais Não Organizados**
 - Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada

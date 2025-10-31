@@ -183,6 +183,9 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
       history: [...get().history.slice(0, get().historyIndex + 1), { nodes: newNodes, edges: newEdges }],
       historyIndex: get().historyIndex + 1,
     });
+    
+    // Re-apply layout to recalculate hierarchy after node deletion
+    get().applyLayout();
   },
 
   addEdge: (connection: Connection) => {
