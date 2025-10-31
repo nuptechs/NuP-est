@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -32,6 +32,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false);
   const {
     nodes,
     edges,
@@ -54,6 +55,18 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   } = useMindMapEngine();
 
   const initialized = useRef(false);
+
+  // Ocultar edges visualmente mantendo sincronização com engine
+  const hiddenEdges = useMemo(() => {
+    return edges.map(edge => ({
+      ...edge,
+      style: {
+        ...edge.style,
+        opacity: 0,
+        pointerEvents: 'none',
+      },
+    }));
+  }, [edges]);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -302,6 +315,8 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         onZoomIn={() => reactFlowInstance?.zoomIn()}
         onZoomOut={() => reactFlowInstance?.zoomOut()}
         onFitView={() => reactFlowInstance?.fitView()}
+        onToggleMinimap={() => setShowMinimap(!showMinimap)}
+        showMinimap={showMinimap}
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
         hasSelection={selectedNodes.length > 0}
@@ -310,10 +325,10 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
       <div ref={reactFlowWrapper} style={{ width: '100%', height: 'calc(100% - 64px)' }}>
         <ReactFlow
           nodes={nodes}
-          edges={edges}
+          edges={hiddenEdges}
           nodeTypes={nodeTypes}
           nodesDraggable={true}
-          nodesConnectable={true}
+          nodesConnectable={false}
           elementsSelectable={true}
           onNodesChange={(changes) => {
             // Handle selection/deselection
@@ -357,7 +372,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
               className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg"
             />
           )}
-          {config?.showMinimap !== false && (
+          {showMinimap && (
             <MiniMap 
               nodeColor={(node: any) => {
                 if (node.data.performance) {

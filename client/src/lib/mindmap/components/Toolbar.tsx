@@ -17,6 +17,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize,
+  Map,
 } from 'lucide-react';
 import type { ExportFormat } from '../core/types';
 
@@ -31,6 +32,8 @@ interface ToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitView: () => void;
+  onToggleMinimap?: () => void;
+  showMinimap?: boolean;
   canUndo: boolean;
   canRedo: boolean;
   hasSelection: boolean;
@@ -47,6 +50,8 @@ export function Toolbar({
   onZoomIn,
   onZoomOut,
   onFitView,
+  onToggleMinimap,
+  showMinimap,
   canUndo,
   canRedo,
   hasSelection,
@@ -121,6 +126,16 @@ export function Toolbar({
         >
           <Maximize className="w-4 h-4" />
         </Button>
+        {onToggleMinimap && (
+          <Button
+            variant={showMinimap ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleMinimap}
+            data-testid="button-toggle-minimap"
+          >
+            <Map className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-1 border-r border-border pr-2">
