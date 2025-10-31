@@ -92,6 +92,26 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - 100% à prova de crashes (architect-reviewed)
 - **Status:** Sistema de customização SimpleMind-inspired totalmente funcional. Pendente: API backend para persistência de estilos customizados, testes end-to-end
 
+**2025-10-31: Mind Maps - Refatoração para Feature Module (100% Encapsulado) ✅**
+- **Arquitetura Feature-Based** profissional seguindo padrões modernos (Next.js 13+, Remix, Nuxt)
+- **Complete Isolation**: Todo código movido para `client/src/features/mindmaps/`
+- **Single Entry Point**: `MindMapApp.tsx` como único ponto de integração
+- **Zero Residues**: Removido código espalhado (lib/mindmap, pages/mind-maps.tsx)
+- **3 Linhas de Integração**: 1 import + 1 route no App.tsx + 2 linhas no server/routes.ts
+- **Fácil Extração**: Copiar pasta `features/mindmaps/` completa para outra aplicação
+- **Fácil Remoção**: Deletar 1 pasta + remover 4 linhas de código = zero resquícios
+- **Documentação Completa**: README.md dentro do módulo + MINDMAP_EXTRACTION_GUIDE.md
+- **Estrutura Profissional**:
+  - `MindMapApp.tsx` - Entry point
+  - `ai/` - AI integration
+  - `components/` - React components
+  - `core/` - Types & constants (12 built-in themes)
+  - `engine/` - State management (Zustand)
+  - `hooks/` - React hooks
+  - `storage/` - API client
+  - `store/` - Style management
+  - `utils/` - Hierarchy calculation (BFS)
+
 **2025-10-31: Materiais Não Organizados**
 - Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada
 - API /api/materials aceita parâmetro ?unorganized=true para filtrar materiais com subject_id IS NULL
