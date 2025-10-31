@@ -8,6 +8,14 @@ Preferred communication style: Simple, everyday language.
 User Experience Focus: Intuitive, guided workflows with minimal cognitive load.
 Design Philosophy: Clean, minimalist interfaces that prioritize user flow over feature complexity. Modern UX inspired by best-in-class apps (Notion, Linear, Figma) - avoid "AI-generated" appearance through generous spacing, clear hierarchy, and intentional design choices.
 
+## Recent Changes
+
+**2025-10-31: Materiais Não Organizados**
+- Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada
+- API /api/materials aceita parâmetro ?unorganized=true para filtrar materiais com subject_id IS NULL
+- Usuários podem editar e associar materiais a disciplinas ou deixá-los sem disciplina
+- Cache invalidation melhorado para atualizar todas as queries de materiais automaticamente
+
 # System Architecture
 
 ## Frontend Architecture
