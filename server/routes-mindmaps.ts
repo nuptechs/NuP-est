@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { IStorage } from './storage';
 import { insertMindMapSchema } from '@shared/schema';
+import { mindMapGenerator } from './services/mindmap/MindMapGenerator';
 
 export function registerMindMapRoutes(router: Router, storage: IStorage) {
   // Get all mind maps for a user
@@ -97,18 +98,14 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
     }
 
     try {
-      const { prompt, subjectId, useRAG, maxDepth, maxNodes } = req.body;
+      const { prompt, subjectId, useRAG = true } = req.body;
       
-      // TODO: Implement AI generation with RAG
-      // This is a placeholder that returns mock Mermaid syntax
-      const mermaidSyntax = `mindmap
-  root((${prompt}))
-    Tópico 1
-      Subtópico 1.1
-      Subtópico 1.2
-    Tópico 2
-      Subtópico 2.1
-    Tópico 3`;
+      const mermaidSyntax = await mindMapGenerator.generateFromPrompt(
+        prompt,
+        req.user.id,
+        subjectId,
+        useRAG
+      );
 
       res.json({ mermaid: mermaidSyntax });
     } catch (error) {
@@ -132,12 +129,10 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
         return res.status(403).send('Forbidden');
       }
 
-      // TODO: Implement material-to-mindmap generation with RAG
-      const mermaidSyntax = `mindmap
-  root((${material.title}))
-    Conceito 1
-    Conceito 2
-    Conceito 3`;
+      const mermaidSyntax = await mindMapGenerator.generateFromMaterial(
+        material,
+        req.user.id
+      );
 
       res.json({ 
         mermaid: mermaidSyntax,

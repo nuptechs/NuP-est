@@ -8,10 +8,11 @@ import {
   Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { toPng, toSvg } from 'html-to-image';
 import { MindMapNode as MindMapNodeComponent } from './nodes/MindMapNode';
 import { Toolbar } from './Toolbar';
 import { useMindMapEngine } from '../engine/MindMapEngine';
-import type { ExportFormat, MindMapConfig } from '../core/types';
+import type { ExportFormat, MindMapConfig, MindMapData } from '../core/types';
 import { mindMapAI } from '../ai/MindMapAI';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,13 +23,15 @@ const nodeTypes = {
 interface MindMapEditorProps {
   title: string;
   config?: MindMapConfig;
+  initialData?: MindMapData | null;
   onSave?: (data: any) => void;
   className?: string;
 }
 
-export function MindMapEditor({ title, config, onSave, className }: MindMapEditorProps) {
+export function MindMapEditor({ title, config, initialData, onSave, className }: MindMapEditorProps) {
   const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const {
     nodes,
     edges,
@@ -36,6 +39,7 @@ export function MindMapEditor({ title, config, onSave, className }: MindMapEdito
     history,
     historyIndex,
     initializeMindMap,
+    loadMindMap,
     addNode,
     deleteNode,
     updateNode,
@@ -53,10 +57,14 @@ export function MindMapEditor({ title, config, onSave, className }: MindMapEdito
 
   useEffect(() => {
     if (!initialized.current) {
-      initializeMindMap(title, config);
+      if (initialData) {
+        loadMindMap(initialData);
+      } else {
+        initializeMindMap(title, config);
+      }
       initialized.current = true;
     }
-  }, [title, config, initializeMindMap]);
+  }, [title, config, initialData, initializeMindMap, loadMindMap]);
 
   useEffect(() => {
     if (nodes.length > 0 && reactFlowInstance) {
@@ -148,19 +156,27 @@ export function MindMapEditor({ title, config, onSave, className }: MindMapEdito
         a.click();
         URL.revokeObjectURL(url);
       } else if (format === 'png' || format === 'svg') {
-        const response = await fetch('/api/mindmaps/export', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data, format }),
+        if (!reactFlowWrapper.current) {
+          throw new Error('React Flow wrapper not found');
+        }
+
+        toast({
+          title: 'Exporting...',
+          description: 'Generating image',
         });
-        
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
+
+        const imageExportFn = format === 'png' ? toPng : toSvg;
+        const dataUrl = await imageExportFn(reactFlowWrapper.current, {
+          backgroundColor: '#ffffff',
+          width: reactFlowWrapper.current.offsetWidth,
+          height: reactFlowWrapper.current.offsetHeight,
+          quality: 1.0,
+        });
+
         const a = document.createElement('a');
-        a.href = url;
+        a.href = dataUrl;
         a.download = `${title.replace(/\s+/g, '_')}.${format}`;
         a.click();
-        URL.revokeObjectURL(url);
       }
 
       toast({
@@ -168,6 +184,7 @@ export function MindMapEditor({ title, config, onSave, className }: MindMapEdito
         description: `Mind map exported as ${format.toUpperCase()}`,
       });
     } catch (error) {
+      console.error('Export error:', error);
       toast({
         title: 'Export failed',
         description: 'Could not export mind map',
@@ -259,41 +276,43 @@ export function MindMapEditor({ title, config, onSave, className }: MindMapEdito
         hasSelection={selectedNodes.length > 0}
       />
 
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodesChange={(changes) => {
-          changes.forEach((change) => {
-            if (change.type === 'select' && change.selected) {
-              selectNode(change.id);
-            }
-          });
-        }}
-        fitView
-        minZoom={0.1}
-        maxZoom={2}
-      >
-        <Background />
-        {config?.showControls !== false && <Controls />}
-        {config?.showMinimap !== false && (
-          <MiniMap nodeColor={(node: any) => {
-            switch (node.data.type) {
-              case 'root':
-                return 'hsl(var(--primary))';
-              case 'branch':
-                return 'hsl(var(--secondary))';
-              default:
-                return 'hsl(var(--muted))';
-            }
-          }} />
-        )}
-        <Panel position="top-right">
-          <div className="bg-card/80 backdrop-blur-sm px-3 py-2 rounded-lg text-sm text-muted-foreground">
-            {nodes.length} nodes
-          </div>
-        </Panel>
-      </ReactFlow>
+      <div ref={reactFlowWrapper} style={{ width: '100%', height: 'calc(100% - 64px)' }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={(changes) => {
+            changes.forEach((change) => {
+              if (change.type === 'select' && change.selected) {
+                selectNode(change.id);
+              }
+            });
+          }}
+          fitView
+          minZoom={0.1}
+          maxZoom={2}
+        >
+          <Background />
+          {config?.showControls !== false && <Controls />}
+          {config?.showMinimap !== false && (
+            <MiniMap nodeColor={(node: any) => {
+              switch (node.data.type) {
+                case 'root':
+                  return 'hsl(var(--primary))';
+                case 'branch':
+                  return 'hsl(var(--secondary))';
+                default:
+                  return 'hsl(var(--muted))';
+              }
+            }} />
+          )}
+          <Panel position="top-right">
+            <div className="bg-card/80 backdrop-blur-sm px-3 py-2 rounded-lg text-sm text-muted-foreground">
+              {nodes.length} nodes
+            </div>
+          </Panel>
+        </ReactFlow>
+      </div>
     </div>
   );
 }

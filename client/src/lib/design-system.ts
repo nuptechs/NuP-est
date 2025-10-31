@@ -171,6 +171,12 @@ export const navigationItems = [
     description: "Ferramentas de estudo",
   },
   {
+    name: "Mapas Mentais",
+    href: "/mind-maps",
+    icon: "Network",
+    description: "Visualização de conceitos",
+  },
+  {
     name: "Flashcards",
     href: "/flashcards",
     icon: "Zap",

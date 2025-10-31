@@ -33,6 +33,28 @@ export const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const getNodeStyle = () => {
     const baseStyle = 'px-4 py-2 rounded-lg border-2 transition-all duration-200 shadow-md';
     
+    // Performance-based colors (adaptive learning)
+    if (data.performance) {
+      let performanceStyle = '';
+      switch (data.performance.mastery) {
+        case 'high':
+          performanceStyle = 'bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100 border-green-500 font-semibold';
+          break;
+        case 'medium':
+          performanceStyle = 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border-yellow-500 font-semibold';
+          break;
+        case 'low':
+          performanceStyle = 'bg-red-100 dark:bg-red-900/30 text-red-900 dark:text-red-100 border-red-500 font-semibold';
+          break;
+        default:
+          performanceStyle = 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-400';
+      }
+      
+      const selectedStyle = selected ? 'ring-2 ring-primary ring-offset-2' : '';
+      return cn(baseStyle, performanceStyle, selectedStyle);
+    }
+    
+    // Default type-based styling
     let typeStyle = '';
     switch (data.type) {
       case 'root':

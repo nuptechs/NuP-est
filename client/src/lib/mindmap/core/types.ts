@@ -14,6 +14,11 @@ export interface MindMapNodeData extends Record<string, unknown> {
   fontSize?: number;
   collapsed?: boolean;
   metadata?: Record<string, any>;
+  performance?: {
+    mastery: 'high' | 'medium' | 'low' | 'none';
+    accuracy?: number;
+    questionsAnswered?: number;
+  };
 }
 
 export interface MindMapNode extends ReactFlowNode {

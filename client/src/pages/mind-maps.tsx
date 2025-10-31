@@ -3,17 +3,23 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { MindMapEditor } from '@/lib/mindmap';
 import { Button } from '@/components/ui/button';
-import { Plus, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, ArrowLeft, Filter } from 'lucide-react';
 import { Link } from 'wouter';
-import type { MindMap } from '@db/schema';
+import type { MindMap, Subject } from '@db/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export default function MindMapsPage() {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [filterSubjectId, setFilterSubjectId] = useState<string | 'all'>('all');
 
   const { data: mindMaps, isLoading } = useQuery<MindMap[]>({
     queryKey: ['/api/mindmaps'],
+  });
+
+  const { data: subjects } = useQuery<Subject[]>({
+    queryKey: ['/api/subjects'],
   });
 
   const createMutation = useMutation({
@@ -42,6 +48,11 @@ export default function MindMapsPage() {
   });
 
   const selectedMap = mindMaps?.find(m => m.id === selectedMapId);
+  
+  // Filter mind maps by subject
+  const filteredMindMaps = mindMaps?.filter(map => 
+    filterSubjectId === 'all' || map.subjectId === filterSubjectId
+  );
 
   if (isCreating || selectedMap) {
     return (
@@ -67,6 +78,12 @@ export default function MindMapsPage() {
           <ReactFlowProvider>
             <MindMapEditor
               title={isCreating ? 'Novo Mapa Mental' : selectedMap!.title}
+              initialData={isCreating ? null : selectedMap ? {
+                ...selectedMap,
+                nodes: (selectedMap.content as any)?.nodes || [],
+                edges: (selectedMap.content as any)?.edges || [],
+                config: (selectedMap.content as any)?.config,
+              } : null}
               className="w-full h-full"
               onSave={(data) => {
                 if (isCreating) {
@@ -102,17 +119,35 @@ export default function MindMapsPage() {
             Organize conceitos visualmente com mapas mentais inteligentes
           </p>
         </div>
-        <Button onClick={() => setIsCreating(true)} data-testid="button-create-mindmap">
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Mapa Mental
-        </Button>
+        <div className="flex gap-2">
+          {subjects && subjects.length > 0 && (
+            <Select value={filterSubjectId} onValueChange={setFilterSubjectId}>
+              <SelectTrigger className="w-[200px]" data-testid="select-subject-filter">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Filtrar por matéria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as matérias</SelectItem>
+                {subjects.map(subject => (
+                  <SelectItem key={subject.id} value={subject.id}>
+                    {subject.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={() => setIsCreating(true)} data-testid="button-create-mindmap">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Mapa Mental
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando...</div>
-      ) : mindMaps && mindMaps.length > 0 ? (
+      ) : filteredMindMaps && filteredMindMaps.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mindMaps.map((map) => (
+          {filteredMindMaps.map((map) => (
             <div
               key={map.id}
               className="border border-border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer"

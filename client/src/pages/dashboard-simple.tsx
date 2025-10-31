@@ -21,7 +21,8 @@ import {
   CreditCard,
   MessageCircle,
   BarChart3,
-  Zap
+  Zap,
+  Network
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -91,6 +92,14 @@ export default function Dashboard() {
       href: "/personalized-assistant?tab=questions", 
       variant: "primary" as const,
       testid: "tool-questions"
+    },
+    { 
+      title: "Mapas Mentais", 
+      description: "Visualização de conceitos",
+      icon: Network, 
+      href: "/mind-maps", 
+      variant: "default" as const,
+      testid: "tool-mindmaps"
     },
     { 
       title: "Flashcards", 
