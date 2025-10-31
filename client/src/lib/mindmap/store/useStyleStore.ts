@@ -12,6 +12,7 @@ import type {
   EdgeStyle,
   NodeStylesByType,
 } from '../core/styles';
+import { DEFAULT_EDGE_STYLE } from '../core/styles';
 import { getDefaultStyleSheet, getStyleSheetById } from '../core/builtInStyleSheets';
 
 interface StyleStore {
@@ -128,8 +129,11 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
   getEdgeStyle: (elementId) => {
     const { currentStyleSheet, mindMapCustomStyles, elementCustomStyles } = get();
     
-    // Level 1: Base style from style sheet
-    let style = currentStyleSheet?.edgeStyles || {} as EdgeStyle;
+    // Level 1: Base style from style sheet (with DEFAULT fallback)
+    let style: EdgeStyle = {
+      ...DEFAULT_EDGE_STYLE,
+      ...(currentStyleSheet?.edgeStyles || {}),
+    };
     
     // Level 2: Apply mind map custom overrides
     if (mindMapCustomStyles?.edgeStyles) {

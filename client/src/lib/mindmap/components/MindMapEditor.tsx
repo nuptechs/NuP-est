@@ -62,22 +62,19 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   // Apply style store to edges
   const getEdgeStyle = useStyleStore((state) => state.getEdgeStyle);
   const styledEdges = useMemo(() => {
-    // Get default edge style (no elementId = base style from sheet)
-    const defaultEdgeStyle = getEdgeStyle();
-    
     return edges.map(edge => {
-      // Try to get edge-specific style, fallback to default
-      const edgeStyle = getEdgeStyle(edge.id) || defaultEdgeStyle;
+      // getEdgeStyle now always returns complete EdgeStyle (uses DEFAULT_EDGE_STYLE as fallback in store)
+      const edgeStyle = getEdgeStyle(edge.id);
       
       return {
         ...edge,
-        type: edgeStyle.type || 'smoothstep',
+        type: edgeStyle.type,
         style: {
           ...edge.style,
-          stroke: edgeStyle.color || '#94a3b8',
-          strokeWidth: edgeStyle.width || 2,
+          stroke: edgeStyle.color,
+          strokeWidth: edgeStyle.width,
         },
-        animated: edgeStyle.animated || false,
+        animated: edgeStyle.animated,
       };
     });
   }, [edges, getEdgeStyle]);
