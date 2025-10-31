@@ -2,6 +2,8 @@ import { memo, useState, useCallback } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import type { MindMapNodeData } from '../../core/types';
 import { useMindMapEngine } from '../../engine/MindMapEngine';
+import { useStyleStore } from '../../store/useStyleStore';
+import { getColorFromPalette } from '../../utils/hierarchyUtils';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -13,6 +15,10 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(data.label);
   const updateNode = useMindMapEngine((state) => state.updateNode);
+  
+  // Get style configuration from store
+  const currentStyleSheet = useStyleStore((state) => state.currentStyleSheet);
+  const getNodeStyle = useStyleStore((state) => state.getNodeStyle);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
@@ -36,49 +42,76 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
     }
   }, [label, data.label, id, updateNode]);
 
-  const getNodeStyle = () => {
-    // SimpleMind-inspired: clean, minimal, elegant with solid backgrounds
-    const baseStyle = 'px-3 py-2 rounded-xl border transition-all duration-200 cursor-pointer inline-block';
+  // Compute final node style based on color mode
+  const computedStyle = useCallback(() => {
+    const colorMode = currentStyleSheet?.colorMode || 'type-based';
     
-    // Performance-based colors (adaptive learning) - Solid backgrounds
-    if (data.performance) {
-      let performanceStyle = '';
+    // Get base style from store
+    const baseNodeStyle = getNodeStyle(data.type, id);
+    
+    let backgroundColor: string;
+    let textColor: string;
+    let borderColor: string;
+    
+    // Performance-based coloring (adaptive learning) takes priority
+    if (colorMode === 'performance-based' && data.performance) {
       switch (data.performance.mastery) {
         case 'high':
-          performanceStyle = 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-400 dark:border-emerald-600';
+          backgroundColor = '#f0fdf4'; // emerald-50
+          textColor = '#047857'; // emerald-700
+          borderColor = '#34d399'; // emerald-400
           break;
         case 'medium':
-          performanceStyle = 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-400 dark:border-amber-600';
+          backgroundColor = '#fffbeb'; // amber-50
+          textColor = '#b45309'; // amber-700
+          borderColor = '#fbbf24'; // amber-400
           break;
         case 'low':
-          performanceStyle = 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-400 dark:border-rose-600';
+          backgroundColor = '#fef2f2'; // rose-50
+          textColor = '#be123c'; // rose-700
+          borderColor = '#fb7185'; // rose-400
           break;
         default:
-          performanceStyle = 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600';
+          backgroundColor = baseNodeStyle.backgroundColor;
+          textColor = baseNodeStyle.textColor;
+          borderColor = baseNodeStyle.borderColor;
       }
+    } else if (colorMode === 'level-based') {
+      // Level-based: Use color palette by level
+      const level = data.level || 0;
+      const palette = currentStyleSheet?.colorPalette?.colors || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+      backgroundColor = getColorFromPalette(palette, level);
+      textColor = level === 0 ? '#ffffff' : baseNodeStyle.textColor;
+      borderColor = backgroundColor;
+    } else if (colorMode === 'branch-based') {
+      // Branch-based: Use color palette by branchId
+      const branchId = data.branchId || id;
+      const palette = currentStyleSheet?.colorPalette?.colors || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
       
-      const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-0' : '';
-      return cn(baseStyle, performanceStyle, selectedStyle);
+      // Hash branchId to palette index for consistent colors
+      const branchIndex = Array.from(branchId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      backgroundColor = getColorFromPalette(palette, branchIndex);
+      textColor = data.level === 0 ? '#ffffff' : baseNodeStyle.textColor;
+      borderColor = backgroundColor;
+    } else {
+      // Type-based (default): Use nodeStyles from style sheet
+      backgroundColor = baseNodeStyle.backgroundColor;
+      textColor = baseNodeStyle.textColor;
+      borderColor = baseNodeStyle.borderColor;
     }
     
-    // Default type-based styling - SimpleMind clean design with solid colors
-    let typeStyle = '';
-    switch (data.type) {
-      case 'root':
-        typeStyle = 'bg-blue-500 text-white border-blue-600 font-bold text-base';
-        break;
-      case 'branch':
-        typeStyle = 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-300 dark:border-slate-600 font-semibold';
-        break;
-      case 'leaf':
-        typeStyle = 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600';
-        break;
-    }
-
-    const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-0' : '';
-    
-    return cn(baseStyle, typeStyle, selectedStyle);
-  };
+    return {
+      backgroundColor,
+      textColor,
+      borderColor,
+      borderWidth: baseNodeStyle.borderWidth,
+      borderRadius: baseNodeStyle.borderRadius,
+      fontSize: baseNodeStyle.fontSize,
+      fontWeight: baseNodeStyle.fontWeight,
+    };
+  }, [currentStyleSheet, data.type, data.level, data.branchId, data.performance, id, getNodeStyle]);
+  
+  const nodeStyle = computedStyle();
 
   const getShapeClass = () => {
     switch (data.shape) {
@@ -103,7 +136,19 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
         className="!opacity-0 !w-2 !h-2"
       />
       
-      <div className={cn(getNodeStyle(), getShapeClass())}>
+      <div
+        className={cn(
+          'px-3 py-2 border transition-all duration-200 cursor-pointer inline-block',
+          selected && 'ring-2 ring-blue-400 ring-offset-0',
+          getShapeClass()
+        )}
+        style={{
+          backgroundColor: nodeStyle.backgroundColor,
+          borderColor: nodeStyle.borderColor,
+          borderWidth: `${nodeStyle.borderWidth}px`,
+          borderRadius: `${nodeStyle.borderRadius}px`,
+        }}
+      >
         <div className="flex items-center gap-2 whitespace-nowrap">
           {data.collapsed !== undefined && (
             <button
@@ -133,14 +178,18 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
               data-testid={`input-node-label-${data.label}`}
               style={{
                 width: `${Math.max(100, label.length * 8 + 20)}px`,
+                color: nodeStyle.textColor,
+                fontSize: `${nodeStyle.fontSize}px`,
+                fontWeight: nodeStyle.fontWeight,
               }}
             />
           ) : (
             <div
               className="font-medium leading-tight"
               style={{
-                fontSize: data.fontSize || 14,
-                color: data.color,
+                fontSize: `${nodeStyle.fontSize}px`,
+                fontWeight: nodeStyle.fontWeight,
+                color: nodeStyle.textColor,
               }}
               data-testid={`text-node-label-${data.label}`}
             >

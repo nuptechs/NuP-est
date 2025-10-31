@@ -13,6 +13,8 @@ export interface MindMapNodeData extends Record<string, unknown> {
   backgroundColor?: string;
   fontSize?: number;
   collapsed?: boolean;
+  level?: number; // Hierarchical level (0 = root, 1 = first level children, etc.)
+  branchId?: string; // ID of the root branch this node belongs to
   metadata?: Record<string, any>;
   performance?: {
     mastery: 'high' | 'medium' | 'low' | 'none';

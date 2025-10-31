@@ -11,6 +11,7 @@ import type {
 import { DEFAULT_CONFIG } from '../core/constants';
 import { generateNodeId, generateEdgeId, generateMindMapId } from '../utils';
 import { calculateLayout } from './layout';
+import { enrichNodesWithHierarchy } from '../utils/hierarchyUtils';
 
 interface MindMapEngineState {
   mindMap: MindMapData | null;
@@ -97,6 +98,9 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
       history: [{ nodes: mindMap.nodes, edges: mindMap.edges }],
       historyIndex: 0,
     });
+    
+    // Apply layout to calculate hierarchy for loaded map
+    get().applyLayout();
   },
 
   addNode: (parentId: string | null, label: string, type?: NodeType) => {
@@ -222,6 +226,9 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
   applyEdgesChange: (changes: EdgeChange[]) => {
     const newEdges = applyEdgeChanges(changes, get().edges) as MindMapEdge[];
     set({ edges: newEdges });
+    
+    // Re-apply layout to recalculate hierarchy when edges change
+    get().applyLayout();
   },
 
   deleteEdge: (id: string) => {
@@ -233,6 +240,9 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
       history: [...get().history.slice(0, get().historyIndex + 1), { nodes: get().nodes, edges: newEdges }],
       historyIndex: get().historyIndex + 1,
     });
+    
+    // Re-apply layout to recalculate hierarchy (level, branchId)
+    get().applyLayout();
   },
 
   selectNode: (id: string, multiSelect = false) => {
@@ -320,7 +330,10 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     const { nodes, edges, mindMap } = get();
     const config = mindMap?.config || DEFAULT_CONFIG;
     
-    const layoutedNodes = calculateLayout(nodes, edges, {
+    // Enrich nodes with hierarchy information (level, branchId)
+    const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
+    
+    const layoutedNodes = calculateLayout(enrichedNodes, edges, {
       algorithm: config.layout || 'dagre',
       direction: 'TB',
       nodeSpacing: config.nodeSpacing,

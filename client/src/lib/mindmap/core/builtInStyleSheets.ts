@@ -64,6 +64,10 @@ export const BUILT_IN_STYLE_SHEETS: StyleSheet[] = [
       spacing: { horizontal: 80, vertical: 60 },
       alignment: 'center',
     },
+    colorPalette: {
+      name: 'Cool Professional',
+      colors: ['#3b82f6', '#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b'],
+    },
   },
 
   {
@@ -103,6 +107,10 @@ export const BUILT_IN_STYLE_SHEETS: StyleSheet[] = [
       direction: 'LR',
       spacing: { horizontal: 80, vertical: 60 },
       alignment: 'center',
+    },
+    colorPalette: {
+      name: 'Cool Professional',
+      colors: ['#3b82f6', '#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b'],
     },
   },
 
@@ -360,6 +368,10 @@ export const BUILT_IN_STYLE_SHEETS: StyleSheet[] = [
       width: 2,
       animated: false,
     },
+    colorPalette: {
+      name: 'Grayscale Spectrum',
+      colors: ['#0f172a', '#334155', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0'],
+    },
     layoutConfig: {
       direction: 'LR',
       spacing: { horizontal: 75, vertical: 55 },
@@ -490,6 +502,10 @@ export const BUILT_IN_STYLE_SHEETS: StyleSheet[] = [
       color: '#cbd5e1',
       width: 1,
       animated: false,
+    },
+    colorPalette: {
+      name: 'Minimal Spectrum',
+      colors: ['#0f172a', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1'],
     },
     layoutConfig: {
       direction: 'LR',
