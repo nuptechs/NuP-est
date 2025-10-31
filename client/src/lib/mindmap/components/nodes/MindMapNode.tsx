@@ -37,44 +37,45 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   }, [label, data.label, id, updateNode]);
 
   const getNodeStyle = () => {
-    const baseStyle = 'px-4 py-2.5 rounded-lg border-2 transition-all duration-200 cursor-pointer hover:shadow-lg inline-block';
+    // SimpleMind-inspired: clean, minimal, elegant
+    const baseStyle = 'px-3 py-2 rounded-xl border transition-all duration-200 cursor-pointer inline-block';
     
-    // Performance-based colors (adaptive learning) - Modern palette
+    // Performance-based colors (adaptive learning) - Cleaner palette
     if (data.performance) {
       let performanceStyle = '';
       switch (data.performance.mastery) {
         case 'high':
-          performanceStyle = 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600';
+          performanceStyle = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 hover:border-emerald-500';
           break;
         case 'medium':
-          performanceStyle = 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 border-amber-400 dark:border-amber-600';
+          performanceStyle = 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/50 hover:border-amber-500';
           break;
         case 'low':
-          performanceStyle = 'bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100 border-rose-400 dark:border-rose-600';
+          performanceStyle = 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/50 hover:border-rose-500';
           break;
         default:
-          performanceStyle = 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600';
+          performanceStyle = 'bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-slate-400';
       }
       
-      const selectedStyle = selected ? 'ring-2 ring-blue-500 ring-offset-2 shadow-xl scale-105' : 'shadow-md';
+      const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-1' : '';
       return cn(baseStyle, performanceStyle, selectedStyle);
     }
     
-    // Default type-based styling - Modern, clean design
+    // Default type-based styling - SimpleMind clean design
     let typeStyle = '';
     switch (data.type) {
       case 'root':
-        typeStyle = 'bg-gradient-to-br from-blue-500 to-blue-600 text-white border-blue-700 font-bold text-base shadow-lg shadow-blue-500/30';
+        typeStyle = 'bg-blue-500 text-white border-blue-600 font-bold text-base hover:bg-blue-600';
         break;
       case 'branch':
-        typeStyle = 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-400 dark:border-slate-500 font-semibold shadow-md';
+        typeStyle = 'bg-transparent text-slate-800 dark:text-slate-100 border-slate-400 dark:border-slate-500 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/30';
         break;
       case 'leaf':
-        typeStyle = 'bg-white dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 shadow-sm';
+        typeStyle = 'bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/20';
         break;
     }
 
-    const selectedStyle = selected ? 'ring-2 ring-blue-500 ring-offset-2 shadow-xl scale-105' : '';
+    const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-1' : '';
     
     return cn(baseStyle, typeStyle, selectedStyle);
   };
@@ -99,7 +100,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-blue-500 !w-2 !h-2 !border-2 !border-white dark:!border-slate-900 hover:!w-3 hover:!h-3 transition-all"
+        className="!opacity-0 !w-2 !h-2"
       />
       
       <div className={cn(getNodeStyle(), getShapeClass())}>
@@ -113,9 +114,9 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
               data-testid={`button-collapse-${data.label}`}
             >
               {data.collapsed ? (
-                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                <ChevronRight className="w-3 h-3 opacity-50" />
               ) : (
-                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                <ChevronDown className="w-3 h-3 opacity-50" />
               )}
             </button>
           )}
@@ -136,7 +137,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
             />
           ) : (
             <div
-              className="font-medium"
+              className="font-medium leading-tight"
               style={{
                 fontSize: data.fontSize || 14,
                 color: data.color,
@@ -152,7 +153,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-blue-500 !w-2 !h-2 !border-2 !border-white dark:!border-slate-900 hover:!w-3 hover:!h-3 transition-all"
+        className="!opacity-0 !w-2 !h-2"
       />
     </div>
   );

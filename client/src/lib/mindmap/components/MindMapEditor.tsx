@@ -56,15 +56,16 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
 
   const initialized = useRef(false);
 
-  // Ocultar edges visualmente mantendo sincronização com engine
-  const hiddenEdges = useMemo(() => {
+  // Estilizar edges inspirado no SimpleMind (linhas sutis e elegantes)
+  const styledEdges = useMemo(() => {
     return edges.map(edge => ({
       ...edge,
       style: {
         ...edge.style,
-        opacity: 0,
-        pointerEvents: 'none',
+        stroke: '#94a3b8',
+        strokeWidth: 2,
       },
+      type: 'smoothstep',
     }));
   }, [edges]);
 
@@ -325,7 +326,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
       <div ref={reactFlowWrapper} style={{ width: '100%', height: 'calc(100% - 64px)' }}>
         <ReactFlow
           nodes={nodes}
-          edges={hiddenEdges}
+          edges={styledEdges}
           nodeTypes={nodeTypes}
           nodesDraggable={true}
           nodesConnectable={false}
@@ -361,11 +362,11 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           maxZoom={2}
         >
           <Background 
-            color="#64748b" 
-            gap={20} 
-            size={1.5} 
+            color="#cbd5e1" 
+            gap={24} 
+            size={1} 
             variant="dots"
-            className="dark:opacity-40"
+            className="dark:opacity-30"
           />
           {config?.showControls !== false && (
             <Controls 
