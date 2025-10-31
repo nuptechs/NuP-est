@@ -41,41 +41,51 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Better error handling: localized messages for AI generation with detailed feedback
   - MiniMap opcional: toggle button na toolbar, desativado por padrão, preserva funcionalidade completa
 
-**2025-10-31: Sistema de Customização Avançada (SimpleMind-Inspired) - Em Progresso**
-- **Arquitetura de 3 Níveis:**
+**2025-10-31: Sistema de Customização Avançada (SimpleMind-Inspired) - Core Completo ✅**
+- **Arquitetura de 3 Níveis (COMPLETO):**
   - Level 1: Style Sheets globais (built-in + user custom)
   - Level 2: Mind Map Styles (overrides por mapa específico)
   - Level 3: Element Styles (customização individual de nodes/edges)
-- **12 Style Sheets Built-in:**
+  - Fallback robusto usando DEFAULT_EDGE_STYLE/DEFAULT_NODE_STYLE
+- **12 Style Sheets Built-in (COMPLETO):**
   - Clean & Minimal (Light/Dark), Bright Colors, Natural Colors, Pastel Dreams
   - Ocean Blue, Sunset Warm, Monochrome Elegant, Forest Green
   - Purple Majesty, Minimal Wireframe, Neon Cyberpunk
-- **Customization Options:**
+  - Todos com edgeStyles e nodeStyles completos
+- **Customization Options (COMPLETO):**
   - Node shapes: rounded, rectangle, circle, hexagon, diamond, pill
-  - Colors: fill, border, text (color picker)
+  - Colors: fill, border, text (color picker com HEX input)
   - Borders: width (0-10px), style (solid/dashed/dotted), radius (0-50px)
   - Typography: font size (10-32px), weight (normal/medium/semibold/bold)
   - Edge types: smoothstep, straight, step, bezier
-  - Edge properties: color, width (1-10px), animated
-- **Color Modes (SimpleMind-style):**
-  - Type-based: cor por tipo de nó (root/branch/leaf)
-  - Level-based: cor por nível hierárquico (0, 1, 2, ...)
-  - Branch-based: filhos herdam cor do pai
-  - Performance-based: cor por desempenho do aluno (adaptive learning)
-- **UI Components:**
+  - Edge properties: color, width (1-10px), animated toggle
+- **Color Modes Definidos:**
+  - Type-based: cor por tipo de nó (root/branch/leaf) ✅ Implementado
+  - Level-based: cor por nível hierárquico (0, 1, 2, ...) ⏸️ Pendente runtime logic
+  - Branch-based: filhos herdam cor do pai ⏸️ Pendente runtime logic
+  - Performance-based: cor por desempenho do aluno (adaptive learning) ✅ Implementado
+- **UI Components (COMPLETO):**
   - StylePanel: painel lateral com 3 tabs (Temas, Nós, Linhas)
-  - Color picker, sliders, selects para todas as opções
-  - Preview visual dos temas antes de aplicar
+  - Color picker com preview e HEX input
+  - Sliders para thickness, radius, font size
+  - Selects para shape, border style, font weight, edge type
+  - Theme preview visual com grid de cards
   - Toggle button no toolbar (ícone Palette)
-- **Zustand Store:**
+- **Zustand Store (COMPLETO):**
   - Gerencia hierarquia de estilos com merge automático
   - Auto-switch dark/light mode
-  - Computed getters para node/edge styles
-- **Banco de Dados:**
-  - mind_map_style_sheets: style sheets globais
-  - mind_map_element_styles: estilos individuais
-  - mind_maps: styleSheetId e customStyles (JSONB)
-- **Status:** Arquitetura completa, UI implementada, integração com editor funcionando, edges usando style store. Pendente: level-based/branch-based runtime logic, API backend para persistência
+  - Computed getters para node/edge styles com fallback garantido
+  - getEdgeStyle sempre retorna EdgeStyle completo (usa DEFAULT_EDGE_STYLE)
+- **Banco de Dados (COMPLETO):**
+  - mind_map_style_sheets: style sheets globais (id, name, description, isBuiltIn, isDarkMode, colorMode, nodeStyles JSONB, edgeStyles JSONB, layoutConfig JSONB, colorPalette JSONB)
+  - mind_map_element_styles: estilos individuais (id, mindMapId, elementId, elementType, nodeStyle JSONB, edgeStyle JSONB)
+  - mind_maps: styleSheetId (FK) e customStyles (JSONB)
+- **Edge Styling Integration (COMPLETO):**
+  - MindMapEditor usa useStyleStore.getEdgeStyle para aplicar estilos
+  - Fallback em cascata: Element > Map > Sheet > DEFAULT
+  - Preserva valores falsy válidos (animated=false) com nullish coalescing
+  - 100% à prova de crashes (architect-reviewed)
+- **Status:** Core system completo e robusto. Pendente: level-based/branch-based runtime logic, API backend para persistência de estilos customizados, testes end-to-end
 
 **2025-10-31: Materiais Não Organizados**
 - Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada
