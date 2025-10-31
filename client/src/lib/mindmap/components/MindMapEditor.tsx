@@ -102,13 +102,13 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   }, [selectedNodes, deleteNode, clearSelection]);
 
   const handleGenerateAI = useCallback(async () => {
-    const prompt = window.prompt('Enter a topic to generate a mind map:');
+    const prompt = window.prompt('Digite o tópico para gerar um mapa mental:');
     if (!prompt) return;
 
     try {
       toast({
-        title: 'Generating...',
-        description: 'AI is creating your mind map',
+        title: 'Gerando...',
+        description: 'A IA está criando seu mapa mental',
       });
 
       const mindMapData = await mindMapAI.generateFromPrompt({
@@ -118,17 +118,22 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         maxNodes: 30,
       });
 
+      if (!mindMapData || !mindMapData.nodes || mindMapData.nodes.length === 0) {
+        throw new Error('No mind map data generated');
+      }
+
       useMindMapEngine.getState().loadMindMap(mindMapData);
       applyLayout();
 
       toast({
-        title: 'Success',
-        description: 'Mind map generated successfully',
+        title: 'Sucesso!',
+        description: 'Mapa mental gerado com sucesso',
       });
     } catch (error) {
+      console.error('AI generation error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to generate mind map',
+        title: 'Erro ao gerar',
+        description: error instanceof Error ? error.message : 'Falha ao gerar mapa mental. Tente novamente.',
         variant: 'destructive',
       });
     }
@@ -340,23 +345,49 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           minZoom={0.1}
           maxZoom={2}
         >
-          <Background color="#94a3b8" gap={16} size={1} variant="dots" />
-          {config?.showControls !== false && <Controls />}
+          <Background 
+            color="#64748b" 
+            gap={20} 
+            size={1.5} 
+            variant="dots"
+            className="dark:opacity-40"
+          />
+          {config?.showControls !== false && (
+            <Controls 
+              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg"
+            />
+          )}
           {config?.showMinimap !== false && (
-            <MiniMap nodeColor={(node: any) => {
-              switch (node.data.type) {
-                case 'root':
-                  return 'hsl(var(--primary))';
-                case 'branch':
-                  return 'hsl(var(--secondary))';
-                default:
-                  return 'hsl(var(--muted))';
-              }
-            }} />
+            <MiniMap 
+              nodeColor={(node: any) => {
+                if (node.data.performance) {
+                  switch (node.data.performance.mastery) {
+                    case 'high':
+                      return '#10b981';
+                    case 'medium':
+                      return '#f59e0b';
+                    case 'low':
+                      return '#ef4444';
+                    default:
+                      return '#94a3b8';
+                  }
+                }
+                switch (node.data.type) {
+                  case 'root':
+                    return '#3b82f6';
+                  case 'branch':
+                    return '#64748b';
+                  default:
+                    return '#cbd5e1';
+                }
+              }}
+              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg"
+              maskColor="rgb(241, 245, 249, 0.8)"
+            />
           )}
           <Panel position="top-right">
-            <div className="bg-card/80 backdrop-blur-sm px-3 py-2 rounded-lg text-sm text-muted-foreground">
-              {nodes.length} nodes
+            <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 shadow-lg font-medium">
+              {nodes.length} {nodes.length === 1 ? 'node' : 'nodes'}
             </div>
           </Panel>
         </ReactFlow>
