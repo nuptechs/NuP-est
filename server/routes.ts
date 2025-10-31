@@ -3895,5 +3895,9 @@ ${context.recentContext ? `Contexto recente: ${context.recentContext}` : ''}`;
   const { setupRealtimeVoiceRoutes } = await import("./routes/realtimeVoice.js");
   setupRealtimeVoiceRoutes(app);
   
+  // Setup Mind Maps routes
+  const { registerMindMapRoutes } = await import("./routes-mindmaps");
+  registerMindMapRoutes(app, storage);
+  
   return httpServer;
 }

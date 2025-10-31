@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard-simple";
 import Library from "@/pages/library";
+import MindMaps from "@/pages/mind-maps";
 // Subjects and Materials pages removed - now handled by unified Library page
 import Study from "@/pages/study";
 import Analytics from "@/pages/analytics";
@@ -69,6 +70,7 @@ function Router() {
           
           {/* Nova biblioteca unificada */}
           <Route path="/library" component={Library} />
+          <Route path="/mind-maps" component={MindMaps} />
           
           {/* Rotas legadas - redirecionam para biblioteca usando SPA navigation */}
           <Route path="/subjects" component={() => <Redirect to="/library?type=subjects" />} />

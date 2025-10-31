@@ -4,6 +4,7 @@ import {
   subjects,
   topics,
   materials,
+  mindMaps,
   processedFiles,
   goals,
   targets,
@@ -27,6 +28,8 @@ import {
   type InsertTopic,
   type Material,
   type InsertMaterial,
+  type MindMap,
+  type InsertMindMap,
   type ProcessedFile,
   type Goal,
   type InsertGoal,
@@ -149,6 +152,13 @@ export interface IStorage {
   createMaterial(material: InsertMaterial): Promise<Material>;
   updateMaterial(id: string, userId: string, updates: Partial<InsertMaterial>): Promise<Material>;
   deleteMaterial(id: string, userId: string): Promise<void>;
+
+  // Mind Map operations
+  getMindMaps(userId: string, subjectId?: string): Promise<MindMap[]>;
+  getMindMap(id: string): Promise<MindMap | undefined>;
+  createMindMap(mindMap: InsertMindMap): Promise<MindMap>;
+  updateMindMap(id: string, userId: string, updates: Partial<InsertMindMap>): Promise<MindMap>;
+  deleteMindMap(id: string, userId: string): Promise<void>;
 
   // ProcessedFile operations
   getProcessedFile(id: string): Promise<ProcessedFile | undefined>;
@@ -620,6 +630,58 @@ export class DatabaseStorage implements IStorage {
       .returning({ id: materials.id });
     if (result.length === 0) {
       throw new Error("Material not found or access denied");
+    }
+  }
+
+  // Mind Map operations
+  async getMindMaps(userId: string, subjectId?: string): Promise<MindMap[]> {
+    if (subjectId) {
+      return await db
+        .select()
+        .from(mindMaps)
+        .where(and(
+          eq(mindMaps.userId, userId),
+          eq(mindMaps.subjectId, subjectId)
+        ))
+        .orderBy(desc(mindMaps.updatedAt));
+    }
+    
+    return await db
+      .select()
+      .from(mindMaps)
+      .where(eq(mindMaps.userId, userId))
+      .orderBy(desc(mindMaps.updatedAt));
+  }
+
+  async getMindMap(id: string): Promise<MindMap | undefined> {
+    const [mindMap] = await db.select().from(mindMaps).where(eq(mindMaps.id, id));
+    return mindMap;
+  }
+
+  async createMindMap(mindMap: InsertMindMap): Promise<MindMap> {
+    const [newMindMap] = await db.insert(mindMaps).values(mindMap).returning();
+    return newMindMap;
+  }
+
+  async updateMindMap(id: string, userId: string, updates: Partial<InsertMindMap>): Promise<MindMap> {
+    const [updatedMindMap] = await db
+      .update(mindMaps)
+      .set({ ...updates, updatedAt: sql`NOW()` })
+      .where(and(eq(mindMaps.id, id), eq(mindMaps.userId, userId)))
+      .returning();
+    if (!updatedMindMap) {
+      throw new Error("Mind map not found or access denied");
+    }
+    return updatedMindMap;
+  }
+
+  async deleteMindMap(id: string, userId: string): Promise<void> {
+    const result = await db
+      .delete(mindMaps)
+      .where(and(eq(mindMaps.id, id), eq(mindMaps.userId, userId)))
+      .returning({ id: mindMaps.id });
+    if (result.length === 0) {
+      throw new Error("Mind map not found or access denied");
     }
   }
 

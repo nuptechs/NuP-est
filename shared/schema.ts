@@ -256,6 +256,33 @@ export const materials = pgTable("materials", {
   index("idx_materials_processed_file").on(table.processedFileId),
 ]);
 
+// Mind Maps (AI-powered concept mapping)
+export const mindMaps = pgTable("mind_maps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
+  materialId: varchar("material_id").references(() => materials.id, { onDelete: "cascade" }),
+  
+  title: text("title").notNull(),
+  description: text("description"),
+  
+  // Mind map data (nodes and edges in JSON format)
+  content: jsonb("content").notNull(), // { nodes: [], edges: [], config: {} }
+  
+  // AI generation metadata
+  generatedFromAI: boolean("generated_from_ai").default(false),
+  aiPrompt: text("ai_prompt"), // Original prompt used for AI generation
+  
+  // Collaboration (future)
+  isPublic: boolean("is_public").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_mind_maps_user_subject").on(table.userId, table.subjectId),
+  index("idx_mind_maps_material").on(table.materialId),
+]);
+
 // ========== FASE 1: ARQUITETURA ESTRUTURADA PARA PROFESSOR ROBÔ + ML/DW ==========
 
 // Content sources (professors, institutions, platforms) - CRITICAL FOR ANALYTICS
@@ -1749,6 +1776,12 @@ export const insertMaterialSchema = createInsertSchema(materials).omit({
   createdAt: true,
 });
 
+export const insertMindMapSchema = createInsertSchema(mindMaps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // ========== FASE 1: INSERT SCHEMAS ==========
 
 export const insertContentSourceSchema = createInsertSchema(contentSources).omit({
@@ -2005,6 +2038,8 @@ export type ProcessedFile = typeof processedFiles.$inferSelect;
 export type InsertProcessedFile = z.infer<typeof insertProcessedFileSchema>;
 export type Material = typeof materials.$inferSelect;
 export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
+export type MindMap = typeof mindMaps.$inferSelect;
+export type InsertMindMap = z.infer<typeof insertMindMapSchema>;
 
 // ========== FASE 1: TYPES ==========
 export type ContentSource = typeof contentSources.$inferSelect;
