@@ -269,6 +269,10 @@ export const mindMaps = pgTable("mind_maps", {
   // Mind map data (nodes and edges in JSON format)
   content: jsonb("content").notNull(), // { nodes: [], edges: [], config: {} }
   
+  // Style configuration (SimpleMind-inspired)
+  styleSheetId: varchar("style_sheet_id").references(() => mindMapStyleSheets.id, { onDelete: "set null" }), // Apply global style sheet
+  customStyles: jsonb("custom_styles"), // Mind Map-specific style overrides
+  
   // AI generation metadata
   generatedFromAI: boolean("generated_from_ai").default(false),
   aiPrompt: text("ai_prompt"), // Original prompt used for AI generation
@@ -281,6 +285,60 @@ export const mindMaps = pgTable("mind_maps", {
 }, (table) => [
   index("idx_mind_maps_user_subject").on(table.userId, table.subjectId),
   index("idx_mind_maps_material").on(table.materialId),
+  index("idx_mind_maps_style_sheet").on(table.styleSheetId),
+]);
+
+// Mind Map Style Sheets (SimpleMind-inspired 3-level hierarchy)
+// Level 1: Global Style Sheets - Define overall appearance for mind maps
+export const mindMapStyleSheets = pgTable("mind_map_style_sheets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // null = built-in system stylesheet
+  
+  name: text("name").notNull(), // "Bright Colors", "Natural Colors", "Dark Mode", etc.
+  description: text("description"),
+  isBuiltIn: boolean("is_built_in").default(false), // System-provided stylesheets
+  isDarkMode: boolean("is_dark_mode").default(false), // Auto-switch with theme
+  
+  // === NODE STYLING ===
+  nodeStyles: jsonb("node_styles").notNull(), // { root: {...}, branch: {...}, leaf: {...} }
+  // Each node type has: { backgroundColor, borderColor, borderWidth, borderStyle, borderRadius, textColor, fontSize, fontWeight, padding, shape }
+  
+  // === COLOR SCHEME ===
+  colorPalette: jsonb("color_palette"), // Array of colors for level-based or branch-based coloring
+  colorMode: varchar("color_mode").default("type-based"), // "type-based" | "level-based" | "branch-based" | "performance-based"
+  
+  // === CONNECTION/EDGE STYLING ===
+  edgeStyles: jsonb("edge_styles").notNull(), // { type, color, width, animated, markerEnd }
+  // { type: "smoothstep" | "straight" | "step" | "bezier", color, width, animated, markerEnd }
+  
+  // === LAYOUT & SPACING ===
+  layoutConfig: jsonb("layout_config"), // { direction, spacing, alignment }
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_style_sheets_user").on(table.userId),
+  index("idx_style_sheets_built_in").on(table.isBuiltIn),
+]);
+
+// Mind Map Element Styles (SimpleMind-inspired)
+// Level 3: Individual Element Customization - Override styles for specific nodes/edges
+export const mindMapElementStyles = pgTable("mind_map_element_styles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  mindMapId: varchar("mind_map_id").notNull().references(() => mindMaps.id, { onDelete: "cascade" }),
+  elementId: varchar("element_id").notNull(), // Node ID or Edge ID from React Flow
+  elementType: varchar("element_type").notNull(), // "node" | "edge"
+  
+  // Custom style overrides for this specific element
+  customStyles: jsonb("custom_styles").notNull(), // Override any property from style sheet
+  // For nodes: { backgroundColor, borderColor, borderWidth, borderRadius, textColor, fontSize, fontWeight, shape, etc. }
+  // For edges: { color, width, type, animated, etc. }
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_element_styles_mind_map").on(table.mindMapId),
+  uniqueIndex("idx_element_styles_unique").on(table.mindMapId, table.elementId),
 ]);
 
 // ========== FASE 1: ARQUITETURA ESTRUTURADA PARA PROFESSOR ROBÔ + ML/DW ==========
@@ -1782,6 +1840,18 @@ export const insertMindMapSchema = createInsertSchema(mindMaps).omit({
   updatedAt: true,
 });
 
+export const insertMindMapStyleSheetSchema = createInsertSchema(mindMapStyleSheets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMindMapElementStyleSchema = createInsertSchema(mindMapElementStyles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // ========== FASE 1: INSERT SCHEMAS ==========
 
 export const insertContentSourceSchema = createInsertSchema(contentSources).omit({
@@ -2040,6 +2110,12 @@ export type Material = typeof materials.$inferSelect;
 export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
 export type MindMap = typeof mindMaps.$inferSelect;
 export type InsertMindMap = z.infer<typeof insertMindMapSchema>;
+
+export type MindMapStyleSheet = typeof mindMapStyleSheets.$inferSelect;
+export type InsertMindMapStyleSheet = z.infer<typeof insertMindMapStyleSheetSchema>;
+
+export type MindMapElementStyle = typeof mindMapElementStyles.$inferSelect;
+export type InsertMindMapElementStyle = z.infer<typeof insertMindMapElementStyleSchema>;
 
 // ========== FASE 1: TYPES ==========
 export type ContentSource = typeof contentSources.$inferSelect;

@@ -11,6 +11,7 @@ import '@xyflow/react/dist/style.css';
 import { toPng, toSvg } from 'html-to-image';
 import { MindMapNode as MindMapNodeComponent } from './nodes/MindMapNode';
 import { Toolbar } from './Toolbar';
+import { StylePanel } from './StylePanel';
 import { useMindMapEngine } from '../engine/MindMapEngine';
 import type { ExportFormat, MindMapConfig, MindMapData } from '../core/types';
 import { mindMapAI } from '../ai/MindMapAI';
@@ -33,6 +34,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false);
+  const [showStylePanel, setShowStylePanel] = useState(false);
   const {
     nodes,
     edges,
@@ -318,12 +320,15 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         onFitView={() => reactFlowInstance?.fitView()}
         onToggleMinimap={() => setShowMinimap(!showMinimap)}
         showMinimap={showMinimap}
+        onToggleStylePanel={() => setShowStylePanel(!showStylePanel)}
+        showStylePanel={showStylePanel}
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
         hasSelection={selectedNodes.length > 0}
       />
 
-      <div ref={reactFlowWrapper} style={{ width: '100%', height: 'calc(100% - 64px)' }}>
+      <div className="flex" style={{ height: 'calc(100% - 64px)' }}>
+        <div ref={reactFlowWrapper} style={{ width: showStylePanel ? 'calc(100% - 320px)' : '100%', height: '100%' }}>
         <ReactFlow
           nodes={nodes}
           edges={styledEdges}
@@ -407,6 +412,14 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
             </div>
           </Panel>
         </ReactFlow>
+        </div>
+        
+        {/* Style Panel */}
+        {showStylePanel && (
+          <StylePanel 
+            selectedNodeId={selectedNodes.length === 1 ? selectedNodes[0] : undefined}
+          />
+        )}
       </div>
     </div>
   );
