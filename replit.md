@@ -10,6 +10,16 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 ## Recent Changes
 
+**2025-10-31: Mind Maps System - Phase 2 Completa**
+- Implementado sistema completo de Mapas Mentais com arquitetura modular e RAG integration
+- **MindMapGenerator**: Serviço backend que usa HybridSearchService + GPT-4o-mini para gerar mapas mentais
+- **Material → Mind Map**: Pipeline automático que converte materiais em mapas usando análise hierárquica de chunks RAG
+- **Adaptive Learning Colors**: Nodes coloridos por performance do aluno (verde/amarelo/vermelho/cinza)
+- **Subject Integration**: Filtro de mapas por disciplina na UI
+- **Export Real**: SVG e PNG usando html-to-image no frontend
+- **Navigation**: Link "Mapas Mentais" adicionado ao menu lateral e dashboard quick tools
+- **Load de mapas**: Editor carrega nodes/edges/config persistidos do banco ao abrir mapa existente
+
 **2025-10-31: Materiais Não Organizados**
 - Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada
 - API /api/materials aceita parâmetro ?unorganized=true para filtrar materiais com subject_id IS NULL
