@@ -10,7 +10,7 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 ## Recent Changes
 
-**2025-10-31: Mind Maps System - Phase 2 Completa**
+**2025-10-31: Mind Maps System - Phase 2 Completa + UX Refinement**
 - Implementado sistema completo de Mapas Mentais com arquitetura modular e RAG integration
 - **MindMapGenerator**: Serviço backend que usa HybridSearchService + GPT-4o-mini para gerar mapas mentais
 - **Material → Mind Map**: Pipeline automático que converte materiais em mapas usando análise hierárquica de chunks RAG
@@ -19,6 +19,14 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 - **Export Real**: SVG e PNG usando html-to-image no frontend
 - **Navigation**: Link "Mapas Mentais" adicionado ao menu lateral e dashboard quick tools
 - **Load de mapas**: Editor carrega nodes/edges/config persistidos do banco ao abrir mapa existente
+- **UX Refinement (inspired by Xmind, Miro, Coggle):**
+  - Full drag & drop with undo/redo history tracking
+  - Real-time inline editing with Enter/blur commit
+  - Handle-based node connections (drag to connect)
+  - Modern visual design: rounded nodes, soft shadows, gradients, professional color palette
+  - Keyboard shortcuts: Tab (add child), Enter (add sibling), Delete (remove), Cmd/Ctrl+Z/Y (undo/redo)
+  - Double-click to edit node labels
+  - Selection state synchronized with UI for accurate keyboard operations
 
 **2025-10-31: Materiais Não Organizados**
 - Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada
