@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
+import type { NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import type {
   MindMapNode,
   MindMapEdge,
@@ -25,8 +27,11 @@ interface MindMapEngineState {
   updateNode: (id: string, updates: Partial<MindMapNode['data']>) => void;
   deleteNode: (id: string) => void;
   
-  addEdge: (source: string, target: string) => void;
+  addEdge: (connection: Connection) => void;
   deleteEdge: (id: string) => void;
+  
+  applyNodesChange: (changes: NodeChange[]) => void;
+  applyEdgesChange: (changes: EdgeChange[]) => void;
   
   selectNode: (id: string, multiSelect?: boolean) => void;
   clearSelection: () => void;
@@ -176,12 +181,14 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     });
   },
 
-  addEdge: (source: string, target: string) => {
+  addEdge: (connection: Connection) => {
+    if (!connection.source || !connection.target) return;
+    
     const { edges } = get();
     const newEdge: MindMapEdge = {
-      id: generateEdgeId(source, target),
-      source,
-      target,
+      id: generateEdgeId(connection.source, connection.target),
+      source: connection.source,
+      target: connection.target,
       type: 'smoothstep',
     };
 
@@ -193,6 +200,28 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     });
 
     get().applyLayout();
+  },
+
+  applyNodesChange: (changes: NodeChange[]) => {
+    const newNodes = applyNodeChanges(changes, get().nodes) as MindMapNode[];
+    
+    // Check if this is a position change (drag) - if so, add to history
+    const hasPositionChange = changes.some(c => c.type === 'position' && c.dragging === false);
+    
+    if (hasPositionChange) {
+      set({
+        nodes: newNodes,
+        history: [...get().history.slice(0, get().historyIndex + 1), { nodes: newNodes, edges: get().edges }],
+        historyIndex: get().historyIndex + 1,
+      });
+    } else {
+      set({ nodes: newNodes });
+    }
+  },
+
+  applyEdgesChange: (changes: EdgeChange[]) => {
+    const newEdges = applyEdgeChanges(changes, get().edges) as MindMapEdge[];
+    set({ edges: newEdges });
   },
 
   deleteEdge: (id: string) => {

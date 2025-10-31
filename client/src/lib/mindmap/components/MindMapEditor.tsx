@@ -236,6 +236,10 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if editing
+      if ((e.target as HTMLElement).tagName === 'INPUT') return;
+      
+      // Undo/Redo
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
@@ -243,20 +247,42 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         } else {
           undo();
         }
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      } 
+      // Save
+      else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         handleSave();
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      } 
+      // Delete node
+      else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedNodes.length > 0) {
           e.preventDefault();
           handleDeleteNode();
+        }
+      }
+      // Tab: Add child node (modern UX)
+      else if (e.key === 'Tab' && selectedNodes.length === 1) {
+        e.preventDefault();
+        const label = prompt('Enter child node label:');
+        if (label) {
+          addNode(selectedNodes[0], label);
+        }
+      }
+      // Enter: Add sibling node (modern UX)
+      else if (e.key === 'Enter' && selectedNodes.length === 1) {
+        e.preventDefault();
+        const selectedNode = nodes.find(n => n.id === selectedNodes[0]);
+        const parentEdge = edges.find(e => e.target === selectedNodes[0]);
+        const label = prompt('Enter sibling node label:');
+        if (label) {
+          addNode(parentEdge?.source || null, label);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, handleSave, handleDeleteNode, selectedNodes]);
+  }, [undo, redo, handleSave, handleDeleteNode, selectedNodes, addNode, nodes, edges]);
 
   return (
     <div className={className} style={{ width: '100%', height: '100%' }} data-testid="mindmap-editor">
@@ -281,18 +307,40 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          nodesDraggable={true}
+          nodesConnectable={true}
+          elementsSelectable={true}
           onNodesChange={(changes) => {
+            // Handle selection/deselection
             changes.forEach((change) => {
-              if (change.type === 'select' && change.selected) {
-                selectNode(change.id);
+              if (change.type === 'select') {
+                if (change.selected) {
+                  selectNode(change.id);
+                } else {
+                  // Clear from selection when deselected
+                  const currentSelection = useMindMapEngine.getState().selectedNodes;
+                  useMindMapEngine.setState({ 
+                    selectedNodes: currentSelection.filter(nodeId => nodeId !== change.id)
+                  });
+                }
               }
             });
+            // Apply all changes to ReactFlow state
+            useMindMapEngine.getState().applyNodesChange(changes);
+          }}
+          onEdgesChange={(changes) => {
+            useMindMapEngine.getState().applyEdgesChange(changes);
+          }}
+          onConnect={(connection) => {
+            if (connection.source && connection.target) {
+              useMindMapEngine.getState().addEdge(connection);
+            }
           }}
           fitView
           minZoom={0.1}
           maxZoom={2}
         >
-          <Background />
+          <Background color="#94a3b8" gap={16} size={1} variant="dots" />
           {config?.showControls !== false && <Controls />}
           {config?.showMinimap !== false && (
             <MiniMap nodeColor={(node: any) => {

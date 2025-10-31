@@ -1,6 +1,7 @@
 import { memo, useState, useCallback } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import type { MindMapNodeData } from '../../core/types';
+import { useMindMapEngine } from '../../engine/MindMapEngine';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -8,9 +9,10 @@ interface MindMapNodeProps extends NodeProps {
   data: MindMapNodeData;
 }
 
-export const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
+export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(data.label);
+  const updateNode = useMindMapEngine((state) => state.updateNode);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
@@ -19,56 +21,60 @@ export const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const handleBlur = useCallback(() => {
     setIsEditing(false);
     if (label !== data.label) {
-      data.label = label;
+      updateNode(id, { label });
     }
-  }, [label, data]);
+  }, [label, data.label, id, updateNode]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       setIsEditing(false);
+      // Commit changes on Enter
+      if (label !== data.label) {
+        updateNode(id, { label });
+      }
     }
-  }, []);
+  }, [label, data.label, id, updateNode]);
 
   const getNodeStyle = () => {
-    const baseStyle = 'px-4 py-2 rounded-lg border-2 transition-all duration-200 shadow-md';
+    const baseStyle = 'px-5 py-3 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-lg';
     
-    // Performance-based colors (adaptive learning)
+    // Performance-based colors (adaptive learning) - Modern palette
     if (data.performance) {
       let performanceStyle = '';
       switch (data.performance.mastery) {
         case 'high':
-          performanceStyle = 'bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100 border-green-500 font-semibold';
+          performanceStyle = 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 border-emerald-300 dark:border-emerald-700 shadow-emerald-100 dark:shadow-emerald-900/20';
           break;
         case 'medium':
-          performanceStyle = 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border-yellow-500 font-semibold';
+          performanceStyle = 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 border-amber-300 dark:border-amber-700 shadow-amber-100 dark:shadow-amber-900/20';
           break;
         case 'low':
-          performanceStyle = 'bg-red-100 dark:bg-red-900/30 text-red-900 dark:text-red-100 border-red-500 font-semibold';
+          performanceStyle = 'bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100 border-rose-300 dark:border-rose-700 shadow-rose-100 dark:shadow-rose-900/20';
           break;
         default:
-          performanceStyle = 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-400';
+          performanceStyle = 'bg-slate-50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
       }
       
-      const selectedStyle = selected ? 'ring-2 ring-primary ring-offset-2' : '';
+      const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-2 shadow-xl scale-105' : 'shadow-md';
       return cn(baseStyle, performanceStyle, selectedStyle);
     }
     
-    // Default type-based styling
+    // Default type-based styling - Modern, clean design
     let typeStyle = '';
     switch (data.type) {
       case 'root':
-        typeStyle = 'bg-primary text-primary-foreground border-primary font-bold text-lg min-w-[200px]';
+        typeStyle = 'bg-gradient-to-br from-blue-500 to-blue-600 text-white border-blue-600 font-bold text-lg min-w-[220px] shadow-lg shadow-blue-500/30';
         break;
       case 'branch':
-        typeStyle = 'bg-secondary text-secondary-foreground border-border font-semibold min-w-[160px]';
+        typeStyle = 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-300 dark:border-slate-600 font-semibold min-w-[180px] shadow-md';
         break;
       case 'leaf':
-        typeStyle = 'bg-card text-card-foreground border-border min-w-[140px]';
+        typeStyle = 'bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 min-w-[150px] shadow-sm';
         break;
     }
 
-    const selectedStyle = selected ? 'ring-2 ring-primary ring-offset-2' : '';
+    const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-2 shadow-xl scale-105' : '';
     
     return cn(baseStyle, typeStyle, selectedStyle);
   };
@@ -93,22 +99,22 @@ export const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-border !w-3 !h-3"
+        className="!bg-blue-400 !w-2 !h-2 !border-2 !border-white hover:!w-3 hover:!h-3 transition-all"
       />
       
       <div className="flex items-center gap-2">
         {data.collapsed !== undefined && (
           <button
-            className="p-0.5 hover:bg-muted rounded"
+            className="p-0.5 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors"
             onClick={(e) => {
               e.stopPropagation();
             }}
             data-testid={`button-collapse-${data.label}`}
           >
             {data.collapsed ? (
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5 opacity-60" />
             ) : (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
             )}
           </button>
         )}
@@ -120,13 +126,13 @@ export const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
             onChange={(e) => setLabel(e.target.value)}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            className="bg-transparent border-none outline-none focus:ring-0 w-full"
+            className="bg-transparent border-none outline-none focus:ring-0 w-full font-medium"
             autoFocus
             data-testid={`input-node-label-${data.label}`}
           />
         ) : (
           <div
-            className="text-center whitespace-nowrap"
+            className="font-medium leading-relaxed"
             style={{
               fontSize: data.fontSize || 14,
               color: data.color,
@@ -141,7 +147,7 @@ export const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-border !w-3 !h-3"
+        className="!bg-blue-400 !w-2 !h-2 !border-2 !border-white hover:!w-3 hover:!h-3 transition-all"
       />
     </div>
   );
