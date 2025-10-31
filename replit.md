@@ -33,6 +33,8 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Enhanced MiniMap: proper colors (performance/type), custom background and borders
   - Improved controls: consistent styling with shadows and borders
   - Better error handling: localized messages for AI generation with detailed feedback
+  - Hidden edge connectors: edges invisíveis (opacity: 0) mantendo sincronização com engine para layout/shortcuts
+  - MiniMap opcional: toggle button na toolbar, desativado por padrão, preserva funcionalidade completa
 
 **2025-10-31: Materiais Não Organizados**
 - Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada
