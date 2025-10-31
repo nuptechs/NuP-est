@@ -29,12 +29,13 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Selection state synchronized with UI for accurate keyboard operations
 - **SimpleMind-Inspired Visual Design:**
   - Clean, minimal, elegant interface inspired by SimpleMind app
-  - Transparent node backgrounds (only root has solid color)
-  - Subtle connection lines with smooth curves (smoothstep edges)
+  - Removed React Flow default wrapper styling (white background, padding, shadows)
+  - Nodes with solid backgrounds: root (blue), branch/leaf (white/slate-800 in dark mode)
+  - Performance nodes with subtle colored backgrounds (emerald-50, amber-50, rose-50)
+  - Subtle connection lines with smooth curves (smoothstep edges, #94a3b8)
   - Refined borders without heavy shadows
-  - Performance-based color tints (10% opacity) instead of solid backgrounds
   - Invisible handles for cleaner appearance
-  - Softer background dots with better spacing
+  - Softer background dots with better spacing (#cbd5e1, 24px gap)
   - Adaptive node sizing with dynamic text width
   - Enhanced MiniMap: proper colors (performance/type), custom background and borders
   - Better error handling: localized messages for AI generation with detailed feedback
