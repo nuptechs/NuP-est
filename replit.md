@@ -10,7 +10,7 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 ## Recent Changes
 
-**2025-10-31: Mind Maps System - Phase 2 Completa + UX Refinement**
+**2025-10-31: Mind Maps System - Phase 2 Completa + UX Refinement + Visual Polish**
 - Implementado sistema completo de Mapas Mentais com arquitetura modular e RAG integration
 - **MindMapGenerator**: Serviço backend que usa HybridSearchService + GPT-4o-mini para gerar mapas mentais
 - **Material → Mind Map**: Pipeline automático que converte materiais em mapas usando análise hierárquica de chunks RAG
@@ -27,6 +27,12 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Keyboard shortcuts: Tab (add child), Enter (add sibling), Delete (remove), Cmd/Ctrl+Z/Y (undo/redo)
   - Double-click to edit node labels
   - Selection state synchronized with UI for accurate keyboard operations
+- **Visual Polish:**
+  - Adaptive node sizing: nodes automatically adjust width based on text content
+  - Clean styling: removed background artifacts, handles positioned correctly
+  - Enhanced MiniMap: proper colors (performance/type), custom background and borders
+  - Improved controls: consistent styling with shadows and borders
+  - Better error handling: localized messages for AI generation with detailed feedback
 
 **2025-10-31: Materiais Não Organizados**
 - Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada
