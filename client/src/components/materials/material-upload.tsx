@@ -66,16 +66,12 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
-      
-      if (subjectId || material?.subjectId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/materials", subjectId || material.subjectId] });
-      }
-      
+      // Invalidate all material queries
       queryClient.invalidateQueries({ 
         predicate: (query) => 
           Array.isArray(query.queryKey) && 
-          query.queryKey[0] === "/api/materials"
+          typeof query.queryKey[0] === 'string' &&
+          query.queryKey[0].startsWith('/api/materials')
       });
       
       toast({
@@ -176,6 +172,7 @@ export default function MaterialUpload({ material, onSuccess, subjectId }: Mater
               <SelectValue placeholder="Selecione uma matéria" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="">Sem disciplina</SelectItem>
               {subjects?.map((subject) => (
                 <SelectItem key={subject.id} value={subject.id}>
                   {subject.name}

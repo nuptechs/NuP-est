@@ -470,8 +470,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/materials', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { subjectId } = req.query;
-      const materials = await storage.getMaterials(userId, subjectId as string);
+      const { subjectId, unorganized } = req.query;
+      const materials = await storage.getMaterials(
+        userId, 
+        subjectId as string, 
+        unorganized === 'true'
+      );
       res.json(materials);
     } catch (error) {
       console.error("Error fetching materials:", error);

@@ -144,7 +144,7 @@ export interface IStorage {
   deleteTopic(id: string): Promise<void>;
 
   // Material operations
-  getMaterials(userId: string, subjectId?: string): Promise<Material[]>;
+  getMaterials(userId: string, subjectId?: string, unorganized?: boolean): Promise<Material[]>;
   getMaterial(id: string): Promise<Material | undefined>;
   createMaterial(material: InsertMaterial): Promise<Material>;
   updateMaterial(id: string, userId: string, updates: Partial<InsertMaterial>): Promise<Material>;
@@ -561,7 +561,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Material operations
-  async getMaterials(userId: string, subjectId?: string): Promise<Material[]> {
+  async getMaterials(userId: string, subjectId?: string, unorganized?: boolean): Promise<Material[]> {
+    if (unorganized) {
+      return await db
+        .select()
+        .from(materials)
+        .where(and(
+          eq(materials.userId, userId),
+          sql`${materials.subjectId} IS NULL`
+        ))
+        .orderBy(desc(materials.createdAt));
+    }
+    
     if (subjectId) {
       return await db
         .select()

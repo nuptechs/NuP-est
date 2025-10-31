@@ -158,6 +158,12 @@ export default function Library() {
     enabled: !!selectedSubjectId,
   });
 
+  // Query for unorganized materials (no subject assigned)
+  const { data: unorganizedMaterials = [] } = useQuery<Material[]>({
+    queryKey: ["/api/materials?unorganized=true"],
+    enabled: isAuthenticated,
+  });
+
   // Get selected subject for material color
   const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
 
@@ -189,9 +195,9 @@ export default function Library() {
     setCreateModalOpen(true);
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: any, forceType?: 'area' | 'subject' | 'material') => {
     setEditItem(item);
-    setCreateType(level === 'areas' ? 'area' : level === 'subjects' ? 'subject' : 'material');
+    setCreateType(forceType || (level === 'areas' ? 'area' : level === 'subjects' ? 'subject' : 'material'));
     setCreateModalOpen(true);
   };
 
@@ -418,6 +424,88 @@ export default function Library() {
               });
             }}
           />
+        )}
+
+        {/* Unorganized Materials Section - Only show at areas level */}
+        {level === 'areas' && unorganizedMaterials.length > 0 && (
+          <div className="space-y-4 pb-8 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <FileText className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">Materiais Não Organizados</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {unorganizedMaterials.length} {unorganizedMaterials.length === 1 ? 'material' : 'materiais'} sem disciplina
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              {unorganizedMaterials.map((item: Material) => (
+                <Card
+                  key={item.id}
+                  className="transition-all hover:shadow-md hover:border-primary/50"
+                  data-testid={`card-unorganized-${item.id}`}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                        <img 
+                          src={getMaterialImage(item.type)} 
+                          alt={`${item.type} icon`}
+                          className="h-10 w-10 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/api/materials/${item.id}/download`;
+                          }}
+                          title="Clique para fazer download"
+                          data-testid={`button-download-${item.id}`}
+                        />
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(item, 'material')}
+                            data-testid={`button-edit-${item.id}`}
+                            className="h-7 w-7 p-0"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(item, 'materials')}
+                            data-testid={`button-delete-${item.id}`}
+                            className="h-7 w-7 p-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate mb-1">
+                          {item.title}
+                        </h3>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {item.description}
+                          </p>
+                        )}
+                        <div className="mt-2">
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-200">
+                            Sem disciplina
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Results Counter */}
