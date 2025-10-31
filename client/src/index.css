@@ -299,6 +299,33 @@
   }
 }
 
+/* === REACT FLOW MIND MAP OVERRIDES === */
+/* Remove default white background and styling from React Flow node wrappers */
+.react-flow__node {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node-default {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node.selected {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Ensure handles remain functional but invisible */
+.react-flow__handle {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* === PRINT STYLES === */
 @media print {
   * {

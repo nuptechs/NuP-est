@@ -37,45 +37,45 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   }, [label, data.label, id, updateNode]);
 
   const getNodeStyle = () => {
-    // SimpleMind-inspired: clean, minimal, elegant
+    // SimpleMind-inspired: clean, minimal, elegant with solid backgrounds
     const baseStyle = 'px-3 py-2 rounded-xl border transition-all duration-200 cursor-pointer inline-block';
     
-    // Performance-based colors (adaptive learning) - Cleaner palette
+    // Performance-based colors (adaptive learning) - Solid backgrounds
     if (data.performance) {
       let performanceStyle = '';
       switch (data.performance.mastery) {
         case 'high':
-          performanceStyle = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 hover:border-emerald-500';
+          performanceStyle = 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-400 dark:border-emerald-600';
           break;
         case 'medium':
-          performanceStyle = 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/50 hover:border-amber-500';
+          performanceStyle = 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-400 dark:border-amber-600';
           break;
         case 'low':
-          performanceStyle = 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/50 hover:border-rose-500';
+          performanceStyle = 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-400 dark:border-rose-600';
           break;
         default:
-          performanceStyle = 'bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-slate-400';
+          performanceStyle = 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600';
       }
       
-      const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-1' : '';
+      const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-0' : '';
       return cn(baseStyle, performanceStyle, selectedStyle);
     }
     
-    // Default type-based styling - SimpleMind clean design
+    // Default type-based styling - SimpleMind clean design with solid colors
     let typeStyle = '';
     switch (data.type) {
       case 'root':
-        typeStyle = 'bg-blue-500 text-white border-blue-600 font-bold text-base hover:bg-blue-600';
+        typeStyle = 'bg-blue-500 text-white border-blue-600 font-bold text-base';
         break;
       case 'branch':
-        typeStyle = 'bg-transparent text-slate-800 dark:text-slate-100 border-slate-400 dark:border-slate-500 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/30';
+        typeStyle = 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-300 dark:border-slate-600 font-semibold';
         break;
       case 'leaf':
-        typeStyle = 'bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/20';
+        typeStyle = 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600';
         break;
     }
 
-    const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-1' : '';
+    const selectedStyle = selected ? 'ring-2 ring-blue-400 ring-offset-0' : '';
     
     return cn(baseStyle, typeStyle, selectedStyle);
   };
