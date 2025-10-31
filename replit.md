@@ -41,6 +41,42 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
   - Better error handling: localized messages for AI generation with detailed feedback
   - MiniMap opcional: toggle button na toolbar, desativado por padrão, preserva funcionalidade completa
 
+**2025-10-31: Sistema de Customização Avançada (SimpleMind-Inspired) - Em Progresso**
+- **Arquitetura de 3 Níveis:**
+  - Level 1: Style Sheets globais (built-in + user custom)
+  - Level 2: Mind Map Styles (overrides por mapa específico)
+  - Level 3: Element Styles (customização individual de nodes/edges)
+- **12 Style Sheets Built-in:**
+  - Clean & Minimal (Light/Dark), Bright Colors, Natural Colors, Pastel Dreams
+  - Ocean Blue, Sunset Warm, Monochrome Elegant, Forest Green
+  - Purple Majesty, Minimal Wireframe, Neon Cyberpunk
+- **Customization Options:**
+  - Node shapes: rounded, rectangle, circle, hexagon, diamond, pill
+  - Colors: fill, border, text (color picker)
+  - Borders: width (0-10px), style (solid/dashed/dotted), radius (0-50px)
+  - Typography: font size (10-32px), weight (normal/medium/semibold/bold)
+  - Edge types: smoothstep, straight, step, bezier
+  - Edge properties: color, width (1-10px), animated
+- **Color Modes (SimpleMind-style):**
+  - Type-based: cor por tipo de nó (root/branch/leaf)
+  - Level-based: cor por nível hierárquico (0, 1, 2, ...)
+  - Branch-based: filhos herdam cor do pai
+  - Performance-based: cor por desempenho do aluno (adaptive learning)
+- **UI Components:**
+  - StylePanel: painel lateral com 3 tabs (Temas, Nós, Linhas)
+  - Color picker, sliders, selects para todas as opções
+  - Preview visual dos temas antes de aplicar
+  - Toggle button no toolbar (ícone Palette)
+- **Zustand Store:**
+  - Gerencia hierarquia de estilos com merge automático
+  - Auto-switch dark/light mode
+  - Computed getters para node/edge styles
+- **Banco de Dados:**
+  - mind_map_style_sheets: style sheets globais
+  - mind_map_element_styles: estilos individuais
+  - mind_maps: styleSheetId e customStyles (JSONB)
+- **Status:** Arquitetura completa, UI implementada, integração com editor funcionando, edges usando style store. Pendente: level-based/branch-based runtime logic, API backend para persistência
+
 **2025-10-31: Materiais Não Organizados**
 - Adicionada seção "Materiais Não Organizados" na Biblioteca para visualizar materiais sem disciplina associada
 - API /api/materials aceita parâmetro ?unorganized=true para filtrar materiais com subject_id IS NULL

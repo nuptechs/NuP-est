@@ -13,6 +13,7 @@ import { MindMapNode as MindMapNodeComponent } from './nodes/MindMapNode';
 import { Toolbar } from './Toolbar';
 import { StylePanel } from './StylePanel';
 import { useMindMapEngine } from '../engine/MindMapEngine';
+import { useStyleStore } from '../store/useStyleStore';
 import type { ExportFormat, MindMapConfig, MindMapData } from '../core/types';
 import { mindMapAI } from '../ai/MindMapAI';
 import { useToast } from '@/hooks/use-toast';
@@ -57,19 +58,29 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   } = useMindMapEngine();
 
   const initialized = useRef(false);
-
-  // Estilizar edges inspirado no SimpleMind (linhas sutis e elegantes)
+  
+  // Apply style store to edges
+  const getEdgeStyle = useStyleStore((state) => state.getEdgeStyle);
   const styledEdges = useMemo(() => {
-    return edges.map(edge => ({
-      ...edge,
-      style: {
-        ...edge.style,
-        stroke: '#94a3b8',
-        strokeWidth: 2,
-      },
-      type: 'smoothstep',
-    }));
-  }, [edges]);
+    // Get default edge style (no elementId = base style from sheet)
+    const defaultEdgeStyle = getEdgeStyle();
+    
+    return edges.map(edge => {
+      // Try to get edge-specific style, fallback to default
+      const edgeStyle = getEdgeStyle(edge.id) || defaultEdgeStyle;
+      
+      return {
+        ...edge,
+        type: edgeStyle.type || 'smoothstep',
+        style: {
+          ...edge.style,
+          stroke: edgeStyle.color || '#94a3b8',
+          strokeWidth: edgeStyle.width || 2,
+        },
+        animated: edgeStyle.animated || false,
+      };
+    });
+  }, [edges, getEdgeStyle]);
 
   useEffect(() => {
     if (!initialized.current) {
