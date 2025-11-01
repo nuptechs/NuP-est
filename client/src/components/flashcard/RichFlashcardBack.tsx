@@ -7,6 +7,10 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Suspense, lazy } from "react";
+
+// Lazy load MindMapViewer for better performance
+const MindMapViewer = lazy(() => import("@/features/mindmaps/components/MindMapViewer"));
 
 interface RichFlashcardBackProps {
   content: string;
@@ -112,13 +116,51 @@ export default function RichFlashcardBack({
         );
 
       case "mindmap":
-        // FASE 2: Mind Map inline viewer (coming next)
+        // FASE 2: Mind Map inline viewer
+        if (!backData?.nodes || !backData?.edges) {
+          return (
+            <div className={`flashcard-mindmap-container ${className}`}>
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="mb-2">🗺️ Mapa Mental Indisponível</p>
+                <p className="text-sm">Dados do mapa mental não encontrados</p>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className={`flashcard-mindmap-container ${className}`}>
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="mb-2">🗺️ Mind Map Viewer</p>
-              <p className="text-sm">FASE 2: Em desenvolvimento</p>
-            </div>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-96 bg-muted/20 rounded-lg animate-pulse">
+                  <div className="text-muted-foreground">Carregando mapa mental...</div>
+                </div>
+              }
+            >
+              <MindMapViewer
+                mindMapData={{
+                  nodes: backData.nodes,
+                  edges: backData.edges,
+                  layout: backData.layout,
+                  styleSheetId: backData.styleSheetId,
+                }}
+                height="500px"
+                showControls={true}
+                showMinimap={false}
+                enableZoom={true}
+                enablePan={true}
+              />
+            </Suspense>
+            
+            {/* Optional: Show fallback text below mind map */}
+            {content && content.trim() !== "" && (
+              <div className="mt-4 p-4 bg-muted/30 rounded-lg border border-border">
+                <p className="text-sm text-muted-foreground mb-2 font-semibold">Descrição textual:</p>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {processMarkdown(content)}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
         );
 
