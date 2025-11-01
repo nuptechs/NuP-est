@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
 import type { NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import type {
@@ -378,3 +379,88 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     };
   },
 }));
+
+// ===== OPTIMIZED SELECTORS =====
+// These selectors reduce unnecessary re-renders by only subscribing to specific state slices
+
+/**
+ * Hook to get only the nodes array
+ * Re-renders only when nodes array reference changes
+ */
+export const useMindMapNodes = () => useMindMapEngine((state) => state.nodes);
+
+/**
+ * Hook to get only the edges array
+ * Re-renders only when edges array reference changes
+ */
+export const useMindMapEdges = () => useMindMapEngine((state) => state.edges);
+
+/**
+ * Hook to get only selected node IDs
+ * Re-renders only when selection changes
+ */
+export const useMindMapSelection = () => useMindMapEngine((state) => state.selectedNodes);
+
+/**
+ * Hook to get only history state (for undo/redo buttons)
+ * Re-renders only when history changes
+ */
+export const useMindMapHistory = () => 
+  useMindMapEngine(
+    useShallow((state) => ({
+      canUndo: state.historyIndex > 0,
+      canRedo: state.historyIndex < state.history.length - 1,
+    }))
+  );
+
+/**
+ * Hook to get only mind map metadata (title, config, etc.)
+ * Re-renders only when mindMap object changes
+ */
+export const useMindMapMetadata = () => useMindMapEngine((state) => state.mindMap);
+
+/**
+ * Hook to get only the action methods (never causes re-renders)
+ * Use this when you only need methods, not state
+ */
+export const useMindMapActions = () =>
+  useMindMapEngine(
+    useShallow((state) => ({
+      initializeMindMap: state.initializeMindMap,
+      loadMindMap: state.loadMindMap,
+      addNode: state.addNode,
+      updateNode: state.updateNode,
+      deleteNode: state.deleteNode,
+      addEdge: state.addEdge,
+      deleteEdge: state.deleteEdge,
+      applyNodesChange: state.applyNodesChange,
+      applyEdgesChange: state.applyEdgesChange,
+      selectNode: state.selectNode,
+      clearSelection: state.clearSelection,
+      collapseNode: state.collapseNode,
+      expandNode: state.expandNode,
+      applyLayout: state.applyLayout,
+      undo: state.undo,
+      redo: state.redo,
+      exportData: state.exportData,
+    }))
+  );
+
+/**
+ * Hook to get nodes and edges together (optimized with shallow comparison)
+ * Use this when you need both nodes and edges
+ */
+export const useMindMapNodesAndEdges = () =>
+  useMindMapEngine(
+    useShallow((state) => ({
+      nodes: state.nodes,
+      edges: state.edges,
+    }))
+  );
+
+/**
+ * Hook to get specific node by ID
+ * Re-renders only when that specific node changes
+ */
+export const useMindMapNode = (nodeId: string) =>
+  useMindMapEngine((state) => state.nodes.find((n) => n.id === nodeId));
