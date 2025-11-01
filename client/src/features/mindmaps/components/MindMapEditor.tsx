@@ -12,7 +12,14 @@ import { toPng, toSvg } from 'html-to-image';
 import { MindMapNode as MindMapNodeComponent } from './nodes/MindMapNode';
 import { Toolbar } from './Toolbar';
 import { StylePanel } from './StylePanel';
-import { useMindMapEngine } from '../engine/MindMapEngine';
+import { 
+  useMindMapEngine,
+  useMindMapNodes,
+  useMindMapEdges,
+  useMindMapSelection,
+  useMindMapHistory,
+  useMindMapActions
+} from '../engine/MindMapEngine';
 import { useStyleStore } from '../store/useStyleStore';
 import type { ExportFormat, MindMapConfig, MindMapData } from '../core/types';
 import { mindMapAI } from '../ai/MindMapAI';
@@ -37,12 +44,15 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false);
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  
+  // Optimized selectors - only re-render when specific slices change
+  const nodes = useMindMapNodes();
+  const edges = useMindMapEdges();
+  const selectedNodes = useMindMapSelection();
+  const { canUndo, canRedo } = useMindMapHistory();
+  
+  // Actions never cause re-renders
   const {
-    nodes,
-    edges,
-    selectedNodes,
-    history,
-    historyIndex,
     initializeMindMap,
     loadMindMap,
     addNode,
@@ -56,7 +66,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     clearSelection,
     collapseNode,
     expandNode,
-  } = useMindMapEngine();
+  } = useMindMapActions();
 
   const initialized = useRef(false);
   
@@ -335,8 +345,8 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           onToggleFocusMode={() => setFocusMode(!focusMode)}
           focusMode={focusMode}
           onApplyAutoLayout={() => applyLayout()}
-          canUndo={historyIndex > 0}
-          canRedo={historyIndex < history.length - 1}
+          canUndo={canUndo}
+          canRedo={canRedo}
           hasSelection={selectedNodes.length > 0}
         />
       )}
