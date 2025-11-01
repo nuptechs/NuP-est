@@ -588,7 +588,13 @@ export const flashcards = pgTable("flashcards", {
   deckId: varchar("deck_id").notNull().references(() => flashcardDecks.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   front: text("front").notNull(), // pergunta
-  back: text("back").notNull(), // resposta
+  back: text("back").notNull(), // resposta (fallback text)
+  
+  // Rich Content Support - FASE 1
+  contentType: varchar("content_type").notNull().default("markdown"), // "markdown" | "mindmap" | "diagram" | "table" | "mixed"
+  backData: jsonb("back_data"), // Structured content (mind map JSON, diagram data, etc.)
+  mindMapId: varchar("mind_map_id").references(() => mindMaps.id, { onDelete: "set null" }), // Optional reference to mind map
+  
   imageUrl: text("image_url"), // URL da imagem/screenshot associada ao flashcard
   order: integer("order").default(0),
   easeFactor: decimal("ease_factor", { precision: 3, scale: 2 }).default("2.5"), // spaced repetition

@@ -1,11 +1,32 @@
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import RichFlashcardBack from "./RichFlashcardBack";
 
 interface FlashcardRendererProps {
   content: string;
+  contentType?: "markdown" | "mindmap" | "diagram" | "table" | "mixed";
+  backData?: any;
+  mindMapId?: string;
 }
 
-export default function FlashcardRenderer({ content }: FlashcardRendererProps) {
+export default function FlashcardRenderer({ 
+  content, 
+  contentType = "markdown",
+  backData,
+  mindMapId 
+}: FlashcardRendererProps) {
+  // Use new RichFlashcardBack component for all rendering
+  return (
+    <RichFlashcardBack
+      content={content}
+      contentType={contentType}
+      backData={backData}
+      mindMapId={mindMapId}
+      className="flashcard-back-content"
+    />
+  );
+}
+
+// Legacy component kept for reference
+function LegacyMarkdownRenderer({ content }: { content: string }) {
   return (
     <ReactMarkdown 
       remarkPlugins={[remarkGfm]}
@@ -146,3 +167,9 @@ export default function FlashcardRenderer({ content }: FlashcardRendererProps) {
     </ReactMarkdown>
   );
 }
+
+// Note: LegacyMarkdownRenderer is kept for reference only.
+// All flashcards now use RichFlashcardBack which provides:
+// - Markdown support (default, backward compatible)
+// - Mind Map inline viewer (FASE 2)
+// - Diagrams, tables, mixed content (FASE 3)
