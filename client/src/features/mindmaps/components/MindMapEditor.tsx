@@ -44,6 +44,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false);
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | undefined>(undefined);
   
   // Optimized selectors - only re-render when specific slices change
   const nodes = useMindMapNodes();
@@ -396,6 +397,16 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
             useMindMapEngine.getState().applyNodesChange(changes);
           }}
           onEdgesChange={(changes) => {
+            // Handle edge selection
+            changes.forEach((change) => {
+              if (change.type === 'select') {
+                if (change.selected) {
+                  setSelectedEdgeId(change.id);
+                } else if (selectedEdgeId === change.id) {
+                  setSelectedEdgeId(undefined);
+                }
+              }
+            });
             useMindMapEngine.getState().applyEdgesChange(changes);
           }}
           onConnect={(connection) => {
@@ -460,6 +471,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         {showStylePanel && !focusMode && (
           <StylePanel 
             selectedNodeId={selectedNodes.length === 1 ? selectedNodes[0] : undefined}
+            selectedEdgeId={selectedEdgeId}
           />
         )}
       </div>
