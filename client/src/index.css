@@ -326,6 +326,16 @@
   border: none !important;
 }
 
+/* === ANIMATIONS === */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 /* === PRINT STYLES === */
 @media print {
   * {
