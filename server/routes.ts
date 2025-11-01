@@ -41,6 +41,10 @@ import { processedFileService } from "./services/ProcessedFileService";
 // Sistema de IA com injeção de dependência
 import { aiAnalyze, getAIManager } from './services/ai/index';
 
+// FASE 3: Flashcard-MindMap bidirectional generation
+import { generateFlashcardsFromMindMap, suggestContentType } from './services/flashcard-generator';
+import { generateMindMapFromFlashcards } from './services/mindmap-generator';
+
 // Serviços personalizados de AI
 import { AdaptiveContentDelivery } from './services/personalized-assistant/AdaptiveContentDelivery';
 import { PersonalizedAssistantCore } from './services/personalized-assistant/PersonalizedAssistantCore';
@@ -1746,6 +1750,120 @@ ${text}`;
     } catch (error) {
       console.error("Error recording flashcard review:", error);
       res.status(400).json({ message: "Failed to record flashcard review" });
+    }
+  });
+
+  // FASE 3: Bidirectional Generation Routes
+  
+  // Generate flashcards from mind map
+  app.post('/api/flashcards/generate-from-mindmap', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { mindMapId, deckId, nodes, edges, difficulty, maxCards } = req.body;
+
+      if (!nodes || !edges) {
+        return res.status(400).json({ message: "Mind map nodes and edges are required" });
+      }
+
+      // Generate flashcards using AI
+      const generatedCards = await generateFlashcardsFromMindMap(
+        nodes,
+        edges,
+        {
+          maxCards: maxCards || 20,
+          difficulty: difficulty || "medium",
+          includeContext: true,
+        }
+      );
+
+      // Create flashcards in database
+      const createdFlashcards = [];
+      for (const card of generatedCards) {
+        const flashcardData = insertFlashcardSchema.parse({
+          deckId,
+          userId,
+          front: card.front,
+          back: card.back,
+          contentType: card.contentType,
+          order: card.order,
+          mindMapId: mindMapId || null,
+        });
+        const created = await storage.createFlashcard(flashcardData);
+        createdFlashcards.push(created);
+      }
+
+      res.json({
+        success: true,
+        flashcards: createdFlashcards,
+        count: createdFlashcards.length,
+      });
+    } catch (error) {
+      console.error("Error generating flashcards from mind map:", error);
+      res.status(500).json({ message: "Failed to generate flashcards from mind map" });
+    }
+  });
+
+  // Generate mind map from flashcards
+  app.post('/api/mindmaps/generate-from-flashcards', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { deckId, flashcardIds, title, layout } = req.body;
+
+      let flashcards;
+      if (flashcardIds && Array.isArray(flashcardIds)) {
+        // Use specific flashcards
+        flashcards = await Promise.all(
+          flashcardIds.map((id: string) => storage.getFlashcard(id))
+        );
+      } else if (deckId) {
+        // Use all flashcards from deck
+        flashcards = await storage.getFlashcardsByDeck(deckId);
+      } else {
+        return res.status(400).json({ message: "Either deckId or flashcardIds is required" });
+      }
+
+      if (!flashcards || flashcards.length === 0) {
+        return res.status(400).json({ message: "No flashcards found" });
+      }
+
+      // Generate mind map
+      const mindMapData = await generateMindMapFromFlashcards(
+        flashcards as any[],
+        {
+          title: title || "Mapa Mental - Flashcards",
+          useAI: true,
+          layout: layout || "horizontal",
+        }
+      );
+
+      res.json({
+        success: true,
+        mindMap: mindMapData,
+      });
+    } catch (error) {
+      console.error("Error generating mind map from flashcards:", error);
+      res.status(500).json({ message: "Failed to generate mind map from flashcards" });
+    }
+  });
+
+  // Suggest best content type for flashcard
+  app.post('/api/flashcards/suggest-content-type', isAuthenticated, async (req: any, res) => {
+    try {
+      const { front, back } = req.body;
+
+      if (!front || !back) {
+        return res.status(400).json({ message: "Front and back content are required" });
+      }
+
+      const suggestedType = await suggestContentType(front, back);
+
+      res.json({
+        success: true,
+        contentType: suggestedType,
+      });
+    } catch (error) {
+      console.error("Error suggesting content type:", error);
+      res.status(500).json({ message: "Failed to suggest content type" });
     }
   });
 
