@@ -10,7 +10,86 @@ interface MermaidNode {
 
 export class MindMapAIService {
   private apiEndpoint = '/api/mindmaps/generate';
+  private jobsEndpoint = '/api/mindmaps/jobs';
 
+  /**
+   * Create an async generation job (recommended - non-blocking with progress)
+   * Returns a jobId that can be polled for status
+   */
+  async createGenerationJob(options: AIGenerationOptions): Promise<string> {
+    try {
+      const response = await fetch(this.jobsEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'prompt',
+          prompt: options.prompt,
+          subjectId: options.subjectId,
+          useRAG: options.useRAG ?? true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create generation job: ${errorText}`);
+      }
+
+      const data = await response.json();
+      return data.jobId;
+    } catch (error) {
+      console.error('[MindMapAI] Error creating job:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create an async generation job from material
+   */
+  async createMaterialGenerationJob(materialId: string): Promise<string> {
+    try {
+      const response = await fetch(this.jobsEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'material',
+          materialId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create material generation job: ${errorText}`);
+      }
+
+      const data = await response.json();
+      return data.jobId;
+    } catch (error) {
+      console.error('[MindMapAI] Error creating material job:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get job status and result
+   */
+  async getJobStatus(jobId: string): Promise<any> {
+    const response = await fetch(`${this.jobsEndpoint}/${jobId}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch job status');
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Legacy: Generate from prompt (synchronous - blocks until complete)
+   * Use createGenerationJob for better UX with progress tracking
+   */
   async generateFromPrompt(options: AIGenerationOptions): Promise<MindMapData> {
     try {
       console.log('[MindMapAI] Sending request with options:', options);
