@@ -5,7 +5,7 @@ import { mindMapGenerator } from './services/mindmap/MindMapGenerator';
 
 export function registerMindMapRoutes(router: Router, storage: IStorage) {
   // Get all mind maps for a user
-  router.get('/mindmaps', async (req: any, res) => {
+  router.get('/api/mindmaps', async (req: any, res) => {
     if (!req.user) {
       return res.status(401).send('Unauthorized');
     }
@@ -22,7 +22,7 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
   });
 
   // Get a specific mind map
-  router.get('/mindmaps/:id', async (req: any, res) => {
+  router.get('/api/mindmaps/:id', async (req: any, res) => {
     if (!req.user) {
       return res.status(401).send('Unauthorized');
     }
@@ -44,7 +44,7 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
   });
 
   // Create a new mind map
-  router.post('/mindmaps', async (req: any, res) => {
+  router.post('/api/mindmaps', async (req: any, res) => {
     if (!req.user) {
       return res.status(401).send('Unauthorized');
     }
@@ -64,7 +64,7 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
   });
 
   // Update a mind map
-  router.patch('/mindmaps/:id', async (req: any, res) => {
+  router.patch('/api/mindmaps/:id', async (req: any, res) => {
     if (!req.user) {
       return res.status(401).send('Unauthorized');
     }
@@ -81,7 +81,7 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
   });
 
   // Delete a mind map
-  router.delete('/mindmaps/:id', async (req: any, res) => {
+  router.delete('/api/mindmaps/:id', async (req: any, res) => {
     if (!req.user) {
       return res.status(401).send('Unauthorized');
     }
@@ -97,7 +97,7 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
   });
 
   // Generate mind map using AI
-  router.post('/mindmaps/generate', async (req: any, res) => {
+  router.post('/api/mindmaps/generate', async (req: any, res) => {
     if (!req.user) {
       return res.status(401).send('Unauthorized');
     }
@@ -137,7 +137,7 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
   });
 
   // Generate mind map from material
-  router.post('/mindmaps/generate-from-material/:materialId', async (req: any, res) => {
+  router.post('/api/mindmaps/generate-from-material/:materialId', async (req: any, res) => {
     if (!req.user) {
       return res.status(401).send('Unauthorized');
     }
