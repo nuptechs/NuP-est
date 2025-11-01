@@ -198,7 +198,10 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
                     <div className="space-y-8">
                       {/* Bold Modern Typography */}
                       <div className="prose prose-xl max-w-[75ch] text-left">
-                        <FlashcardRenderer content={decodeContent(currentCard.front)} />
+                        <FlashcardRenderer 
+                          content={decodeContent(currentCard.front)}
+                          contentType="markdown"
+                        />
                       </div>
 
                       <div className="flex items-center gap-3 text-muted-foreground text-base mt-12">
@@ -217,7 +220,12 @@ export default function ModernFlashcard({ flashcards, currentIndex, onNext, onPr
                     data-testid="flashcard-content"
                   >
                     <div className="prose prose-xl max-w-[75ch] text-left">
-                      <FlashcardRenderer content={decodeContent(currentCard.back)} />
+                      <FlashcardRenderer 
+                        content={decodeContent(currentCard.back)}
+                        contentType={(currentCard as any).contentType || "markdown"}
+                        backData={(currentCard as any).backData}
+                        mindMapId={(currentCard as any).mindMapId}
+                      />
                     </div>
                   </div>
                 )}

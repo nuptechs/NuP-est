@@ -1,4 +1,6 @@
 import RichFlashcardBack from "./RichFlashcardBack";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface FlashcardRendererProps {
   content: string;
