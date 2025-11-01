@@ -20,9 +20,16 @@ export class MindMapGenerator {
     this.hybridSearch = new HybridSearchService();
   }
 
-  async generateFromMaterial(material: Material, userId: string): Promise<string> {
+  async generateFromMaterial(
+    material: Material, 
+    userId: string,
+    onProgress?: (progress: number) => void
+  ): Promise<string> {
     try {
+      onProgress?.(10); // Starting
+
       // 1. Buscar chunks relacionados ao material usando RAG
+      onProgress?.(20); // Starting search
       const searchResults = await this.hybridSearch.search(material.title, {
         userId,
         topK: 30,
@@ -33,14 +40,20 @@ export class MindMapGenerator {
         throw new Error('No content found in material');
       }
 
+      onProgress?.(50); // Search complete, building hierarchy
+
       // 2. Construir hierarquia a partir dos chunks
       const hierarchy = this.buildHierarchyFromChunks(searchResults);
+
+      onProgress?.(70); // Hierarchy built, generating mermaid
 
       // 3. Gerar Mermaid syntax usando GPT-4o-mini
       const mermaidSyntax = await this.generateMermaidFromHierarchy(
         material.title,
         hierarchy
       );
+
+      onProgress?.(90); // Generation complete
 
       return mermaidSyntax;
     } catch (error) {
@@ -53,13 +66,21 @@ export class MindMapGenerator {
     prompt: string,
     userId: string,
     subjectId?: string,
-    useRAG: boolean = true
+    useRAG: boolean = true,
+    onProgress?: (progress: number) => void
   ): Promise<string> {
     try {
+      onProgress?.(10); // Starting
+
       if (!useRAG) {
+        onProgress?.(50); // Halfway
         // Geração pura sem RAG
-        return await this.generateMermaidFromPromptOnly(prompt);
+        const result = await this.generateMermaidFromPromptOnly(prompt);
+        onProgress?.(90);
+        return result;
       }
+
+      onProgress?.(20); // Starting RAG search
 
       // 1. Buscar conteúdo relacionado via RAG
       const searchResults = await this.hybridSearch.search(prompt, {
@@ -68,11 +89,15 @@ export class MindMapGenerator {
         category: subjectId,
       });
 
+      onProgress?.(50); // Search complete, generating
+
       // 2. Gerar mapa mental com contexto RAG
       const mermaidSyntax = await this.generateMermaidWithRAGContext(
         prompt,
         searchResults || []
       );
+
+      onProgress?.(90); // Generation complete
 
       return mermaidSyntax;
     } catch (error) {
