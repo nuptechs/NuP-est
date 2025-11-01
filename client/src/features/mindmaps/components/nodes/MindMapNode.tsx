@@ -226,8 +226,10 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
         onClick={handleAddChild}
         className={cn(
           "absolute -bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 z-10",
-          // Always visible on mobile/tablet, hover-only on desktop
-          isHovered ? "opacity-100" : "opacity-0 md:opacity-100 pointer-events-auto"
+          // Mobile (<md): always visible (opacity-100)
+          // Desktop (md+): visible only on hover
+          "opacity-100 md:opacity-0",
+          isHovered && "md:opacity-100"
         )}
         data-testid={`button-add-child-${data.label}`}
         title="Adicionar nó filho"
