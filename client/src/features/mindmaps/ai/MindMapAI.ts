@@ -31,8 +31,16 @@ export class MindMapAIService {
         throw new Error(`Failed to generate mind map: ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('[MindMapAI] Received data:', { hasMermaid: !!data.mermaid, mermaidLength: data.mermaid?.length });
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('[MindMapAI] Raw response text:', responseText.substring(0, 200));
+        data = JSON.parse(responseText);
+        console.log('[MindMapAI] Parsed data:', { hasMermaid: !!data.mermaid, mermaidLength: data.mermaid?.length });
+      } catch (parseError) {
+        console.error('[MindMapAI] JSON parse error:', parseError);
+        throw new Error('Invalid JSON response from server');
+      }
 
       if (!data.mermaid || typeof data.mermaid !== 'string' || data.mermaid.trim().length === 0) {
         console.error('[MindMapAI] Invalid mermaid data received:', data);
