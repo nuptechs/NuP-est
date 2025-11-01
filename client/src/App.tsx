@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -9,10 +9,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard-simple";
 import Library from "@/pages/library";
-import { MindMapLoadingSkeleton } from "@/features/mindmaps/components/MindMapLoadingSkeleton";
-
-// Code-split heavy features for better performance
-const MindMapApp = lazy(() => import("@/features/mindmaps"));
+import MindMapApp from "@/features/mindmaps";
 
 // Subjects and Materials pages removed - now handled by unified Library page
 import Study from "@/pages/study";
@@ -74,11 +71,7 @@ function Router() {
           
           {/* Nova biblioteca unificada */}
           <Route path="/library" component={Library} />
-          <Route path="/mind-maps">
-            <Suspense fallback={<MindMapLoadingSkeleton />}>
-              <MindMapApp />
-            </Suspense>
-          </Route>
+          <Route path="/mind-maps" component={MindMapApp} />
           
           {/* Rotas legadas - redirecionam para biblioteca usando SPA navigation */}
           <Route path="/subjects" component={() => <Redirect to="/library?type=subjects" />} />
