@@ -23,21 +23,18 @@ export class MindMapGenerator {
   async generateFromMaterial(material: Material, userId: string): Promise<string> {
     try {
       // 1. Buscar chunks relacionados ao material usando RAG
-      const searchResults = await this.hybridSearch.search({
+      const searchResults = await this.hybridSearch.search(material.title, {
         userId,
-        query: material.title,
-        limit: 30,
-        filters: {
-          materialId: material.id,
-        },
+        topK: 30,
+        materialIds: [material.id],
       });
 
-      if (!searchResults.results || searchResults.results.length === 0) {
+      if (!searchResults || searchResults.length === 0) {
         throw new Error('No content found in material');
       }
 
       // 2. Construir hierarquia a partir dos chunks
-      const hierarchy = this.buildHierarchyFromChunks(searchResults.results);
+      const hierarchy = this.buildHierarchyFromChunks(searchResults);
 
       // 3. Gerar Mermaid syntax usando GPT-4o-mini
       const mermaidSyntax = await this.generateMermaidFromHierarchy(
@@ -65,17 +62,16 @@ export class MindMapGenerator {
       }
 
       // 1. Buscar conteúdo relacionado via RAG
-      const searchResults = await this.hybridSearch.search({
+      const searchResults = await this.hybridSearch.search(prompt, {
         userId,
-        query: prompt,
-        limit: 20,
-        filters: subjectId ? { subjectId } : undefined,
+        topK: 20,
+        category: subjectId,
       });
 
       // 2. Gerar mapa mental com contexto RAG
       const mermaidSyntax = await this.generateMermaidWithRAGContext(
         prompt,
-        searchResults.results || []
+        searchResults || []
       );
 
       return mermaidSyntax;
