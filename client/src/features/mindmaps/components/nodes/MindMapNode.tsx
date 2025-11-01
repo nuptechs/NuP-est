@@ -221,17 +221,19 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
         className="!opacity-0 !w-2 !h-2"
       />
 
-      {/* Add child button - appears on hover */}
-      {isHovered && (
-        <button
-          onClick={handleAddChild}
-          className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 z-10"
-          data-testid={`button-add-child-${data.label}`}
-          title="Adicionar nó filho"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      )}
+      {/* Add child button - always visible on mobile, hover on desktop */}
+      <button
+        onClick={handleAddChild}
+        className={cn(
+          "absolute -bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 z-10",
+          // Always visible on mobile/tablet, hover-only on desktop
+          isHovered ? "opacity-100" : "opacity-0 md:opacity-100 pointer-events-auto"
+        )}
+        data-testid={`button-add-child-${data.label}`}
+        title="Adicionar nó filho"
+      >
+        <Plus className="w-4 h-4" />
+      </button>
     </div>
   );
 });

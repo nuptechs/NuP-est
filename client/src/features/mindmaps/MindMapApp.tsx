@@ -5,7 +5,7 @@ import { MindMapEditor } from './components/MindMapEditor';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, ArrowLeft, Filter } from 'lucide-react';
-import type { MindMap, Subject } from '@db/schema';
+import type { MindMap, Subject } from '@shared/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 /**
@@ -31,10 +31,8 @@ export default function MindMapApp() {
 
   const createMutation = useMutation({
     mutationFn: async (mindMapData: any) => {
-      return await apiRequest('/api/mindmaps', {
-        method: 'POST',
-        body: JSON.stringify(mindMapData),
-      });
+      const res = await apiRequest('POST', '/api/mindmaps', mindMapData);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/mindmaps'] });
@@ -44,10 +42,8 @@ export default function MindMapApp() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return await apiRequest(`/api/mindmaps/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
+      const res = await apiRequest('PATCH', `/api/mindmaps/${id}`, data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/mindmaps'] });

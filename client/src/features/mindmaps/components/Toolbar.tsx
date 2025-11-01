@@ -70,10 +70,10 @@ export function Toolbar({
           onClick={onAddNode}
           data-testid="button-add-node"
           className="h-8 px-2"
-          title="Adicionar nó"
+          title="Adicionar nó filho ao nó selecionado"
         >
           <Plus className="w-4 h-4 sm:mr-1" />
-          <span className="hidden sm:inline">Add Node</span>
+          <span className="hidden sm:inline">Adicionar</span>
         </Button>
         <Button
           variant="ghost"
@@ -82,10 +82,10 @@ export function Toolbar({
           disabled={!hasSelection}
           data-testid="button-delete-node"
           className="h-8 px-2"
-          title="Deletar"
+          title="Deletar nó selecionado"
         >
           <Trash2 className="w-4 h-4 sm:mr-1" />
-          <span className="hidden sm:inline">Delete</span>
+          <span className="hidden sm:inline">Deletar</span>
         </Button>
       </div>
 
@@ -178,10 +178,10 @@ export function Toolbar({
           onClick={onGenerateAI}
           data-testid="button-generate-ai"
           className="h-8 px-2"
-          title="Gerar com IA"
+          title="Gerar mapa mental com IA"
         >
           <Sparkles className="w-4 h-4 sm:mr-1" />
-          <span className="hidden lg:inline">AI Generate</span>
+          <span className="hidden lg:inline">Gerar IA</span>
         </Button>
       </div>
 

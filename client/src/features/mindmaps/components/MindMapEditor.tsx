@@ -338,11 +338,11 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
       <div className="flex flex-col md:flex-row" style={{ height: 'calc(100% - 64px)' }}>
         <div 
           ref={reactFlowWrapper} 
+          className="md:h-full"
           style={{ 
-            width: showStylePanel ? 'calc(100% - 320px)' : '100%', 
+            width: showStylePanel ? 'calc(100% - min(320px, 35vw))' : '100%', 
             height: showStylePanel ? '60%' : '100%',
           }}
-          className="md:h-full"
         >
         <ReactFlow
           nodes={nodes}
@@ -384,8 +384,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           <Background 
             color="#cbd5e1" 
             gap={24} 
-            size={1} 
-            variant="dots"
+            size={1}
             className="dark:opacity-30"
           />
           {config?.showControls !== false && (
