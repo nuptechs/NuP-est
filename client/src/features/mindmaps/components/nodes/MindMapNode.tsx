@@ -5,7 +5,7 @@ import { useMindMapEngine } from '../../engine/MindMapEngine';
 import { useStyleStore } from '../../store/useStyleStore';
 import { getColorFromPalette } from '../../utils/hierarchyUtils';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 
 interface MindMapNodeProps extends NodeProps {
   data: MindMapNodeData;
@@ -13,8 +13,10 @@ interface MindMapNodeProps extends NodeProps {
 
 export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [label, setLabel] = useState(data.label);
   const updateNode = useMindMapEngine((state) => state.updateNode);
+  const addNode = useMindMapEngine((state) => state.addNode);
   
   // Get style configuration from store
   const currentStyleSheet = useStyleStore((state) => state.currentStyleSheet);
@@ -41,6 +43,15 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       }
     }
   }, [label, data.label, id, updateNode]);
+
+  const handleAddChild = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Generate auto label based on number of children
+    const childrenCount = useMindMapEngine.getState().edges.filter(edge => edge.source === id).length;
+    const newLabel = `Novo ${childrenCount + 1}`;
+    addNode(id, newLabel);
+  }, [id, addNode]);
 
   // Compute final node style based on color mode
   const computedStyle = useCallback(() => {
@@ -129,7 +140,12 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   };
 
   return (
-    <div className="relative" onDoubleClick={handleDoubleClick}>
+    <div 
+      className="relative" 
+      onDoubleClick={handleDoubleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <Handle
         type="target"
         position={Position.Top}
@@ -204,6 +220,18 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
         position={Position.Bottom}
         className="!opacity-0 !w-2 !h-2"
       />
+
+      {/* Add child button - appears on hover */}
+      {isHovered && (
+        <button
+          onClick={handleAddChild}
+          className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 z-10"
+          data-testid={`button-add-child-${data.label}`}
+          title="Adicionar nó filho"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 });
