@@ -351,6 +351,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           nodesDraggable={true}
           nodesConnectable={false}
           elementsSelectable={true}
+          className="bg-background"
           onNodesChange={(changes) => {
             // Handle selection/deselection
             changes.forEach((change) => {
@@ -382,14 +383,14 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           maxZoom={2}
         >
           <Background 
-            color="#cbd5e1" 
-            gap={24} 
-            size={1}
-            className="dark:opacity-30"
+            color="hsl(var(--border))" 
+            gap={20} 
+            size={0.5}
+            className="opacity-30 dark:opacity-20"
           />
           {config?.showControls !== false && (
             <Controls 
-              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg"
+              className="bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-lg"
             />
           )}
           {showMinimap && (
@@ -404,25 +405,25 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
                     case 'low':
                       return '#ef4444';
                     default:
-                      return '#94a3b8';
+                      return 'hsl(var(--muted))';
                   }
                 }
                 switch (node.data.type) {
                   case 'root':
-                    return '#3b82f6';
+                    return 'hsl(var(--primary))';
                   case 'branch':
-                    return '#64748b';
+                    return 'hsl(var(--muted-foreground))';
                   default:
-                    return '#cbd5e1';
+                    return 'hsl(var(--muted))';
                 }
               }}
-              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg"
-              maskColor="rgb(241, 245, 249, 0.8)"
+              className="bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-lg"
+              maskColor="hsl(var(--background) / 0.8)"
             />
           )}
           <Panel position="top-right">
-            <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 shadow-lg font-medium">
-              {nodes.length} {nodes.length === 1 ? 'node' : 'nodes'}
+            <div className="bg-background/95 backdrop-blur-sm border border-border px-4 py-2 rounded-xl text-sm text-muted-foreground shadow-md font-medium">
+              {nodes.length} {nodes.length === 1 ? 'nó' : 'nós'}
             </div>
           </Panel>
         </ReactFlow>

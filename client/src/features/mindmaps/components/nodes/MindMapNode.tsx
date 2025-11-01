@@ -141,7 +141,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
 
   return (
     <div 
-      className="relative" 
+      className="relative group" 
       onDoubleClick={handleDoubleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -154,8 +154,10 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       
       <div
         className={cn(
-          'px-3 py-2 border transition-all duration-200 cursor-pointer inline-block',
-          selected && 'ring-2 ring-blue-400 ring-offset-0',
+          'px-4 py-2.5 border transition-all duration-300 cursor-pointer inline-block',
+          'shadow-sm hover:shadow-md',
+          selected && 'ring-2 ring-primary ring-offset-2 shadow-lg scale-105',
+          isHovered && !selected && 'shadow-md',
           getShapeClass()
         )}
         style={{
@@ -165,19 +167,19 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
           borderRadius: `${nodeStyle.borderRadius}px`,
         }}
       >
-        <div className="flex items-center gap-2 whitespace-nowrap">
+        <div className="flex items-center gap-2.5 whitespace-nowrap">
           {data.collapsed !== undefined && (
             <button
-              className="p-0.5 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors flex-shrink-0"
+              className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-md transition-all duration-200 flex-shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
               }}
               data-testid={`button-collapse-${data.label}`}
             >
               {data.collapsed ? (
-                <ChevronRight className="w-3 h-3 opacity-50" />
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
               ) : (
-                <ChevronDown className="w-3 h-3 opacity-50" />
+                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               )}
             </button>
           )}
@@ -201,7 +203,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
             />
           ) : (
             <div
-              className="font-medium leading-tight"
+              className="font-medium leading-snug tracking-tight"
               style={{
                 fontSize: `${nodeStyle.fontSize}px`,
                 fontWeight: nodeStyle.fontWeight,
@@ -225,7 +227,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       <button
         onClick={handleAddChild}
         className={cn(
-          "absolute -bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 z-10",
+          "absolute -bottom-5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110 z-10",
           // Mobile (<md): always visible (opacity-100)
           // Desktop (md+): visible only on hover
           "opacity-100 md:opacity-0",
@@ -234,7 +236,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
         data-testid={`button-add-child-${data.label}`}
         title="Adicionar nó filho"
       >
-        <Plus className="w-4 h-4" />
+        <Plus className="w-4 h-4" strokeWidth={2.5} />
       </button>
     </div>
   );
