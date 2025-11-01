@@ -125,29 +125,45 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const getShapeClass = () => {
     switch (nodeStyle.shape) {
       case 'circle':
-        return 'rounded-full aspect-square flex items-center justify-center';
+        return 'rounded-full min-w-[100px] aspect-square flex items-center justify-center p-3';
       case 'ellipse':
-        return 'rounded-full';
+        return 'rounded-full min-w-[120px] px-6';
       case 'hexagon':
-        return '[clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)]';
+        // Perfect hexagon with flat top/bottom
+        return '[clip-path:polygon(25%_0%,75%_0%,100%_50%,75%_100%,25%_100%,0%_50%)] min-w-[100px] aspect-square flex items-center justify-center p-3';
       case 'diamond':
-        return '[clip-path:polygon(50%_0%,100%_50%,50%_100%,0%_50%)]';
+        // Perfect diamond/rhombus
+        return '[clip-path:polygon(50%_0%,100%_50%,50%_100%,0%_50%)] min-w-[100px] aspect-square flex items-center justify-center p-3';
       case 'rectangle':
-        return 'rounded-none';
+        return 'rounded-none min-w-[80px]';
       case 'pill':
-        return 'rounded-full';
+        return 'rounded-full min-w-[100px] px-5';
       case 'parallelogram':
-        return '[clip-path:polygon(15%_0%,100%_0%,85%_100%,0%_100%)]';
+        // Professional parallelogram with 15° skew
+        return '[clip-path:polygon(20%_0%,100%_0%,80%_100%,0%_100%)] min-w-[120px] px-6';
       case 'trapezoid':
-        return '[clip-path:polygon(20%_0%,80%_0%,100%_100%,0%_100%)]';
+        // Isosceles trapezoid
+        return '[clip-path:polygon(15%_0%,85%_0%,100%_100%,0%_100%)] min-w-[120px] px-5';
       case 'octagon':
-        return '[clip-path:polygon(30%_0%,70%_0%,100%_30%,100%_70%,70%_100%,30%_100%,0%_70%,0%_30%)]';
+        // Regular octagon
+        return '[clip-path:polygon(30%_0%,70%_0%,100%_30%,100%_70%,70%_100%,30%_100%,0%_70%,0%_30%)] min-w-[100px] aspect-square flex items-center justify-center p-3';
       case 'star':
-        return '[clip-path:polygon(50%_0%,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]';
+        // 5-pointed star with better proportions
+        return '[clip-path:polygon(50%_0%,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)] min-w-[110px] aspect-square flex items-center justify-center p-4';
       case 'rounded':
       default:
-        return 'rounded-lg';
+        return 'rounded-lg min-w-[80px]';
     }
+  };
+  
+  const getBorderRadiusStyle = () => {
+    // Only apply borderRadius for shapes that actually need the inline style
+    // Circle, ellipse, and pill use Tailwind's rounded-full which is always 9999px
+    const shapesWithBorderRadius = ['rounded', 'rectangle'];
+    if (shapesWithBorderRadius.includes(nodeStyle.shape)) {
+      return { borderRadius: `${nodeStyle.borderRadius}px` };
+    }
+    return {};
   };
 
   const getTypeIcon = () => {
@@ -206,7 +222,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       
       <div
         className={cn(
-          'px-4 py-2.5 border transition-all duration-300 cursor-grab active:cursor-grabbing inline-block',
+          'px-4 py-2.5 border transition-all duration-300 cursor-grab active:cursor-grabbing',
           'shadow-sm hover:shadow-md',
           selected && 'ring-2 ring-primary ring-offset-2 shadow-lg scale-105',
           isHovered && !selected && 'shadow-md',
@@ -216,7 +232,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
           backgroundColor: nodeStyle.backgroundColor,
           borderColor: nodeStyle.borderColor,
           borderWidth: `${nodeStyle.borderWidth}px`,
-          borderRadius: `${nodeStyle.borderRadius}px`,
+          ...getBorderRadiusStyle(),
         }}
       >
         <div className="flex items-center gap-2.5 whitespace-nowrap">
