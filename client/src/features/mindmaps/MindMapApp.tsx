@@ -4,9 +4,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { MindMapEditor } from './components/MindMapEditor';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, ArrowLeft, Filter } from 'lucide-react';
+import { Plus, ArrowLeft, Filter, Sparkles } from 'lucide-react';
 import type { MindMap, Subject } from '@shared/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import GenerateFlashcardsDialog from '@/components/dialogs/GenerateFlashcardsDialog';
 
 /**
  * MindMapApp - Entry Point for Mind Maps Feature Module
@@ -20,6 +21,7 @@ export default function MindMapApp() {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [filterSubjectId, setFilterSubjectId] = useState<string | 'all'>('all');
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
 
   const { data: mindMaps, isLoading } = useQuery<MindMap[]>({
     queryKey: ['/api/mindmaps'],
@@ -73,9 +75,23 @@ export default function MindMapApp() {
             <ArrowLeft className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Voltar</span>
           </Button>
-          <h1 className="text-base sm:text-lg font-semibold truncate">
+          <h1 className="text-base sm:text-lg font-semibold truncate flex-1">
             {isCreating ? 'Novo Mapa Mental' : selectedMap?.title}
           </h1>
+          
+          {/* FASE 3: Generate Flashcards Button */}
+          {!isCreating && selectedMap && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowGenerateDialog(true)}
+              data-testid="button-generate-flashcards"
+              className="hidden sm:flex"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Gerar Flashcards
+            </Button>
+          )}
         </div>
         <div className="flex-1 overflow-hidden">
           <ReactFlowProvider>
@@ -107,6 +123,19 @@ export default function MindMapApp() {
             />
           </ReactFlowProvider>
         </div>
+        
+        {/* FASE 3: Generate Flashcards Dialog */}
+        {selectedMap && (
+          <GenerateFlashcardsDialog
+            open={showGenerateDialog}
+            onOpenChange={setShowGenerateDialog}
+            mindMapId={selectedMap.id}
+            mindMapData={{
+              nodes: (selectedMap.content as any)?.nodes || [],
+              edges: (selectedMap.content as any)?.edges || [],
+            }}
+          />
+        )}
       </div>
     );
   }

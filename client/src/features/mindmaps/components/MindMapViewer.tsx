@@ -16,10 +16,9 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import MindMapNode from "./nodes/MindMapNode";
+import { MindMapNode } from "./nodes/MindMapNode";
 import { Button } from "@/components/ui/button";
 import { ZoomIn, ZoomOut, Maximize2, Download } from "lucide-react";
-import { useMindMapStyles } from "../hooks/useMindMapStyles";
 import { toPng } from "html-to-image";
 
 const nodeTypes = {
@@ -53,15 +52,6 @@ function MindMapViewerContent({
   const [nodes, setNodes, onNodesChange] = useNodesState(mindMapData.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(mindMapData.edges || []);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
-
-  // Load style sheet if specified
-  const { loadStyleSheet } = useMindMapStyles();
-
-  useEffect(() => {
-    if (mindMapData.styleSheetId) {
-      loadStyleSheet(mindMapData.styleSheetId);
-    }
-  }, [mindMapData.styleSheetId, loadStyleSheet]);
 
   // Update nodes/edges when data changes
   useEffect(() => {

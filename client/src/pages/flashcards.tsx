@@ -43,10 +43,12 @@ import {
   Pencil,
   MoreVertical,
   Search,
-  Home
+  Home,
+  Map
 } from "lucide-react";
 import type { FlashcardDeck, Flashcard, Subject, Material } from "@shared/schema";
 import type { BreadcrumbItem } from "@/components/ui/page-header";
+import GenerateMindMapDialog from "@/components/dialogs/GenerateMindMapDialog";
 
 const createDeckSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -396,6 +398,8 @@ export default function Flashcards() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deckToDelete, setDeckToDelete] = useState<FlashcardDeck | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [generateMindMapOpen, setGenerateMindMapOpen] = useState(false);
+  const [deckForMindMap, setDeckForMindMap] = useState<FlashcardDeck | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -1054,6 +1058,17 @@ export default function Flashcards() {
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem 
+                          onClick={() => {
+                            setDeckForMindMap(deck);
+                            setGenerateMindMapOpen(true);
+                          }} 
+                          data-testid={`button-generate-mindmap-${deck.id}`}
+                          disabled={(deck.totalCards || 0) === 0}
+                        >
+                          <Map className="h-4 w-4 mr-2" />
+                          Gerar Mapa Mental
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
                           onClick={() => handleDeleteDeck(deck)} 
                           className="text-destructive"
                           data-testid={`button-delete-${deck.id}`}
@@ -1169,6 +1184,16 @@ export default function Flashcards() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* FASE 3: Generate Mind Map Dialog */}
+        {deckForMindMap && (
+          <GenerateMindMapDialog
+            open={generateMindMapOpen}
+            onOpenChange={setGenerateMindMapOpen}
+            deckId={deckForMindMap.id}
+            deckTitle={deckForMindMap.title}
+          />
+        )}
       </div>
     </UnifiedShell>
   );

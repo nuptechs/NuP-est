@@ -1815,9 +1815,13 @@ ${text}`;
         flashcards = await Promise.all(
           flashcardIds.map((id: string) => storage.getFlashcard(id))
         );
+        flashcards = flashcards.filter(Boolean); // Remove nulls
       } else if (deckId) {
-        // Use all flashcards from deck
-        flashcards = await storage.getFlashcardsByDeck(deckId);
+        // Use all flashcards from deck - fetch via query since storage doesn't have getFlashcardsByDeck
+        flashcards = await db
+          .select()
+          .from((await import('@shared/schema')).flashcards)
+          .where(eq((await import('@shared/schema')).flashcards.deckId, deckId));
       } else {
         return res.status(400).json({ message: "Either deckId or flashcardIds is required" });
       }

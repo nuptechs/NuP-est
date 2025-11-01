@@ -142,8 +142,8 @@ function parseFlashcardsFromResponse(responseText: string): GeneratedFlashcard[]
   const cards = responseText.split("---").map(s => s.trim()).filter(Boolean);
 
   cards.forEach((card, index) => {
-    const frontMatch = card.match(/FRONT:\s*(.+?)(?=BACK:|$)/s);
-    const backMatch = card.match(/BACK:\s*(.+?)$/s);
+    const frontMatch = card.match(/FRONT:\s*([\s\S]+?)(?=BACK:|$)/);
+    const backMatch = card.match(/BACK:\s*([\s\S]+?)$/);
 
     if (frontMatch && backMatch) {
       flashcards.push({

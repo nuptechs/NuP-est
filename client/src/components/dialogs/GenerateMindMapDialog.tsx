@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 
 interface GenerateMindMapDialogProps {
   open: boolean;
@@ -42,22 +42,20 @@ export default function GenerateMindMapDialog({
   deckTitle,
 }: GenerateMindMapDialogProps) {
   const { toast } = useToast();
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
   const [title, setTitle] = useState<string>(`Mapa Mental - ${deckTitle}`);
   const [layout, setLayout] = useState<"horizontal" | "vertical" | "radial">("horizontal");
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/mindmaps/generate-from-flashcards", {
-        method: "POST",
-        body: JSON.stringify({
-          deckId,
-          title,
-          layout,
-        }),
+      const response = await apiRequest("POST", "/api/mindmaps/generate-from-flashcards", {
+        deckId,
+        title,
+        layout,
       });
+      return await response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Mapa mental gerado com sucesso!",
         description: "Você será redirecionado para visualizar o mapa.",
@@ -68,7 +66,7 @@ export default function GenerateMindMapDialog({
       
       // Redirect to mind maps page
       setTimeout(() => {
-        navigate("/mind-maps");
+        setLocation("/mind-maps");
         onOpenChange(false);
       }, 1000);
     },

@@ -48,7 +48,7 @@ export default function GenerateFlashcardsDialog({
   const [maxCards, setMaxCards] = useState<string>("15");
 
   // Fetch user's flashcard decks
-  const { data: decks = [] } = useQuery({
+  const { data: decks = [] } = useQuery<any[]>({
     queryKey: ["/api/flashcard-decks"],
   });
 
@@ -58,19 +58,17 @@ export default function GenerateFlashcardsDialog({
         throw new Error("Por favor, selecione um baralho");
       }
 
-      return apiRequest("/api/flashcards/generate-from-mindmap", {
-        method: "POST",
-        body: JSON.stringify({
-          mindMapId,
-          deckId: selectedDeckId,
-          nodes: mindMapData.nodes,
-          edges: mindMapData.edges,
-          difficulty,
-          maxCards: parseInt(maxCards),
-        }),
+      const response = await apiRequest("POST", "/api/flashcards/generate-from-mindmap", {
+        mindMapId,
+        deckId: selectedDeckId,
+        nodes: mindMapData.nodes,
+        edges: mindMapData.edges,
+        difficulty,
+        maxCards: parseInt(maxCards),
       });
+      return await response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Flashcards gerados com sucesso!",
         description: `${data.count} flashcards foram criados a partir do mapa mental.`,
