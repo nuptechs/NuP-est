@@ -12,7 +12,6 @@ import { toPng, toSvg } from 'html-to-image';
 import { MindMapNode as MindMapNodeComponent } from './nodes/MindMapNode';
 import { Toolbar } from './Toolbar';
 import { StylePanel } from './StylePanel';
-import { AIGenerationProgress } from './AIGenerationProgress';
 import { 
   useMindMapEngine,
   useMindMapNodes,
@@ -45,8 +44,6 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false);
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
-  const [generationJobId, setGenerationJobId] = useState<string | null>(null);
-  const [showGenerationProgress, setShowGenerationProgress] = useState(false);
   
   // Optimized selectors - only re-render when specific slices change
   const nodes = useMindMapNodes();
@@ -144,32 +141,18 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     if (!prompt) return;
 
     try {
-      // Create async job
-      const jobId = await mindMapAI.createGenerationJob({
+      toast({
+        title: 'Gerando...',
+        description: 'A IA está criando seu mapa mental',
+      });
+
+      const mindMapData = await mindMapAI.generateFromPrompt({
         prompt,
         useRAG: true,
         maxDepth: 4,
         maxNodes: 30,
       });
 
-      // Show progress dialog
-      setGenerationJobId(jobId);
-      setShowGenerationProgress(true);
-    } catch (error) {
-      console.error('AI generation error:', error);
-      toast({
-        title: 'Erro ao iniciar geração',
-        description: error instanceof Error ? error.message : 'Falha ao iniciar geração do mapa mental.',
-        variant: 'destructive',
-      });
-    }
-  }, [toast]);
-
-  const handleGenerationComplete = useCallback((mermaidSyntax: string) => {
-    try {
-      // Convert mermaid to mind map data
-      const mindMapData = (mindMapAI as any).convertMermaidToMindMap(mermaidSyntax, title);
-      
       if (!mindMapData || !mindMapData.nodes || mindMapData.nodes.length === 0) {
         throw new Error('No mind map data generated');
       }
@@ -182,22 +165,14 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         description: 'Mapa mental gerado com sucesso',
       });
     } catch (error) {
-      console.error('Error loading generated map:', error);
+      console.error('AI generation error:', error);
       toast({
-        title: 'Erro ao carregar mapa',
-        description: 'O mapa foi gerado mas houve erro ao carregá-lo',
+        title: 'Erro ao gerar',
+        description: error instanceof Error ? error.message : 'Falha ao gerar mapa mental. Tente novamente.',
         variant: 'destructive',
       });
     }
-  }, [title, applyLayout, toast]);
-
-  const handleGenerationError = useCallback((error: string) => {
-    toast({
-      title: 'Erro na geração',
-      description: error || 'Falha ao gerar mapa mental. Tente novamente.',
-      variant: 'destructive',
-    });
-  }, [toast]);
+  }, [applyLayout, toast]);
 
   const handleExport = useCallback(async (format: ExportFormat) => {
     try {
@@ -488,15 +463,6 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           />
         )}
       </div>
-
-      {/* AI Generation Progress Dialog */}
-      <AIGenerationProgress
-        jobId={generationJobId}
-        open={showGenerationProgress}
-        onOpenChange={setShowGenerationProgress}
-        onComplete={handleGenerationComplete}
-        onError={handleGenerationError}
-      />
     </div>
   );
 }
