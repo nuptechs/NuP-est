@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Palette, Circle, Square, Hexagon, Minus, Plus, Type, Shuffle, Workflow } from 'lucide-react';
+import { Palette, Circle, Square, Hexagon, Minus, Plus, Type, Shuffle, Workflow, Diamond, Pill, Star, Triangle, Octagon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -350,10 +350,52 @@ function NodesTab({ selectedNodeId }: { selectedNodeId?: string }) {
                 Círculo
               </div>
             </SelectItem>
+            <SelectItem value="ellipse">
+              <div className="flex items-center gap-2">
+                <Circle className="w-4 h-4 scale-x-150" />
+                Elipse
+              </div>
+            </SelectItem>
+            <SelectItem value="pill">
+              <div className="flex items-center gap-2">
+                <Pill className="w-4 h-4" />
+                Pílula
+              </div>
+            </SelectItem>
             <SelectItem value="hexagon">
               <div className="flex items-center gap-2">
                 <Hexagon className="w-4 h-4" />
                 Hexágono
+              </div>
+            </SelectItem>
+            <SelectItem value="octagon">
+              <div className="flex items-center gap-2">
+                <Octagon className="w-4 h-4" />
+                Octógono
+              </div>
+            </SelectItem>
+            <SelectItem value="diamond">
+              <div className="flex items-center gap-2">
+                <Diamond className="w-4 h-4" />
+                Diamante
+              </div>
+            </SelectItem>
+            <SelectItem value="star">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4" />
+                Estrela
+              </div>
+            </SelectItem>
+            <SelectItem value="parallelogram">
+              <div className="flex items-center gap-2">
+                <Square className="w-4 h-4 skew-x-12" />
+                Paralelogramo
+              </div>
+            </SelectItem>
+            <SelectItem value="trapezoid">
+              <div className="flex items-center gap-2">
+                <Triangle className="w-4 h-4" />
+                Trapézio
               </div>
             </SelectItem>
           </SelectContent>

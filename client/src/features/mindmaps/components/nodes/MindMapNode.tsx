@@ -119,21 +119,35 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       borderRadius: baseNodeStyle.borderRadius,
       fontSize: baseNodeStyle.fontSize,
       fontWeight: baseNodeStyle.fontWeight,
+      shape: baseNodeStyle.shape,
     };
   }, [currentStyleSheet, data.type, data.level, data.branchId, data.performance, id, getNodeStyle]);
   
   const nodeStyle = computedStyle();
 
   const getShapeClass = () => {
-    switch (data.shape) {
+    switch (nodeStyle.shape) {
       case 'circle':
         return 'rounded-full aspect-square flex items-center justify-center';
+      case 'ellipse':
+        return 'rounded-full';
       case 'hexagon':
-        return 'clip-hexagon';
+        return '[clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)]';
       case 'diamond':
-        return 'rotate-45';
+        return '[clip-path:polygon(50%_0%,100%_50%,50%_100%,0%_50%)]';
       case 'rectangle':
         return 'rounded-none';
+      case 'pill':
+        return 'rounded-full';
+      case 'parallelogram':
+        return '[clip-path:polygon(15%_0%,100%_0%,85%_100%,0%_100%)]';
+      case 'trapezoid':
+        return '[clip-path:polygon(20%_0%,80%_0%,100%_100%,0%_100%)]';
+      case 'octagon':
+        return '[clip-path:polygon(30%_0%,70%_0%,100%_30%,100%_70%,70%_100%,30%_100%,0%_70%,0%_30%)]';
+      case 'star':
+        return '[clip-path:polygon(50%_0%,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]';
+      case 'rounded':
       default:
         return 'rounded-lg';
     }

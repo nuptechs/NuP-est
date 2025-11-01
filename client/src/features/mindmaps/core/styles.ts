@@ -14,7 +14,11 @@ export type NodeShape =
   | 'ellipse'
   | 'hexagon'
   | 'diamond'
-  | 'pill';
+  | 'pill'
+  | 'parallelogram'
+  | 'trapezoid'
+  | 'octagon'
+  | 'star';
 
 // ===== BORDER STYLES =====
 export type BorderStyle = 
