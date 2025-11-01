@@ -62,16 +62,18 @@ export function Toolbar({
   hasSelection,
 }: ToolbarProps) {
   return (
-    <div className="flex items-center gap-2 p-2 bg-card border-b border-border">
-      <div className="flex items-center gap-1 border-r border-border pr-2">
+    <div className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 bg-card border-b border-border overflow-x-auto">
+      <div className="flex items-center gap-0.5 sm:gap-1 border-r border-border pr-1 sm:pr-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={onAddNode}
           data-testid="button-add-node"
+          className="h-8 px-2"
+          title="Adicionar nó"
         >
-          <Plus className="w-4 h-4 mr-1" />
-          Add Node
+          <Plus className="w-4 h-4 sm:mr-1" />
+          <span className="hidden sm:inline">Add Node</span>
         </Button>
         <Button
           variant="ghost"
@@ -79,19 +81,23 @@ export function Toolbar({
           onClick={onDeleteNode}
           disabled={!hasSelection}
           data-testid="button-delete-node"
+          className="h-8 px-2"
+          title="Deletar"
         >
-          <Trash2 className="w-4 h-4 mr-1" />
-          Delete
+          <Trash2 className="w-4 h-4 sm:mr-1" />
+          <span className="hidden sm:inline">Delete</span>
         </Button>
       </div>
 
-      <div className="flex items-center gap-1 border-r border-border pr-2">
+      <div className="flex items-center gap-0.5 sm:gap-1 border-r border-border pr-1 sm:pr-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={onUndo}
           disabled={!canUndo}
           data-testid="button-undo"
+          className="h-8 px-2"
+          title="Desfazer"
         >
           <Undo2 className="w-4 h-4" />
         </Button>
@@ -101,17 +107,21 @@ export function Toolbar({
           onClick={onRedo}
           disabled={!canRedo}
           data-testid="button-redo"
+          className="h-8 px-2"
+          title="Refazer"
         >
           <Redo2 className="w-4 h-4" />
         </Button>
       </div>
 
-      <div className="flex items-center gap-1 border-r border-border pr-2">
+      <div className="flex items-center gap-0.5 sm:gap-1 border-r border-border pr-1 sm:pr-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={onZoomIn}
           data-testid="button-zoom-in"
+          className="h-8 px-2 hidden md:flex"
+          title="Zoom +"
         >
           <ZoomIn className="w-4 h-4" />
         </Button>
@@ -120,6 +130,8 @@ export function Toolbar({
           size="sm"
           onClick={onZoomOut}
           data-testid="button-zoom-out"
+          className="h-8 px-2 hidden md:flex"
+          title="Zoom -"
         >
           <ZoomOut className="w-4 h-4" />
         </Button>
@@ -128,6 +140,8 @@ export function Toolbar({
           size="sm"
           onClick={onFitView}
           data-testid="button-fit-view"
+          className="h-8 px-2"
+          title="Ajustar visualização"
         >
           <Maximize className="w-4 h-4" />
         </Button>
@@ -137,6 +151,8 @@ export function Toolbar({
             size="sm"
             onClick={onToggleMinimap}
             data-testid="button-toggle-minimap"
+            className="h-8 px-2 hidden lg:flex"
+            title="Minimapa"
           >
             <Map className="w-4 h-4" />
           </Button>
@@ -147,28 +163,32 @@ export function Toolbar({
             size="sm"
             onClick={onToggleStylePanel}
             data-testid="button-toggle-style-panel"
+            className="h-8 px-2"
+            title="Estilos"
           >
             <Palette className="w-4 h-4" />
           </Button>
         )}
       </div>
 
-      <div className="flex items-center gap-1 border-r border-border pr-2">
+      <div className="flex items-center gap-0.5 sm:gap-1 border-r border-border pr-1 sm:pr-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={onGenerateAI}
           data-testid="button-generate-ai"
+          className="h-8 px-2"
+          title="Gerar com IA"
         >
-          <Sparkles className="w-4 h-4 mr-1" />
-          AI Generate
+          <Sparkles className="w-4 h-4 sm:mr-1" />
+          <span className="hidden lg:inline">AI Generate</span>
         </Button>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1">
         <Select onValueChange={(value) => onExport(value as ExportFormat)}>
-          <SelectTrigger className="w-[140px] h-8" data-testid="select-export">
-            <Download className="w-4 h-4 mr-1" />
+          <SelectTrigger className="w-[100px] sm:w-[140px] h-8" data-testid="select-export">
+            <Download className="w-4 h-4 sm:mr-1" />
             <SelectValue placeholder="Export" />
           </SelectTrigger>
           <SelectContent>
@@ -185,9 +205,11 @@ export function Toolbar({
           size="sm"
           onClick={onImport}
           data-testid="button-import"
+          className="h-8 px-2 hidden md:flex"
+          title="Importar"
         >
-          <Upload className="w-4 h-4 mr-1" />
-          Import
+          <Upload className="w-4 h-4 sm:mr-1" />
+          <span className="hidden lg:inline">Import</span>
         </Button>
       </div>
     </div>

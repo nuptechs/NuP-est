@@ -335,8 +335,15 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         hasSelection={selectedNodes.length > 0}
       />
 
-      <div className="flex" style={{ height: 'calc(100% - 64px)' }}>
-        <div ref={reactFlowWrapper} style={{ width: showStylePanel ? 'calc(100% - 320px)' : '100%', height: '100%' }}>
+      <div className="flex flex-col md:flex-row" style={{ height: 'calc(100% - 64px)' }}>
+        <div 
+          ref={reactFlowWrapper} 
+          style={{ 
+            width: showStylePanel ? 'calc(100% - 320px)' : '100%', 
+            height: showStylePanel ? '60%' : '100%',
+          }}
+          className="md:h-full"
+        >
         <ReactFlow
           nodes={nodes}
           edges={styledEdges}

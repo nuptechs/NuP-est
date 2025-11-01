@@ -64,7 +64,7 @@ export default function MindMapApp() {
   if (isCreating || selectedMap) {
     return (
       <div className="h-screen flex flex-col">
-        <div className="p-4 border-b border-border flex items-center gap-2">
+        <div className="p-3 sm:p-4 border-b border-border flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -74,14 +74,14 @@ export default function MindMapApp() {
             }}
             data-testid="button-back-to-list"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
+            <ArrowLeft className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Voltar</span>
           </Button>
-          <h1 className="text-lg font-semibold">
+          <h1 className="text-base sm:text-lg font-semibold truncate">
             {isCreating ? 'Novo Mapa Mental' : selectedMap?.title}
           </h1>
         </div>
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           <ReactFlowProvider>
             <MindMapEditor
               title={isCreating ? 'Novo Mapa Mental' : selectedMap!.title}
@@ -116,21 +116,21 @@ export default function MindMapApp() {
   }
 
   return (
-    <div className="container max-w-7xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="text-page-title">
+    <div className="container max-w-7xl mx-auto p-3 sm:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold truncate" data-testid="text-page-title">
             Mapas Mentais
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm hidden sm:block">
             Organize conceitos visualmente com mapas mentais inteligentes
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {subjects && subjects.length > 0 && (
             <Select value={filterSubjectId} onValueChange={setFilterSubjectId}>
-              <SelectTrigger className="w-[200px]" data-testid="select-subject-filter">
-                <Filter className="w-4 h-4 mr-2" />
+              <SelectTrigger className="w-full sm:w-[200px]" data-testid="select-subject-filter">
+                <Filter className="w-4 h-4 mr-2 flex-shrink-0" />
                 <SelectValue placeholder="Filtrar por matéria" />
               </SelectTrigger>
               <SelectContent>
@@ -143,9 +143,10 @@ export default function MindMapApp() {
               </SelectContent>
             </Select>
           )}
-          <Button onClick={() => setIsCreating(true)} data-testid="button-create-mindmap">
+          <Button onClick={() => setIsCreating(true)} className="w-full sm:w-auto" data-testid="button-create-mindmap">
             <Plus className="w-4 h-4 mr-2" />
-            Novo Mapa Mental
+            <span className="sm:inline">Novo Mapa Mental</span>
+            <span className="hidden">Novo</span>
           </Button>
         </div>
       </div>
@@ -153,37 +154,40 @@ export default function MindMapApp() {
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando...</div>
       ) : filteredMindMaps && filteredMindMaps.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredMindMaps.map((map) => (
             <div
               key={map.id}
-              className="border border-border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer"
+              className="border border-border rounded-lg p-3 sm:p-4 hover:shadow-lg transition-shadow cursor-pointer active:scale-[0.98]"
               onClick={() => setSelectedMapId(map.id)}
               data-testid={`card-mindmap-${map.id}`}
             >
-              <h3 className="font-semibold mb-2" data-testid={`text-mindmap-title-${map.id}`}>
+              <h3 className="font-semibold mb-2 text-sm sm:text-base line-clamp-2" data-testid={`text-mindmap-title-${map.id}`}>
                 {map.title}
               </h3>
               {map.description && (
-                <p className="text-sm text-muted-foreground mb-3">{map.description}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">{map.description}</p>
               )}
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>
-                  {map.generatedFromAI && '🤖 Gerado por IA'}
+                <span className="truncate mr-2">
+                  {map.generatedFromAI && '🤖 IA'}
                 </span>
-                <span>
-                  {new Date(map.updatedAt!).toLocaleDateString('pt-BR')}
+                <span className="flex-shrink-0">
+                  {new Date(map.updatedAt!).toLocaleDateString('pt-BR', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
                 </span>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 border border-dashed border-border rounded-lg">
-          <p className="text-muted-foreground mb-4">
+        <div className="text-center py-12 border border-dashed border-border rounded-lg px-4">
+          <p className="text-muted-foreground mb-4 text-sm sm:text-base">
             Você ainda não criou nenhum mapa mental
           </p>
-          <Button onClick={() => setIsCreating(true)}>
+          <Button onClick={() => setIsCreating(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Criar Primeiro Mapa
           </Button>
