@@ -13,6 +13,8 @@ export class MindMapAIService {
 
   async generateFromPrompt(options: AIGenerationOptions): Promise<MindMapData> {
     try {
+      console.log('[MindMapAI] Sending request with options:', options);
+      
       const response = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
@@ -21,14 +23,28 @@ export class MindMapAIService {
         body: JSON.stringify(options),
       });
 
+      console.log('[MindMapAI] Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to generate mind map');
+        const errorText = await response.text();
+        console.error('[MindMapAI] Error response:', errorText);
+        throw new Error(`Failed to generate mind map: ${errorText}`);
       }
 
       const data = await response.json();
-      return this.convertMermaidToMindMap(data.mermaid, options.prompt);
+      console.log('[MindMapAI] Received data:', { hasMermaid: !!data.mermaid, mermaidLength: data.mermaid?.length });
+
+      if (!data.mermaid || typeof data.mermaid !== 'string' || data.mermaid.trim().length === 0) {
+        console.error('[MindMapAI] Invalid mermaid data received:', data);
+        throw new Error('No mind map data generated from server');
+      }
+
+      const mindMapData = this.convertMermaidToMindMap(data.mermaid, options.prompt);
+      console.log('[MindMapAI] Converted to mind map:', { nodeCount: mindMapData.nodes.length, edgeCount: mindMapData.edges.length });
+      
+      return mindMapData;
     } catch (error) {
-      console.error('AI generation error:', error);
+      console.error('[MindMapAI] AI generation error:', error);
       throw error;
     }
   }
