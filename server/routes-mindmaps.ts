@@ -106,17 +106,33 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
       const userId = req.user.claims.sub;
       const { prompt, subjectId, useRAG = true } = req.body;
       
+      console.log('[MindMap Generate] Received request:', { 
+        userId, 
+        prompt, 
+        subjectId, 
+        useRAG,
+        bodyKeys: Object.keys(req.body)
+      });
+
+      if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+        console.error('[MindMap Generate] Invalid prompt:', prompt);
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      console.log('[MindMap Generate] Calling mindMapGenerator.generateFromPrompt...');
       const mermaidSyntax = await mindMapGenerator.generateFromPrompt(
         prompt,
         userId,
         subjectId,
         useRAG
       );
+      
+      console.log('[MindMap Generate] Generated mermaid syntax:', mermaidSyntax?.substring(0, 100));
 
       res.json({ mermaid: mermaidSyntax });
     } catch (error) {
-      console.error('Error generating mind map:', error);
-      res.status(500).send('Failed to generate mind map');
+      console.error('[MindMap Generate] Error generating mind map:', error);
+      res.status(500).json({ error: 'Failed to generate mind map', message: error instanceof Error ? error.message : String(error) });
     }
   });
 
