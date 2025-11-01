@@ -19,6 +19,8 @@ import {
   Maximize,
   Map,
   Palette,
+  Focus,
+  Workflow,
 } from 'lucide-react';
 import type { ExportFormat } from '../core/types';
 
@@ -37,6 +39,9 @@ interface ToolbarProps {
   showMinimap?: boolean;
   onToggleStylePanel?: () => void;
   showStylePanel?: boolean;
+  onToggleFocusMode?: () => void;
+  focusMode?: boolean;
+  onApplyAutoLayout?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   hasSelection: boolean;
@@ -57,6 +62,9 @@ export function Toolbar({
   showMinimap,
   onToggleStylePanel,
   showStylePanel,
+  onToggleFocusMode,
+  focusMode,
+  onApplyAutoLayout,
   canUndo,
   canRedo,
   hasSelection,
@@ -171,6 +179,32 @@ export function Toolbar({
             title="Painel de estilos"
           >
             <Palette className="w-4 h-4" />
+          </Button>
+        )}
+        
+        {onApplyAutoLayout && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onApplyAutoLayout}
+            data-testid="button-auto-layout"
+            className="h-9 w-9 p-0 rounded-lg hover:bg-muted/80 hidden lg:flex transition-all duration-200"
+            title="Reorganizar automaticamente"
+          >
+            <Workflow className="w-4 h-4" />
+          </Button>
+        )}
+        
+        {onToggleFocusMode && (
+          <Button
+            variant={focusMode ? "secondary" : "ghost"}
+            size="sm"
+            onClick={onToggleFocusMode}
+            data-testid="button-focus-mode"
+            className="h-9 w-9 p-0 rounded-lg transition-all duration-200"
+            title="Modo de foco"
+          >
+            <Focus className="w-4 h-4" />
           </Button>
         )}
       </div>

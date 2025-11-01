@@ -5,7 +5,7 @@ import { useMindMapEngine } from '../../engine/MindMapEngine';
 import { useStyleStore } from '../../store/useStyleStore';
 import { getColorFromPalette } from '../../utils/hierarchyUtils';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface MindMapNodeProps extends NodeProps {
   data: MindMapNodeData;
@@ -139,6 +139,47 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
     }
   };
 
+  const getTypeIcon = () => {
+    switch (data.type) {
+      case 'root':
+        return <Target className="w-3.5 h-3.5 opacity-70" />;
+      case 'branch':
+        return <GitBranch className="w-3.5 h-3.5 opacity-70" />;
+      case 'leaf':
+        return <FileText className="w-3.5 h-3.5 opacity-70" />;
+      default:
+        return null;
+    }
+  };
+
+  const getPerformanceBadge = () => {
+    if (!data.performance) return null;
+    
+    const { mastery, accuracy } = data.performance;
+    
+    if (mastery === 'high') {
+      return (
+        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 dark:bg-emerald-500/30 rounded-md" title={`Domínio: Alto${accuracy ? ` (${Math.round(accuracy)}%)` : ''}`}>
+          <Award className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+        </div>
+      );
+    } else if (mastery === 'medium') {
+      return (
+        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/20 dark:bg-amber-500/30 rounded-md" title={`Domínio: Médio${accuracy ? ` (${Math.round(accuracy)}%)` : ''}`}>
+          <TrendingUp className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+        </div>
+      );
+    } else if (mastery === 'low') {
+      return (
+        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-rose-500/20 dark:bg-rose-500/30 rounded-md" title={`Domínio: Baixo${accuracy ? ` (${Math.round(accuracy)}%)` : ''}`}>
+          <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <div 
       className="relative group" 
@@ -154,7 +195,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       
       <div
         className={cn(
-          'px-4 py-2.5 border transition-all duration-300 cursor-pointer inline-block',
+          'px-4 py-2.5 border transition-all duration-300 cursor-grab active:cursor-grabbing inline-block',
           'shadow-sm hover:shadow-md',
           selected && 'ring-2 ring-primary ring-offset-2 shadow-lg scale-105',
           isHovered && !selected && 'shadow-md',
@@ -183,6 +224,8 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
               )}
             </button>
           )}
+          
+          {getTypeIcon()}
           
           {isEditing ? (
             <input
@@ -214,6 +257,8 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
               {data.label}
             </div>
           )}
+          
+          {getPerformanceBadge()}
         </div>
       </div>
 

@@ -36,6 +36,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false);
   const [showStylePanel, setShowStylePanel] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const {
     nodes,
     edges,
@@ -315,35 +316,49 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
 
   return (
     <div className={className} style={{ width: '100%', height: '100%' }} data-testid="mindmap-editor">
-      <Toolbar
-        onAddNode={handleAddNode}
-        onDeleteNode={handleDeleteNode}
-        onUndo={undo}
-        onRedo={redo}
-        onExport={handleExport}
-        onImport={handleImport}
-        onGenerateAI={handleGenerateAI}
-        onZoomIn={() => reactFlowInstance?.zoomIn()}
-        onZoomOut={() => reactFlowInstance?.zoomOut()}
-        onFitView={() => reactFlowInstance?.fitView()}
-        onToggleMinimap={() => setShowMinimap(!showMinimap)}
-        showMinimap={showMinimap}
-        onToggleStylePanel={() => setShowStylePanel(!showStylePanel)}
-        showStylePanel={showStylePanel}
-        canUndo={historyIndex > 0}
-        canRedo={historyIndex < history.length - 1}
-        hasSelection={selectedNodes.length > 0}
-      />
+      {!focusMode && (
+        <Toolbar
+          onAddNode={handleAddNode}
+          onDeleteNode={handleDeleteNode}
+          onUndo={undo}
+          onRedo={redo}
+          onExport={handleExport}
+          onImport={handleImport}
+          onGenerateAI={handleGenerateAI}
+          onZoomIn={() => reactFlowInstance?.zoomIn()}
+          onZoomOut={() => reactFlowInstance?.zoomOut()}
+          onFitView={() => reactFlowInstance?.fitView()}
+          onToggleMinimap={() => setShowMinimap(!showMinimap)}
+          showMinimap={showMinimap}
+          onToggleStylePanel={() => setShowStylePanel(!showStylePanel)}
+          showStylePanel={showStylePanel}
+          onToggleFocusMode={() => setFocusMode(!focusMode)}
+          focusMode={focusMode}
+          onApplyAutoLayout={() => applyLayout()}
+          canUndo={historyIndex > 0}
+          canRedo={historyIndex < history.length - 1}
+          hasSelection={selectedNodes.length > 0}
+        />
+      )}
 
-      <div className="flex flex-col md:flex-row" style={{ height: 'calc(100% - 64px)' }}>
+      <div className="flex flex-col md:flex-row" style={{ height: focusMode ? '100%' : 'calc(100% - 64px)' }}>
         <div 
           ref={reactFlowWrapper} 
-          className="md:h-full"
+          className="md:h-full relative"
           style={{ 
-            width: showStylePanel ? 'calc(100% - min(320px, 35vw))' : '100%', 
-            height: showStylePanel ? '60%' : '100%',
+            width: showStylePanel && !focusMode ? 'calc(100% - min(320px, 35vw))' : '100%', 
+            height: showStylePanel && !focusMode ? '60%' : '100%',
           }}
         >
+        {focusMode && (
+          <button
+            onClick={() => setFocusMode(false)}
+            className="absolute top-4 right-4 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-sm font-medium hover:bg-muted/80 transition-all duration-200"
+            data-testid="button-exit-focus-mode"
+          >
+            Sair do Modo Foco
+          </button>
+        )}
         <ReactFlow
           nodes={nodes}
           edges={styledEdges}
@@ -388,12 +403,12 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
             size={0.5}
             className="opacity-30 dark:opacity-20"
           />
-          {config?.showControls !== false && (
+          {config?.showControls !== false && !focusMode && (
             <Controls 
               className="bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-lg"
             />
           )}
-          {showMinimap && (
+          {showMinimap && !focusMode && (
             <MiniMap 
               nodeColor={(node: any) => {
                 if (node.data.performance) {
@@ -421,16 +436,18 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
               maskColor="hsl(var(--background) / 0.8)"
             />
           )}
-          <Panel position="top-right">
-            <div className="bg-background/95 backdrop-blur-sm border border-border px-4 py-2 rounded-xl text-sm text-muted-foreground shadow-md font-medium">
-              {nodes.length} {nodes.length === 1 ? 'nó' : 'nós'}
-            </div>
-          </Panel>
+          {!focusMode && (
+            <Panel position="top-right">
+              <div className="bg-background/95 backdrop-blur-sm border border-border px-4 py-2 rounded-xl text-sm text-muted-foreground shadow-md font-medium">
+                {nodes.length} {nodes.length === 1 ? 'nó' : 'nós'}
+              </div>
+            </Panel>
+          )}
         </ReactFlow>
         </div>
         
         {/* Style Panel */}
-        {showStylePanel && (
+        {showStylePanel && !focusMode && (
           <StylePanel 
             selectedNodeId={selectedNodes.length === 1 ? selectedNodes[0] : undefined}
           />
