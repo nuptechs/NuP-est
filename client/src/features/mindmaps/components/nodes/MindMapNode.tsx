@@ -2,7 +2,7 @@ import { memo, useState, useCallback } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import type { MindMapNodeData } from '../../core/types';
 import { useMindMapEngine } from '../../engine/MindMapEngine';
-import { useStyleStore } from '../../store/useStyleStore';
+import { useStyleStore, useNodeStyle } from '../../store/useStyleStore';
 import { getColorFromPalette } from '../../utils/hierarchyUtils';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle } from 'lucide-react';
@@ -18,9 +18,9 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const updateNode = useMindMapEngine((state) => state.updateNode);
   const addNode = useMindMapEngine((state) => state.addNode);
   
-  // Get style configuration from store with reactive subscription
+  // Get style configuration from store with proper memoization
   const currentStyleSheet = useStyleStore((state) => state.currentStyleSheet);
-  const baseNodeStyle = useStyleStore((state) => state.getNodeStyle(data.type, id));
+  const baseNodeStyle = useNodeStyle(data.type, id);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
