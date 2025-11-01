@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -9,7 +9,9 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard-simple";
 import Library from "@/pages/library";
-import MindMapApp from "@/features/mindmaps";
+
+// Lazy load mind maps to keep main bundle small (ReactFlow is ~200KB)
+const MindMapApp = lazy(() => import("@/features/mindmaps"));
 
 // Subjects and Materials pages removed - now handled by unified Library page
 import Study from "@/pages/study";
@@ -71,7 +73,18 @@ function Router() {
           
           {/* Nova biblioteca unificada */}
           <Route path="/library" component={Library} />
-          <Route path="/mind-maps" component={MindMapApp} />
+          <Route path="/mind-maps">
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-screen">
+                <div className="text-center">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+                  <p className="text-muted-foreground">Carregando Mapas Mentais...</p>
+                </div>
+              </div>
+            }>
+              <MindMapApp />
+            </Suspense>
+          </Route>
           
           {/* Rotas legadas - redirecionam para biblioteca usando SPA navigation */}
           <Route path="/subjects" component={() => <Redirect to="/library?type=subjects" />} />
