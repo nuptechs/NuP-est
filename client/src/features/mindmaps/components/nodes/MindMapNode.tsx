@@ -18,9 +18,9 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const updateNode = useMindMapEngine((state) => state.updateNode);
   const addNode = useMindMapEngine((state) => state.addNode);
   
-  // Get style configuration from store
+  // Get style configuration from store with reactive subscription
   const currentStyleSheet = useStyleStore((state) => state.currentStyleSheet);
-  const getNodeStyle = useStyleStore((state) => state.getNodeStyle);
+  const baseNodeStyle = useStyleStore((state) => state.getNodeStyle(data.type, id));
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
@@ -56,9 +56,6 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   // Compute final node style based on color mode
   const computedStyle = useCallback(() => {
     const colorMode = currentStyleSheet?.colorMode || 'type-based';
-    
-    // Get base style from store
-    const baseNodeStyle = getNodeStyle(data.type, id);
     
     let backgroundColor: string;
     let textColor: string;
@@ -121,7 +118,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       fontWeight: baseNodeStyle.fontWeight,
       shape: baseNodeStyle.shape,
     };
-  }, [currentStyleSheet, data.type, data.level, data.branchId, data.performance, id, getNodeStyle]);
+  }, [currentStyleSheet, data.type, data.level, data.branchId, data.performance, baseNodeStyle]);
   
   const nodeStyle = computedStyle();
 
