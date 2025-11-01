@@ -2,6 +2,42 @@ import { Router } from 'express';
 import type { IStorage } from './storage';
 import { insertMindMapSchema } from '@shared/schema';
 import { mindMapGenerator } from './services/mindmap/MindMapGenerator';
+import { JobQueue } from './services/mindmap/JobQueue';
+
+// Job Queue instance for async mind map generation
+interface MindMapGenerationInput {
+  type: 'prompt' | 'material';
+  prompt?: string;
+  materialId?: string;
+  userId: string;
+  subjectId?: string;
+  useRAG?: boolean;
+}
+
+const mindMapJobQueue = new JobQueue<MindMapGenerationInput, string>(
+  async (input, updateProgress) => {
+    if (input.type === 'prompt' && input.prompt) {
+      return await mindMapGenerator.generateFromPrompt(
+        input.prompt,
+        input.userId,
+        input.subjectId,
+        input.useRAG ?? true,
+        updateProgress
+      );
+    } else if (input.type === 'material' && input.materialId) {
+      const material = await storage.getMaterial(input.materialId);
+      if (!material) {
+        throw new Error('Material not found');
+      }
+      return await mindMapGenerator.generateFromMaterial(
+        material,
+        input.userId,
+        updateProgress
+      );
+    }
+    throw new Error('Invalid job input');
+  }
+);
 
 export function registerMindMapRoutes(router: Router, storage: IStorage) {
   // Get all mind maps for a user
@@ -96,7 +132,78 @@ export function registerMindMapRoutes(router: Router, storage: IStorage) {
     }
   });
 
-  // Generate mind map using AI
+  // Create async generation job
+  router.post('/api/mindmaps/jobs', async (req: any, res) => {
+    if (!req.user) {
+      return res.status(401).send('Unauthorized');
+    }
+
+    try {
+      const userId = req.user.claims.sub;
+      const { type, prompt, materialId, subjectId, useRAG = true } = req.body;
+
+      if (!type || (type !== 'prompt' && type !== 'material')) {
+        return res.status(400).json({ error: 'Invalid job type' });
+      }
+
+      if (type === 'prompt' && (!prompt || typeof prompt !== 'string')) {
+        return res.status(400).json({ error: 'Prompt is required for prompt-type jobs' });
+      }
+
+      if (type === 'material' && !materialId) {
+        return res.status(400).json({ error: 'Material ID is required for material-type jobs' });
+      }
+
+      const jobId = await mindMapJobQueue.enqueue({
+        type,
+        prompt,
+        materialId,
+        userId,
+        subjectId,
+        useRAG,
+      }, {
+        type,
+        prompt: type === 'prompt' ? prompt : undefined,
+        materialId: type === 'material' ? materialId : undefined,
+      });
+
+      res.json({ jobId, status: 'queued' });
+    } catch (error) {
+      console.error('[MindMap Jobs] Error creating job:', error);
+      res.status(500).json({ error: 'Failed to create generation job' });
+    }
+  });
+
+  // Get job status
+  router.get('/api/mindmaps/jobs/:jobId', async (req: any, res) => {
+    if (!req.user) {
+      return res.status(401).send('Unauthorized');
+    }
+
+    try {
+      const job = mindMapJobQueue.getJob(req.params.jobId);
+      
+      if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+
+      // Return job status
+      res.json({
+        id: job.id,
+        status: job.status,
+        progress: job.progress,
+        result: job.result,
+        error: job.error,
+        createdAt: job.createdAt,
+        completedAt: job.completedAt,
+      });
+    } catch (error) {
+      console.error('[MindMap Jobs] Error getting job status:', error);
+      res.status(500).json({ error: 'Failed to get job status' });
+    }
+  });
+
+  // Generate mind map using AI (deprecated - use jobs instead, kept for backward compatibility)
   router.post('/api/mindmaps/generate', async (req: any, res) => {
     if (!req.user) {
       return res.status(401).send('Unauthorized');
