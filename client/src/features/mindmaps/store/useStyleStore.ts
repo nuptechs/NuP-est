@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { useMemo } from 'react';
 import type { 
   StyleSheet, 
   MindMapCustomStyles, 
@@ -165,28 +166,51 @@ export function useCurrentStyleSheet() {
  * Get node style with full hierarchy applied
  */
 export function useNodeStyle(nodeType: 'root' | 'branch' | 'leaf', elementId?: string) {
-  return useStyleStore((state) => state.getNodeStyle(nodeType, elementId));
+  const style = useStyleStore((state) => state.getNodeStyle(nodeType, elementId));
+  return useMemo(() => style, [JSON.stringify(style)]);
 }
 
 /**
  * Get edge style with full hierarchy applied
  */
 export function useEdgeStyle(elementId?: string) {
-  return useStyleStore((state) => state.getEdgeStyle(elementId));
+  const style = useStyleStore((state) => state.getEdgeStyle(elementId));
+  return useMemo(() => style, [JSON.stringify(style)]);
 }
 
 /**
  * Get all available actions
  */
 export function useStyleActions() {
-  return useStyleStore((state) => ({
-    setStyleSheet: state.setStyleSheet,
-    setStyleSheetById: state.setStyleSheetById,
-    setMindMapCustomStyles: state.setMindMapCustomStyles,
-    setElementCustomStyle: state.setElementCustomStyle,
-    removeElementCustomStyle: state.removeElementCustomStyle,
-    clearAllElementStyles: state.clearAllElementStyles,
-    setTheme: state.setTheme,
-    reset: state.reset,
-  }));
+  const setStyleSheet = useStyleStore((state) => state.setStyleSheet);
+  const setStyleSheetById = useStyleStore((state) => state.setStyleSheetById);
+  const setMindMapCustomStyles = useStyleStore((state) => state.setMindMapCustomStyles);
+  const setElementCustomStyle = useStyleStore((state) => state.setElementCustomStyle);
+  const removeElementCustomStyle = useStyleStore((state) => state.removeElementCustomStyle);
+  const clearAllElementStyles = useStyleStore((state) => state.clearAllElementStyles);
+  const setTheme = useStyleStore((state) => state.setTheme);
+  const reset = useStyleStore((state) => state.reset);
+  
+  return useMemo(
+    () => ({
+      setStyleSheet,
+      setStyleSheetById,
+      setMindMapCustomStyles,
+      setElementCustomStyle,
+      removeElementCustomStyle,
+      clearAllElementStyles,
+      setTheme,
+      reset,
+    }),
+    [
+      setStyleSheet,
+      setStyleSheetById,
+      setMindMapCustomStyles,
+      setElementCustomStyle,
+      removeElementCustomStyle,
+      clearAllElementStyles,
+      setTheme,
+      reset,
+    ]
+  );
 }
