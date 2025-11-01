@@ -166,8 +166,31 @@ export function useCurrentStyleSheet() {
  * Get node style with full hierarchy applied
  */
 export function useNodeStyle(nodeType: 'root' | 'branch' | 'leaf', elementId?: string) {
-  const style = useStyleStore((state) => state.getNodeStyle(nodeType, elementId));
-  return useMemo(() => style, [JSON.stringify(style)]);
+  // Subscribe to all relevant state parts
+  const currentStyleSheet = useStyleStore((state) => state.currentStyleSheet);
+  const mindMapCustomStyles = useStyleStore((state) => state.mindMapCustomStyles);
+  const elementCustomStyles = useStyleStore((state) => state.elementCustomStyles);
+  
+  // Compute style with memoization
+  return useMemo(() => {
+    // Level 1: Base style from style sheet
+    let style = currentStyleSheet?.nodeStyles[nodeType] || {} as NodeStyle;
+    
+    // Level 2: Apply mind map custom overrides
+    if (mindMapCustomStyles?.nodeStyles?.[nodeType]) {
+      style = { ...style, ...mindMapCustomStyles.nodeStyles[nodeType] };
+    }
+    
+    // Level 3: Apply element-specific overrides
+    if (elementId) {
+      const elementStyle = elementCustomStyles.get(elementId);
+      if (elementStyle?.node) {
+        style = { ...style, ...elementStyle.node };
+      }
+    }
+    
+    return style;
+  }, [currentStyleSheet, mindMapCustomStyles, elementCustomStyles, nodeType, elementId]);
 }
 
 /**
