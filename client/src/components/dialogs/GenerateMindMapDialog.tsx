@@ -58,11 +58,13 @@ export default function GenerateMindMapDialog({
     onSuccess: (data: any) => {
       toast({
         title: "Mapa mental gerado com sucesso!",
-        description: "Você será redirecionado para visualizar o mapa.",
+        description: "Redirecionando para visualizar o mapa...",
       });
       
-      // Store mind map data in sessionStorage for preview
-      sessionStorage.setItem("generated_mindmap", JSON.stringify(data.mindMap));
+      // Store the mind map ID to auto-open after redirect
+      if (data.mindMap && data.mindMap.id) {
+        sessionStorage.setItem("openMindMapId", data.mindMap.id);
+      }
       
       // Redirect to mind maps page
       setTimeout(() => {

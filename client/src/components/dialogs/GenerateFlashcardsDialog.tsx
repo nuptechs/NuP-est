@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface GenerateFlashcardsDialogProps {
   open: boolean;
@@ -43,6 +44,7 @@ export default function GenerateFlashcardsDialog({
   mindMapData,
 }: GenerateFlashcardsDialogProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedDeckId, setSelectedDeckId] = useState<string>("");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [maxCards, setMaxCards] = useState<string>("15");
@@ -71,11 +73,16 @@ export default function GenerateFlashcardsDialog({
     onSuccess: (data: any) => {
       toast({
         title: "Flashcards gerados com sucesso!",
-        description: `${data.count} flashcards foram criados a partir do mapa mental.`,
+        description: `${data.count} flashcards foram criados. Redirecionando...`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/flashcard-decks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/flashcards"] });
-      onOpenChange(false);
+      
+      // Redirect to flashcards page
+      setTimeout(() => {
+        setLocation("/flashcards");
+        onOpenChange(false);
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({

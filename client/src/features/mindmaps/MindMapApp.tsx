@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { MindMapEditor } from './components/MindMapEditor';
@@ -30,6 +30,18 @@ export default function MindMapApp() {
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ['/api/subjects'],
   });
+
+  // Auto-open mind map from generation
+  useEffect(() => {
+    const mapIdToOpen = sessionStorage.getItem('openMindMapId');
+    if (mapIdToOpen && mindMaps) {
+      const mapExists = mindMaps.find(m => m.id === mapIdToOpen);
+      if (mapExists) {
+        setSelectedMapId(mapIdToOpen);
+        sessionStorage.removeItem('openMindMapId');
+      }
+    }
+  }, [mindMaps]);
 
   const createMutation = useMutation({
     mutationFn: async (mindMapData: any) => {
