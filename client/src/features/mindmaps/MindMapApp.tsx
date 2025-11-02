@@ -86,10 +86,9 @@ export default function MindMapApp() {
               size="sm"
               onClick={() => setShowGenerateDialog(true)}
               data-testid="button-generate-flashcards"
-              className="hidden sm:flex"
             >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Gerar Flashcards
+              <Sparkles className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Gerar Flashcards</span>
             </Button>
           )}
         </div>
