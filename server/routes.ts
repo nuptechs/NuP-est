@@ -1830,13 +1830,25 @@ ${text}`;
         return res.status(400).json({ message: "No flashcards found" });
       }
 
-      // Generate mind map structure
+      // Get subject from deck if available
+      let subjectId = null;
+      if (deckId) {
+        const deck = await storage.getFlashcardDeck(deckId);
+        if (deck) {
+          subjectId = deck.subjectId;
+        }
+      }
+
+      // Generate mind map structure with adaptive AI
       const mindMapData = await generateMindMapFromFlashcards(
         flashcards as any[],
         {
           title: title || "Mapa Mental - Flashcards",
           useAI: true,
           layout: layout || "horizontal",
+          userId,
+          subjectId: subjectId || undefined,
+          storage,
         }
       );
 
@@ -1848,15 +1860,6 @@ ${text}`;
         layout: mindMapData.layout,
         styleSheetId: mindMapData.styleSheetId,
       });
-
-      // Get subject from deck if available
-      let subjectId = null;
-      if (deckId) {
-        const deck = await storage.getFlashcardDeck(deckId);
-        if (deck) {
-          subjectId = deck.subjectId;
-        }
-      }
 
       // Prepare content object
       const contentObject = {

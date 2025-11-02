@@ -3,11 +3,17 @@
  * FASE 3: Flashcards → Mind Map conversion
  * 
  * Aggregates flashcards into intelligent mind maps with AI-enhanced structure
- * Now includes pre-generation validation layer for quality assurance
+ * Now includes:
+ * - Pre-generation validation layer for quality assurance
+ * - Adaptive AI based on user profile (TDAH, learning difficulties, objectives)
+ * - Rich content with detailed descriptions in leaf nodes
+ * - Adaptive colors and visual elements for better memorization
  */
 
 import OpenAI from "openai";
 import { validateFlashcardsForMindMap } from "./content-validator";
+import { StudyContextBuilder } from "./adaptive-learning/StudyContextBuilder";
+import type { IStorage } from "../storage";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -51,7 +57,7 @@ interface GeneratedMindMap {
 }
 
 /**
- * Generate mind map from flashcards
+ * Generate mind map from flashcards with adaptive AI
  */
 export async function generateMindMapFromFlashcards(
   flashcards: Flashcard[],
@@ -59,9 +65,12 @@ export async function generateMindMapFromFlashcards(
     title: string;
     useAI?: boolean;
     layout?: "horizontal" | "vertical" | "radial";
+    userId?: string;
+    subjectId?: string;
+    storage?: IStorage;
   }
 ): Promise<GeneratedMindMap> {
-  const { title, useAI = true, layout = "horizontal" } = options;
+  const { title, useAI = true, layout = "horizontal", userId, subjectId, storage } = options;
 
   // 🔍 VALIDATION LAYER: Check content quality before AI processing
   console.log("🔍 Validating flashcards content before generating mind map...");
@@ -77,7 +86,19 @@ export async function generateMindMapFromFlashcards(
 
   if (useAI) {
     try {
-      return await generateAIMindMap(flashcards, title, layout);
+      // Load user context if available for adaptive generation
+      let studyContext = null;
+      if (userId && storage) {
+        try {
+          const contextBuilder = new StudyContextBuilder(storage);
+          studyContext = await contextBuilder.build(userId, { subjectId, includeRAG: false });
+          console.log("📚 Loaded study context for adaptive mind map generation");
+        } catch (error) {
+          console.warn("⚠️ Could not load study context, using default generation:", error);
+        }
+      }
+
+      return await generateAIMindMap(flashcards, title, layout, studyContext);
     } catch (error) {
       console.error("AI generation failed, falling back to basic structure:", error);
     }
@@ -87,38 +108,140 @@ export async function generateMindMapFromFlashcards(
   return generateBasicMindMap(flashcards, title, layout);
 }
 
+/**
+ * Build adaptive instructions based on user profile and learning difficulties
+ */
+function buildAdaptiveInstructions(studyContext: any): string {
+  if (!studyContext) {
+    return "Create a clear, well-organized mind map optimized for learning and retention.";
+  }
+
+  const instructions: string[] = [];
+  
+  // Extract learning difficulties
+  const difficulties = studyContext.difficulties || [];
+  const hasADHD = difficulties.some((d: any) => 
+    d.category === 'adhd' || d.difficultyName?.toLowerCase().includes('tdah') || d.difficultyName?.toLowerCase().includes('adhd')
+  );
+  const hasDyslexia = difficulties.some((d: any) => 
+    d.category === 'dyslexia' || d.difficultyName?.toLowerCase().includes('dislexia')
+  );
+  const hasMemoryIssues = difficulties.some((d: any) => 
+    d.category === 'memory' || d.difficultyName?.toLowerCase().includes('memória')
+  );
+
+  // Base instruction
+  instructions.push("ADAPTIVE LEARNING PROFILE:");
+  
+  // ADHD adaptations
+  if (hasADHD) {
+    instructions.push(
+      "- ADHD Support: Use vibrant, high-contrast colors to maintain attention",
+      "- Break complex concepts into smaller, digestible chunks",
+      "- Include visual cues and symbols for better engagement",
+      "- Add mnemonic devices (acronyms, rhymes, associations) in descriptions",
+      "- Keep text concise but informative - avoid long paragraphs"
+    );
+  }
+
+  // Dyslexia adaptations
+  if (hasDyslexia) {
+    instructions.push(
+      "- Dyslexia Support: Use clear, simple language",
+      "- Avoid similar-looking words close together",
+      "- Include visual metaphors and analogies in descriptions",
+      "- Use bullet points for key information"
+    );
+  }
+
+  // Memory adaptations
+  if (hasMemoryIssues) {
+    instructions.push(
+      "- Memory Support: Include strong mnemonic devices",
+      "- Create memorable associations and examples",
+      "- Use storytelling techniques in descriptions",
+      "- Add practical, real-world examples to aid retention"
+    );
+  }
+
+  // General profile adaptations
+  const motivationLevel = parseFloat(studyContext.profile?.motivationLevel || "0.5");
+  if (motivationLevel < 0.4) {
+    instructions.push(
+      "- Add encouraging language and emphasize practical benefits",
+      "- Highlight real-world applications to boost motivation"
+    );
+  }
+
+  // Learning style preferences
+  const preferredTypes = studyContext.profile?.preferredContentTypes || [];
+  if (preferredTypes.includes('visual')) {
+    instructions.push("- Emphasize visual organization and spatial relationships");
+  }
+  if (preferredTypes.includes('practical')) {
+    instructions.push("- Include hands-on examples and practical applications");
+  }
+
+  // If no specific difficulties, use general best practices
+  if (difficulties.length === 0) {
+    instructions.push(
+      "- Use a balanced color scheme for visual appeal",
+      "- Include practical examples in leaf node descriptions",
+      "- Structure information hierarchically for easy understanding"
+    );
+  }
+
+  return instructions.join("\n");
+}
+
 async function generateAIMindMap(
   flashcards: Flashcard[],
   title: string,
-  layout: string
+  layout: string,
+  studyContext?: any
 ): Promise<GeneratedMindMap> {
   // Prepare flashcard content for AI
   const flashcardContent = flashcards
     .map((fc, idx) => `${idx + 1}. Q: ${fc.front}\n   A: ${fc.back}`)
     .join("\n\n");
 
-  const prompt = `Create a mind map structure from these flashcards:
+  // Build adaptive instructions based on user profile
+  let adaptiveInstructions = buildAdaptiveInstructions(studyContext);
+
+  const prompt = `Create an intelligent, adaptive mind map from these flashcards.
 
 Title: ${title}
 
 Flashcards:
 ${flashcardContent}
 
-Generate a hierarchical mind map with:
-1. A central topic (root node)
-2. 3-7 main branches (level 1 categories)
-3. Sub-branches for specific concepts (level 2-3)
+${adaptiveInstructions}
+
+STRUCTURE REQUIREMENTS:
+1. A clear central topic (root node with title)
+2. 3-7 main category branches (level 1)
+3. Sub-branches with specific concepts (level 2-3)
+4. **LEAF NODES MUST HAVE DETAILED DESCRIPTIONS** - Include summaries, examples, or key points (2-4 sentences)
+
+CONTENT QUALITY:
+- Root and branch nodes: Short, clear titles
+- Leaf nodes (final concepts): Title + detailed description/summary
+- Use mnemonic devices when helpful
+- Include practical examples in descriptions
 
 Return JSON in this format:
 {
   "rootLabel": "Main Topic",
+  "rootDescription": "Brief overview of the topic",
   "branches": [
     {
       "label": "Category 1",
-      "description": "Brief description",
+      "description": "Category summary",
       "children": [
-        { "label": "Subconcept 1.1", "description": "Details" },
-        { "label": "Subconcept 1.2", "description": "Details" }
+        {
+          "label": "Concept 1.1",
+          "description": "DETAILED: Explain this concept with examples, key points, and practical applications. 2-4 sentences minimum."
+        }
       ]
     }
   ]
@@ -165,12 +288,44 @@ Return JSON in this format:
   }
 
   // Convert AI structure to nodes and edges
-  return buildMindMapFromStructure(structure, layout);
+  return buildMindMapFromStructure(structure, layout, studyContext);
+}
+
+/**
+ * Get adaptive color palette based on user profile
+ */
+function getAdaptiveColorPalette(studyContext?: any): Array<{bg: string, text: string, border: string}> {
+  const difficulties = studyContext?.difficulties || [];
+  const hasADHD = difficulties.some((d: any) => 
+    d.category === 'adhd' || d.difficultyName?.toLowerCase().includes('tdah') || d.difficultyName?.toLowerCase().includes('adhd')
+  );
+
+  if (hasADHD) {
+    // Vibrant, high-contrast colors for ADHD
+    return [
+      { bg: "#3b82f6", text: "#ffffff", border: "#1e40af" }, // Bright blue
+      { bg: "#f59e0b", text: "#ffffff", border: "#d97706" }, // Bright amber
+      { bg: "#10b981", text: "#ffffff", border: "#059669" }, // Bright green
+      { bg: "#ef4444", text: "#ffffff", border: "#dc2626" }, // Bright red
+      { bg: "#8b5cf6", text: "#ffffff", border: "#7c3aed" }, // Bright purple
+      { bg: "#ec4899", text: "#ffffff", border: "#db2777" }, // Bright pink
+      { bg: "#06b6d4", text: "#ffffff", border: "#0891b2" }, // Bright cyan
+    ];
+  }
+
+  // Default balanced colors
+  return [
+    { bg: "#3b82f6", text: "#ffffff", border: "#2563eb" }, // Blue
+    { bg: "#8b5cf6", text: "#ffffff", border: "#7c3aed" }, // Purple
+    { bg: "#ec4899", text: "#ffffff", border: "#db2777" }, // Pink
+    { bg: "#f59e0b", text: "#ffffff", border: "#d97706" }, // Amber
+  ];
 }
 
 function buildMindMapFromStructure(
   structure: any,
-  layout: string
+  layout: string,
+  studyContext?: any
 ): GeneratedMindMap {
   const nodes: MindMapNodeData[] = [];
   const edges: MindMapEdgeData[] = [];
@@ -193,13 +348,8 @@ function buildMindMapFromStructure(
     },
   });
 
-  // Color palette for levels
-  const levelColors = [
-    { bg: "#3b82f6", text: "#ffffff", border: "#2563eb" }, // Root - blue
-    { bg: "#8b5cf6", text: "#ffffff", border: "#7c3aed" }, // Level 1 - purple
-    { bg: "#ec4899", text: "#ffffff", border: "#db2777" }, // Level 2 - pink
-    { bg: "#f59e0b", text: "#ffffff", border: "#d97706" }, // Level 3 - amber
-  ];
+  // Adaptive color palette based on user profile
+  const levelColors = getAdaptiveColorPalette(studyContext);
 
   // Process branches
   (structure.branches || []).forEach((branch: any, branchIdx: number) => {
