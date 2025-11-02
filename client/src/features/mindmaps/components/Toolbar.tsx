@@ -21,6 +21,7 @@ import {
   Palette,
   Focus,
   Workflow,
+  Save,
 } from 'lucide-react';
 import type { ExportFormat } from '../core/types';
 
@@ -29,6 +30,7 @@ interface ToolbarProps {
   onDeleteNode: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onSave?: () => void;
   onExport: (format: ExportFormat) => void;
   onImport: () => void;
   onGenerateAI: () => void;
@@ -52,6 +54,7 @@ export function Toolbar({
   onDeleteNode,
   onUndo,
   onRedo,
+  onSave,
   onExport,
   onImport,
   onGenerateAI,
@@ -73,6 +76,19 @@ export function Toolbar({
     <div className="flex items-center justify-between px-4 py-2.5 bg-background/95 backdrop-blur-sm border-b border-border/50 shadow-sm">
       {/* Left section: Primary actions */}
       <div className="flex items-center gap-1.5">
+        {onSave && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onSave}
+            data-testid="button-save"
+            className="h-9 px-3 rounded-lg transition-all duration-200 bg-primary hover:bg-primary/90"
+            title="Salvar mapa mental (Ctrl+S)"
+          >
+            <Save className="w-4 h-4 mr-1.5" />
+            <span className="text-sm font-medium">Salvar</span>
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"

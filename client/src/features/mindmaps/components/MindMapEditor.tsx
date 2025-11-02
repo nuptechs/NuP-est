@@ -333,6 +333,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           onDeleteNode={handleDeleteNode}
           onUndo={undo}
           onRedo={redo}
+          onSave={handleSave}
           onExport={handleExport}
           onImport={handleImport}
           onGenerateAI={handleGenerateAI}
