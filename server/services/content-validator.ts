@@ -1,15 +1,33 @@
 /**
- * Content Validator Service
+ * Content Validator Service - Enhanced Version
  * Pre-generation validation layer to ensure content quality before AI processing
  * 
- * Validates content sufficiency and provides helpful error messages
+ * Features:
+ * - Content sufficiency validation
+ * - Semantic analysis with stopwords
+ * - Structural anomaly detection
+ * - Quality scoring (0-100)
+ * - Automatic improvement suggestions
  */
+
+import {
+  analyzeSemanticQuality,
+  calculateQualityScore,
+  generateImprovementSuggestions,
+  analyzeStructure,
+  type SemanticAnalysis,
+  type StructuralAnalysis,
+} from './semantic-analyzer';
 
 export interface ValidationResult {
   isValid: boolean;
   error?: string;
   details?: string;
   metrics?: Record<string, any>;
+  qualityScore?: number; // 0-100
+  suggestions?: string[]; // Improvement suggestions
+  semanticAnalysis?: SemanticAnalysis;
+  structuralAnalysis?: StructuralAnalysis;
 }
 
 interface MindMapNode {
@@ -42,12 +60,21 @@ const VALIDATION_CONFIG = {
     minLabelLength: 2,
     minTotalTextLength: 20,
     minUniqueLabels: 2,
+    minQualityScore: 30, // Minimum quality score to pass
   },
   flashcard: {
     minCards: 3,
     minTextPerCard: 10,
     minTotalTextLength: 50,
     minUniqueConcepts: 2,
+    minQualityScore: 30, // Minimum quality score to pass
+  },
+  quiz: {
+    minQuestions: 3,
+    minTextPerQuestion: 15,
+    minOptions: 2,
+    minTotalTextLength: 80,
+    minQualityScore: 35,
   }
 };
 
@@ -161,10 +188,51 @@ export function validateMindMapForFlashcards(
     };
   }
 
+  // 🧠 SEMANTIC ANALYSIS: Advanced quality check
+  const texts = nodes.map(n => `${n.data.label} ${n.data.description || ''}`);
+  const semanticAnalysis = analyzeSemanticQuality(texts);
+  
+  // Calculate quality score (0-100)
+  const qualityScore = calculateQualityScore(semanticAnalysis, totalTextLength);
+  
+  // Generate improvement suggestions
+  const suggestions = generateImprovementSuggestions(
+    semanticAnalysis,
+    totalTextLength,
+    'mindmap'
+  );
+  
+  // 🏗️ STRUCTURAL ANALYSIS: Check for anomalies
+  const structuralAnalysis = analyzeStructure(nodes, edges);
+  
+  // Check quality score threshold
+  if (qualityScore < VALIDATION_CONFIG.mindmap.minQualityScore) {
+    return {
+      isValid: false,
+      error: "Qualidade do conteúdo insuficiente",
+      details: `Score de qualidade: ${qualityScore}/100. O conteúdo precisa ser mais rico e detalhado.`,
+      metrics: {
+        ...metrics,
+        qualityScore,
+      },
+      qualityScore,
+      suggestions,
+      semanticAnalysis,
+      structuralAnalysis,
+    };
+  }
+
   // All validations passed
   return {
     isValid: true,
-    metrics,
+    metrics: {
+      ...metrics,
+      qualityScore,
+    },
+    qualityScore,
+    suggestions,
+    semanticAnalysis,
+    structuralAnalysis,
   };
 }
 
@@ -271,10 +339,179 @@ export function validateFlashcardsForMindMap(
     };
   }
 
+  // 🧠 SEMANTIC ANALYSIS: Advanced quality check
+  const texts = flashcards.map(fc => `${fc.front} ${fc.back}`);
+  const semanticAnalysis = analyzeSemanticQuality(texts);
+  
+  // Calculate quality score (0-100)
+  const qualityScore = calculateQualityScore(semanticAnalysis, totalTextLength);
+  
+  // Generate improvement suggestions
+  const suggestions = generateImprovementSuggestions(
+    semanticAnalysis,
+    totalTextLength,
+    'flashcard'
+  );
+  
+  // Check quality score threshold
+  if (qualityScore < VALIDATION_CONFIG.flashcard.minQualityScore) {
+    return {
+      isValid: false,
+      error: "Qualidade do conteúdo insuficiente",
+      details: `Score de qualidade: ${qualityScore}/100. Os flashcards precisam ser mais ricos e detalhados.`,
+      metrics: {
+        ...metrics,
+        qualityScore,
+      },
+      qualityScore,
+      suggestions,
+      semanticAnalysis,
+    };
+  }
+
   // All validations passed
   return {
     isValid: true,
-    metrics,
+    metrics: {
+      ...metrics,
+      qualityScore,
+    },
+    qualityScore,
+    suggestions,
+    semanticAnalysis,
+  };
+}
+
+/**
+ * Validate Quiz content before generation
+ */
+export function validateQuizContent(
+  questions: Array<{
+    question: string;
+    options?: string[];
+    answer?: string;
+    explanation?: string;
+  }>
+): ValidationResult {
+  const metrics = {
+    questionCount: questions.length,
+    totalTextLength: 0,
+    avgQuestionLength: 0,
+    questionsWithOptions: 0,
+    questionsWithExplanation: 0,
+  };
+
+  // Basic validation
+  if (!questions || questions.length === 0) {
+    return {
+      isValid: false,
+      error: "Quiz vazio",
+      details: "Nenhuma questão foi fornecida. Adicione questões antes de gerar o quiz.",
+    };
+  }
+
+  if (questions.length < VALIDATION_CONFIG.quiz.minQuestions) {
+    return {
+      isValid: false,
+      error: "Número insuficiente de questões",
+      details: `O quiz possui apenas ${questions.length} questão(ões). Adicione pelo menos ${VALIDATION_CONFIG.quiz.minQuestions} questões para criar um quiz de qualidade.`,
+      metrics,
+    };
+  }
+
+  // Analyze content
+  let totalTextLength = 0;
+  let emptyQuestionCount = 0;
+  let shortQuestionCount = 0;
+
+  questions.forEach(q => {
+    const questionText = (q.question || "").trim();
+    const answerText = (q.answer || "").trim();
+    const explanationText = (q.explanation || "").trim();
+    const optionsText = (q.options || []).join(' ');
+
+    const qLength = questionText.length + answerText.length + explanationText.length + optionsText.length;
+    totalTextLength += qLength;
+
+    if (q.options && q.options.length >= VALIDATION_CONFIG.quiz.minOptions) {
+      metrics.questionsWithOptions++;
+    }
+    if (explanationText) {
+      metrics.questionsWithExplanation++;
+    }
+
+    if (!questionText) {
+      emptyQuestionCount++;
+    } else if (qLength < VALIDATION_CONFIG.quiz.minTextPerQuestion) {
+      shortQuestionCount++;
+    }
+  });
+
+  metrics.totalTextLength = totalTextLength;
+  metrics.avgQuestionLength = totalTextLength / questions.length;
+
+  // Validation checks
+  if (emptyQuestionCount > 0) {
+    return {
+      isValid: false,
+      error: "Questões vazias detectadas",
+      details: `${emptyQuestionCount} questão(ões) não possuem texto. Complete todas as questões.`,
+      metrics,
+    };
+  }
+
+  if (shortQuestionCount > questions.length / 2) {
+    return {
+      isValid: false,
+      error: "Questões muito curtas",
+      details: "Muitas questões são muito curtas. Adicione mais detalhes e contexto às perguntas.",
+      metrics,
+    };
+  }
+
+  if (totalTextLength < VALIDATION_CONFIG.quiz.minTotalTextLength) {
+    return {
+      isValid: false,
+      error: "Conteúdo insuficiente",
+      details: `O quiz contém muito pouco texto (${totalTextLength} caracteres). Enriqueça as questões com mais informações.`,
+      metrics,
+    };
+  }
+
+  // Semantic analysis
+  const texts = questions.map(q => 
+    `${q.question} ${q.options?.join(' ') || ''} ${q.answer || ''} ${q.explanation || ''}`
+  );
+  const semanticAnalysis = analyzeSemanticQuality(texts);
+  const qualityScore = calculateQualityScore(semanticAnalysis, totalTextLength);
+  const suggestions = generateImprovementSuggestions(semanticAnalysis, totalTextLength, 'quiz');
+
+  // Check quality score
+  if (qualityScore < VALIDATION_CONFIG.quiz.minQualityScore) {
+    return {
+      isValid: false,
+      error: "Qualidade do quiz insuficiente",
+      details: `Score de qualidade: ${qualityScore}/100. As questões precisam ser mais ricas e variadas.`,
+      metrics: {
+        ...metrics,
+        qualityScore,
+      },
+      qualityScore,
+      suggestions,
+      semanticAnalysis,
+    };
+  }
+
+  // All validations passed
+  return {
+    isValid: true,
+    metrics: {
+      ...metrics,
+      qualityScore,
+    },
+    qualityScore,
+    suggestions,
+    semanticAnalysis,
   };
 }
 
@@ -289,8 +526,8 @@ export function getValidationConfig() {
  * Update validation thresholds (for admin/testing purposes)
  */
 export function updateValidationConfig(
-  type: "mindmap" | "flashcard",
-  updates: Partial<typeof VALIDATION_CONFIG.mindmap | typeof VALIDATION_CONFIG.flashcard>
+  type: "mindmap" | "flashcard" | "quiz",
+  updates: Partial<typeof VALIDATION_CONFIG.mindmap | typeof VALIDATION_CONFIG.flashcard | typeof VALIDATION_CONFIG.quiz>
 ) {
   Object.assign(VALIDATION_CONFIG[type], updates);
 }
