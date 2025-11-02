@@ -3,9 +3,11 @@
  * FASE 3: Flashcards → Mind Map conversion
  * 
  * Aggregates flashcards into intelligent mind maps with AI-enhanced structure
+ * Now includes pre-generation validation layer for quality assurance
  */
 
 import OpenAI from "openai";
+import { validateFlashcardsForMindMap } from "./content-validator";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -61,9 +63,17 @@ export async function generateMindMapFromFlashcards(
 ): Promise<GeneratedMindMap> {
   const { title, useAI = true, layout = "horizontal" } = options;
 
-  if (flashcards.length === 0) {
-    throw new Error("No flashcards provided");
+  // 🔍 VALIDATION LAYER: Check content quality before AI processing
+  console.log("🔍 Validating flashcards content before generating mind map...");
+  const validation = validateFlashcardsForMindMap(flashcards);
+  
+  if (!validation.isValid) {
+    console.error("❌ Validation failed:", validation.error);
+    console.error("📊 Metrics:", validation.metrics);
+    throw new Error(`${validation.error}: ${validation.details}`);
   }
+  
+  console.log("✅ Validation passed. Content metrics:", validation.metrics);
 
   if (useAI) {
     try {
