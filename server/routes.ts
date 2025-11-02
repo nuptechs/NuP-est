@@ -1840,6 +1840,15 @@ ${text}`;
         }
       );
 
+      console.log("🗺️ Generated mindMapData:", {
+        hasNodes: !!mindMapData.nodes,
+        nodeCount: mindMapData.nodes?.length,
+        hasEdges: !!mindMapData.edges,
+        edgeCount: mindMapData.edges?.length,
+        layout: mindMapData.layout,
+        styleSheetId: mindMapData.styleSheetId,
+      });
+
       // Get subject from deck if available
       let subjectId = null;
       if (deckId) {
@@ -1849,16 +1858,27 @@ ${text}`;
         }
       }
 
+      // Prepare content object
+      const contentObject = {
+        nodes: mindMapData.nodes,
+        edges: mindMapData.edges,
+        layout: mindMapData.layout || "horizontal",
+      };
+
+      console.log("📦 Content object to save:", {
+        hasNodes: !!contentObject.nodes,
+        nodeCount: contentObject.nodes?.length,
+        hasEdges: !!contentObject.edges,
+        edgeCount: contentObject.edges?.length,
+        layout: contentObject.layout,
+      });
+
       // Save to database
       const savedMindMap = await storage.createMindMap({
         userId,
         title: title || "Mapa Mental - Flashcards",
         subjectId,
-        content: {
-          nodes: mindMapData.nodes,
-          edges: mindMapData.edges,
-          layout: mindMapData.layout || "horizontal",
-        },
+        content: contentObject,
         styleSheetId: mindMapData.styleSheetId,
         generatedFromAI: true,
       });
