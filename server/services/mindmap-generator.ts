@@ -129,7 +129,7 @@ Return JSON in this format:
     messages: [
       {
         role: "system",
-        content: "You are an expert at organizing knowledge into clear, hierarchical mind maps. Return valid JSON only."
+        content: "You are an expert at organizing knowledge into clear, hierarchical mind maps. Return ONLY valid JSON, no markdown formatting."
       },
       {
         role: "user",
@@ -137,12 +137,32 @@ Return JSON in this format:
       }
     ],
     temperature: 0.5,
-    max_tokens: 2000,
+    max_tokens: 3000,
     response_format: { type: "json_object" },
   });
 
-  const responseText = completion.choices[0].message.content || "{}";
-  const structure = JSON.parse(responseText);
+  let responseText = completion.choices[0].message.content || "{}";
+  
+  // Clean up potential markdown code blocks
+  responseText = responseText.trim();
+  if (responseText.startsWith("```json")) {
+    responseText = responseText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+  } else if (responseText.startsWith("```")) {
+    responseText = responseText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+  }
+  
+  // Log the response for debugging
+  console.log("📝 AI Response length:", responseText.length);
+  
+  let structure;
+  try {
+    structure = JSON.parse(responseText);
+  } catch (parseError) {
+    console.error("❌ JSON Parse Error:", parseError);
+    console.error("📄 First 500 chars of response:", responseText.substring(0, 500));
+    console.error("📄 Last 500 chars of response:", responseText.substring(Math.max(0, responseText.length - 500)));
+    throw parseError;
+  }
 
   // Convert AI structure to nodes and edges
   return buildMindMapFromStructure(structure, layout);
