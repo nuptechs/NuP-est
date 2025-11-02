@@ -26,15 +26,34 @@ An adaptive learning AI pipeline features:
 -   **AIContentPipeline**: Manages content generation using priority-based model selection.
 -   **QuestionGeneratorTool**: Generates adaptive questions using category-specific strategies and RAG.
 
-### AI Content Validation Layer
+### AI Content Validation Layer (Enhanced)
 
-A pre-generation validation system ensures content quality before AI processing:
--   **ContentValidator**: Modular validator with configurable thresholds and metrics.
--   **Quality Checks**: Validates quantity (min nodes/cards), text richness, concept diversity, and structural integrity.
--   **Descriptive Errors**: Provides actionable Portuguese error messages with specific improvement suggestions.
--   **Metrics Tracking**: Logs content metrics (text length, unique concepts, node distribution) for debugging.
--   **Integration**: Non-invasive layer in flashcard-generator and mindmap-generator services.
--   **Configurable Thresholds**: Adjustable validation rules via `updateValidationConfig()` helper.
+A multi-layered pre-generation validation system ensures maximum content quality before AI processing:
+
+**Core Validation (content-validator.ts)**:
+-   **Modular Validator**: Supports mind maps, flashcards, and quiz content with type-specific rules.
+-   **Configurable Thresholds**: Adjustable validation rules via `updateValidationConfig()` for all content types.
+-   **Quality Scoring**: 0-100 score with minimum thresholds (30 for maps/flashcards, 35 for quizzes).
+-   **Descriptive Errors**: Actionable Portuguese error messages with specific improvement suggestions.
+-   **Integration**: Non-invasive layer in flashcard-generator, mindmap-generator, and quiz services.
+
+**Semantic Analysis (semantic-analyzer.ts)**:
+-   **Stopword Filtering**: Portuguese stopwords removed for meaningful concept extraction.
+-   **Generic Concept Detection**: Flags vague terms ("coisa", "tipo", "elemento") for replacement.
+-   **Quality Metrics**: Concept diversity, vocabulary richness, text complexity, average concept length.
+-   **Automatic Suggestions**: Context-aware improvement tips based on analysis results.
+-   **Performance**: Linear-time scans optimized for typical payload sizes.
+
+**Structural Analysis**:
+-   **Orphaned Nodes Detection**: Identifies disconnected nodes in mind maps.
+-   **Duplicate Edge Detection**: Finds redundant connections in graph structures.
+-   **Depth Calculation**: Measures hierarchy depth via BFS traversal.
+-   **Component Analysis**: Tracks disconnected graph components.
+
+**Validation Outputs**:
+-   **ValidationResult**: isValid, error, details, qualityScore, suggestions, semanticAnalysis, structuralAnalysis.
+-   **Rich Metrics**: Logs all analysis data for debugging and continuous improvement.
+-   **User-Friendly**: All messages in Portuguese with actionable next steps.
 
 ### Intelligent Auto-Categorization
 
