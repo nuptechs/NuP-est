@@ -26,6 +26,16 @@ An adaptive learning AI pipeline features:
 -   **AIContentPipeline**: Manages content generation using priority-based model selection.
 -   **QuestionGeneratorTool**: Generates adaptive questions using category-specific strategies and RAG.
 
+### AI Content Validation Layer
+
+A pre-generation validation system ensures content quality before AI processing:
+-   **ContentValidator**: Modular validator with configurable thresholds and metrics.
+-   **Quality Checks**: Validates quantity (min nodes/cards), text richness, concept diversity, and structural integrity.
+-   **Descriptive Errors**: Provides actionable Portuguese error messages with specific improvement suggestions.
+-   **Metrics Tracking**: Logs content metrics (text length, unique concepts, node distribution) for debugging.
+-   **Integration**: Non-invasive layer in flashcard-generator and mindmap-generator services.
+-   **Configurable Thresholds**: Adjustable validation rules via `updateValidationConfig()` helper.
+
 ### Intelligent Auto-Categorization
 
 A 3-phase system categorizes subjects using pattern matching, AI fallback (GPT-4o-mini), and a safe default. It includes UX features like auto-suggestion, visual feedback, and manual override.
