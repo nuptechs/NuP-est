@@ -111,7 +111,25 @@ A modular system for enriched student profiles:
 
 ## Mind Maps System
 
-A complete Mind Maps system with a modular architecture and RAG integration. It features a `MindMapGenerator` (HybridSearchService + GPT-4o-mini), automatic material conversion to mind maps, adaptive learning colors for nodes, subject integration, and export to SVG/PNG. The UX is refined with drag & drop, inline editing, handle-based connections, keyboard shortcuts, and a SimpleMind-inspired visual design for a clean, minimal interface.
+A complete Mind Maps system with a modular architecture and RAG integration. Features:
+
+### Adaptive AI Generation (Profile-Aware)
+-   **StudyContextBuilder Integration**: Loads complete user profile (difficulties, TDAH, objectives, learning evolution)
+-   **Pedagogical Adaptation**: 
+    -   TDAH: Vibrant high-contrast colors, chunked concepts, mnemonic devices, concise text
+    -   Dislexia: Simple language, visual metaphors, bullet points
+    -   Memory issues: Strong mnemonics, associations, storytelling, practical examples
+    -   Low motivation: Encouraging language, real-world applications
+-   **Rich Content**: Leaf nodes include detailed descriptions (2-4 sentences) with examples and key points
+-   **Adaptive Colors**: 7 vibrant colors for ADHD, 4 balanced colors for standard profiles
+-   **Graceful Fallback**: Works without profile (uses best practices defaults)
+
+### Core Features
+-   `MindMapGenerator` (HybridSearchService + GPT-4o-mini with adaptive prompts)
+-   Automatic material conversion to mind maps
+-   Subject integration and export to SVG/PNG
+-   Drag & drop, inline editing, handle-based connections, keyboard shortcuts
+-   SimpleMind-inspired visual design for a clean, minimal interface
 
 ### Advanced Customization
 

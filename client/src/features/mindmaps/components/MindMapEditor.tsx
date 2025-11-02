@@ -26,6 +26,7 @@ import { mindMapAI } from '../ai/MindMapAI';
 import { useToast } from '@/hooks/use-toast';
 
 const nodeTypes = {
+  mindMapNode: MindMapNodeComponent,
   default: MindMapNodeComponent,
 };
 
