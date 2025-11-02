@@ -1830,7 +1830,7 @@ ${text}`;
         return res.status(400).json({ message: "No flashcards found" });
       }
 
-      // Generate mind map
+      // Generate mind map structure
       const mindMapData = await generateMindMapFromFlashcards(
         flashcards as any[],
         {
@@ -1840,9 +1840,32 @@ ${text}`;
         }
       );
 
+      // Get subject from deck if available
+      let subjectId = null;
+      if (deckId) {
+        const deck = await storage.getFlashcardDeck(deckId);
+        if (deck) {
+          subjectId = deck.subjectId;
+        }
+      }
+
+      // Save to database
+      const savedMindMap = await storage.createMindMap({
+        userId,
+        title: title || "Mapa Mental - Flashcards",
+        subjectId,
+        content: {
+          nodes: mindMapData.nodes,
+          edges: mindMapData.edges,
+          layout: mindMapData.layout || "horizontal",
+        },
+        styleSheetId: mindMapData.styleSheetId,
+        generatedFromAI: true,
+      });
+
       res.json({
         success: true,
-        mindMap: mindMapData,
+        mindMap: savedMindMap,
       });
     } catch (error) {
       console.error("Error generating mind map from flashcards:", error);
