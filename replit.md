@@ -157,6 +157,26 @@ A complete Mind Maps system with a modular architecture and RAG integration. Fea
 -   Drag & drop, inline editing, handle-based connections, keyboard shortcuts
 -   SimpleMind-inspired visual design for a clean, minimal interface
 
+### SimpleMind Professional Features (November 2025)
+
+Enhanced with advanced organization tools matching SimpleMind quality:
+
+**Organization & Navigation:**
+-   **Collapse/Expand Branches**: Chevron buttons on parent nodes to hide/show descendants, enabling focus on specific branches
+-   **Free-Form Layout Mode**: Toggle to disable auto-layout and position nodes manually without interference
+-   **Outline View**: Alternative hierarchical list view with collapsible tree, checkboxes, and click-to-navigate to visual map with smooth zoom
+-   **Crosslinks**: Create connections between any nodes (not just hierarchical) with dashed lines and custom labels to represent relationships
+
+**Rich Content Support:**
+-   **Checkboxes**: Mark concepts as studied with visual green checkmark, shown in both visual and outline views
+-   **Custom Icons/Emojis**: Add icons or emojis to nodes for visual categorization and quick recognition
+-   **Edge Labels**: Descriptive text on connections explaining relationships between concepts
+
+**Layout & Views:**
+-   **Responsive Layout**: Mobile (60/40 split stacked), Desktop (side-by-side panels with full-height canvas)
+-   **Multiple View Modes**: Toggle between visual mind map, outline view, or both simultaneously
+-   **Focus Mode**: Full-screen canvas with hidden toolbar for distraction-free work
+
 ### Advanced Customization
 
 A 3-level customization architecture: global style sheets, mind map specific overrides, and individual element styles. Includes 12 built-in style sheets and extensive customization options for node shapes, colors, borders, typography, and edge properties. Supports various color modes (type-based, level-based, branch-based, performance-based) with automatic hierarchy calculation. UI components facilitate style selection, and state is managed with Zustand, ensuring robust style application with fallbacks.
