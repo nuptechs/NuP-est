@@ -23,6 +23,7 @@ import {
   Workflow,
   Save,
   Move,
+  List,
 } from 'lucide-react';
 import type { ExportFormat } from '../core/types';
 
@@ -46,6 +47,8 @@ interface ToolbarProps {
   focusMode?: boolean;
   onToggleFreeForm?: () => void;
   freeFormMode?: boolean;
+  onToggleOutlineView?: () => void;
+  showOutlineView?: boolean;
   onApplyAutoLayout?: () => void;
   canUndo: boolean;
   canRedo: boolean;
@@ -72,6 +75,8 @@ export function Toolbar({
   focusMode,
   onToggleFreeForm,
   freeFormMode,
+  onToggleOutlineView,
+  showOutlineView,
   onApplyAutoLayout,
   canUndo,
   canRedo,
@@ -187,6 +192,19 @@ export function Toolbar({
             title="Minimapa"
           >
             <Map className="w-4 h-4" />
+          </Button>
+        )}
+        
+        {onToggleOutlineView && (
+          <Button
+            variant={showOutlineView ? "secondary" : "ghost"}
+            size="sm"
+            onClick={onToggleOutlineView}
+            data-testid="button-toggle-outline"
+            className="h-9 w-9 p-0 rounded-lg transition-all duration-200"
+            title="Visão em Lista"
+          >
+            <List className="w-4 h-4" />
           </Button>
         )}
         

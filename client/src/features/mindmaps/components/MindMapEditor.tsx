@@ -12,6 +12,7 @@ import { toPng, toSvg } from 'html-to-image';
 import { MindMapNode as MindMapNodeComponent } from './nodes/MindMapNode';
 import { Toolbar } from './Toolbar';
 import { StylePanel } from './StylePanel';
+import { OutlineView } from './OutlineView';
 import { 
   useMindMapEngine,
   useMindMapNodes,
@@ -24,6 +25,7 @@ import { useStyleStore } from '../store/useStyleStore';
 import type { ExportFormat, MindMapConfig, MindMapData } from '../core/types';
 import { mindMapAI } from '../ai/MindMapAI';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const nodeTypes = {
   mindMapNode: MindMapNodeComponent,
@@ -44,6 +46,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false);
   const [showStylePanel, setShowStylePanel] = useState(false);
+  const [showOutlineView, setShowOutlineView] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | undefined>(undefined);
   
@@ -88,10 +91,14 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         type: edgeStyle.type,
         style: {
           ...edge.style,
-          stroke: edgeStyle.color,
+          stroke: edge.crosslink ? 'hsl(var(--chart-2))' : edgeStyle.color, // Crosslinks in different color
           strokeWidth: edgeStyle.width,
+          strokeDasharray: edge.crosslink ? '5,5' : undefined, // Dashed for crosslinks
         },
         animated: edgeStyle.animated,
+        label: edge.label, // SimpleMind: Edge labels
+        labelBgStyle: { fill: 'hsl(var(--background))', fillOpacity: 0.85 },
+        labelStyle: { fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 500 },
       };
     });
   }, [edges, getEdgeStyle]);
@@ -353,6 +360,8 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           focusMode={focusMode}
           onToggleFreeForm={toggleFreeFormMode}
           freeFormMode={freeFormMode}
+          onToggleOutlineView={() => setShowOutlineView(!showOutlineView)}
+          showOutlineView={showOutlineView}
           onApplyAutoLayout={() => applyLayout()}
           canUndo={canUndo}
           canRedo={canRedo}
@@ -363,10 +372,14 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
       <div className="flex flex-col md:flex-row" style={{ height: focusMode ? '100%' : 'calc(100% - 64px)' }}>
         <div 
           ref={reactFlowWrapper} 
-          className="md:h-full relative"
+          className={cn(
+            "relative",
+            (showStylePanel || showOutlineView) && !focusMode ? "h-[60%] md:h-full" : "h-full"
+          )}
           style={{ 
-            width: showStylePanel && !focusMode ? 'calc(100% - min(320px, 35vw))' : '100%', 
-            height: showStylePanel && !focusMode ? '60%' : '100%',
+            width: (showStylePanel || showOutlineView) && !focusMode 
+              ? `calc(100% - ${showStylePanel && showOutlineView ? 'min(640px, 70vw)' : 'min(320px, 35vw)'})` 
+              : '100%',
           }}
         >
         {focusMode && (
@@ -383,7 +396,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           edges={styledEdges}
           nodeTypes={nodeTypes}
           nodesDraggable={true}
-          nodesConnectable={false}
+          nodesConnectable={true}
           elementsSelectable={true}
           className="bg-background"
           onNodesChange={(changes) => {
@@ -474,6 +487,24 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           )}
         </ReactFlow>
         </div>
+        
+        {/* Outline View */}
+        {showOutlineView && !focusMode && (
+          <div className="w-full md:w-[320px] md:min-w-[320px] h-[40%] md:h-full">
+            <OutlineView 
+              onNodeClick={(nodeId) => {
+                const node = nodes.find(n => n.id === nodeId);
+                if (node && reactFlowInstance) {
+                  reactFlowInstance.setCenter(
+                    node.position.x + 50,
+                    node.position.y + 25,
+                    { zoom: 1.2, duration: 800 }
+                  );
+                }
+              }}
+            />
+          </div>
+        )}
         
         {/* Style Panel */}
         {showStylePanel && !focusMode && (
