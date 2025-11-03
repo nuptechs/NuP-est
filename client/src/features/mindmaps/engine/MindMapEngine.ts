@@ -40,6 +40,7 @@ interface MindMapEngineState {
   
   collapseNode: (id: string) => void;
   expandNode: (id: string) => void;
+  autoCollapseBySize: () => void;
   
   toggleFreeFormMode: () => void;
   applyLayout: () => void;
@@ -103,6 +104,11 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     
     // Apply layout to calculate hierarchy for loaded map
     get().applyLayout();
+    
+    // Auto-collapse large maps for better initial view
+    setTimeout(() => {
+      get().autoCollapseBySize();
+    }, 100);
   },
 
   addNode: (parentId: string | null, label: string, type?: NodeType) => {
@@ -329,6 +335,36 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     });
 
     set({ nodes: newNodes, edges: newEdges });
+  },
+
+  autoCollapseBySize: () => {
+    const { nodes } = get();
+    const totalNodes = nodes.length;
+    
+    // Small maps (<15 nodes): keep everything expanded
+    if (totalNodes < 15) {
+      return;
+    }
+    
+    // Determine collapse level based on map size
+    // Medium maps (15-40 nodes): collapse from level 2+ (show root + branches)
+    // Large maps (>40 nodes): collapse from level 1+ (show only root)
+    const collapseFromLevel = totalNodes > 40 ? 1 : 2;
+    
+    // Find nodes to collapse based on their level
+    const nodesToCollapse = nodes.filter(node => {
+      const level = node.data.level ?? 0;
+      return level >= collapseFromLevel && node.data.type !== 'root';
+    });
+    
+    // Collapse each node (this will also hide their children)
+    nodesToCollapse.forEach(node => {
+      // Only collapse if node has children
+      const hasChildren = get().edges.some(edge => edge.source === node.id);
+      if (hasChildren) {
+        get().collapseNode(node.id);
+      }
+    });
   },
 
   toggleFreeFormMode: () => {

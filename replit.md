@@ -163,6 +163,7 @@ Enhanced with advanced organization tools matching SimpleMind quality:
 
 **Organization & Navigation:**
 -   **Collapse/Expand Branches**: Chevron buttons on parent nodes to hide/show descendants, enabling focus on specific branches
+-   **Auto-Collapse Large Maps**: Maps automatically open with collapsed nodes based on size (<15 nodes: fully expanded, 15-40 nodes: collapse level 2+, >40 nodes: collapse level 1+) for optimal initial visualization
 -   **Free-Form Layout Mode**: Toggle to disable auto-layout and position nodes manually without interference
 -   **Outline View**: Alternative hierarchical list view with collapsible tree, checkboxes, and click-to-navigate to visual map with smooth zoom
 -   **Crosslinks**: Create connections between any nodes (not just hierarchical) with dashed lines and custom labels to represent relationships

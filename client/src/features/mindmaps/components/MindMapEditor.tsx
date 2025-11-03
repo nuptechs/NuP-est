@@ -172,6 +172,11 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
 
       useMindMapEngine.getState().loadMindMap(mindMapData);
       applyLayout();
+      
+      // Auto-collapse large generated maps for better initial view
+      setTimeout(() => {
+        useMindMapEngine.getState().autoCollapseBySize();
+      }, 200);
 
       toast({
         title: 'Sucesso!',
