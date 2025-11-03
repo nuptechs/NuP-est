@@ -105,11 +105,7 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     // Apply layout to calculate hierarchy for loaded map
     get().applyLayout();
     
-    // Auto-collapse large maps for better initial view
-    // Use longer timeout to ensure applyLayout has finished calculating levels
-    setTimeout(() => {
-      get().autoCollapseBySize();
-    }, 400);
+    // Auto-collapse will be called by MindMapEditor when ReactFlow is ready
   },
 
   addNode: (parentId: string | null, label: string, type?: NodeType) => {
@@ -339,8 +335,10 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
   },
 
   autoCollapseBySize: () => {
-    const { nodes } = get();
+    const { nodes, edges } = get();
     const totalNodes = nodes.length;
+    
+    console.log('[AutoCollapse] Starting auto-collapse calculation', { totalNodes });
     
     // Calculate how many nodes can fit comfortably on screen
     const screenWidth = window.innerWidth;
@@ -355,8 +353,16 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     const nodesPerColumn = Math.floor(availableHeight / avgNodeHeight);
     const comfortableNodeCount = nodesPerRow * nodesPerColumn;
     
+    console.log('[AutoCollapse] Screen capacity', {
+      screenWidth,
+      screenHeight,
+      comfortableNodeCount,
+      totalNodes,
+    });
+    
     // If map fits comfortably on screen, keep expanded
     if (totalNodes <= comfortableNodeCount) {
+      console.log('[AutoCollapse] Map fits on screen, no collapse needed');
       return;
     }
     
@@ -376,20 +382,34 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
       collapseFromLevel = 3;
     }
     
+    console.log('[AutoCollapse] Overflow ratio and collapse level', {
+      overflowRatio,
+      collapseFromLevel,
+    });
+    
     // Find nodes to collapse based on their level
     const nodesToCollapse = nodes.filter(node => {
       const level = node.data.level ?? 0;
       return level >= collapseFromLevel && node.data.type !== 'root';
     });
     
+    console.log('[AutoCollapse] Nodes to collapse', {
+      nodesToCollapseCount: nodesToCollapse.length,
+      nodesSample: nodesToCollapse.slice(0, 3).map(n => ({ id: n.id, label: n.data.label, level: n.data.level })),
+    });
+    
     // Collapse each node (this will also hide their children)
+    let collapsedCount = 0;
     nodesToCollapse.forEach(node => {
       // Only collapse if node has children
-      const hasChildren = get().edges.some(edge => edge.source === node.id);
+      const hasChildren = edges.some(edge => edge.source === node.id);
       if (hasChildren) {
         get().collapseNode(node.id);
+        collapsedCount++;
       }
     });
+    
+    console.log('[AutoCollapse] Finished', { collapsedCount });
   },
 
   toggleFreeFormMode: () => {
