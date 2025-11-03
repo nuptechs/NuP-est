@@ -81,6 +81,7 @@ export function useMindMap(options: UseMindMapOptions) {
       const data = await mindMapStorage.load(id);
       if (data) {
         loadMindMap(data);
+        // Auto-collapse is called inside loadMindMap in engine
       }
       setError(null);
       return data;
@@ -98,6 +99,7 @@ export function useMindMap(options: UseMindMapOptions) {
       const data = await mindMapAI.generateFromPrompt(aiOptions);
       loadMindMap(data);
       applyLayout();
+      // Auto-collapse is called inside loadMindMap in engine
       setError(null);
       return data;
     } catch (err) {
@@ -114,6 +116,7 @@ export function useMindMap(options: UseMindMapOptions) {
       const data = await mindMapAI.generateFromMaterial(materialId);
       loadMindMap(data);
       applyLayout();
+      // Auto-collapse is called inside loadMindMap in engine
       setError(null);
       return data;
     } catch (err) {

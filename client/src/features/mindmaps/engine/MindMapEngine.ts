@@ -106,9 +106,10 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     get().applyLayout();
     
     // Auto-collapse large maps for better initial view
+    // Use longer timeout to ensure applyLayout has finished calculating levels
     setTimeout(() => {
       get().autoCollapseBySize();
-    }, 100);
+    }, 400);
   },
 
   addNode: (parentId: string | null, label: string, type?: NodeType) => {
