@@ -229,7 +229,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       <div
         className={cn(
           'px-4 py-2.5 border transition-all duration-300 cursor-grab active:cursor-grabbing',
-          'shadow-sm hover:shadow-md',
+          'shadow-sm hover:shadow-md min-w-fit max-w-[350px]',
           selected && 'ring-2 ring-primary ring-offset-2 shadow-lg scale-105',
           isHovered && !selected && 'shadow-md',
           getShapeClass()
@@ -241,7 +241,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
           ...getBorderRadiusStyle(),
         }}
       >
-        <div className="flex items-center gap-2.5 whitespace-nowrap">
+        <div className="flex items-center gap-2.5">
           {hasChildren && (
             <button
               className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-md transition-all duration-200 flex-shrink-0"
@@ -299,11 +299,11 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
               onChange={(e) => setLabel(e.target.value)}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none focus:ring-0 font-medium min-w-[100px]"
+              className="bg-transparent border-none outline-none focus:ring-0 font-medium"
               autoFocus
               data-testid={`input-node-label-${data.label}`}
               style={{
-                width: `${Math.max(100, label.length * 8 + 20)}px`,
+                width: `${Math.max(80, Math.min(300, label.length * 8 + 20))}px`,
                 color: nodeStyle.textColor,
                 fontSize: `${nodeStyle.fontSize}px`,
                 fontWeight: nodeStyle.fontWeight,
@@ -311,11 +311,12 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
             />
           ) : (
             <div
-              className="font-medium leading-snug tracking-tight"
+              className="font-medium leading-snug tracking-tight max-w-[300px]"
               style={{
                 fontSize: `${nodeStyle.fontSize}px`,
                 fontWeight: nodeStyle.fontWeight,
                 color: nodeStyle.textColor,
+                minWidth: `${Math.max(60, Math.min(280, data.label.length * 7))}px`,
               }}
               data-testid={`text-node-label-${data.label}`}
             >

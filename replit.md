@@ -163,7 +163,7 @@ Enhanced with advanced organization tools matching SimpleMind quality:
 
 **Organization & Navigation:**
 -   **Collapse/Expand Branches**: Chevron buttons on parent nodes to hide/show descendants, enabling focus on specific branches
--   **Auto-Collapse Large Maps**: Maps automatically open with collapsed nodes based on size (<15 nodes: fully expanded, 15-40 nodes: collapse level 2+, >40 nodes: collapse level 1+) for optimal initial visualization
+-   **Smart Auto-Collapse**: Maps automatically collapse based on screen size - calculates visible node capacity and collapses proportionally (overflow ratio >3x: level 1+, >1.5x: level 2+, <1.5x: level 3+) for optimal viewing on any screen
 -   **Free-Form Layout Mode**: Toggle to disable auto-layout and position nodes manually without interference
 -   **Outline View**: Alternative hierarchical list view with collapsible tree, checkboxes, and click-to-navigate to visual map with smooth zoom
 -   **Crosslinks**: Create connections between any nodes (not just hierarchical) with dashed lines and custom labels to represent relationships
@@ -172,6 +172,7 @@ Enhanced with advanced organization tools matching SimpleMind quality:
 -   **Checkboxes**: Mark concepts as studied with visual green checkmark, shown in both visual and outline views
 -   **Custom Icons/Emojis**: Add icons or emojis to nodes for visual categorization and quick recognition
 -   **Edge Labels**: Descriptive text on connections explaining relationships between concepts
+-   **Responsive Nodes**: Nodes automatically adjust width (60-350px) based on text length for optimal readability
 
 **Layout & Views:**
 -   **Responsive Layout**: Mobile (60/40 split stacked), Desktop (side-by-side panels with full-height canvas)

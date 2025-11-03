@@ -341,15 +341,39 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     const { nodes } = get();
     const totalNodes = nodes.length;
     
-    // Small maps (<15 nodes): keep everything expanded
-    if (totalNodes < 15) {
+    // Calculate how many nodes can fit comfortably on screen
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const avgNodeWidth = 180; // Average node width
+    const avgNodeHeight = 80; // Average node height with spacing
+    
+    // Estimate visible nodes (accounting for toolbar, padding, etc.)
+    const availableWidth = screenWidth * 0.85;
+    const availableHeight = screenHeight * 0.75;
+    const nodesPerRow = Math.floor(availableWidth / avgNodeWidth);
+    const nodesPerColumn = Math.floor(availableHeight / avgNodeHeight);
+    const comfortableNodeCount = nodesPerRow * nodesPerColumn;
+    
+    // If map fits comfortably on screen, keep expanded
+    if (totalNodes <= comfortableNodeCount) {
       return;
     }
     
-    // Determine collapse level based on map size
-    // Medium maps (15-40 nodes): collapse from level 2+ (show root + branches)
-    // Large maps (>40 nodes): collapse from level 1+ (show only root)
-    const collapseFromLevel = totalNodes > 40 ? 1 : 2;
+    // Calculate collapse level proportionally
+    // If way too many nodes, collapse more aggressively
+    const overflowRatio = totalNodes / comfortableNodeCount;
+    let collapseFromLevel: number;
+    
+    if (overflowRatio > 3) {
+      // Huge maps: show only root
+      collapseFromLevel = 1;
+    } else if (overflowRatio > 1.5) {
+      // Large maps: show root + main branches
+      collapseFromLevel = 2;
+    } else {
+      // Slightly large: show root + branches + some details
+      collapseFromLevel = 3;
+    }
     
     // Find nodes to collapse based on their level
     const nodesToCollapse = nodes.filter(node => {
