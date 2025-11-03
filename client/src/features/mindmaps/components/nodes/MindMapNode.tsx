@@ -17,6 +17,12 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const [label, setLabel] = useState(data.label);
   const updateNode = useMindMapEngine((state) => state.updateNode);
   const addNode = useMindMapEngine((state) => state.addNode);
+  const collapseNode = useMindMapEngine((state) => state.collapseNode);
+  const expandNode = useMindMapEngine((state) => state.expandNode);
+  const edges = useMindMapEngine((state) => state.edges);
+  
+  // Check if node has children
+  const hasChildren = edges.some(edge => edge.source === id);
   
   // Get style configuration from store with proper memoization
   const currentStyleSheet = useStyleStore((state) => state.currentStyleSheet);
@@ -236,13 +242,19 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
         }}
       >
         <div className="flex items-center gap-2.5 whitespace-nowrap">
-          {data.collapsed !== undefined && (
+          {hasChildren && (
             <button
               className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-md transition-all duration-200 flex-shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
+                if (data.collapsed) {
+                  expandNode(id);
+                } else {
+                  collapseNode(id);
+                }
               }}
               data-testid={`button-collapse-${data.label}`}
+              title={data.collapsed ? "Expandir" : "Recolher"}
             >
               {data.collapsed ? (
                 <ChevronRight className="w-3.5 h-3.5 opacity-60" />

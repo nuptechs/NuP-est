@@ -58,6 +58,7 @@ export interface MindMapTheme {
 export interface MindMapConfig {
   theme?: MindMapTheme;
   layout?: LayoutAlgorithm;
+  freeForm?: boolean; // SimpleMind-style: Allow free positioning without auto-layout
   nodeSpacing?: number;
   levelSpacing?: number;
   editable?: boolean;

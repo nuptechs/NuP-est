@@ -22,6 +22,7 @@ import {
   Focus,
   Workflow,
   Save,
+  Move,
 } from 'lucide-react';
 import type { ExportFormat } from '../core/types';
 
@@ -43,6 +44,8 @@ interface ToolbarProps {
   showStylePanel?: boolean;
   onToggleFocusMode?: () => void;
   focusMode?: boolean;
+  onToggleFreeForm?: () => void;
+  freeFormMode?: boolean;
   onApplyAutoLayout?: () => void;
   canUndo: boolean;
   canRedo: boolean;
@@ -67,6 +70,8 @@ export function Toolbar({
   showStylePanel,
   onToggleFocusMode,
   focusMode,
+  onToggleFreeForm,
+  freeFormMode,
   onApplyAutoLayout,
   canUndo,
   canRedo,
@@ -198,7 +203,20 @@ export function Toolbar({
           </Button>
         )}
         
-        {onApplyAutoLayout && (
+        {onToggleFreeForm && (
+          <Button
+            variant={freeFormMode ? "secondary" : "ghost"}
+            size="sm"
+            onClick={onToggleFreeForm}
+            data-testid="button-toggle-freeform"
+            className="h-9 w-9 p-0 rounded-lg transition-all duration-200"
+            title={freeFormMode ? "Modo livre ativo - posicione nós manualmente" : "Ativar modo livre - arrastar sem auto-layout"}
+          >
+            <Move className="w-4 h-4" />
+          </Button>
+        )}
+        
+        {onApplyAutoLayout && !freeFormMode && (
           <Button
             variant="ghost"
             size="sm"

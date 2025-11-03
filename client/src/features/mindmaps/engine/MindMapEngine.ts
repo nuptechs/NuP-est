@@ -41,6 +41,7 @@ interface MindMapEngineState {
   collapseNode: (id: string) => void;
   expandNode: (id: string) => void;
   
+  toggleFreeFormMode: () => void;
   applyLayout: () => void;
   
   undo: () => void;
@@ -330,9 +331,38 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     set({ nodes: newNodes, edges: newEdges });
   },
 
+  toggleFreeFormMode: () => {
+    const { mindMap } = get();
+    if (!mindMap) return;
+    
+    const newFreeFormState = !mindMap.config?.freeForm;
+    const updatedMindMap = {
+      ...mindMap,
+      config: {
+        ...mindMap.config,
+        freeForm: newFreeFormState,
+      },
+    };
+    
+    set({ mindMap: updatedMindMap });
+    
+    // If switching back to auto-layout, reapply layout immediately
+    if (!newFreeFormState) {
+      get().applyLayout();
+    }
+  },
+
   applyLayout: () => {
     const { nodes, edges, mindMap } = get();
     const config = mindMap?.config || DEFAULT_CONFIG;
+    
+    // Skip auto-layout if in free-form mode (SimpleMind-style manual positioning)
+    if (config.freeForm) {
+      // Still enrich nodes with hierarchy info for styling purposes
+      const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
+      set({ nodes: enrichedNodes });
+      return;
+    }
     
     // Enrich nodes with hierarchy information (level, branchId)
     const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
