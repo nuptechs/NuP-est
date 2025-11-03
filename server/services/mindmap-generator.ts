@@ -13,6 +13,7 @@
 import OpenAI from "openai";
 import { validateFlashcardsForMindMap } from "./content-validator";
 import { StudyContextBuilder } from "./adaptive-learning/StudyContextBuilder";
+import { GenerationRegistry } from "./GenerationRegistry";
 import type { IStorage } from "../storage";
 
 const openai = new OpenAI({
@@ -88,16 +89,47 @@ export async function generateMindMapFromFlashcards(
     try {
       // Load user context if available for adaptive generation
       let studyContext = null;
+      let profileSnapshotId = undefined;
+      
       if (userId && storage) {
         try {
           const contextBuilder = new StudyContextBuilder(storage);
           studyContext = await contextBuilder.build(userId, { subjectId, includeRAG: false });
+          profileSnapshotId = studyContext.profile.id; // Get current profile snapshot ID
           console.log("📚 Loaded study context for adaptive mind map generation");
         } catch (error) {
           console.warn("⚠️ Could not load study context, using default generation:", error);
         }
       }
 
+      // Use cache system if userId and storage are available
+      if (userId && storage) {
+        const registry = new GenerationRegistry(storage);
+        
+        const result = await registry.getOrGenerate(
+          {
+            userId,
+            contentType: 'mindmap',
+            sourceContentId: (flashcards[0] as any)?.deckId, // Use deckId if available
+            contentData: {
+              flashcards: flashcards.map(f => ({ front: f.front, back: f.back })),
+              title,
+            },
+            profileSnapshotId,
+            parameters: {
+              layout,
+              temperature: 0.5,
+              model: 'gpt-4o-mini',
+            },
+          },
+          // Generator function - only called if cache miss
+          () => generateAIMindMap(flashcards, title, layout, studyContext)
+        );
+        
+        return result.content;
+      }
+
+      // Fallback to direct generation (no cache)
       return await generateAIMindMap(flashcards, title, layout, studyContext);
     } catch (error) {
       console.error("AI generation failed, falling back to basic structure:", error);

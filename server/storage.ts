@@ -115,6 +115,9 @@ import {
   type InsertStudyMaterialEvent,
   type StudentProfileTrait,
   type InsertStudentProfileTrait,
+  aiGenerations,
+  type AiGeneration,
+  type InsertAiGeneration,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, or, isNotNull, gt, inArray } from "drizzle-orm";
@@ -159,6 +162,14 @@ export interface IStorage {
   createMindMap(mindMap: InsertMindMap): Promise<MindMap>;
   updateMindMap(id: string, userId: string, updates: Partial<InsertMindMap>): Promise<MindMap>;
   deleteMindMap(id: string, userId: string): Promise<void>;
+
+  // AI Generation Cache operations
+  getAiGenerationsByHash(userId: string, contentType: string, inputHash: string): Promise<AiGeneration[]>;
+  createAiGeneration(generation: InsertAiGeneration): Promise<AiGeneration>;
+  incrementAiGenerationUsage(generationId: string): Promise<void>;
+  deleteAiGenerationsBySource(userId: string, sourceContentId: string): Promise<void>;
+  deleteAiGenerationsByProfile(userId: string, profileSnapshotId: string): Promise<void>;
+  deleteExpiredAiGenerations(): Promise<void>;
 
   // ProcessedFile operations
   getProcessedFile(id: string): Promise<ProcessedFile | undefined>;
@@ -683,6 +694,62 @@ export class DatabaseStorage implements IStorage {
     if (result.length === 0) {
       throw new Error("Mind map not found or access denied");
     }
+  }
+
+  // AI Generation Cache operations
+  async getAiGenerationsByHash(userId: string, contentType: string, inputHash: string): Promise<AiGeneration[]> {
+    return await db
+      .select()
+      .from(aiGenerations)
+      .where(and(
+        eq(aiGenerations.userId, userId),
+        eq(aiGenerations.contentType, contentType),
+        eq(aiGenerations.inputHash, inputHash)
+      ))
+      .orderBy(desc(aiGenerations.createdAt))
+      .limit(1);
+  }
+
+  async createAiGeneration(generation: InsertAiGeneration): Promise<AiGeneration> {
+    const [newGeneration] = await db.insert(aiGenerations).values(generation).returning();
+    return newGeneration;
+  }
+
+  async incrementAiGenerationUsage(generationId: string): Promise<void> {
+    await db
+      .update(aiGenerations)
+      .set({
+        usageCount: sql`${aiGenerations.usageCount} + 1`,
+        lastUsedAt: sql`NOW()`,
+      })
+      .where(eq(aiGenerations.id, generationId));
+  }
+
+  async deleteAiGenerationsBySource(userId: string, sourceContentId: string): Promise<void> {
+    await db
+      .delete(aiGenerations)
+      .where(and(
+        eq(aiGenerations.userId, userId),
+        eq(aiGenerations.sourceContentId, sourceContentId)
+      ));
+  }
+
+  async deleteAiGenerationsByProfile(userId: string, profileSnapshotId: string): Promise<void> {
+    await db
+      .delete(aiGenerations)
+      .where(and(
+        eq(aiGenerations.userId, userId),
+        eq(aiGenerations.profileSnapshotId, profileSnapshotId)
+      ));
+  }
+
+  async deleteExpiredAiGenerations(): Promise<void> {
+    await db
+      .delete(aiGenerations)
+      .where(and(
+        isNotNull(aiGenerations.expiresAt),
+        lte(aiGenerations.expiresAt, sql`NOW()`)
+      ));
   }
 
   // ProcessedFile operations
