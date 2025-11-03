@@ -116,8 +116,20 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
 
   useEffect(() => {
     if (nodes.length > 0 && reactFlowInstance) {
+      // First fit the view
       setTimeout(() => {
         reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+        
+        // Then apply auto-collapse after layout is complete
+        setTimeout(() => {
+          const engine = useMindMapEngine.getState();
+          engine.autoCollapseBySize();
+          
+          // Fit view again after collapse
+          setTimeout(() => {
+            reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+          }, 100);
+        }, 300);
       }, 100);
     }
   }, [nodes.length, reactFlowInstance]);
