@@ -1571,8 +1571,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/flashcard-decks/:id', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const updates = req.body;
       const deck = await storage.updateFlashcardDeck(req.params.id, updates);
+      
+      // Invalidate cached mind maps when deck is edited
+      try {
+        const { GenerationRegistry } = await import('./services/GenerationRegistry');
+        const registry = new GenerationRegistry(storage);
+        await registry.invalidateBySource(userId, req.params.id);
+        console.log(`🗑️ Invalidated AI generation cache for deck: ${req.params.id}`);
+      } catch (cacheError) {
+        console.warn('Failed to invalidate cache:', cacheError);
+        // Don't fail the update if cache invalidation fails
+      }
+      
       res.json(deck);
     } catch (error) {
       console.error("Error updating flashcard deck:", error);

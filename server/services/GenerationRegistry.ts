@@ -71,7 +71,7 @@ export class GenerationRegistry {
       return {
         content: cached.generatedContent,
         fromCache: true,
-        generatedAt: cached.createdAt instanceof Date ? cached.createdAt : new Date(cached.createdAt),
+        generatedAt: cached.createdAt ? (cached.createdAt instanceof Date ? cached.createdAt : new Date(cached.createdAt)) : new Date(),
         usageCount: (cached.usageCount || 0) + 1,
       };
     }
