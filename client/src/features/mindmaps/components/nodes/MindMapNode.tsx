@@ -5,7 +5,7 @@ import { useMindMapEngine } from '../../engine/MindMapEngine';
 import { useStyleStore, useNodeStyle } from '../../store/useStyleStore';
 import { getColorFromPalette } from '../../utils/hierarchyUtils';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle, CheckSquare, Square } from 'lucide-react';
 
 interface MindMapNodeProps extends NodeProps {
   data: MindMapNodeData;
@@ -264,7 +264,33 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
             </button>
           )}
           
-          {getTypeIcon()}
+          {/* SimpleMind: Checkbox to mark as studied */}
+          {data.type !== 'root' && (
+            <button
+              className="p-0.5 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-all duration-200 flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                updateNode(id, { checked: !data.checked });
+              }}
+              data-testid={`button-checkbox-${data.label}`}
+              title={data.checked ? "Marcar como não estudado" : "Marcar como estudado"}
+            >
+              {data.checked ? (
+                <CheckSquare className="w-4 h-4 text-green-600 dark:text-green-400" />
+              ) : (
+                <Square className="w-4 h-4 opacity-40" />
+              )}
+            </button>
+          )}
+          
+          {/* SimpleMind: Custom icon/emoji */}
+          {data.icon ? (
+            <span className="text-base flex-shrink-0" title="Ícone personalizado">
+              {data.icon}
+            </span>
+          ) : (
+            getTypeIcon()
+          )}
           
           {isEditing ? (
             <input

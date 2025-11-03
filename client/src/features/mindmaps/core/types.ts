@@ -15,6 +15,8 @@ export interface MindMapNodeData extends Record<string, unknown> {
   collapsed?: boolean;
   level?: number; // Hierarchical level (0 = root, 1 = first level children, etc.)
   branchId?: string; // ID of the root branch this node belongs to
+  checked?: boolean; // SimpleMind: Checkbox to mark concept as studied
+  icon?: string; // SimpleMind: Icon/emoji for the node
   metadata?: Record<string, any>;
   performance?: {
     mastery: 'high' | 'medium' | 'low' | 'none';
@@ -30,6 +32,8 @@ export interface MindMapNode extends ReactFlowNode {
 export interface MindMapEdge extends ReactFlowEdge {
   animated?: boolean;
   style?: Record<string, any>;
+  label?: string; // SimpleMind: Label describing the relationship
+  crosslink?: boolean; // SimpleMind: True if this is a crosslink (not hierarchical)
 }
 
 export interface MindMapTheme {
