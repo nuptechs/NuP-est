@@ -341,6 +341,63 @@ export const mindMapElementStyles = pgTable("mind_map_element_styles", {
   uniqueIndex("idx_element_styles_unique").on(table.mindMapId, table.elementId),
 ]);
 
+// ========== AI GENERATION CACHE SYSTEM (Deterministic AI) ==========
+
+// AI Generations Registry - Cache system for consistent AI outputs
+// Ensures same input (content + profile) = same output (deterministic)
+export const aiGenerations = pgTable("ai_generations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // Content identification
+  contentType: varchar("content_type").notNull(), // "mindmap", "flashcard", "quiz", "question", "assessment"
+  contentId: varchar("content_id"), // Optional reference to the created content (mindMapId, deckId, etc)
+  
+  // Input hash - SHA256 of (content + profile + parameters)
+  // This is the KEY for cache lookup - same hash = return cached
+  inputHash: varchar("input_hash", { length: 64 }).notNull(), // SHA256 produces 64 hex chars
+  
+  // Input metadata (for debugging and invalidation)
+  sourceContentId: varchar("source_content_id"), // DeckId, MaterialId, etc (what was used to generate)
+  profileSnapshotId: varchar("profile_snapshot_id").references(() => studentLearningProfiles.id, { onDelete: "set null" }), // Which profile version was used
+  
+  // Generation parameters (for reproducibility)
+  generationParams: jsonb("generation_params"), // { layout, temperature, model, etc }
+  
+  // Generated content (the cached output)
+  generatedContent: jsonb("generated_content").notNull(), // The actual AI output (nodes, edges, flashcards, etc)
+  
+  // Provenance tracking
+  modelUsed: varchar("model_used").notNull(), // "gpt-4o-mini", "gpt-4o", etc
+  temperature: decimal("temperature", { precision: 3, scale: 2 }), // 0.00-2.00
+  tokensUsed: integer("tokens_used"), // For cost tracking
+  generationTimeMs: integer("generation_time_ms"), // Performance tracking
+  
+  // Usage statistics
+  usageCount: integer("usage_count").default(1), // How many times this cached result was reused
+  lastUsedAt: timestamp("last_used_at").defaultNow(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // Optional TTL for cache invalidation
+}, (table) => [
+  // Fast cache lookup by hash
+  index("idx_ai_gen_hash").on(table.inputHash),
+  uniqueIndex("idx_ai_gen_unique_hash").on(table.userId, table.contentType, table.inputHash),
+  
+  // Query by content type and user
+  index("idx_ai_gen_user_type").on(table.userId, table.contentType),
+  
+  // Query by source content (find all generations from a deck/material)
+  index("idx_ai_gen_source").on(table.sourceContentId),
+  
+  // Query by profile snapshot (invalidate when profile changes significantly)
+  index("idx_ai_gen_profile").on(table.profileSnapshotId),
+  
+  // Cleanup expired entries
+  index("idx_ai_gen_expires").on(table.expiresAt),
+]);
+
 // ========== FASE 1: ARQUITETURA ESTRUTURADA PARA PROFESSOR ROBÔ + ML/DW ==========
 
 // Content sources (professors, institutions, platforms) - CRITICAL FOR ANALYTICS
@@ -1858,6 +1915,12 @@ export const insertMindMapElementStyleSchema = createInsertSchema(mindMapElement
   updatedAt: true,
 });
 
+export const insertAiGenerationSchema = createInsertSchema(aiGenerations).omit({
+  id: true,
+  createdAt: true,
+  lastUsedAt: true,
+});
+
 // ========== FASE 1: INSERT SCHEMAS ==========
 
 export const insertContentSourceSchema = createInsertSchema(contentSources).omit({
@@ -2122,6 +2185,9 @@ export type InsertMindMapStyleSheet = z.infer<typeof insertMindMapStyleSheetSche
 
 export type MindMapElementStyle = typeof mindMapElementStyles.$inferSelect;
 export type InsertMindMapElementStyle = z.infer<typeof insertMindMapElementStyleSchema>;
+
+export type AiGeneration = typeof aiGenerations.$inferSelect;
+export type InsertAiGeneration = z.infer<typeof insertAiGenerationSchema>;
 
 // ========== FASE 1: TYPES ==========
 export type ContentSource = typeof contentSources.$inferSelect;
