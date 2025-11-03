@@ -469,6 +469,7 @@ export const useMindMapActions = () =>
       clearSelection: state.clearSelection,
       collapseNode: state.collapseNode,
       expandNode: state.expandNode,
+      toggleFreeFormMode: state.toggleFreeFormMode,
       applyLayout: state.applyLayout,
       undo: state.undo,
       redo: state.redo,
