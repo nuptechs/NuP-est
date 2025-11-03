@@ -910,95 +910,67 @@ export class DatabaseStorage implements IStorage {
 
   // Analytics operations
   async getUserStats(userId: string): Promise<any> {
-    const subjectCount = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(subjects)
-      .where(eq(subjects.userId, userId));
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const todayStudyTime = await db
-      .select({ 
-        total: sql<number>`sum(${studySessions.duration})` 
-      })
-      .from(studySessions)
-      .where(
-        and(
-          eq(studySessions.userId, userId),
-          gte(studySessions.startedAt, today),
-          lte(studySessions.startedAt, tomorrow)
-        )
-      );
+    // Optimized: Single query with parallel aggregations
+    const stats = await db.execute(sql`
+      SELECT 
+        (SELECT COUNT(*) FROM ${subjects} WHERE ${subjects.userId} = ${userId}) as subject_count,
+        (SELECT COALESCE(SUM(${studySessions.duration}), 0) 
+         FROM ${studySessions} 
+         WHERE ${studySessions.userId} = ${userId}
+           AND ${studySessions.startedAt} >= ${today}
+           AND ${studySessions.startedAt} < ${tomorrow}) as today_study_time,
+        (SELECT COUNT(*) FROM ${aiQuestions} WHERE ${aiQuestions.userId} = ${userId}) as questions_count,
+        (SELECT COUNT(*) FROM ${targets} WHERE ${targets.userId} = ${userId} AND ${targets.completed} = true) as completed_targets,
+        (SELECT COUNT(*) FROM ${targets} WHERE ${targets.userId} = ${userId}) as total_targets
+    `);
 
-    const questionsGenerated = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(aiQuestions)
-      .where(eq(aiQuestions.userId, userId));
-
-    const completedTargets = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(targets)
-      .where(and(
-        eq(targets.userId, userId),
-        eq(targets.completed, true)
-      ));
-
-    const totalTargets = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(targets)
-      .where(eq(targets.userId, userId));
-
+    const row = stats.rows[0] as any;
+    
     return {
-      subjects: subjectCount[0]?.count || 0,
-      todayHours: Math.round((todayStudyTime[0]?.total || 0) / 60 * 100) / 100,
-      questionsGenerated: questionsGenerated[0]?.count || 0,
-      goalProgress: totalTargets[0]?.count > 0 
-        ? Math.round((completedTargets[0]?.count || 0) / totalTargets[0].count * 100)
+      subjects: Number(row.subject_count) || 0,
+      todayHours: Math.round((Number(row.today_study_time) || 0) / 60 * 100) / 100,
+      questionsGenerated: Number(row.questions_count) || 0,
+      goalProgress: (Number(row.total_targets) || 0) > 0 
+        ? Math.round(((Number(row.completed_targets) || 0) / Number(row.total_targets)) * 100)
         : 0,
     };
   }
 
   async getSubjectProgress(userId: string): Promise<any> {
-    const subjectsWithStats = await db
-      .select({
-        id: subjects.id,
-        name: subjects.name,
-        category: subjects.category,
-        color: subjects.color,
-      })
-      .from(subjects)
-      .where(eq(subjects.userId, userId));
+    // Optimized: Single query with LEFT JOINs and aggregations
+    const results = await db.execute(sql`
+      SELECT 
+        s.id,
+        s.name,
+        s.category,
+        s.color,
+        COALESCE(COUNT(DISTINCT m.id), 0) as materials,
+        COALESCE(COUNT(DISTINCT q.id), 0) as questions,
+        COALESCE(SUM(ss.duration), 0) as total_minutes
+      FROM ${subjects} s
+      LEFT JOIN ${materials} m ON m.subject_id = s.id
+      LEFT JOIN ${aiQuestions} q ON q.subject_id = s.id
+      LEFT JOIN ${studySessions} ss ON ss.subject_id = s.id
+      WHERE s.user_id = ${userId}
+      GROUP BY s.id, s.name, s.category, s.color
+      ORDER BY s.created_at DESC
+    `);
 
-    const results = [];
-    for (const subject of subjectsWithStats) {
-      const materialCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(materials)
-        .where(eq(materials.subjectId, subject.id));
-
-      const questionCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(aiQuestions)
-        .where(eq(aiQuestions.subjectId, subject.id));
-
-      const totalTime = await db
-        .select({ total: sql<number>`sum(${studySessions.duration})` })
-        .from(studySessions)
-        .where(eq(studySessions.subjectId, subject.id));
-
-      results.push({
-        ...subject,
-        materials: materialCount[0]?.count || 0,
-        questions: questionCount[0]?.count || 0,
-        totalHours: Math.round((totalTime[0]?.total || 0) / 60 * 100) / 100,
-        progress: Math.min(((materialCount[0]?.count || 0) * 10 + (questionCount[0]?.count || 0)), 100),
-      });
-    }
-
-    return results;
+    return results.rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      color: row.color,
+      materials: Number(row.materials) || 0,
+      questions: Number(row.questions) || 0,
+      totalHours: Math.round((Number(row.total_minutes) || 0) / 60 * 100) / 100,
+      progress: Math.min(((Number(row.materials) || 0) * 10 + (Number(row.questions) || 0)), 100),
+    }));
   }
 
   async getWeeklyProgress(userId: string): Promise<any> {
