@@ -62,6 +62,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     updateNode,
     undo,
     redo,
+    toggleFreeFormMode,
     applyLayout,
     exportData,
     selectNode,
@@ -69,6 +70,9 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     collapseNode,
     expandNode,
   } = useMindMapActions();
+  
+  const mindMap = useMindMapEngine((state) => state.mindMap);
+  const freeFormMode = mindMap?.config?.freeForm ?? false;
 
   const initialized = useRef(false);
   
@@ -347,6 +351,8 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           showStylePanel={showStylePanel}
           onToggleFocusMode={() => setFocusMode(!focusMode)}
           focusMode={focusMode}
+          onToggleFreeForm={toggleFreeFormMode}
+          freeFormMode={freeFormMode}
           onApplyAutoLayout={() => applyLayout()}
           canUndo={canUndo}
           canRedo={canRedo}
