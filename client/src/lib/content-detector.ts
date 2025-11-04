@@ -24,15 +24,17 @@ interface TableData {
   rows: string[][];
 }
 
+import { hasHierarchicalStructure, parseHierarchicalText } from './hierarchy-parser';
+
 const MINDMAP_MARKERS = [
-  /```json\s*{[^`]*"nodes"\s*:/s,
+  /```json\s*{[^`]*"nodes"\s*:/i,
   /```mindmap/i,
   /\bmindmap\s*data\s*:/i,
 ];
 
 const CHART_MARKERS = [
   /```chart/i,
-  /```json\s*{[^`]*"data"\s*:\s*\[/s,
+  /```json\s*{[^`]*"data"\s*:\s*\[/i,
   /\bchart\s*data\s*:/i,
 ];
 
@@ -59,11 +61,9 @@ export function detectContentType(content: string): ContentType {
   const hasMindMap = MINDMAP_MARKERS.some(pattern => pattern.test(trimmed));
   const hasChart = CHART_MARKERS.some(pattern => pattern.test(trimmed));
   const hasTable = /\|(.+)\|\n\|[-:\s|]+\|\n((?:\|.+\|\n?)+)/.test(trimmed);
+  const hasHierarchy = hasHierarchicalStructure(trimmed);
   
-  if (!hasMindMap && !hasChart && !hasTable) {
-    return { kind: "markdown", content };
-  }
-  
+  // Prioridade 1: JSON explícito (markers tradicionais)
   if (hasMindMap && !hasChart && !hasTable) {
     const extracted = extractMindMapPayload(content);
     if (extracted) {
@@ -81,7 +81,7 @@ export function detectContentType(content: string): ContentType {
     }
   }
   
-  if (hasTable && !hasMindMap && !hasChart) {
+  if (hasTable && !hasMindMap && !hasChart && !hasHierarchy) {
     const extracted = extractTableData(content);
     if (extracted) {
       const useInteractive = extracted.headers.length > 3 || extracted.rows.length > 5;
@@ -89,11 +89,24 @@ export function detectContentType(content: string): ContentType {
     }
   }
   
+  // Prioridade 2: Texto hierárquico (├─, └─) - NOVO!
+  if (hasHierarchy && !hasMindMap && !hasChart) {
+    const parsed = parseHierarchicalText(content);
+    if (parsed) {
+      const nodeCount = countMindMapNodes(parsed);
+      const depth = getMindMapDepth(parsed);
+      const useVisual = nodeCount > 5 || depth > 2;
+      return { kind: "mindmap", data: parsed, fallback: content, visual: useVisual };
+    }
+  }
+  
+  // Prioridade 3: Conteúdo misto
   const segments = extractMixedContent(content);
   if (segments.length > 1) {
     return { kind: "mixed", segments };
   }
   
+  // Fallback: Markdown puro
   return { kind: "markdown", content };
 }
 
@@ -210,17 +223,43 @@ function extractMixedContent(content: string): ContentSegment[] {
     if (match.index > lastIndex) {
       const textBefore = content.slice(lastIndex, match.index).trim();
       if (textBefore) {
-        const tableData = extractTableData(textBefore);
-        if (tableData) {
-          const useInteractive = tableData.headers.length > 3 || tableData.rows.length > 5;
-          segments.push({ 
-            type: "table", 
-            headers: tableData.headers, 
-            rows: tableData.rows, 
-            interactive: useInteractive 
-          });
+        // Tenta detectar hierarquia primeiro
+        if (hasHierarchicalStructure(textBefore)) {
+          const hierarchyData = parseHierarchicalText(textBefore);
+          if (hierarchyData) {
+            const nodeCount = countMindMapNodes(hierarchyData);
+            const depth = getMindMapDepth(hierarchyData);
+            const useVisual = nodeCount > 5 || depth > 2;
+            segments.push({ type: "mindmap", data: hierarchyData, visual: useVisual });
+          } else {
+            // Fallback: tabela ou markdown
+            const tableData = extractTableData(textBefore);
+            if (tableData) {
+              const useInteractive = tableData.headers.length > 3 || tableData.rows.length > 5;
+              segments.push({ 
+                type: "table", 
+                headers: tableData.headers, 
+                rows: tableData.rows, 
+                interactive: useInteractive 
+              });
+            } else {
+              segments.push({ type: "markdown", content: textBefore });
+            }
+          }
         } else {
-          segments.push({ type: "markdown", content: textBefore });
+          // Sem hierarquia: tabela ou markdown
+          const tableData = extractTableData(textBefore);
+          if (tableData) {
+            const useInteractive = tableData.headers.length > 3 || tableData.rows.length > 5;
+            segments.push({ 
+              type: "table", 
+              headers: tableData.headers, 
+              rows: tableData.rows, 
+              interactive: useInteractive 
+            });
+          } else {
+            segments.push({ type: "markdown", content: textBefore });
+          }
         }
       }
     }
@@ -264,17 +303,43 @@ function extractMixedContent(content: string): ContentSegment[] {
   if (lastIndex < content.length) {
     const textAfter = content.slice(lastIndex).trim();
     if (textAfter) {
-      const tableData = extractTableData(textAfter);
-      if (tableData) {
-        const useInteractive = tableData.headers.length > 3 || tableData.rows.length > 5;
-        segments.push({ 
-          type: "table", 
-          headers: tableData.headers, 
-          rows: tableData.rows, 
-          interactive: useInteractive 
-        });
+      // Tenta detectar hierarquia primeiro
+      if (hasHierarchicalStructure(textAfter)) {
+        const hierarchyData = parseHierarchicalText(textAfter);
+        if (hierarchyData) {
+          const nodeCount = countMindMapNodes(hierarchyData);
+          const depth = getMindMapDepth(hierarchyData);
+          const useVisual = nodeCount > 5 || depth > 2;
+          segments.push({ type: "mindmap", data: hierarchyData, visual: useVisual });
+        } else {
+          // Fallback: tabela ou markdown
+          const tableData = extractTableData(textAfter);
+          if (tableData) {
+            const useInteractive = tableData.headers.length > 3 || tableData.rows.length > 5;
+            segments.push({ 
+              type: "table", 
+              headers: tableData.headers, 
+              rows: tableData.rows, 
+              interactive: useInteractive 
+            });
+          } else {
+            segments.push({ type: "markdown", content: textAfter });
+          }
+        }
       } else {
-        segments.push({ type: "markdown", content: textAfter });
+        // Sem hierarquia: tabela ou markdown
+        const tableData = extractTableData(textAfter);
+        if (tableData) {
+          const useInteractive = tableData.headers.length > 3 || tableData.rows.length > 5;
+          segments.push({ 
+            type: "table", 
+            headers: tableData.headers, 
+            rows: tableData.rows, 
+            interactive: useInteractive 
+          });
+        } else {
+          segments.push({ type: "markdown", content: textAfter });
+        }
       }
     }
   }
