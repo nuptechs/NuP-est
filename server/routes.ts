@@ -1874,20 +1874,63 @@ ${text}`;
         styleSheetId: mindMapData.styleSheetId,
       });
 
-      // Prepare content object (collapse will be done adaptively on frontend based on screen size)
+      // ALWAYS save maps collapsed (user preference: "comece sempre com tudo colapsado")
+      const collapsedNodes = new Set<string>();
+      const hiddenDescendants = new Set<string>();
+      
+      // Find all level 1+ nodes with children to collapse
+      mindMapData.nodes.forEach((node: any) => {
+        const level = node.data?.level ?? 0;
+        const hasChildren = mindMapData.edges.some((e: any) => e.source === node.id);
+        
+        if (level >= 1 && hasChildren) {
+          collapsedNodes.add(node.id);
+          
+          // Find all descendants recursively
+          const findDescendants = (nodeId: string) => {
+            mindMapData.edges.forEach((edge: any) => {
+              if (edge.source === nodeId && !hiddenDescendants.has(edge.target)) {
+                hiddenDescendants.add(edge.target);
+                findDescendants(edge.target);
+              }
+            });
+          };
+          findDescendants(node.id);
+        }
+      });
+      
+      // Apply collapse state to nodes
+      const processedNodes = mindMapData.nodes.map((node: any) => {
+        if (collapsedNodes.has(node.id)) {
+          return { ...node, data: { ...node.data, collapsed: true } };
+        }
+        if (hiddenDescendants.has(node.id)) {
+          return { ...node, hidden: true, data: { ...node.data, hidden: true } };
+        }
+        return node;
+      });
+      
+      // Hide edges to hidden nodes
+      const processedEdges = mindMapData.edges.map((edge: any) => {
+        if (hiddenDescendants.has(edge.target)) {
+          return { ...edge, hidden: true };
+        }
+        return edge;
+      });
+      
+      console.log("📦 Saving map pre-collapsed:", {
+        totalNodes: processedNodes.length,
+        collapsedParents: collapsedNodes.size,
+        hiddenDescendants: hiddenDescendants.size,
+        visibleNodes: processedNodes.filter((n: any) => !n.hidden).length,
+      });
+      
+      // Prepare content object
       const contentObject = {
-        nodes: mindMapData.nodes,
-        edges: mindMapData.edges,
+        nodes: processedNodes,
+        edges: processedEdges,
         layout: mindMapData.layout || "horizontal",
       };
-
-      console.log("📦 Content object to save:", {
-        hasNodes: !!contentObject.nodes,
-        nodeCount: contentObject.nodes?.length,
-        hasEdges: !!contentObject.edges,
-        edgeCount: contentObject.edges?.length,
-        layout: contentObject.layout,
-      });
 
       // Save to database
       const savedMindMap = await storage.createMindMap({

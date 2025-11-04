@@ -123,51 +123,18 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     }
   }, [title, config, initialData, initializeMindMap, loadMindMap]);
 
-  // Auto-collapse on initial load ONLY (run once when map first loads)
-  const hasAutoCollapsed = useRef(false);
+  // Fit view on initial load
+  const hasFitted = useRef(false);
   
   useEffect(() => {
-    if (nodes.length > 0 && reactFlowInstance && !hasAutoCollapsed.current) {
-      hasAutoCollapsed.current = true;
+    if (nodes.length > 0 && reactFlowInstance && !hasFitted.current) {
+      hasFitted.current = true;
       
-      // Wait for layout to complete, then auto-collapse
       setTimeout(() => {
-        reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
-        
-        setTimeout(() => {
-          const engine = useMindMapEngine.getState();
-          engine.autoCollapseBySize();
-          
-          // Fit view to visible nodes after collapse
-          setTimeout(() => {
-            reactFlowInstance.fitView({ padding: 0.2, duration: 300, maxZoom: 1.5 });
-          }, 100);
-        }, 300);
+        reactFlowInstance.fitView({ padding: 0.2, duration: 300, maxZoom: 1.5 });
       }, 100);
     }
   }, [nodes.length, reactFlowInstance]);
-  
-  // Auto-focus on newly created nodes
-  useEffect(() => {
-    if (reactFlowInstance) {
-      const newNode = nodes.find(n => n.data?.isNew);
-      if (newNode) {
-        // Clear the isNew flag
-        const engine = useMindMapEngine.getState();
-        engine.updateNode(newNode.id, { isNew: undefined });
-        
-        // Zoom to show the new node
-        setTimeout(() => {
-          reactFlowInstance.fitView({
-            padding: 0.3,
-            duration: 400,
-            nodes: [newNode],
-            maxZoom: 1.2,
-          });
-        }, 100);
-      }
-    }
-  }, [nodes, reactFlowInstance]);
 
   const handleAddNode = useCallback(() => {
     if (selectedNodes.length === 1) {
