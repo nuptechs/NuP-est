@@ -49,7 +49,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? true); // Enabled by default
+  const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false); // Disabled by default
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [showOutlineView, setShowOutlineView] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
@@ -560,6 +560,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           nodesConnectable={true}
           elementsSelectable={true}
           className="bg-background"
+          proOptions={{ hideAttribution: true }}
           onNodesChange={(changes) => {
             // Handle selection/deselection
             changes.forEach((change) => {
