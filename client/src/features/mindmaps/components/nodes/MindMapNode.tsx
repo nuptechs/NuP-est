@@ -25,6 +25,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const expandNode = useMindMapEngine((state) => state.expandNode);
   const edges = useMindMapEngine((state) => state.edges);
   const nodes = useMindMapEngine((state) => state.nodes);
+  const mindMapId = useMindMapEngine((state) => state.mindMap?.id);
   
   // Check if node has children
   const hasChildren = edges.some(edge => edge.source === id);
@@ -524,6 +525,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
         <AIExplanationDialog
           concept={data.label}
           nodeId={id}
+          mindMapId={mindMapId}
           onClose={handleCloseAIExplanation}
         />
       )}

@@ -27,6 +27,8 @@ interface AssistantChatProps {
   assistantId: string;
   subjectId?: string;
   topicId?: string;
+  initialMessage?: string | null;
+  onMessageSent?: () => void;
 }
 
 interface ChatMessage {
@@ -55,7 +57,7 @@ interface TemporalGroup {
 
 const INITIAL_MESSAGES_TO_SHOW = 15;
 
-export default function AssistantChat({ assistantId, subjectId, topicId }: AssistantChatProps) {
+export default function AssistantChat({ assistantId, subjectId, topicId, initialMessage, onMessageSent }: AssistantChatProps) {
   const { toast } = useToast();
   const [inputMessage, setInputMessage] = useState("");
   const [loadingTime, setLoadingTime] = useState(0);
@@ -65,6 +67,7 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [hasProcessedInitialMessage, setHasProcessedInitialMessage] = useState(false);
 
   // Query para carregar histórico de mensagens
   const chatMessagesQueryKey = [`/api/assistant/${assistantId}/messages?limit=200`];
@@ -153,6 +156,21 @@ export default function AssistantChat({ assistantId, subjectId, topicId }: Assis
     
     return () => clearInterval(interval);
   }, [sendMessage.isPending]);
+
+  // Auto-send initial message from mind map deep-link
+  useEffect(() => {
+    if (initialMessage && !hasProcessedInitialMessage && assistantId && !sendMessage.isPending) {
+      setHasProcessedInitialMessage(true);
+      sendMessage.mutate(initialMessage);
+      if (onMessageSent) {
+        onMessageSent();
+      }
+    }
+    // Reset flag when initialMessage changes to allow new deep-links
+    if (!initialMessage && hasProcessedInitialMessage) {
+      setHasProcessedInitialMessage(false);
+    }
+  }, [initialMessage, hasProcessedInitialMessage, assistantId, sendMessage.isPending, onMessageSent]);
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;

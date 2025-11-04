@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePersonalizedAssistant } from "@/hooks/usePersonalizedAssistant";
+import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,7 @@ type TabId = "chat" | "questions" | "assessment" | "profile";
 
 export default function PersonalizedAssistantPage() {
   const { assistant, profile, isLoading, hasAssistant, createAssistant } = usePersonalizedAssistant();
+  const search = useSearch();
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [activeTab, setActiveTab] = useState<TabId>("chat");
@@ -43,6 +45,35 @@ export default function PersonalizedAssistantPage() {
     const saved = localStorage.getItem('assistant-sidebar-collapsed');
     return saved === 'true';
   });
+  const [initialMessage, setInitialMessage] = useState<string | null>(null);
+
+  // Parse query parameters for deep-linking from mind maps
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const concept = params.get('concept');
+    const context = params.get('context');
+    const mindMapId = params.get('mindMapId');
+
+    if (concept && context === 'mindmap') {
+      const message = `Quero uma explicação completa e detalhada sobre: **${concept}**
+      
+Inclua:
+- Definição clara e aprofundada
+- Pontos-chave e conceitos relacionados
+- Exemplos práticos e aplicações
+- Comparações (use tabelas se apropriado)
+- Pontos de atenção importantes
+- Dicas para fixar o conteúdo
+
+Use Markdown formatado com tabelas, blockquotes e listas para melhor organização.`;
+      
+      setInitialMessage(message);
+      setActiveTab("chat");
+      
+      // Clear query params after reading to prevent re-sending on refresh
+      window.history.replaceState({}, '', '/assistant');
+    }
+  }, [search]);
 
   const toggleSidebarCollapse = () => {
     const newState = !sidebarCollapsed;
@@ -259,7 +290,12 @@ export default function PersonalizedAssistantPage() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {activeTab === "chat" && (
-            <AssistantChat assistantId={assistant?.id || ""} subjectId={selectedSubject} />
+            <AssistantChat 
+              assistantId={assistant?.id || ""} 
+              subjectId={selectedSubject} 
+              initialMessage={initialMessage}
+              onMessageSent={() => setInitialMessage(null)}
+            />
           )}
           {activeTab === "questions" && (
             selectedSubject ? (

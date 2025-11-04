@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, X } from 'lucide-react';
+import { Loader2, Sparkles, X, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 interface AIExplanationDialogProps {
   concept: string;
   nodeId: string;
+  mindMapId?: number;
   onClose: () => void;
 }
 
-export function AIExplanationDialog({ concept, nodeId, onClose }: AIExplanationDialogProps) {
+export function AIExplanationDialog({ concept, nodeId, mindMapId, onClose }: AIExplanationDialogProps) {
   const [explanation, setExplanation] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     async function fetchExplanation() {
@@ -32,6 +34,7 @@ export function AIExplanationDialog({ concept, nodeId, onClose }: AIExplanationD
           body: JSON.stringify({
             concept,
             context: 'mind_map',
+            mode: 'quick', // Quick mode for compact response
           }),
         });
 
@@ -60,9 +63,19 @@ export function AIExplanationDialog({ concept, nodeId, onClose }: AIExplanationD
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [concept]);
 
+  const handleViewFullExplanation = () => {
+    const params = new URLSearchParams({
+      concept,
+      context: 'mindmap',
+      ...(mindMapId && { mindMapId: mindMapId.toString() }),
+    });
+    setLocation(`/assistant?${params.toString()}`);
+    onClose();
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto" data-testid="ai-explanation-dialog">
+      <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto" data-testid="ai-explanation-dialog">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-purple-600" />
@@ -89,54 +102,26 @@ export function AIExplanationDialog({ concept, nodeId, onClose }: AIExplanationD
             </div>
           ) : (
             <div 
-              className="prose prose-base dark:prose-invert max-w-none prose-headings:text-purple-600 dark:prose-headings:text-purple-400 prose-strong:text-primary prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-code:text-purple-600 dark:prose-code:text-purple-400 prose-pre:bg-muted prose-table:text-sm"
+              className="prose prose-sm dark:prose-invert max-w-none"
               data-testid="text-explanation-content"
             >
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  // Custom table styling
-                  table: ({ node, ...props }) => (
-                    <div className="overflow-x-auto my-4">
-                      <table className="min-w-full divide-y divide-border rounded-lg overflow-hidden" {...props} />
-                    </div>
-                  ),
-                  thead: ({ node, ...props }) => (
-                    <thead className="bg-muted" {...props} />
-                  ),
-                  th: ({ node, ...props }) => (
-                    <th className="px-4 py-3 text-left text-sm font-semibold" {...props} />
-                  ),
-                  td: ({ node, ...props }) => (
-                    <td className="px-4 py-3 text-sm border-t border-border" {...props} />
-                  ),
-                  // Highlighted boxes for important concepts
-                  blockquote: ({ node, ...props }) => (
-                    <blockquote className="border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-950/20 pl-4 py-2 my-4 italic" {...props} />
-                  ),
-                  // Code blocks
-                  code: ({ node, inline, ...props }) => 
-                    inline ? (
-                      <code className="px-1.5 py-0.5 bg-muted rounded text-sm font-mono" {...props} />
-                    ) : (
-                      <code className="block p-4 bg-muted rounded-lg text-sm font-mono overflow-x-auto" {...props} />
-                    ),
-                  // Lists with better spacing
-                  ul: ({ node, ...props }) => (
-                    <ul className="space-y-2" {...props} />
-                  ),
-                  ol: ({ node, ...props }) => (
-                    <ol className="space-y-2" {...props} />
-                  ),
-                }}
-              >
+              <ReactMarkdown>
                 {explanation}
               </ReactMarkdown>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2 mt-6">
+        <div className="flex justify-between gap-2 mt-6">
+          <Button 
+            onClick={handleViewFullExplanation} 
+            variant="default"
+            className="bg-purple-600 hover:bg-purple-700"
+            data-testid="button-view-full-explanation"
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Ver explicação completa
+          </Button>
           <Button onClick={onClose} variant="outline" data-testid="button-close-explanation">
             <X className="w-4 h-4 mr-2" />
             Fechar

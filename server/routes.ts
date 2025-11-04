@@ -1394,23 +1394,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/explain-concept', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { concept, context } = req.body;
+      const { concept, context, mode = 'quick' } = req.body;
 
       if (!concept || typeof concept !== 'string') {
         return res.status(400).json({ message: "Conceito é obrigatório" });
       }
 
-      console.log(`[API] Explain concept request: ${concept}`);
+      console.log(`[API] Explain concept request: ${concept} (mode: ${mode})`);
 
       // Get user profile for personalized explanation
       const user = await storage.getUser(userId);
-      const profile = user?.studyProfile || 'average';
+      const profile = user?.studyProfile || 'iniciante';
 
       // Initialize AI service
       const aiManagerInstance = getAIManager();
       
-      // Generate explanation using AI Manager with rich Markdown formatting
-      const prompt = `Você é o Professor IA, um tutor dedicado e paciente especialista em pedagogia adaptativa.
+      // Generate prompt based on mode (quick vs detailed)
+      let prompt: string;
+      let maxTokens: number;
+
+      if (mode === 'quick') {
+        // Quick mode: Concise explanation for modal
+        prompt = `Você é o Professor IA, um tutor especialista em explicações rápidas e objetivas.
+
+**CONCEITO**: "${concept}"
+**PERFIL DO ESTUDANTE**: ${profile}
+
+Forneça uma explicação **CONCISA e DIRETA** usando Markdown simples:
+
+**O que é?**
+Defina o conceito em 1-2 frases claras.
+
+**Por que importa?**
+Explique a relevância em 1 frase.
+
+**Exemplo rápido**
+Dê 1 exemplo prático do dia-a-dia.
+
+**Dica-chave**
+Uma dica essencial para lembrar este conceito.
+
+---
+**Regras:**
+- Máximo 150 palavras
+- Use **negrito** para termos importantes
+- Use listas curtas quando apropriado
+- Linguagem simples e direta
+- Tom encorajador`;
+        
+        maxTokens = 400;
+      } else {
+        // Detailed mode: Full explanation for chat
+        prompt = `Você é o Professor IA, um tutor dedicado e paciente especialista em pedagogia adaptativa.
 
 **CONCEITO A EXPLICAR**: "${concept}"
 **PERFIL DO ESTUDANTE**: ${profile}
@@ -1458,10 +1493,13 @@ Finalize com 2-3 dicas práticas para memorizar/aplicar o conceito.
 - Máximo 600 palavras (seja conciso mas completo)
 
 **NÃO use asteriscos soltos** - todo Markdown deve estar corretamente formatado para renderização.`;
+        
+        maxTokens = 1500;
+      }
 
       const aiResponse = await aiManagerInstance.request({
         messages: [{ role: "user", content: prompt }],
-        maxTokens: 1500, // Increased for rich formatted content with tables
+        maxTokens,
         temperature: 0.7
       });
 
