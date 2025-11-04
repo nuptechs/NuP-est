@@ -398,7 +398,8 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     // Find nodes to collapse based on their level
     const nodesToCollapse = nodes.filter(node => {
       const level = node.data.level ?? 0;
-      return level >= collapseFromLevel && node.data.type !== 'root';
+      const hasChildren = edges.some(edge => edge.source === node.id);
+      return level >= collapseFromLevel && node.data.type !== 'root' && hasChildren;
     });
     
     console.log('[AutoCollapse] Nodes to collapse', {
@@ -406,18 +407,53 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
       nodesSample: nodesToCollapse.slice(0, 3).map(n => ({ id: n.id, label: n.data.label, level: n.data.level })),
     });
     
-    // Collapse each node (this will also hide their children)
-    let collapsedCount = 0;
+    // BATCH OPERATION: Calculate all descendants to hide in one pass
+    const allDescendantsToHide = new Set<string>();
+    const nodesToMarkCollapsed = new Set<string>();
+    
     nodesToCollapse.forEach(node => {
-      // Only collapse if node has children
-      const hasChildren = edges.some(edge => edge.source === node.id);
-      if (hasChildren) {
-        get().collapseNode(node.id);
-        collapsedCount++;
-      }
+      nodesToMarkCollapsed.add(node.id);
+      
+      // Find all descendants recursively
+      const findDescendants = (nodeId: string) => {
+        edges.forEach((edge) => {
+          if (edge.source === nodeId && !allDescendantsToHide.has(edge.target)) {
+            allDescendantsToHide.add(edge.target);
+            findDescendants(edge.target);
+          }
+        });
+      };
+      findDescendants(node.id);
     });
     
-    console.log('[AutoCollapse] Finished', { collapsedCount });
+    console.log('[AutoCollapse] Batch calculation complete', {
+      nodesToMarkCollapsed: nodesToMarkCollapsed.size,
+      descendantsToHide: allDescendantsToHide.size,
+    });
+    
+    // SINGLE SET OPERATION: Apply all changes at once
+    const newNodes = nodes.map((node) => {
+      if (nodesToMarkCollapsed.has(node.id)) {
+        return { ...node, data: { ...node.data, collapsed: true } };
+      }
+      if (allDescendantsToHide.has(node.id)) {
+        return { ...node, hidden: true, data: { ...node.data, hidden: true } };
+      }
+      return node;
+    });
+    
+    const newEdges = edges.map((edge) => {
+      if (allDescendantsToHide.has(edge.target)) {
+        return { ...edge, hidden: true };
+      }
+      return edge;
+    });
+    
+    set({ nodes: newNodes, edges: newEdges });
+    
+    console.log('[AutoCollapse] Finished - state updated', {
+      totalHidden: newNodes.filter(n => n.hidden).length,
+    });
   },
 
   toggleFreeFormMode: () => {
