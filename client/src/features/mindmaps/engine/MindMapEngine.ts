@@ -135,7 +135,7 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
           id: generateEdgeId(parentId, newNodeId),
           source: parentId,
           target: newNodeId,
-          type: 'smoothstep',
+          type: 'bezier',  // Bezier curves for smooth, corner-free connections
         }]
       : edges;
 
@@ -205,7 +205,7 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
       id: generateEdgeId(connection.source, connection.target),
       source: connection.source,
       target: connection.target,
-      type: 'smoothstep',
+      type: 'bezier',  // Bezier curves for smooth connections
     };
 
     const newEdges = [...edges, newEdge];

@@ -249,7 +249,7 @@ export class MindMapAIService {
         id: generateEdgeId(parentId, tree.id),
         source: parentId,
         target: tree.id,
-        type: 'smoothstep',
+        type: 'bezier',  // Bezier for smooth curves
       });
     }
 

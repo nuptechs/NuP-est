@@ -36,16 +36,26 @@ function calculateDagreLayout(
   
   dagreGraph.setGraph({
     rankdir: options.direction || 'TB',
-    nodesep: options.nodeSpacing || 100,
-    ranksep: options.levelSpacing || 150,
+    nodesep: options.nodeSpacing || 180,  // Increased from 100 to prevent overlap
+    ranksep: options.levelSpacing || 250, // Increased from 150 for better vertical spacing
     align: 'UL',
+    marginx: 40,  // Add margins to prevent edge clipping
+    marginy: 40,
   });
 
   nodes.forEach((node) => {
+    // Use measured dimensions if available, fallback to constants
+    const measuredWidth = node.width || node.data.width;
+    const measuredHeight = node.height || node.data.height;
     const dimensions = NODE_DIMENSIONS[node.data.type] || NODE_DIMENSIONS.leaf;
+    
+    // Add padding to prevent tight overlaps
+    const width = (measuredWidth || dimensions.width) + 48;
+    const height = (measuredHeight || dimensions.height) + 32;
+    
     dagreGraph.setNode(node.id, {
-      width: dimensions.width,
-      height: dimensions.height,
+      width,
+      height,
     });
   });
 

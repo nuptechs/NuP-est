@@ -97,8 +97,8 @@ export const DEFAULT_THEMES: Record<string, MindMapTheme> = {
 export const DEFAULT_CONFIG: MindMapConfig = {
   theme: DEFAULT_THEMES.default,
   layout: 'dagre',
-  nodeSpacing: 100,
-  levelSpacing: 150,
+  nodeSpacing: 180,  // Increased from 100 to prevent overlap
+  levelSpacing: 250, // Increased from 150 for better spacing
   editable: true,
   showMinimap: true,
   showControls: true,

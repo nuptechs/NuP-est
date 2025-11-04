@@ -182,7 +182,7 @@ export const DEFAULT_NODE_STYLE: NodeStyle = {
 };
 
 export const DEFAULT_EDGE_STYLE: EdgeStyle = {
-  type: 'smoothstep',
+  type: 'bezier',  // Changed from smoothstep to bezier for smoother curves without corners
   color: '#94a3b8',
   width: 2,
   animated: false,
