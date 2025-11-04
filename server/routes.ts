@@ -1409,24 +1409,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Initialize AI service
       const aiManagerInstance = getAIManager();
       
-      // Generate explanation using AI Manager
+      // Generate explanation using AI Manager with rich Markdown formatting
       const prompt = `Você é o Professor IA, um tutor dedicado e paciente especialista em pedagogia adaptativa.
 
-CONCEITO A EXPLICAR: "${concept}"
-PERFIL DO ESTUDANTE: ${profile}
+**CONCEITO A EXPLICAR**: "${concept}"
+**PERFIL DO ESTUDANTE**: ${profile}
 
-Sua explicação deve:
-1. Começar com uma definição simples e direta
-2. Incluir exemplos práticos e relevantes
-3. Usar analogias quando apropriado
-4. Destacar pontos-chave
-5. Ser concisa mas completa (máximo 300 palavras)
+Crie uma explicação COMPLETA e DIDÁTICA usando **Markdown formatado**. Sua resposta deve:
 
-Adapte a linguagem ao nível do estudante e mantenha um tom encorajador e motivador.`;
+## Estrutura Obrigatória:
+
+### 1. 📚 Definição Clara
+Comece com uma definição simples e direta em 2-3 linhas.
+
+### 2. 🔑 Pontos-Chave
+Liste os aspectos mais importantes usando bullet points:
+- **Conceito principal 1**: Explicação curta
+- **Conceito principal 2**: Explicação curta
+- (adicione mais conforme necessário)
+
+### 3. 💡 Exemplos Práticos
+Forneça 2-3 exemplos concretos e do dia-a-dia que ilustrem o conceito.
+
+### 4. 📊 Comparações (se aplicável)
+Use **tabelas Markdown** para comparar conceitos relacionados:
+
+| Aspecto | Opção A | Opção B |
+|---------|---------|---------|
+| ...     | ...     | ...     |
+
+### 5. ⚠️ Pontos de Atenção
+Use blockquote (>) para destacar informações importantes:
+> **Importante**: [conceito crucial que o aluno não pode esquecer]
+
+### 6. ✅ Dicas para Fixação
+Finalize com 2-3 dicas práticas para memorizar/aplicar o conceito.
+
+## Diretrizes de Formatação:
+- Use **negrito** para termos-chave
+- Use *itálico* para ênfase
+- Use listas ordenadas (1. 2. 3.) para sequências
+- Use listas não-ordenadas (- ou *) para pontos
+- Use tabelas quando comparar múltiplas opções
+- Use blockquotes (>) para destacar conceitos cruciais
+- Use código inline \`assim\` para termos técnicos
+- Adapte a linguagem ao nível "${profile}"
+- Mantenha tom encorajador e motivador
+- Máximo 600 palavras (seja conciso mas completo)
+
+**NÃO use asteriscos soltos** - todo Markdown deve estar corretamente formatado para renderização.`;
 
       const aiResponse = await aiManagerInstance.request({
         messages: [{ role: "user", content: prompt }],
-        maxTokens: 800,
+        maxTokens: 1500, // Increased for rich formatted content with tables
         temperature: 0.7
       });
 
