@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Send, Bot, User, Loader2, Clock, ChevronUp, ChevronDown, Calendar, MessageSquare, Trash2 } from "lucide-react";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { VoiceToggle } from "@/components/voice/VoiceToggle";
 import { SpeakButton } from "@/components/voice/SpeakButton";
@@ -22,6 +22,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { detectContentType } from "@/lib/content-detector";
+import { ResponsiveTable, ResponsiveTableHeader, ResponsiveTableRow, ResponsiveTableHead, ResponsiveTableCell } from "@/components/chat-content/ResponsiveTable";
+import { AdaptiveChart } from "@/components/chat-content/AdaptiveChart";
+import { MindMapInline } from "@/components/chat-content/MindMapInline";
 
 interface AssistantChatProps {
   assistantId: string;
@@ -56,6 +60,52 @@ interface TemporalGroup {
 }
 
 const INITIAL_MESSAGES_TO_SHOW = 15;
+
+const customMarkdownComponents: Components = {
+  table: ({ children }) => <ResponsiveTable>{children}</ResponsiveTable>,
+  thead: ({ children }) => <ResponsiveTableHeader>{children}</ResponsiveTableHeader>,
+  tr: ({ children }) => <ResponsiveTableRow>{children}</ResponsiveTableRow>,
+  th: ({ children }) => <ResponsiveTableHead>{children}</ResponsiveTableHead>,
+  td: ({ children }) => <ResponsiveTableCell>{children}</ResponsiveTableCell>,
+  p: ({ children }) => <p className="break-words my-2">{children}</p>,
+  code: ({ inline, children, ...props }: any) => {
+    if (inline) {
+      return (
+        <code className="bg-secondary/50 px-1.5 py-0.5 rounded text-sm font-mono break-all" {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <pre className="bg-secondary/30 dark:bg-secondary/20 rounded-lg p-4 overflow-x-auto my-3">
+        <code className="text-sm font-mono break-all" {...props}>
+          {children}
+        </code>
+      </pre>
+    );
+  },
+  blockquote: ({ children }) => (
+    <blockquote className="border-l-4 border-primary/50 pl-4 my-3 italic text-muted-foreground">
+      {children}
+    </blockquote>
+  ),
+  ul: ({ children }) => <ul className="list-disc list-inside my-2 space-y-1">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal list-inside my-2 space-y-1">{children}</ol>,
+  li: ({ children }) => <li className="break-words">{children}</li>,
+  h1: ({ children }) => <h1 className="text-xl font-bold my-3 break-words">{children}</h1>,
+  h2: ({ children }) => <h2 className="text-lg font-semibold my-2 break-words">{children}</h2>,
+  h3: ({ children }) => <h3 className="text-base font-semibold my-2 break-words">{children}</h3>,
+  a: ({ children, href }) => (
+    <a 
+      href={href} 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      className="text-primary hover:underline break-all"
+    >
+      {children}
+    </a>
+  ),
+};
 
 export default function AssistantChat({ assistantId, subjectId, topicId, initialMessage, onMessageSent }: AssistantChatProps) {
   const { toast } = useToast();
@@ -218,7 +268,10 @@ export default function AssistantChat({ assistantId, subjectId, topicId, initial
     return allMessages.filter(m => ids.includes(m.id));
   };
 
-  const renderMessage = (message: ChatMessage, index: number) => (
+  const renderMessage = (message: ChatMessage, index: number) => {
+    const contentType = message.role === "assistant" ? detectContentType(message.content) : { kind: "markdown" as const, content: message.content };
+    
+    return (
     <div
       key={message.id || index}
       className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"} group`}
@@ -234,19 +287,57 @@ export default function AssistantChat({ assistantId, subjectId, topicId, initial
       
       <div className={`flex items-start gap-2 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
         <div
-          className={`max-w-[80%] rounded-lg px-4 py-2 ${
+          className={`max-w-[95%] rounded-lg px-4 py-3 ${
             message.role === "user"
               ? "bg-primary text-primary-foreground"
               : "bg-secondary/30 dark:bg-secondary/50 border border-border/50"
           }`}
         >
-          <div className={`prose prose-sm max-w-none ${
-            message.role === "user" ? "prose-invert" : "dark:prose-invert"
-          }`}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {message.content}
-            </ReactMarkdown>
-          </div>
+          {contentType.kind === "markdown" && (
+            <div className={`prose prose-sm max-w-none break-words ${
+              message.role === "user" ? "prose-invert" : "dark:prose-invert"
+            }`}>
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={customMarkdownComponents}
+              >
+                {contentType.content}
+              </ReactMarkdown>
+            </div>
+          )}
+
+          {contentType.kind === "mindmap" && (
+            <MindMapInline data={contentType.data} fallback={contentType.fallback} />
+          )}
+
+          {contentType.kind === "chart" && (
+            <AdaptiveChart data={contentType.data} />
+          )}
+
+          {contentType.kind === "mixed" && (
+            <div className={`prose prose-sm max-w-none break-words ${
+              message.role === "user" ? "prose-invert" : "dark:prose-invert"
+            }`}>
+              {contentType.segments.map((segment, idx) => {
+                if (segment.type === "markdown") {
+                  return (
+                    <ReactMarkdown 
+                      key={idx}
+                      remarkPlugins={[remarkGfm]}
+                      components={customMarkdownComponents}
+                    >
+                      {segment.content}
+                    </ReactMarkdown>
+                  );
+                } else if (segment.type === "mindmap") {
+                  return <MindMapInline key={idx} data={segment.data} />;
+                } else if (segment.type === "chart") {
+                  return <AdaptiveChart key={idx} data={segment.data} />;
+                }
+                return null;
+              })}
+            </div>
+          )}
           <div className="flex items-center justify-between mt-1 gap-2">
             <p className={`text-xs opacity-70 ${
               message.role === "user" ? "text-primary-foreground" : "text-foreground"
@@ -291,6 +382,7 @@ export default function AssistantChat({ assistantId, subjectId, topicId, initial
       )}
     </div>
   );
+};
 
   return (
     <div className="flex flex-col h-full" data-testid="card-chat">
