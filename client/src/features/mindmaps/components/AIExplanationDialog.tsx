@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 interface AIExplanationDialogProps {
   concept: string;
   nodeId: string;
-  mindMapId?: number;
+  mindMapId?: string;
   onClose: () => void;
 }
 

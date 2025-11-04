@@ -270,7 +270,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       <div
         className={cn(
           'px-4 py-2.5 border transition-all duration-300 cursor-grab active:cursor-grabbing',
-          'shadow-sm hover:shadow-md min-w-fit max-w-[350px]',
+          'shadow-sm hover:shadow-md min-w-fit max-w-[350px] overflow-visible',
           selected && 'ring-2 ring-primary ring-offset-2 shadow-lg scale-105',
           isHovered && !selected && 'shadow-md',
           getShapeClass()
@@ -280,92 +280,98 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
           borderColor: nodeStyle.borderColor,
           borderWidth: `${nodeStyle.borderWidth}px`,
           ...getBorderRadiusStyle(),
+          wordWrap: 'break-word',
         }}
       >
-        <div className="flex items-center gap-2.5">
-          {hasChildren && (
-            <button
-              className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-md transition-all duration-200 flex-shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (data.collapsed) {
-                  expandNode(id);
-                } else {
-                  collapseNode(id);
-                }
-              }}
-              data-testid={`button-collapse-${data.label}`}
-              title={data.collapsed ? "Expandir" : "Recolher"}
-            >
-              {data.collapsed ? (
-                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-              )}
-            </button>
-          )}
+        <div className="flex items-start gap-2.5">
+          <div className="flex items-center gap-2 flex-shrink-0 pt-0.5">
+            {hasChildren && (
+              <button
+                className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-md transition-all duration-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (data.collapsed) {
+                    expandNode(id);
+                  } else {
+                    collapseNode(id);
+                  }
+                }}
+                data-testid={`button-collapse-${data.label}`}
+                title={data.collapsed ? "Expandir" : "Recolher"}
+              >
+                {data.collapsed ? (
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                )}
+              </button>
+            )}
+            
+            {/* SimpleMind: Checkbox to mark as studied */}
+            {data.type !== 'root' && (
+              <button
+                className="p-0.5 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-all duration-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateNode(id, { checked: !data.checked });
+                }}
+                data-testid={`button-checkbox-${data.label}`}
+                title={data.checked ? "Marcar como não estudado" : "Marcar como estudado"}
+              >
+                {data.checked ? (
+                  <CheckSquare className="w-4 h-4 text-green-600 dark:text-green-400" />
+                ) : (
+                  <Square className="w-4 h-4 opacity-40" />
+                )}
+              </button>
+            )}
+            
+            {/* SimpleMind: Custom icon/emoji */}
+            {data.icon ? (
+              <span className="text-base" title="Ícone personalizado">
+                {data.icon}
+              </span>
+            ) : (
+              getTypeIcon()
+            )}
+          </div>
           
-          {/* SimpleMind: Checkbox to mark as studied */}
-          {data.type !== 'root' && (
-            <button
-              className="p-0.5 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-all duration-200 flex-shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                updateNode(id, { checked: !data.checked });
-              }}
-              data-testid={`button-checkbox-${data.label}`}
-              title={data.checked ? "Marcar como não estudado" : "Marcar como estudado"}
-            >
-              {data.checked ? (
-                <CheckSquare className="w-4 h-4 text-green-600 dark:text-green-400" />
-              ) : (
-                <Square className="w-4 h-4 opacity-40" />
-              )}
-            </button>
-          )}
-          
-          {/* SimpleMind: Custom icon/emoji */}
-          {data.icon ? (
-            <span className="text-base flex-shrink-0" title="Ícone personalizado">
-              {data.icon}
-            </span>
-          ) : (
-            getTypeIcon()
-          )}
-          
-          {isEditing ? (
-            <input
-              type="text"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none focus:ring-0 font-medium"
-              autoFocus
-              data-testid={`input-node-label-${data.label}`}
-              style={{
-                width: `${Math.max(80, Math.min(300, label.length * 8 + 20))}px`,
-                color: nodeStyle.textColor,
-                fontSize: `${nodeStyle.fontSize}px`,
-                fontWeight: nodeStyle.fontWeight,
-              }}
-            />
-          ) : (
-            <div
-              className="font-medium leading-snug tracking-tight max-w-[300px]"
-              style={{
-                fontSize: `${nodeStyle.fontSize}px`,
-                fontWeight: nodeStyle.fontWeight,
-                color: nodeStyle.textColor,
-                minWidth: `${Math.max(60, Math.min(280, data.label.length * 7))}px`,
-              }}
-              data-testid={`text-node-label-${data.label}`}
-            >
-              {data.label}
-            </div>
-          )}
-          
-          {getPerformanceBadge()}
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            {isEditing ? (
+              <input
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                onBlur={handleBlur}
+                onKeyDown={handleKeyDown}
+                className="bg-transparent border-none outline-none focus:ring-0 font-medium flex-1"
+                autoFocus
+                data-testid={`input-node-label-${data.label}`}
+                style={{
+                  color: nodeStyle.textColor,
+                  fontSize: `${nodeStyle.fontSize}px`,
+                  fontWeight: nodeStyle.fontWeight,
+                }}
+              />
+            ) : (
+              <div
+                className="font-medium leading-snug tracking-tight break-words flex-1"
+                style={{
+                  fontSize: `${nodeStyle.fontSize}px`,
+                  fontWeight: nodeStyle.fontWeight,
+                  color: nodeStyle.textColor,
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  hyphens: 'auto',
+                }}
+                data-testid={`text-node-label-${data.label}`}
+              >
+                {data.label}
+              </div>
+            )}
+            
+            {getPerformanceBadge()}
+          </div>
         </div>
         
         {/* SimpleMind Professional: Progress Bar */}
