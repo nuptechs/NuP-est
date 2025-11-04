@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronRight, ChevronDown, CheckSquare, Square, Edit2 } from 'lucide-react';
-import { useMindMapNodes, useMindMapActions } from '../engine/MindMapEngine';
+import { useMindMapNodes, useMindMapEdges, useMindMapActions } from '../engine/MindMapEngine';
 import { cn } from '@/lib/utils';
 import type { MindMapNode } from '../core/types';
 
@@ -104,11 +104,17 @@ interface OutlineItemWithChildrenProps {
 
 function OutlineItemWithChildren({ nodeId, level, onNodeClick }: OutlineItemWithChildrenProps) {
   const nodes = useMindMapNodes();
+  const edges = useMindMapEdges();
   const node = nodes.find(n => n.id === nodeId);
-  const children = useMemo(
-    () => nodes.filter(n => n.parentId === nodeId),
-    [nodes, nodeId]
-  );
+  
+  // Find children by looking at edges where this node is the source
+  const children = useMemo(() => {
+    const childIds = edges
+      .filter(edge => edge.source === nodeId)
+      .map(edge => edge.target);
+    
+    return nodes.filter(n => childIds.includes(n.id));
+  }, [nodes, edges, nodeId]);
 
   if (!node) return null;
 
