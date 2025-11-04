@@ -123,49 +123,29 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     }
   }, [title, config, initialData, initializeMindMap, loadMindMap]);
 
+  // Auto-collapse on initial load ONLY (run once when map first loads)
+  const hasAutoCollapsed = useRef(false);
+  
   useEffect(() => {
-    if (nodes.length > 0 && reactFlowInstance) {
-      // Check if a node is focused (user is interacting with it)
-      const focusedNode = nodes.find(n => n.data?.focused);
+    if (nodes.length > 0 && reactFlowInstance && !hasAutoCollapsed.current) {
+      hasAutoCollapsed.current = true;
       
-      if (focusedNode) {
-        // Smart focus: zoom to the node the user is interacting with
+      // Wait for layout to complete, then auto-collapse
+      setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+        
         setTimeout(() => {
-          reactFlowInstance.fitView({
-            padding: 0.3,
-            duration: 400,
-            nodes: [focusedNode],
-            maxZoom: 1.2,
-            minZoom: 0.5,
-          });
-        }, 100);
-      } else {
-        // Initial load: apply auto-collapse and fit view
-        setTimeout(() => {
-          reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+          const engine = useMindMapEngine.getState();
+          engine.autoCollapseBySize();
           
-          // Then apply auto-collapse after layout is complete
+          // Fit view to visible nodes after collapse
           setTimeout(() => {
-            const engine = useMindMapEngine.getState();
-            engine.autoCollapseBySize();
-            
-            // Read updated state after collapse (not closure)
-            const updatedNodes = engine.nodes;
-            console.log('[MindMapEditor] Auto-collapse applied', {
-              totalNodes: updatedNodes.length,
-              visibleNodes: updatedNodes.filter(n => !n.hidden).length,
-              hiddenNodes: updatedNodes.filter(n => n.hidden).length,
-            });
-            
-            // Fit view again after collapse to center visible nodes
-            setTimeout(() => {
-              reactFlowInstance.fitView({ padding: 0.2, duration: 300, maxZoom: 1.5 });
-            }, 100);
-          }, 300);
-        }, 100);
-      }
+            reactFlowInstance.fitView({ padding: 0.2, duration: 300, maxZoom: 1.5 });
+          }, 100);
+        }, 300);
+      }, 100);
     }
-  }, [nodes.length, reactFlowInstance, nodes]);
+  }, [nodes.length, reactFlowInstance]);
 
   const handleAddNode = useCallback(() => {
     if (selectedNodes.length === 1) {

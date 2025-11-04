@@ -323,16 +323,10 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
 
     const newNodes = nodes.map((node) => {
       if (node.id === id) {
-        // Mark as focused for smart zoom
-        return { ...node, data: { ...node.data, collapsed: false, focused: true } };
+        return { ...node, data: { ...node.data, collapsed: false } };
       }
       if (directChildIds.has(node.id)) {
-        // Clear both top-level and data.hidden for compatibility
         return { ...node, hidden: false, data: { ...node.data, hidden: false } };
-      }
-      // Remove focus from other nodes
-      if (node.data?.focused) {
-        return { ...node, data: { ...node.data, focused: false } };
       }
       return node;
     });
@@ -512,12 +506,6 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     const { nodes, edges, mindMap } = get();
     const config = mindMap?.config || DEFAULT_CONFIG;
     
-    console.log('[applyLayout] Called with nodes:', {
-      total: nodes.length,
-      hidden: nodes.filter(n => n.hidden).length,
-      collapsed: nodes.filter(n => n.data?.collapsed).length,
-    });
-    
     // CRITICAL: Save collapse/hidden state BEFORE layout
     const collapsedState = new Map<string, { hidden: boolean; collapsed: boolean }>();
     nodes.forEach(node => {
@@ -525,11 +513,6 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
         hidden: node.hidden || false,
         collapsed: node.data?.collapsed || false,
       });
-    });
-    
-    console.log('[applyLayout] Saved state:', {
-      stateSize: collapsedState.size,
-      hiddenCount: Array.from(collapsedState.values()).filter(s => s.hidden).length,
     });
     
     // Skip auto-layout if in free-form mode (SimpleMind-style manual positioning)
@@ -575,12 +558,6 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
         };
       }
       return node;
-    });
-    
-    console.log('[applyLayout] Restored nodes:', {
-      total: restoredNodes.length,
-      hidden: restoredNodes.filter(n => n.hidden).length,
-      collapsed: restoredNodes.filter(n => n.data?.collapsed).length,
     });
 
     set({ nodes: restoredNodes });
