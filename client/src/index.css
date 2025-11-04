@@ -336,6 +336,20 @@
   }
 }
 
+/* === AG GRID DARK MODE INTEGRATION === */
+.dark .ag-theme-quartz {
+  --ag-background-color: hsl(var(--card));
+  --ag-foreground-color: hsl(var(--card-foreground));
+  --ag-header-background-color: hsl(var(--muted));
+  --ag-header-foreground-color: hsl(var(--muted-foreground));
+  --ag-border-color: hsl(var(--border));
+  --ag-row-hover-color: hsl(var(--accent));
+  --ag-selected-row-background-color: hsl(var(--accent));
+  --ag-odd-row-background-color: hsl(var(--card));
+  --ag-control-panel-background-color: hsl(var(--card));
+  --ag-subheader-background-color: hsl(var(--muted));
+}
+
 /* === PRINT STYLES === */
 @media print {
   * {

@@ -26,6 +26,8 @@ import { detectContentType } from "@/lib/content-detector";
 import { ResponsiveTable, ResponsiveTableHeader, ResponsiveTableRow, ResponsiveTableHead, ResponsiveTableCell } from "@/components/chat-content/ResponsiveTable";
 import { AdaptiveChart } from "@/components/chat-content/AdaptiveChart";
 import { MindMapInline } from "@/components/chat-content/MindMapInline";
+import { InteractiveTable } from "@/components/chat-content/InteractiveTable";
+import { MindMapVisual } from "@/components/chat-content/MindMapVisual";
 
 interface AssistantChatProps {
   assistantId: string;
@@ -307,11 +309,40 @@ export default function AssistantChat({ assistantId, subjectId, topicId, initial
           )}
 
           {contentType.kind === "mindmap" && (
-            <MindMapInline data={contentType.data} fallback={contentType.fallback} />
+            contentType.visual ? (
+              <MindMapVisual data={contentType.data} />
+            ) : (
+              <MindMapInline data={contentType.data} fallback={contentType.fallback} />
+            )
           )}
 
           {contentType.kind === "chart" && (
             <AdaptiveChart data={contentType.data} />
+          )}
+
+          {contentType.kind === "table" && (
+            contentType.interactive ? (
+              <InteractiveTable headers={contentType.headers} rows={contentType.rows} />
+            ) : (
+              <ResponsiveTable>
+                <ResponsiveTableHeader>
+                  <ResponsiveTableRow>
+                    {contentType.headers.map((header, i) => (
+                      <ResponsiveTableHead key={i}>{header}</ResponsiveTableHead>
+                    ))}
+                  </ResponsiveTableRow>
+                </ResponsiveTableHeader>
+                <tbody>
+                  {contentType.rows.map((row, i) => (
+                    <ResponsiveTableRow key={i}>
+                      {row.map((cell, j) => (
+                        <ResponsiveTableCell key={j}>{cell}</ResponsiveTableCell>
+                      ))}
+                    </ResponsiveTableRow>
+                  ))}
+                </tbody>
+              </ResponsiveTable>
+            )
           )}
 
           {contentType.kind === "mixed" && (
@@ -330,9 +361,36 @@ export default function AssistantChat({ assistantId, subjectId, topicId, initial
                     </ReactMarkdown>
                   );
                 } else if (segment.type === "mindmap") {
-                  return <MindMapInline key={idx} data={segment.data} />;
+                  return segment.visual ? (
+                    <MindMapVisual key={idx} data={segment.data} />
+                  ) : (
+                    <MindMapInline key={idx} data={segment.data} />
+                  );
                 } else if (segment.type === "chart") {
                   return <AdaptiveChart key={idx} data={segment.data} />;
+                } else if (segment.type === "table") {
+                  return segment.interactive ? (
+                    <InteractiveTable key={idx} headers={segment.headers} rows={segment.rows} />
+                  ) : (
+                    <ResponsiveTable key={idx}>
+                      <ResponsiveTableHeader>
+                        <ResponsiveTableRow>
+                          {segment.headers.map((header, i) => (
+                            <ResponsiveTableHead key={i}>{header}</ResponsiveTableHead>
+                          ))}
+                        </ResponsiveTableRow>
+                      </ResponsiveTableHeader>
+                      <tbody>
+                        {segment.rows.map((row, i) => (
+                          <ResponsiveTableRow key={i}>
+                            {row.map((cell, j) => (
+                              <ResponsiveTableCell key={j}>{cell}</ResponsiveTableCell>
+                            ))}
+                          </ResponsiveTableRow>
+                        ))}
+                      </tbody>
+                    </ResponsiveTable>
+                  );
                 }
                 return null;
               })}
