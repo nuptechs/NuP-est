@@ -1,6 +1,6 @@
 # Overview
 
-NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It offers a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor with ultra-low latency voice interactions (<500ms), simulating a dedicated human teacher. The platform aims to provide a polished, professional user experience with adaptive learning strategies to enhance learning efficiency and engagement, offering truly personalized and adaptive learning journeys in the e-learning market.
+NuP-Study is an AI-powered adaptive study management platform designed to personalize learning through deep user profiling and intelligent content delivery. It offers a comprehensive study hub featuring AI tools, flashcards, knowledge base management, and progress tracking. A standout feature is **Professor IA**, an advanced conversational AI tutor providing ultra-low latency voice interactions (<500ms) to simulate a dedicated human teacher. The platform aims to deliver a polished, professional user experience with adaptive learning strategies, enhancing learning efficiency and engagement to offer truly personalized educational journeys in the e-learning market.
 
 # User Preferences
 
@@ -12,7 +12,7 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 ## Frontend Architecture
 
-The client uses React 18, TypeScript, and Vite, with `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI and Tailwind CSS for styling. Form validation is handled by React Hook Form with Zod. The UI is profile-driven with a centralized dashboard and a guided setup flow, ensuring consistency through a unified design system, supporting rich Markdown content rendering.
+The client utilizes React 18, TypeScript, and Vite, with `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI and Tailwind CSS for styling. Form validation is handled by React Hook Form with Zod. The UI is profile-driven with a centralized dashboard and a guided setup flow, ensuring consistency through a unified design system, supporting rich Markdown content rendering.
 
 ## Backend Architecture
 
@@ -20,84 +20,31 @@ The server is built with Express.js and TypeScript (ESM) and uses Drizzle ORM fo
 
 ### Modular AI Pipeline
 
-An adaptive learning AI pipeline features:
--   **StudyContextBuilder**: Aggregates user profile, subject, materials, performance, and RAG chunks.
--   **Prompt Strategies**: Category-specific pedagogical approaches.
--   **AIContentPipeline**: Manages content generation using priority-based model selection.
--   **QuestionGeneratorTool**: Generates adaptive questions using category-specific strategies and RAG.
+An adaptive learning AI pipeline features: `StudyContextBuilder`, `Prompt Strategies`, `AIContentPipeline`, and `QuestionGeneratorTool`.
 
-### AI Content Validation Layer (Enhanced)
+### AI Content Validation Layer
 
-A multi-layered pre-generation validation system ensures maximum content quality before AI processing:
-
-**Core Validation (content-validator.ts)**:
--   **Modular Validator**: Supports mind maps, flashcards, and quiz content with type-specific rules.
--   **Configurable Thresholds**: Adjustable validation rules via `updateValidationConfig()` for all content types.
--   **Quality Scoring**: 0-100 score with minimum thresholds (30 for maps/flashcards, 35 for quizzes).
--   **Descriptive Errors**: Actionable Portuguese error messages with specific improvement suggestions.
--   **Integration**: Non-invasive layer in flashcard-generator, mindmap-generator, and quiz services.
-
-**Semantic Analysis (semantic-analyzer.ts)**:
--   **Stopword Filtering**: Portuguese stopwords removed for meaningful concept extraction.
--   **Generic Concept Detection**: Flags vague terms ("coisa", "tipo", "elemento") for replacement.
--   **Quality Metrics**: Concept diversity, vocabulary richness, text complexity, average concept length.
--   **Automatic Suggestions**: Context-aware improvement tips based on analysis results.
--   **Performance**: Linear-time scans optimized for typical payload sizes.
-
-**Structural Analysis**:
--   **Orphaned Nodes Detection**: Identifies disconnected nodes in mind maps.
--   **Duplicate Edge Detection**: Finds redundant connections in graph structures.
--   **Depth Calculation**: Measures hierarchy depth via BFS traversal.
--   **Component Analysis**: Tracks disconnected graph components.
-
-**Validation Outputs**:
--   **ValidationResult**: isValid, error, details, qualityScore, suggestions, semanticAnalysis, structuralAnalysis.
--   **Rich Metrics**: Logs all analysis data for debugging and continuous improvement.
--   **User-Friendly**: All messages in Portuguese with actionable next steps.
+A multi-layered pre-generation validation system (`content-validator.ts`, `semantic-analyzer.ts`, `structural-analysis`) ensures maximum content quality before AI processing, providing quality scoring, descriptive errors, and actionable suggestions in Portuguese.
 
 ### Deterministic AI Generation Cache
 
-A production-ready caching system ensures consistency and reduces API costs for AI-generated content:
-
-**Architecture (GenerationRegistry.ts)**:
--   **SHA-256 Content Hashing**: Deterministic cache keys from canonicalized input (content + profile snapshot + parameters)
--   **Hybrid Cache Strategy**: Same input + same profile = identical output every time
--   **Automatic Invalidation**: Cache cleared when source content (deck/material) or user profile changes
--   **TTL-based Expiration**: 30-day default with automatic cleanup of expired entries
--   **Usage Tracking**: Counts cache hits, generation time, token costs for analytics
-
-**Database Schema (ai_generations)**:
--   Stores: inputHash, contentType, sourceContentId, profileSnapshotId, generatedContent, metadata
--   Indexed for fast lookups by hash, user, content type, source, and profile
--   Supports all content types: mind maps, flashcards, quizzes, questions
-
-**Integration Points**:
--   **Mind Map Generator**: Checks cache before OpenAI API calls (70-90% reduction)
--   **Deck Update Routes**: Auto-invalidates cache on PATCH /api/flashcard-decks/:id
--   **Profile Updates**: Cache invalidation hook ready for profile mutation flows
-
-**Performance Impact**:
--   Cache HIT: ~50-100ms (database lookup)
--   Cache MISS: ~2-5s (full AI generation + save to cache)
--   Cost savings: 70-90% reduction in OpenAI API calls while maintaining full adaptivity
+A production-ready caching system (`GenerationRegistry.ts`) uses SHA-256 content hashing for deterministic cache keys, a hybrid cache strategy, automatic invalidation based on content or profile changes, and TTL-based expiration. It significantly reduces OpenAI API calls (70-90% reduction) while maintaining adaptivity.
 
 ### Intelligent Auto-Categorization
 
-A 3-phase system categorizes subjects using pattern matching, AI fallback (GPT-4o-mini), and a safe default. It includes UX features like auto-suggestion, visual feedback, and manual override.
+A 3-phase system categorizes subjects using pattern matching, AI fallback (GPT-4o-mini), and a safe default, complemented by UX features like auto-suggestion and manual override.
 
 ### Intelligent Text Chunking System
 
-A modular chunking infrastructure uses a Strategy Pattern with pluggable strategies like `SemanticChunkStrategy`, `SentenceAwareChunkStrategy`, and `SimpleLimitChunkStrategy`. Pre-configured profiles exist for material upload, TTS, and RAG.
+A modular chunking infrastructure uses a Strategy Pattern with pluggable strategies like `SemanticChunkStrategy`, `SentenceAwareChunkStrategy`, and `SimpleLimitChunkStrategy`, with pre-configured profiles for various uses.
 
 ### Production RAG System (NotebookLM-Architecture)
 
-A zero-hallucination retrieval system inspired by Google's NotebookLM:
--   **Hybrid Search**: Combines BM25 and Semantic Search (Pinecone) with weighted fusion.
--   **Cross-Encoder Reranking**: LLM-based post-retrieval scoring using GPT-4o-mini.
--   **Metadata Enrichment**: Auto-generates keywords, preserves document structure, and tracks source attribution.
--   **Confidence Scoring & Strict Refusal**: 4-level scoring with threshold-based refusal to prevent hallucinations, explicitly listing available topics when a query is not found.
--   **Prompt Engineering**: Strict RAG prompt forces AI to cite sources or state "not in materials," prohibiting external knowledge.
--   **Two-Mode Chat Behavior**: Contextual chat based on subject selection.
+A zero-hallucination retrieval system combines hybrid search (BM25 + Pinecone), cross-encoder reranking (GPT-4o-mini), metadata enrichment, confidence scoring with strict refusal, and prompt engineering to cite sources or state "not in materials."
+
+### Interactive Chat Rendering System
+
+A premium chat experience features intelligent content detection and interactive rendering. It includes a `Hierarchical Text Parser` for strict tree detection, a `Content Detection Layer` with priority systems, and interactive components like `InteractiveTable` (AG Grid) and `MindMapVisual` (React Flow) with full dark mode and responsive design.
 
 ## Data Architecture
 
@@ -105,87 +52,45 @@ A PostgreSQL database managed by Drizzle ORM stores all application data, includ
 
 ## Authentication & Authorization
 
-Authentication uses Replit OAuth (OpenID Connect) with secure session-based authentication via HttpOnly cookies and route-level middleware. An admin system uses an `isAdmin` field and middleware to protect admin routes. A configurable auto-refresh system allows per-user profile refresh frequency.
+Authentication uses Replit OAuth (OpenID Connect) with secure session-based authentication via HttpOnly cookies and route-level middleware. An admin system uses an `isAdmin` field and middleware.
 
 ## Voice Services (Freemium Feature)
 
 ### Traditional Voice Pipeline (Conversational Voice)
 
-Uses a Strategy Pattern for voice services:
--   **NativeVoiceService (Free Tier)**: Browser Web Speech API.
--   **DeepgramVoiceService (Premium)**: Deepgram Nova-3 for STT, OpenAI TTS for responses.
--   **WhisperVoiceService (Premium - Alternative)**: OpenAI Whisper API for STT, OpenAI TTS API.
+Uses a Strategy Pattern with `NativeVoiceService` (Free Tier), `DeepgramVoiceService` (Premium), and `WhisperVoiceService` (Premium - Alternative).
 
 ### Realtime Voice System (Professor IA)
 
-A production-ready, modular architecture for ultra-low latency voice conversations:
--   **Architecture**: Provider-agnostic design using Strategy Pattern.
--   **OpenAI Realtime API**: Native bidirectional audio streaming with <500ms latency.
--   **Multi-session support**: Isolated providers per session.
--   **Function Calling**: Real-time student context retrieval.
--   **Adaptive pedagogy**: Automatically adjusts teaching style based on student profile.
+A production-ready, modular architecture for ultra-low latency voice conversations, using the OpenAI Realtime API for bidirectional audio streaming (<500ms latency), multi-session support, function calling for real-time student context retrieval, and adaptive pedagogy.
 
 ### Student Profile Engine
 
-A modular system for enriched student profiles:
--   **Architecture**: 3-component design: ProfileAnalyzer, ConversationTracker, StudentProfileService.
--   **Snapshot-based**: Data processed in background and saved as snapshots.
--   **Automatic conversation tracking**: Both voice systems track sessions, with AI analysis (GPT-4o-mini) extracting topics, concepts, understanding, and sentiment.
--   **Automatic profile updates**: Non-blocking updates triggered by question attempts, study session completion, and voice conversations.
--   **Rich metrics**: Overall accuracy, study hours, progress trends, strong/weak subjects, behavioral patterns, and AI-generated recommendations.
--   **Integration**: Professor IA fetches enriched profiles instantly during real-time voice.
+A modular system for enriched student profiles with a 3-component design (`ProfileAnalyzer`, `ConversationTracker`, `StudentProfileService`). It uses snapshot-based processing, automatic conversation tracking with AI analysis (GPT-4o-mini), automatic profile updates, and rich metrics.
 
 ## Mind Maps System
 
-A complete Mind Maps system with a modular architecture and RAG integration. Features:
+A complete Mind Maps system with a modular architecture and RAG integration.
 
 ### Adaptive AI Generation (Profile-Aware)
--   **StudyContextBuilder Integration**: Loads complete user profile (difficulties, TDAH, objectives, learning evolution)
--   **Pedagogical Adaptation**: 
-    -   TDAH: Vibrant high-contrast colors, chunked concepts, mnemonic devices, concise text
-    -   Dislexia: Simple language, visual metaphors, bullet points
-    -   Memory issues: Strong mnemonics, associations, storytelling, practical examples
-    -   Low motivation: Encouraging language, real-world applications
--   **Rich Content**: Leaf nodes include detailed descriptions (2-4 sentences) with examples and key points
--   **Adaptive Colors**: 7 vibrant colors for ADHD, 4 balanced colors for standard profiles
--   **Graceful Fallback**: Works without profile (uses best practices defaults)
+
+Integrates `StudyContextBuilder` to load complete user profiles (difficulties, TDAH, objectives) for pedagogical adaptation (e.g., vibrant colors for ADHD, simple language for dyslexia). It ensures rich content with detailed descriptions and adaptive colors.
 
 ### Core Features
--   `MindMapGenerator` (HybridSearchService + GPT-4o-mini with adaptive prompts)
--   Automatic material conversion to mind maps
--   Subject integration and export to SVG/PNG
--   Drag & drop, inline editing, handle-based connections, keyboard shortcuts
--   SimpleMind-inspired visual design for a clean, minimal interface
 
-### SimpleMind Professional Features (November 2025)
+Includes `MindMapGenerator` (HybridSearchService + GPT-4o-mini), automatic material conversion, subject integration, export to SVG/PNG, and SimpleMind-inspired visual design with drag & drop and inline editing.
 
-Enhanced with advanced organization tools matching SimpleMind quality:
+### SimpleMind Professional Features
 
-**Organization & Navigation:**
--   **Collapse/Expand Branches**: Chevron buttons on parent nodes to hide/show descendants, enabling focus on specific branches
--   **Smart Auto-Collapse**: Maps automatically collapse based on screen size - calculates visible node capacity and collapses proportionally (overflow ratio >3x: level 1+, >1.5x: level 2+, <1.5x: level 3+) for optimal viewing on any screen
--   **Free-Form Layout Mode**: Toggle to disable auto-layout and position nodes manually without interference
--   **Outline View**: Alternative hierarchical list view with collapsible tree, checkboxes, and click-to-navigate to visual map with smooth zoom
--   **Crosslinks**: Create connections between any nodes (not just hierarchical) with dashed lines and custom labels to represent relationships
-
-**Rich Content Support:**
--   **Checkboxes**: Mark concepts as studied with visual green checkmark, shown in both visual and outline views
--   **Custom Icons/Emojis**: Add icons or emojis to nodes for visual categorization and quick recognition
--   **Edge Labels**: Descriptive text on connections explaining relationships between concepts
--   **Responsive Nodes**: Nodes automatically adjust width (60-350px) based on text length for optimal readability
-
-**Layout & Views:**
--   **Responsive Layout**: Mobile (60/40 split stacked), Desktop (side-by-side panels with full-height canvas)
--   **Multiple View Modes**: Toggle between visual mind map, outline view, or both simultaneously
--   **Focus Mode**: Full-screen canvas with hidden toolbar for distraction-free work
+Enhanced with advanced organization tools: collapse/expand branches, smart auto-collapse, free-form layout mode, outline view, and crosslinks. Supports rich content with checkboxes, custom icons/emojis, edge labels, and responsive nodes. Offers responsive layouts, multiple view modes (visual, outline, both), and a focus mode.
 
 ### Advanced Customization
 
-A 3-level customization architecture: global style sheets, mind map specific overrides, and individual element styles. Includes 12 built-in style sheets and extensive customization options for node shapes, colors, borders, typography, and edge properties. Supports various color modes (type-based, level-based, branch-based, performance-based) with automatic hierarchy calculation. UI components facilitate style selection, and state is managed with Zustand, ensuring robust style application with fallbacks.
+A 3-level customization architecture (global, mind map specific, individual element) with 12 built-in style sheets and extensive options for node shapes, colors, borders, typography, and edge properties. Supports various color modes (type-based, level-based, branch-based, performance-based).
 
 ### Feature Module Encapsulation
 
-The Mind Maps system is fully encapsulated within `client/src/features/mindmaps/`, following a professional feature-based architecture for isolation, easy integration, and removal.
+The Mind Maps system is fully encapsulated within `client/src/features/mindmaps/` for isolation and easy integration.
 
 # External Dependencies
 
