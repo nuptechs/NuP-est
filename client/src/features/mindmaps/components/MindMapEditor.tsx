@@ -42,10 +42,11 @@ interface MindMapEditorProps {
   config?: MindMapConfig;
   initialData?: MindMapData | null;
   onSave?: (data: any) => void;
+  onGenerateNew?: (data: MindMapData) => void; // Callback when generating a new map with AI
   className?: string;
 }
 
-export function MindMapEditor({ title, config, initialData, onSave, className }: MindMapEditorProps) {
+export function MindMapEditor({ title, config, initialData, onSave, onGenerateNew, className }: MindMapEditorProps) {
   const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -291,18 +292,28 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         throw new Error('No mind map data generated');
       }
 
-      useMindMapEngine.getState().loadMindMap(mindMapData);
-      applyLayout();
-      
-      // Auto-collapse large generated maps for better initial view
-      setTimeout(() => {
-        useMindMapEngine.getState().autoCollapseBySize();
-      }, 200);
+      // If onGenerateNew callback exists, use it (creates a new map)
+      // Otherwise, replace the current map content (legacy behavior)
+      if (onGenerateNew) {
+        onGenerateNew(mindMapData);
+        toast({
+          title: 'Sucesso!',
+          description: 'Novo mapa mental criado com sucesso',
+        });
+      } else {
+        useMindMapEngine.getState().loadMindMap(mindMapData);
+        applyLayout();
+        
+        // Auto-collapse large generated maps for better initial view
+        setTimeout(() => {
+          useMindMapEngine.getState().autoCollapseBySize();
+        }, 200);
 
-      toast({
-        title: 'Sucesso!',
-        description: 'Mapa mental gerado com sucesso',
-      });
+        toast({
+          title: 'Sucesso!',
+          description: 'Mapa mental gerado com sucesso',
+        });
+      }
     } catch (error) {
       console.error('AI generation error:', error);
       toast({
@@ -311,7 +322,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         variant: 'destructive',
       });
     }
-  }, [applyLayout, toast]);
+  }, [applyLayout, toast, onGenerateNew]);
 
   const handleExport = useCallback(async (format: ExportFormat) => {
     try {

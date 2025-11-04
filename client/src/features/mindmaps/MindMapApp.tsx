@@ -131,6 +131,31 @@ export default function MindMapApp() {
                   });
                 }
               }}
+              onGenerateNew={async (mindMapData) => {
+                // Save the AI-generated map as a new entry in the database
+                try {
+                  const response = await apiRequest('POST', '/api/mindmaps', {
+                    title: mindMapData.title,
+                    content: { 
+                      nodes: mindMapData.nodes, 
+                      edges: mindMapData.edges, 
+                      config: mindMapData.config 
+                    },
+                    generatedFromAI: true,
+                  });
+                  const newMap = await response.json();
+                  
+                  // Store ID to auto-open after returning to list
+                  sessionStorage.setItem('openMindMapId', newMap.id);
+                  
+                  // Invalidate queries and return to list
+                  await queryClient.invalidateQueries({ queryKey: ['/api/mindmaps'] });
+                  setSelectedMapId(null);
+                  setIsCreating(false);
+                } catch (error) {
+                  console.error('Error saving generated map:', error);
+                }
+              }}
             />
           </ReactFlowProvider>
         </div>
