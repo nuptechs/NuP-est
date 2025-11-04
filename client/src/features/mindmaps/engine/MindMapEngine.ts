@@ -346,67 +346,82 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     let { nodes, edges } = get();
     const totalNodes = nodes.length;
     
-    console.log('[AutoCollapse] Starting auto-collapse calculation', { totalNodes });
+    console.log('[AutoCollapse] Starting adaptive collapse based on screen size', { totalNodes });
     
     // CRITICAL: Ensure nodes have hierarchy (level) calculated
-    // Check if nodes have level property
     const hasLevels = nodes.some(n => n.data.level !== undefined);
     if (!hasLevels) {
       console.log('[AutoCollapse] Nodes missing level property - applying layout first');
       get().applyLayout();
-      // Refetch nodes after layout
       nodes = get().nodes;
       edges = get().edges;
     }
     
-    // Calculate how many nodes can fit comfortably on screen
+    // Calculate screen capacity
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
-    const avgNodeWidth = 180; // Average node width
-    const avgNodeHeight = 80; // Average node height with spacing
+    const isMobile = screenWidth < 768;
+    const avgNodeWidth = isMobile ? 140 : 180;
+    const avgNodeHeight = isMobile ? 60 : 80;
     
-    // Estimate visible nodes (accounting for toolbar, padding, etc.)
+    // Estimate visible area (accounting for toolbar, padding)
     const availableWidth = screenWidth * 0.85;
-    const availableHeight = screenHeight * 0.75;
+    const availableHeight = screenHeight * (isMobile ? 0.7 : 0.75);
     const nodesPerRow = Math.floor(availableWidth / avgNodeWidth);
     const nodesPerColumn = Math.floor(availableHeight / avgNodeHeight);
     const comfortableNodeCount = nodesPerRow * nodesPerColumn;
     
-    console.log('[AutoCollapse] Screen capacity', {
+    // Count nodes per level
+    const nodesByLevel = new Map<number, number>();
+    let maxLevel = 0;
+    nodes.forEach(node => {
+      const level = node.data.level ?? 0;
+      nodesByLevel.set(level, (nodesByLevel.get(level) || 0) + 1);
+      maxLevel = Math.max(maxLevel, level);
+    });
+    
+    console.log('[AutoCollapse] Screen analysis', {
       screenWidth,
       screenHeight,
+      isMobile,
       comfortableNodeCount,
       totalNodes,
+      maxLevel,
+      nodesByLevel: Object.fromEntries(nodesByLevel),
     });
     
-    // If map fits comfortably on screen, keep expanded
-    if (totalNodes <= comfortableNodeCount) {
-      console.log('[AutoCollapse] Map fits on screen, no collapse needed');
-      return;
+    // Determine how many levels we can show with quality
+    let visibleLevels = 0;
+    let accumulatedNodes = 0;
+    
+    for (let level = 0; level <= maxLevel; level++) {
+      const nodesAtLevel = nodesByLevel.get(level) || 0;
+      accumulatedNodes += nodesAtLevel;
+      
+      // Check if adding this level still fits comfortably
+      if (accumulatedNodes <= comfortableNodeCount) {
+        visibleLevels = level;
+      } else {
+        break;
+      }
     }
     
-    // Calculate collapse level proportionally
-    // If way too many nodes, collapse more aggressively
-    const overflowRatio = totalNodes / comfortableNodeCount;
-    let collapseFromLevel: number;
-    
-    if (overflowRatio > 3) {
-      // Huge maps: show only root
-      collapseFromLevel = 1;
-    } else if (overflowRatio > 1.5) {
-      // Large maps: show root + main branches
-      collapseFromLevel = 2;
-    } else {
-      // Slightly large: show root + branches + some details
-      collapseFromLevel = 3;
+    // Ensure at least root is visible, and on mobile show only root if crowded
+    if (isMobile && totalNodes > 15) {
+      visibleLevels = 0; // Mobile + many nodes = show only root
+    } else if (visibleLevels === 0 && totalNodes > 1) {
+      visibleLevels = 1; // Always show at least root + first level if possible
     }
     
-    console.log('[AutoCollapse] Overflow ratio and collapse level', {
-      overflowRatio,
+    const collapseFromLevel = visibleLevels + 1;
+    
+    console.log('[AutoCollapse] Adaptive level calculation', {
+      visibleLevels,
       collapseFromLevel,
+      strategy: isMobile ? 'mobile-optimized' : 'desktop',
     });
     
-    // Find nodes to collapse based on their level
+    // Find nodes to collapse
     const nodesToCollapse = nodes.filter(node => {
       const level = node.data.level ?? 0;
       const hasChildren = edges.some(edge => edge.source === node.id);
@@ -415,8 +430,7 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     
     console.log('[AutoCollapse] Nodes to collapse', {
       nodesToCollapseCount: nodesToCollapse.length,
-      nodesSample: nodesToCollapse.slice(0, 3).map(n => ({ id: n.id, label: n.data.label, level: n.data.level })),
-      allNodesLevels: nodes.map(n => ({ id: n.id, level: n.data.level })).slice(0, 5),
+      willShowLevels: `0 to ${visibleLevels}`,
     });
     
     // BATCH OPERATION: Calculate all descendants to hide in one pass
