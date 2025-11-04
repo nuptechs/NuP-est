@@ -23,23 +23,33 @@ interface HierarchyNode {
   level: number;
 }
 
-const TREE_CHARS = ['├─', '└─', '├──', '└──', '├', '└', '|--', '+--', '•', '-', '*'];
+// EXPLICIT tree characters only (not generic bullets/dashes)
+const TREE_CHARS = ['├─', '└─', '├──', '└──', '├', '└', '│', '|--', '+--'];
 const INDENT_CHARS = ['│', '|', ' '];
 
 /**
- * Detecta se o texto contém estrutura hierárquica
+ * Detecta se o texto contém estrutura hierárquica EXPLÍCITA
+ * Requer pelo menos 1 linha com caractere de árvore (├, └, │)
+ * e descarta listas markdown normais (-, *, •)
  */
 export function hasHierarchicalStructure(text: string): boolean {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   
-  if (lines.length < 3) return false;
+  // Precisa ter pelo menos 2 linhas (raiz + filho)
+  if (lines.length < 2) return false;
   
-  // Verifica se há pelo menos 2 linhas com caracteres de árvore
-  const treeLines = lines.filter(line => 
-    TREE_CHARS.some(char => line.includes(char))
-  );
+  // Conta linhas com caracteres EXPLÍCITOS de árvore (não genéricos)
+  const explicitTreeLines = lines.filter(line => {
+    // Verifica se a linha contém pelo menos um dos caracteres explícitos
+    // E NÃO é apenas uma lista markdown normal
+    const hasExplicitTreeChar = TREE_CHARS.some(char => line.includes(char));
+    const isGenericList = /^\s*[-*•]\s+/.test(line); // Lista markdown normal
+    
+    return hasExplicitTreeChar && !isGenericList;
+  });
   
-  return treeLines.length >= 2;
+  // Precisa ter pelo menos 1 linha com tree char
+  return explicitTreeLines.length >= 1;
 }
 
 /**
@@ -107,10 +117,54 @@ function extractLabelAndDescription(text: string): { label: string; description?
 
 /**
  * Constrói árvore hierárquica a partir de linhas processadas
+ * Suporta múltiplas raízes criando um container virtual
  */
 function buildTree(lines: Array<{ level: number; text: string; original: string }>): HierarchyNode | null {
   if (lines.length === 0) return null;
   
+  // Conta quantas raízes (level 0) existem
+  const rootCount = lines.filter(l => l.level === 0).length;
+  
+  // Se há múltiplas raízes, cria um container virtual
+  if (rootCount > 1) {
+    const virtualRoot: HierarchyNode = {
+      id: 'virtual-root',
+      label: 'Mapa Mental',
+      level: -1,
+      children: []
+    };
+    
+    const stack: HierarchyNode[] = [virtualRoot];
+    let nodeCounter = 1;
+    
+    for (const { level, text } of lines) {
+      const { label, description } = extractLabelAndDescription(text);
+      
+      const node: HierarchyNode = {
+        id: `node-${nodeCounter++}`,
+        label,
+        description,
+        level,
+        children: []
+      };
+      
+      // Encontra o pai correto baseado no nível
+      while (stack.length > 1 && stack[stack.length - 1].level >= level) {
+        stack.pop();
+      }
+      
+      const parent = stack[stack.length - 1];
+      if (!parent.children) {
+        parent.children = [];
+      }
+      parent.children.push(node);
+      stack.push(node);
+    }
+    
+    return virtualRoot;
+  }
+  
+  // Caso de raiz única (comportamento original)
   const root: HierarchyNode = {
     id: 'root',
     label: lines[0].text,
@@ -153,20 +207,79 @@ function buildTree(lines: Array<{ level: number; text: string; original: string 
 }
 
 /**
+ * Verifica se uma linha é uma raiz (seguida eventualmente por tree chars OU após hierarquia)
+ */
+function isRootLine(lines: string[], currentIndex: number): boolean {
+  const current = lines[currentIndex].trim();
+  if (!current) return false;
+  
+  // Se tem tree char, não é raiz
+  const currentHasTreeChar = TREE_CHARS.some(char => lines[currentIndex].includes(char));
+  if (currentHasTreeChar) {
+    return false;
+  }
+  
+  // Se é a primeira linha, é raiz
+  if (currentIndex === 0) return true;
+  
+  // Verifica se a linha anterior tinha tree char (nova raiz após hierarquia)
+  let prevLineHadTreeChar = false;
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const prevLine = lines[i].trim();
+    if (!prevLine) continue;
+    
+    if (TREE_CHARS.some(char => lines[i].includes(char))) {
+      prevLineHadTreeChar = true;
+      break;
+    }
+    break; // Para se encontrar linha não-vazia sem tree char
+  }
+  
+  // Se linha anterior tinha tree char e esta não está indentada, é nova raiz
+  if (prevLineHadTreeChar && getIndentLevel(lines[currentIndex]) === 0) {
+    return true;
+  }
+  
+  // Lookahead: verifica se alguma das próximas linhas tem tree char
+  // (indica que esta linha é raiz de uma hierarquia)
+  for (let i = currentIndex + 1; i < lines.length && i < currentIndex + 10; i++) {
+    const nextLine = lines[i].trim();
+    if (!nextLine) continue; // Pula linhas vazias
+    
+    const hasTreeChar = TREE_CHARS.some(char => lines[i].includes(char));
+    if (hasTreeChar) {
+      // Próxima linha tem tree char, então esta é uma raiz
+      return true;
+    }
+    
+    // Se encontrou outra linha sem tree char, para o lookahead
+    // (pode ser outra raiz ou texto não-hierárquico)
+    return false;
+  }
+  
+  return false;
+}
+
+/**
  * Parser principal: converte texto hierárquico em estrutura JSON
+ * Suporta múltiplas raízes no mesmo bloco de texto
  */
 export function parseHierarchicalText(text: string): HierarchyNode | null {
   const lines = text.split('\n');
   const processedLines: Array<{ level: number; text: string; original: string }> = [];
   
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trim();
     if (!trimmed) continue;
     
     // Detecta se é linha com caractere de árvore
     const hasTreeChar = TREE_CHARS.some(char => line.includes(char));
     
-    if (hasTreeChar || processedLines.length === 0) {
+    // Aceita linha se:
+    // 1. Tem caractere de árvore
+    // 2. É uma raiz (primeira linha ou seguida por tree chars)
+    if (hasTreeChar || isRootLine(lines, i)) {
       const level = hasTreeChar ? getIndentLevel(line) + 1 : 0;
       const cleaned = cleanLine(trimmed);
       

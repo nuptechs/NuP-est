@@ -350,6 +350,48 @@
   --ag-subheader-background-color: hsl(var(--muted));
 }
 
+/* === REACT FLOW DARK MODE === */
+.dark .react-flow {
+  background: hsl(var(--card));
+}
+
+.dark .react-flow__background {
+  background: hsl(var(--card));
+}
+
+.dark .react-flow__background pattern circle {
+  fill: hsl(var(--muted-foreground) / 0.2);
+}
+
+.dark .react-flow__controls {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark .react-flow__controls button {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .react-flow__controls button:hover {
+  background: hsl(var(--accent));
+}
+
+.dark .react-flow__minimap {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark .react-flow__minimap-mask {
+  fill: hsl(var(--background) / 0.8);
+}
+
+.dark .react-flow__attribution {
+  background: hsl(var(--card) / 0.8);
+  color: hsl(var(--muted-foreground));
+}
+
 /* === PRINT STYLES === */
 @media print {
   * {
