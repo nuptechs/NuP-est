@@ -17,6 +17,7 @@ export interface MindMapNodeData extends Record<string, unknown> {
   branchId?: string; // ID of the root branch this node belongs to
   checked?: boolean; // SimpleMind: Checkbox to mark concept as studied
   icon?: string; // SimpleMind: Icon/emoji for the node
+  tags?: string[]; // SimpleMind: Tags for categorization
   metadata?: Record<string, any>;
   performance?: {
     mastery: 'high' | 'medium' | 'low' | 'none';
