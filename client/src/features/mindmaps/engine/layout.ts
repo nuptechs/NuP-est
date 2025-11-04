@@ -1,5 +1,6 @@
 import dagre from 'dagre';
 import ELK from 'elkjs/lib/elk.bundled.js';
+import type { Position } from '@xyflow/react';
 import type { MindMapNode, MindMapEdge, LayoutAlgorithm } from '../core/types';
 import { NODE_DIMENSIONS } from '../core/constants';
 
@@ -48,8 +49,8 @@ function calculateDagreLayout(
 
   nodes.forEach((node) => {
     // Use measured dimensions if available, fallback to constants
-    const measuredWidth = node.width || node.data.width;
-    const measuredHeight = node.height || node.data.height;
+    const measuredWidth = typeof node.width === 'number' ? node.width : (typeof node.data.width === 'number' ? node.data.width : undefined);
+    const measuredHeight = typeof node.height === 'number' ? node.height : (typeof node.data.height === 'number' ? node.data.height : undefined);
     const dimensions = NODE_DIMENSIONS[node.data.type] || NODE_DIMENSIONS.leaf;
     
     // Add padding to prevent tight overlaps
@@ -151,20 +152,20 @@ async function calculateElkLayout(
       'elk.direction': options.direction === 'LR' ? 'RIGHT' : 
                       options.direction === 'RL' ? 'LEFT' : 
                       options.direction === 'BT' ? 'UP' : 'DOWN',
-      'elk.spacing.nodeNode': String(options.nodeSpacing || 80),
-      'elk.spacing.edgeNode': String(options.levelSpacing || 120),
-      'elk.layered.spacing.nodeNodeBetweenLayers': String(options.levelSpacing || 120),
+      'elk.spacing.nodeNode': String(options.nodeSpacing || 220),        // Generous default spacing
+      'elk.spacing.edgeNode': String(options.levelSpacing || 150),       // Generous vertical spacing
+      'elk.layered.spacing.nodeNodeBetweenLayers': String(options.levelSpacing || 150),
       'elk.edgeRouting': 'POLYLINE',
     },
     children: nodes.map((node) => {
-      const measuredWidth = node.width || node.data.width;
-      const measuredHeight = node.height || node.data.height;
+      const measuredWidth = typeof node.width === 'number' ? node.width : (typeof node.data.width === 'number' ? node.data.width : undefined);
+      const measuredHeight = typeof node.height === 'number' ? node.height : (typeof node.data.height === 'number' ? node.data.height : undefined);
       const dimensions = NODE_DIMENSIONS[node.data.type] || NODE_DIMENSIONS.leaf;
       
       return {
         id: node.id,
-        width: measuredWidth || dimensions.width,
-        height: measuredHeight || dimensions.height,
+        width: (measuredWidth || dimensions.width) as number,
+        height: (measuredHeight || dimensions.height) as number,
       };
     }),
     edges: edges.map((edge) => ({
@@ -187,8 +188,8 @@ async function calculateElkLayout(
             x: layoutedNode.x || 0,
             y: layoutedNode.y || 0,
           },
-          targetPosition: isHorizontal ? 'left' : 'top',
-          sourcePosition: isHorizontal ? 'right' : 'bottom',
+          targetPosition: (isHorizontal ? 'left' : 'top') as Position,
+          sourcePosition: (isHorizontal ? 'right' : 'bottom') as Position,
         };
       }
       

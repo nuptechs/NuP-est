@@ -109,11 +109,18 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     
     // Step 2: Recalculate layout with ELK (handles variable node sizes)
     const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
+    
+    // Calculate adaptive spacing to prevent overlap
+    const nodeCount = nodes.length;
+    const baseNodeSpacing = 250;  // Horizontal spacing between siblings
+    const baseLevelSpacing = 180; // Vertical spacing between levels
+    const spacingFactor = Math.max(0.7, Math.min(1.0, 20 / Math.sqrt(nodeCount)));
+    
     const layoutedNodes = await calculateLayout(enrichedNodes, edges, {
       algorithm: 'elk',  // ELK prevents overlap with variable-sized nodes
       direction: 'TB',
-      nodeSpacing: 80,   // ELK handles spacing better than Dagre
-      levelSpacing: 120, // ELK optimized values
+      nodeSpacing: Math.max(220, baseNodeSpacing * spacingFactor),   // Never less than 220px
+      levelSpacing: Math.max(150, baseLevelSpacing * spacingFactor), // Never less than 150px
     });
     
     // Step 3: Restore collapsed state after layout
@@ -510,11 +517,28 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     // Enrich nodes with hierarchy information (level, branchId)
     const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
     
+    // Calculate adaptive spacing based on node count to prevent overlap
+    const nodeCount = nodes.length;
+    const maxNodesPerLevel = Math.max(
+      ...Array.from(new Set(edges.map(e => e.source))).map(source => 
+        edges.filter(e => e.source === source).length
+      ),
+      1
+    );
+    
+    // Adaptive spacing: more nodes = slightly more compact, but never overlapping
+    // Base spacing ensures nodes never touch even with long labels
+    const baseNodeSpacing = 250;  // Horizontal spacing between siblings
+    const baseLevelSpacing = 180; // Vertical spacing between levels
+    
+    // Scale down slightly for very dense graphs, but maintain minimum spacing
+    const spacingFactor = Math.max(0.7, Math.min(1.0, 20 / Math.sqrt(nodeCount)));
+    
     const layoutedNodes = await calculateLayout(enrichedNodes, edges, {
       algorithm: 'elk',  // ELK for superior spacing and no overlap
       direction: 'TB',
-      nodeSpacing: 80,   // ELK optimized values
-      levelSpacing: 120,
+      nodeSpacing: Math.max(220, baseNodeSpacing * spacingFactor),   // Never less than 220px
+      levelSpacing: Math.max(150, baseLevelSpacing * spacingFactor), // Never less than 150px
     });
 
     // CRITICAL: Restore collapse/hidden state AFTER layout
