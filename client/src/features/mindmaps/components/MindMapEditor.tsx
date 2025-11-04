@@ -79,10 +79,19 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
 
   const initialized = useRef(false);
   
+  // Filter out hidden nodes and edges (collapsed children)
+  const visibleNodes = useMemo(() => {
+    return nodes.filter(node => !node.hidden);
+  }, [nodes]);
+  
+  const visibleEdges = useMemo(() => {
+    return edges.filter(edge => !edge.hidden);
+  }, [edges]);
+  
   // Apply style store to edges
   const getEdgeStyle = useStyleStore((state) => state.getEdgeStyle);
   const styledEdges = useMemo(() => {
-    return edges.map(edge => {
+    return visibleEdges.map(edge => {
       // getEdgeStyle now always returns complete EdgeStyle (uses DEFAULT_EDGE_STYLE as fallback in store)
       const edgeStyle = getEdgeStyle(edge.id);
       
@@ -101,7 +110,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         labelStyle: { fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 500 },
       };
     });
-  }, [edges, getEdgeStyle]);
+  }, [visibleEdges, getEdgeStyle]);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -125,7 +134,13 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           const engine = useMindMapEngine.getState();
           engine.autoCollapseBySize();
           
-          // Fit view again after collapse
+          console.log('[MindMapEditor] Auto-collapse applied', {
+            totalNodes: nodes.length,
+            visibleNodes: nodes.filter(n => !n.hidden).length,
+            hiddenNodes: nodes.filter(n => n.hidden).length,
+          });
+          
+          // Fit view again after collapse to show only visible nodes
           setTimeout(() => {
             reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
           }, 100);
@@ -409,7 +424,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           </button>
         )}
         <ReactFlow
-          nodes={nodes}
+          nodes={visibleNodes}
           edges={styledEdges}
           nodeTypes={nodeTypes}
           nodesDraggable={true}
