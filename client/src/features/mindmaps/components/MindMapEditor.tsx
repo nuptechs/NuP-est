@@ -9,10 +9,13 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { toPng, toSvg } from 'html-to-image';
+import jsPDF from 'jspdf';
 import { MindMapNode as MindMapNodeComponent } from './nodes/MindMapNode';
 import { Toolbar } from './Toolbar';
 import { StylePanel } from './StylePanel';
 import { OutlineView } from './OutlineView';
+import { SearchBar } from './SearchBar';
+import { PresentationMode } from './PresentationMode';
 import { 
   useMindMapEngine,
   useMindMapNodes,
@@ -22,9 +25,11 @@ import {
   useMindMapActions
 } from '../engine/MindMapEngine';
 import { useStyleStore } from '../store/useStyleStore';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import type { ExportFormat, MindMapConfig, MindMapData } from '../core/types';
 import { mindMapAI } from '../ai/MindMapAI';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/components/theme-provider';
 import { cn } from '@/lib/utils';
 
 const nodeTypes = {
@@ -44,11 +49,15 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? false);
+  const [showMinimap, setShowMinimap] = useState(config?.showMinimap ?? true); // Enabled by default
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [showOutlineView, setShowOutlineView] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | undefined>(undefined);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [presentationMode, setPresentationMode] = useState(false);
+  const { theme, setTheme } = useTheme();
   
   // Optimized selectors - only re-render when specific slices change
   const nodes = useMindMapNodes();
@@ -79,10 +88,79 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
 
   const initialized = useRef(false);
   
-  // Filter out hidden nodes and edges (collapsed children)
+  // Search & Highlight functionality - MUST come before visibleNodes
+  const highlightedNodes = useMemo(() => {
+    if (!searchQuery.trim()) return new Set<string>();
+    
+    const query = searchQuery.toLowerCase();
+    const matches = new Set<string>();
+    
+    nodes.forEach(node => {
+      const label = node.data.label?.toLowerCase() || '';
+      const description = node.data.description?.toLowerCase() || '';
+      
+      if (label.includes(query) || description.includes(query)) {
+        matches.add(node.id);
+      }
+    });
+    
+    return matches;
+  }, [nodes, searchQuery]);
+
+  // Focus Mode: Find related nodes - MUST come before visibleNodes
+  const relatedNodes = useMemo(() => {
+    if (!focusMode || selectedNodes.length === 0) return new Set<string>();
+    
+    const related = new Set<string>();
+    const selectedId = selectedNodes[0];
+    
+    // Add selected node
+    related.add(selectedId);
+    
+    // Add ancestors
+    const addAncestors = (nodeId: string) => {
+      const parentEdge = edges.find(e => e.target === nodeId);
+      if (parentEdge) {
+        related.add(parentEdge.source);
+        addAncestors(parentEdge.source);
+      }
+    };
+    addAncestors(selectedId);
+    
+    // Add descendants
+    const addDescendants = (nodeId: string) => {
+      const childEdges = edges.filter(e => e.source === nodeId);
+      childEdges.forEach(edge => {
+        related.add(edge.target);
+        addDescendants(edge.target);
+      });
+    };
+    addDescendants(selectedId);
+    
+    return related;
+  }, [focusMode, selectedNodes, edges]);
+  
+  // Filter out hidden nodes and apply visual effects (search highlight, focus mode dimming)
   const visibleNodes = useMemo(() => {
-    return nodes.filter(node => !node.hidden);
-  }, [nodes]);
+    return nodes.filter(node => !node.hidden).map(node => {
+      const isHighlighted = highlightedNodes.has(node.id);
+      const isRelated = relatedNodes.has(node.id);
+      const isDimmed = focusMode && relatedNodes.size > 0 && !isRelated;
+      
+      return {
+        ...node,
+        style: {
+          ...node.style,
+          opacity: isDimmed ? 0.2 : 1,
+          transition: 'opacity 0.3s ease',
+        },
+        data: {
+          ...node.data,
+          isHighlighted,
+        },
+      };
+    });
+  }, [nodes, highlightedNodes, focusMode, relatedNodes]);
   
   const visibleEdges = useMemo(() => {
     return edges.filter(edge => !edge.hidden);
@@ -163,6 +241,35 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     }
   }, [selectedNodes, deleteNode, clearSelection]);
 
+  // Keyboard shortcuts - MUST come after all handler declarations
+  useKeyboardShortcuts({
+    onTab: () => {
+      if (selectedNodes.length === 1) {
+        const label = prompt('New child node:');
+        if (label) addNode(selectedNodes[0], label);
+      }
+    },
+    onEnter: () => {
+      if (selectedNodes.length === 1) {
+        const parentEdge = edges.find(e => e.target === selectedNodes[0]);
+        if (parentEdge) {
+          const label = prompt('New sibling node:');
+          if (label) addNode(parentEdge.source, label);
+        }
+      }
+    },
+    onDelete: handleDeleteNode,
+    onUndo: undo,
+    onRedo: redo,
+    onSearch: () => setShowSearch(!showSearch),
+    onEscape: () => {
+      if (showSearch) setShowSearch(false);
+      else if (focusMode) setFocusMode(false);
+      else clearSelection();
+    },
+    disabled: false,
+  });
+
   const handleGenerateAI = useCallback(async () => {
     const prompt = window.prompt('Digite o tópico para gerar um mapa mental:');
     if (!prompt) return;
@@ -227,28 +334,97 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
         a.download = `${title.replace(/\s+/g, '_')}.mmd`;
         a.click();
         URL.revokeObjectURL(url);
-      } else if (format === 'png' || format === 'svg') {
+      } else if (format === 'png' || format === 'svg' || format === 'pdf') {
         if (!reactFlowWrapper.current) {
           throw new Error('React Flow wrapper not found');
         }
 
         toast({
-          title: 'Exporting...',
-          description: 'Generating image',
+          title: 'Exportando...',
+          description: format === 'pdf' ? 'Gerando PDF...' : 'Gerando imagem...',
         });
 
-        const imageExportFn = format === 'png' ? toPng : toSvg;
-        const dataUrl = await imageExportFn(reactFlowWrapper.current, {
-          backgroundColor: '#ffffff',
-          width: reactFlowWrapper.current.offsetWidth,
-          height: reactFlowWrapper.current.offsetHeight,
-          quality: 1.0,
-        });
+        if (format === 'pdf') {
+          // Export as PDF with multi-page support for large maps
+          const dataUrl = await toPng(reactFlowWrapper.current, {
+            backgroundColor: '#ffffff',
+            width: reactFlowWrapper.current.offsetWidth,
+            height: reactFlowWrapper.current.offsetHeight,
+            quality: 1.0,
+          });
 
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = `${title.replace(/\s+/g, '_')}.${format}`;
-        a.click();
+          const imgWidth = reactFlowWrapper.current.offsetWidth;
+          const imgHeight = reactFlowWrapper.current.offsetHeight;
+          
+          // Standard A4 landscape dimensions in px (at 72 DPI)
+          const pageWidth = 842;
+          const pageHeight = 595;
+          
+          // Check if map fits in a single page
+          if (imgWidth <= pageWidth && imgHeight <= pageHeight) {
+            // Single page PDF
+            const pdf = new jsPDF({
+              orientation: 'landscape',
+              unit: 'px',
+              format: [imgWidth, imgHeight],
+            });
+            pdf.addImage(dataUrl, 'PNG', 0, 0, imgWidth, imgHeight);
+            pdf.save(`${title.replace(/\s+/g, '_')}.pdf`);
+          } else {
+            // Multi-page PDF - scale to fit width, then paginate vertically
+            const pdf = new jsPDF({
+              orientation: 'landscape',
+              unit: 'px',
+              format: 'a4',
+            });
+            
+            const scaleFactor = pageWidth / imgWidth;
+            const scaledWidth = imgWidth * scaleFactor;
+            const scaledHeight = imgHeight * scaleFactor;
+            
+            let remainingHeight = scaledHeight;
+            let yOffset = 0;
+            let isFirstPage = true;
+            
+            while (remainingHeight > 0) {
+              if (!isFirstPage) {
+                pdf.addPage('a4', 'landscape');
+              }
+              
+              const pageSliceHeight = Math.min(pageHeight, remainingHeight);
+              
+              // Render portion of image for this page
+              pdf.addImage(
+                dataUrl,
+                'PNG',
+                0,
+                -yOffset,
+                scaledWidth,
+                scaledHeight
+              );
+              
+              remainingHeight -= pageHeight;
+              yOffset += pageHeight;
+              isFirstPage = false;
+            }
+            
+            pdf.save(`${title.replace(/\s+/g, '_')}.pdf`);
+          }
+        } else {
+          // Export as PNG or SVG
+          const imageExportFn = format === 'png' ? toPng : toSvg;
+          const dataUrl = await imageExportFn(reactFlowWrapper.current, {
+            backgroundColor: '#ffffff',
+            width: reactFlowWrapper.current.offsetWidth,
+            height: reactFlowWrapper.current.offsetHeight,
+            quality: 1.0,
+          });
+
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = `${title.replace(/\s+/g, '_')}.${format}`;
+          a.click();
+        }
       }
 
       toast({
@@ -306,55 +482,6 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     });
   }, [exportData, onSave, toast]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if editing
-      if ((e.target as HTMLElement).tagName === 'INPUT') return;
-      
-      // Undo/Redo
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
-      } 
-      // Save
-      else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      } 
-      // Delete node
-      else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedNodes.length > 0) {
-          e.preventDefault();
-          handleDeleteNode();
-        }
-      }
-      // Tab: Add child node (modern UX)
-      else if (e.key === 'Tab' && selectedNodes.length === 1) {
-        e.preventDefault();
-        const label = prompt('Enter child node label:');
-        if (label) {
-          addNode(selectedNodes[0], label);
-        }
-      }
-      // Enter: Add sibling node (modern UX)
-      else if (e.key === 'Enter' && selectedNodes.length === 1) {
-        e.preventDefault();
-        const selectedNode = nodes.find(n => n.id === selectedNodes[0]);
-        const parentEdge = edges.find(e => e.target === selectedNodes[0]);
-        const label = prompt('Enter sibling node label:');
-        if (label) {
-          addNode(parentEdge?.source || null, label);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, handleSave, handleDeleteNode, selectedNodes, addNode, nodes, edges]);
 
   return (
     <div className={className} style={{ width: '100%', height: '100%' }} data-testid="mindmap-editor">
@@ -382,9 +509,24 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           onToggleOutlineView={() => setShowOutlineView(!showOutlineView)}
           showOutlineView={showOutlineView}
           onApplyAutoLayout={() => applyLayout()}
+          onToggleDarkMode={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          isDarkMode={theme === 'dark'}
+          onTogglePresentationMode={() => setPresentationMode(!presentationMode)}
+          presentationMode={presentationMode}
           canUndo={canUndo}
           canRedo={canRedo}
           hasSelection={selectedNodes.length > 0}
+        />
+      )}
+      
+      {/* Search Bar */}
+      {showSearch && (
+        <SearchBar
+          onSearch={setSearchQuery}
+          onClose={() => {
+            setShowSearch(false);
+            setSearchQuery('');
+          }}
         />
       )}
 
@@ -495,6 +637,10 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
               }}
               className="bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-lg"
               maskColor="hsl(var(--background) / 0.8)"
+              pannable={true}
+              zoomable={true}
+              nodeStrokeWidth={3}
+              position="bottom-right"
             />
           )}
           {!focusMode && (
@@ -503,6 +649,14 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
                 {nodes.length} {nodes.length === 1 ? 'nó' : 'nós'}
               </div>
             </Panel>
+          )}
+          
+          {/* Presentation Mode */}
+          {presentationMode && (
+            <PresentationMode
+              nodes={nodes}
+              onClose={() => setPresentationMode(false)}
+            />
           )}
         </ReactFlow>
         </div>

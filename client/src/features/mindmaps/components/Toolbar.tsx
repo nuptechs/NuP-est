@@ -24,6 +24,9 @@ import {
   Save,
   Move,
   List,
+  Moon,
+  Sun,
+  Presentation,
 } from 'lucide-react';
 import type { ExportFormat } from '../core/types';
 
@@ -50,6 +53,10 @@ interface ToolbarProps {
   onToggleOutlineView?: () => void;
   showOutlineView?: boolean;
   onApplyAutoLayout?: () => void;
+  onToggleDarkMode?: () => void;
+  isDarkMode?: boolean;
+  onTogglePresentationMode?: () => void;
+  presentationMode?: boolean;
   canUndo: boolean;
   canRedo: boolean;
   hasSelection: boolean;
@@ -78,6 +85,10 @@ export function Toolbar({
   onToggleOutlineView,
   showOutlineView,
   onApplyAutoLayout,
+  onToggleDarkMode,
+  isDarkMode,
+  onTogglePresentationMode,
+  presentationMode,
   canUndo,
   canRedo,
   hasSelection,
@@ -257,6 +268,32 @@ export function Toolbar({
             title="Modo de foco"
           >
             <Focus className="w-4 h-4" />
+          </Button>
+        )}
+        
+        {onTogglePresentationMode && (
+          <Button
+            variant={presentationMode ? "secondary" : "ghost"}
+            size="sm"
+            onClick={onTogglePresentationMode}
+            data-testid="button-presentation-mode"
+            className="h-9 w-9 p-0 rounded-lg transition-all duration-200"
+            title="Modo apresentação"
+          >
+            <Presentation className="w-4 h-4" />
+          </Button>
+        )}
+        
+        {onToggleDarkMode && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleDarkMode}
+            data-testid="button-toggle-dark-mode"
+            className="h-9 w-9 p-0 rounded-lg transition-all duration-200"
+            title={isDarkMode ? "Modo claro" : "Modo escuro"}
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
         )}
       </div>
