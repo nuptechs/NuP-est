@@ -1409,10 +1409,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Initialize AI service
       const aiManagerInstance = getAIManager();
       
-      // Generate explanation using GPT-4o-mini
-      const prompt = `Você é o Professor IA, um tutor dedicado e paciente. Explique o conceito "${concept}" de forma clara e didática.
+      // Generate explanation using AI Manager
+      const prompt = `Você é o Professor IA, um tutor dedicado e paciente especialista em pedagogia adaptativa.
 
-Perfil do estudante: ${profile}
+CONCEITO A EXPLICAR: "${concept}"
+PERFIL DO ESTUDANTE: ${profile}
 
 Sua explicação deve:
 1. Começar com uma definição simples e direta
@@ -1421,25 +1422,15 @@ Sua explicação deve:
 4. Destacar pontos-chave
 5. Ser concisa mas completa (máximo 300 palavras)
 
-Adapte a linguagem ao nível do estudante e mantenha um tom encorajador.`;
+Adapte a linguagem ao nível do estudante e mantenha um tom encorajador e motivador.`;
 
-      const completion = await aiManagerInstance.createCompletion({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Você é o Professor IA, um tutor especialista em pedagogia adaptativa que explica conceitos de forma clara, didática e personalizada.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 800,
+      const aiResponse = await aiManagerInstance.request({
+        messages: [{ role: "user", content: prompt }],
+        maxTokens: 800,
+        temperature: 0.7
       });
 
-      const explanation = completion.choices[0]?.message?.content || 'Não foi possível gerar uma explicação.';
+      const explanation = aiResponse.content || 'Não foi possível gerar uma explicação.';
 
       console.log(`[API] Concept explanation generated successfully (${explanation.length} chars)`);
 
