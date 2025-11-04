@@ -134,15 +134,17 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           const engine = useMindMapEngine.getState();
           engine.autoCollapseBySize();
           
+          // Read updated state after collapse (not closure)
+          const updatedNodes = engine.nodes;
           console.log('[MindMapEditor] Auto-collapse applied', {
-            totalNodes: nodes.length,
-            visibleNodes: nodes.filter(n => !n.hidden).length,
-            hiddenNodes: nodes.filter(n => n.hidden).length,
+            totalNodes: updatedNodes.length,
+            visibleNodes: updatedNodes.filter(n => !n.hidden).length,
+            hiddenNodes: updatedNodes.filter(n => n.hidden).length,
           });
           
-          // Fit view again after collapse to show only visible nodes
+          // Fit view again after collapse to center visible nodes
           setTimeout(() => {
-            reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+            reactFlowInstance.fitView({ padding: 0.2, duration: 300, maxZoom: 1.5 });
           }, 100);
         }, 300);
       }, 100);
