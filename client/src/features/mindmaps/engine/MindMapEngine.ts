@@ -284,12 +284,19 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     };
     findChildren(id);
 
+    console.log('[CollapseNode] Collapsing node', {
+      nodeId: id,
+      childrenFound: childIds.size,
+      children: Array.from(childIds).slice(0, 5),
+    });
+
     const newNodes = nodes.map((node) => {
       if (node.id === id) {
         return { ...node, data: { ...node.data, collapsed: true } };
       }
       if (childIds.has(node.id)) {
-        return { ...node, hidden: true };
+        // Mark both top-level and data.hidden for compatibility
+        return { ...node, hidden: true, data: { ...node.data, hidden: true } };
       }
       return node;
     });
@@ -319,7 +326,8 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
         return { ...node, data: { ...node.data, collapsed: false } };
       }
       if (directChildIds.has(node.id)) {
-        return { ...node, hidden: false };
+        // Clear both top-level and data.hidden for compatibility
+        return { ...node, hidden: false, data: { ...node.data, hidden: false } };
       }
       return node;
     });
