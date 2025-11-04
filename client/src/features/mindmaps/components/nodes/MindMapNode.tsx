@@ -20,9 +20,27 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const collapseNode = useMindMapEngine((state) => state.collapseNode);
   const expandNode = useMindMapEngine((state) => state.expandNode);
   const edges = useMindMapEngine((state) => state.edges);
+  const nodes = useMindMapEngine((state) => state.nodes);
   
   // Check if node has children
   const hasChildren = edges.some(edge => edge.source === id);
+  
+  // Calculate progress (% of checked children) - SimpleMind Professional Feature
+  const getProgress = useCallback((): { total: number; checked: number; percentage: number } | null => {
+    if (!hasChildren) return null;
+    
+    const childIds = edges.filter(edge => edge.source === id).map(edge => edge.target);
+    if (childIds.length === 0) return null;
+    
+    const children = nodes.filter(n => childIds.includes(n.id));
+    const checkedCount = children.filter(n => n.data.checked).length;
+    
+    return {
+      total: children.length,
+      checked: checkedCount,
+      percentage: Math.round((checkedCount / children.length) * 100)
+    };
+  }, [id, hasChildren, edges, nodes]);
   
   // Get style configuration from store with proper memoization
   const currentStyleSheet = useStyleStore((state) => state.currentStyleSheet);
