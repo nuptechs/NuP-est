@@ -5,7 +5,7 @@ import { useMindMapEngine } from '../../engine/MindMapEngine';
 import { useStyleStore, useNodeStyle } from '../../store/useStyleStore';
 import { getColorFromPalette } from '../../utils/hierarchyUtils';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle, CheckSquare, Square } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle, CheckSquare, Square, Tag, X } from 'lucide-react';
 
 interface MindMapNodeProps extends NodeProps {
   data: MindMapNodeData;
@@ -15,6 +15,8 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [label, setLabel] = useState(data.label);
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [newTag, setNewTag] = useState('');
   const updateNode = useMindMapEngine((state) => state.updateNode);
   const addNode = useMindMapEngine((state) => state.addNode);
   const collapseNode = useMindMapEngine((state) => state.collapseNode);
@@ -76,6 +78,20 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
     const newLabel = `Novo ${childrenCount + 1}`;
     addNode(id, newLabel);
   }, [id, addNode]);
+  
+  const handleAddTag = useCallback((tag: string) => {
+    if (!tag.trim()) return;
+    const currentTags = data.tags || [];
+    if (currentTags.includes(tag.trim())) return;
+    updateNode(id, { tags: [...currentTags, tag.trim()] });
+    setNewTag('');
+    setShowTagInput(false);
+  }, [id, data.tags, updateNode]);
+  
+  const handleRemoveTag = useCallback((tagToRemove: string) => {
+    const currentTags = data.tags || [];
+    updateNode(id, { tags: currentTags.filter(t => t !== tagToRemove) });
+  }, [id, data.tags, updateNode]);
 
   // Compute final node style based on color mode
   const computedStyle = useCallback(() => {
@@ -344,6 +360,118 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
           
           {getPerformanceBadge()}
         </div>
+        
+        {/* SimpleMind Professional: Progress Bar */}
+        {(() => {
+          const progress = getProgress();
+          if (progress && progress.total > 0) {
+            return (
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground font-medium">
+                    {progress.checked}/{progress.total} concluídos
+                  </span>
+                  <span 
+                    className={cn(
+                      "font-semibold",
+                      progress.percentage === 100 ? "text-green-600 dark:text-green-400" : 
+                      progress.percentage >= 50 ? "text-amber-600 dark:text-amber-400" : 
+                      "text-muted-foreground"
+                    )}
+                  >
+                    {progress.percentage}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500 ease-out",
+                      progress.percentage === 100 ? "bg-green-500" : 
+                      progress.percentage >= 50 ? "bg-amber-500" : 
+                      "bg-blue-500"
+                    )}
+                    style={{ width: `${progress.percentage}%` }}
+                    data-testid={`progress-bar-${id}`}
+                  />
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+        
+        {/* SimpleMind Professional: Tags System */}
+        {(data.tags && data.tags.length > 0) || showTagInput || isHovered ? (
+          <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+            {data.tags && data.tags.map((tag, index) => (
+              <div
+                key={`${tag}-${index}`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-medium group/tag"
+                data-testid={`tag-${tag}`}
+              >
+                <Tag className="w-3 h-3" />
+                <span>{tag}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveTag(tag);
+                  }}
+                  className="opacity-0 group-hover/tag:opacity-100 hover:bg-primary/20 rounded-full p-0.5 transition-opacity"
+                  data-testid={`button-remove-tag-${tag}`}
+                  title="Remover tag"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ))}
+            
+            {showTagInput ? (
+              <div className="inline-flex items-center gap-1">
+                <input
+                  type="text"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag(newTag);
+                    } else if (e.key === 'Escape') {
+                      setShowTagInput(false);
+                      setNewTag('');
+                    }
+                  }}
+                  onBlur={() => {
+                    if (newTag.trim()) {
+                      handleAddTag(newTag);
+                    } else {
+                      setShowTagInput(false);
+                    }
+                  }}
+                  placeholder="Nova tag..."
+                  className="px-2 py-0.5 text-xs border border-primary rounded-full bg-background focus:outline-none focus:ring-1 focus:ring-primary w-24"
+                  autoFocus
+                  data-testid="input-new-tag"
+                />
+              </div>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTagInput(true);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1 px-2 py-0.5 border border-dashed border-muted-foreground/30 hover:border-primary/50 text-muted-foreground hover:text-primary rounded-full text-xs font-medium transition-colors",
+                  isHovered ? "opacity-100" : "opacity-0"
+                )}
+                data-testid="button-add-tag"
+                title="Adicionar tag"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Tag</span>
+              </button>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <Handle
