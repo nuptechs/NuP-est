@@ -1874,16 +1874,72 @@ ${text}`;
         styleSheetId: mindMapData.styleSheetId,
       });
 
+      // Auto-collapse large maps for better UX
+      const totalNodes = mindMapData.nodes?.length || 0;
+      let collapsedNodes = mindMapData.nodes;
+      let collapsedEdges = mindMapData.edges;
+      
+      if (totalNodes > 10) {
+        console.log(`📊 Auto-collapsing large map (${totalNodes} nodes)`);
+        
+        // Collapse nodes at level 2 and beyond
+        const nodesToCollapse = new Set<string>();
+        const descendantsToHide = new Set<string>();
+        
+        // Find all nodes with level >= 2 that have children
+        collapsedNodes.forEach((node: any) => {
+          const level = node.data?.level ?? 0;
+          if (level >= 2) {
+            const hasChildren = mindMapData.edges.some((e: any) => e.source === node.id);
+            if (hasChildren) {
+              nodesToCollapse.add(node.id);
+              
+              // Find all descendants
+              const findDescendants = (nodeId: string) => {
+                mindMapData.edges.forEach((edge: any) => {
+                  if (edge.source === nodeId && !descendantsToHide.has(edge.target)) {
+                    descendantsToHide.add(edge.target);
+                    findDescendants(edge.target);
+                  }
+                });
+              };
+              findDescendants(node.id);
+            }
+          }
+        });
+        
+        // Apply collapse
+        collapsedNodes = mindMapData.nodes.map((node: any) => {
+          if (nodesToCollapse.has(node.id)) {
+            return { ...node, data: { ...node.data, collapsed: true } };
+          }
+          if (descendantsToHide.has(node.id)) {
+            return { ...node, hidden: true, data: { ...node.data, hidden: true } };
+          }
+          return node;
+        });
+        
+        collapsedEdges = mindMapData.edges.map((edge: any) => {
+          if (descendantsToHide.has(edge.target)) {
+            return { ...edge, hidden: true };
+          }
+          return edge;
+        });
+        
+        console.log(`✅ Collapsed ${nodesToCollapse.size} parent nodes, hiding ${descendantsToHide.size} descendants`);
+      }
+      
       // Prepare content object
       const contentObject = {
-        nodes: mindMapData.nodes,
-        edges: mindMapData.edges,
+        nodes: collapsedNodes,
+        edges: collapsedEdges,
         layout: mindMapData.layout || "horizontal",
       };
 
       console.log("📦 Content object to save:", {
         hasNodes: !!contentObject.nodes,
         nodeCount: contentObject.nodes?.length,
+        visibleNodes: contentObject.nodes?.filter((n: any) => !n.hidden).length,
         hasEdges: !!contentObject.edges,
         edgeCount: contentObject.edges?.length,
         layout: contentObject.layout,
