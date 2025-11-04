@@ -1,6 +1,8 @@
 import { ReactFlow, Node, Edge, Background, Controls, MiniMap, Position } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Map } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface MindMapNode {
   id: string;
@@ -114,18 +116,20 @@ function buildNodesAndEdges(
 }
 
 export function MindMapVisual({ data }: MindMapVisualProps) {
+  const [showMiniMap, setShowMiniMap] = useState(false);
+  
   const { nodes, edges } = useMemo(() => {
     return buildNodesAndEdges(data);
   }, [data]);
 
   return (
     <div className="my-4 rounded-lg border border-border overflow-hidden bg-background">
-      <div style={{ height: '500px', width: '100%' }}>
+      <div className="relative" style={{ height: '500px', width: '100%' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           fitView
-          attributionPosition="bottom-left"
+          proOptions={{ hideAttribution: true }}
           minZoom={0.2}
           maxZoom={2}
           defaultEdgeOptions={{
@@ -134,16 +138,29 @@ export function MindMapVisual({ data }: MindMapVisualProps) {
         >
           <Background color="#aaa" gap={16} />
           <Controls showInteractive={false} />
-          <MiniMap 
-            nodeColor={(node) => node.style?.background as string || '#999'}
-            maskColor="rgba(0, 0, 0, 0.05)"
-            pannable
-            zoomable
-          />
+          {showMiniMap && (
+            <MiniMap 
+              nodeColor={(node) => node.style?.background as string || '#999'}
+              maskColor="rgba(0, 0, 0, 0.05)"
+              pannable
+              zoomable
+            />
+          )}
         </ReactFlow>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowMiniMap(!showMiniMap)}
+          className="absolute top-3 right-3 z-10 bg-background/95 backdrop-blur shadow-md"
+          data-testid="button-toggle-minimap"
+        >
+          <Map className="h-4 w-4 mr-2" />
+          {showMiniMap ? 'Ocultar' : 'Mostrar'} Minimap
+        </Button>
       </div>
       <div className="text-xs text-muted-foreground px-3 py-2 bg-muted/30 border-t border-border">
-        🧠 Mapa Mental • Use scroll para zoom • Arraste para navegar • Minimap no canto
+        🧠 Mapa Mental • Use scroll para zoom • Arraste para navegar
       </div>
     </div>
   );
