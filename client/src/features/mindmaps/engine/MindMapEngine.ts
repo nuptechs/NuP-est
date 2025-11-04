@@ -94,19 +94,46 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
   },
 
   loadMindMap: (mindMap: MindMapData) => {
-    // CRITICAL: Preserve hidden/collapsed state from database
-    // Map comes pre-collapsed from backend, don't call applyLayout which loses this state
+    // CRITICAL: ALWAYS recalculate layout with new spacing settings
+    // This fixes old cached maps that were generated with tight spacing
     const { nodes, edges } = mindMap;
     
-    // Only enrich with hierarchy WITHOUT calling calculateLayout
-    // This preserves the hidden/collapsed flags from database
+    // Step 1: Preserve collapsed/hidden state
+    const collapsedState = new Map<string, { hidden: boolean; collapsed: boolean }>();
+    nodes.forEach(node => {
+      collapsedState.set(node.id, {
+        hidden: node.hidden || false,
+        collapsed: node.data?.collapsed || false,
+      });
+    });
+    
+    // Step 2: Recalculate layout with NEW spacing (fixes old cached maps)
     const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
+    const layoutedNodes = calculateLayout(enrichedNodes, edges, {
+      algorithm: 'dagre',
+      direction: 'TB',
+      nodeSpacing: 180,  // NEW spacing
+      levelSpacing: 250, // NEW spacing
+    });
+    
+    // Step 3: Restore collapsed state after layout
+    const finalNodes = layoutedNodes.map(node => {
+      const state = collapsedState.get(node.id);
+      if (state) {
+        return {
+          ...node,
+          hidden: state.hidden,
+          data: { ...node.data, hidden: state.hidden, collapsed: state.collapsed },
+        };
+      }
+      return node;
+    });
     
     set({
       mindMap,
-      nodes: enrichedNodes,
+      nodes: finalNodes,
       edges: mindMap.edges,
-      history: [{ nodes: enrichedNodes, edges: mindMap.edges }],
+      history: [{ nodes: finalNodes, edges: mindMap.edges }],
       historyIndex: 0,
     });
   },
