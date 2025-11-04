@@ -5,7 +5,8 @@ import { useMindMapEngine } from '../../engine/MindMapEngine';
 import { useStyleStore, useNodeStyle } from '../../store/useStyleStore';
 import { getColorFromPalette } from '../../utils/hierarchyUtils';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle, CheckSquare, Square, Tag, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle, CheckSquare, Square, Tag, X, Sparkles } from 'lucide-react';
+import { AIExplanationDialog } from '../AIExplanationDialog';
 
 interface MindMapNodeProps extends NodeProps {
   data: MindMapNodeData;
@@ -17,6 +18,7 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
   const [label, setLabel] = useState(data.label);
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const [showAIExplanation, setShowAIExplanation] = useState(false);
   const updateNode = useMindMapEngine((state) => state.updateNode);
   const addNode = useMindMapEngine((state) => state.addNode);
   const collapseNode = useMindMapEngine((state) => state.collapseNode);
@@ -92,6 +94,10 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
     const currentTags = data.tags || [];
     updateNode(id, { tags: currentTags.filter(t => t !== tagToRemove) });
   }, [id, data.tags, updateNode]);
+  
+  const handleCloseAIExplanation = useCallback(() => {
+    setShowAIExplanation(false);
+  }, []);
 
   // Compute final node style based on color mode
   const computedStyle = useCallback(() => {
@@ -495,6 +501,32 @@ export const MindMapNode = memo(({ id, data, selected }: MindMapNodeProps) => {
       >
         <Plus className="w-4 h-4" strokeWidth={2.5} />
       </button>
+      
+      {/* Professor IA Button - SimpleMind Professional Feature */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowAIExplanation(true);
+        }}
+        className={cn(
+          "absolute -bottom-5 left-1/2 -translate-x-1/2 ml-10 w-7 h-7 rounded-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110 z-10",
+          "opacity-100 md:opacity-0",
+          isHovered && "md:opacity-100"
+        )}
+        data-testid={`button-ai-explain-${data.label}`}
+        title="Explicar com Professor IA"
+      >
+        <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+      </button>
+      
+      {/* AI Explanation Dialog */}
+      {showAIExplanation && (
+        <AIExplanationDialog
+          concept={data.label}
+          nodeId={id}
+          onClose={handleCloseAIExplanation}
+        />
+      )}
     </div>
   );
 });

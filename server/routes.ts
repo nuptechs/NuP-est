@@ -1390,6 +1390,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Concept Explanation for Mind Maps - Professor IA Integration
+  app.post('/api/ai/explain-concept', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { concept, context } = req.body;
+
+      if (!concept || typeof concept !== 'string') {
+        return res.status(400).json({ message: "Conceito é obrigatório" });
+      }
+
+      console.log(`[API] Explain concept request: ${concept}`);
+
+      // Get user profile for personalized explanation
+      const user = await storage.getUser(userId);
+      const profile = user?.studyProfile || 'average';
+
+      // Initialize AI service
+      const aiManagerInstance = getAIManager();
+      
+      // Generate explanation using GPT-4o-mini
+      const prompt = `Você é o Professor IA, um tutor dedicado e paciente. Explique o conceito "${concept}" de forma clara e didática.
+
+Perfil do estudante: ${profile}
+
+Sua explicação deve:
+1. Começar com uma definição simples e direta
+2. Incluir exemplos práticos e relevantes
+3. Usar analogias quando apropriado
+4. Destacar pontos-chave
+5. Ser concisa mas completa (máximo 300 palavras)
+
+Adapte a linguagem ao nível do estudante e mantenha um tom encorajador.`;
+
+      const completion = await aiManagerInstance.createCompletion({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Você é o Professor IA, um tutor especialista em pedagogia adaptativa que explica conceitos de forma clara, didática e personalizada.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 800,
+      });
+
+      const explanation = completion.choices[0]?.message?.content || 'Não foi possível gerar uma explicação.';
+
+      console.log(`[API] Concept explanation generated successfully (${explanation.length} chars)`);
+
+      res.json({
+        explanation,
+        concept,
+        metadata: {
+          model: 'gpt-4o-mini',
+          profile,
+          timestamp: new Date().toISOString(),
+        }
+      });
+
+    } catch (error) {
+      console.error("Error explaining concept:", error);
+      res.status(500).json({ 
+        message: "Failed to explain concept: " + (error as Error).message 
+      });
+    }
+  });
+
   app.post('/api/ai/recommendation', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
