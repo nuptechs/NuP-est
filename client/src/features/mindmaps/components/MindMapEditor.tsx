@@ -29,7 +29,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import type { ExportFormat, MindMapConfig, MindMapData } from '../core/types';
 import { mindMapAI } from '../ai/MindMapAI';
 import { useToast } from '@/hooks/use-toast';
-import { useTheme } from '@/components/theme-provider';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 
 const nodeTypes = {
