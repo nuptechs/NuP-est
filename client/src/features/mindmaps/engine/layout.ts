@@ -1,6 +1,9 @@
 import dagre from 'dagre';
+import ELK from 'elkjs/lib/elk.bundled.js';
 import type { MindMapNode, MindMapEdge, LayoutAlgorithm } from '../core/types';
 import { NODE_DIMENSIONS } from '../core/constants';
+
+const elk = new ELK();
 
 export interface LayoutOptions {
   algorithm: LayoutAlgorithm;
@@ -13,14 +16,14 @@ export function calculateLayout(
   nodes: MindMapNode[],
   edges: MindMapEdge[],
   options: LayoutOptions
-): MindMapNode[] {
+): MindMapNode[] | Promise<MindMapNode[]> {
   switch (options.algorithm) {
     case 'dagre':
       return calculateDagreLayout(nodes, edges, options);
     case 'tree':
       return calculateTreeLayout(nodes, edges, options);
     case 'elk':
-      return calculateDagreLayout(nodes, edges, options);
+      return calculateElkLayout(nodes, edges, options);
     default:
       return nodes;
   }
@@ -132,4 +135,68 @@ function calculateTreeLayout(
     }
     return node;
   });
+}
+
+async function calculateElkLayout(
+  nodes: MindMapNode[],
+  edges: MindMapEdge[],
+  options: LayoutOptions
+): Promise<MindMapNode[]> {
+  const isHorizontal = options.direction === 'LR' || options.direction === 'RL';
+  
+  const graph = {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'mrtree',  // Optimized for tree/mind map structures
+      'elk.direction': options.direction === 'LR' ? 'RIGHT' : 
+                      options.direction === 'RL' ? 'LEFT' : 
+                      options.direction === 'BT' ? 'UP' : 'DOWN',
+      'elk.spacing.nodeNode': String(options.nodeSpacing || 80),
+      'elk.spacing.edgeNode': String(options.levelSpacing || 120),
+      'elk.layered.spacing.nodeNodeBetweenLayers': String(options.levelSpacing || 120),
+      'elk.edgeRouting': 'POLYLINE',
+    },
+    children: nodes.map((node) => {
+      const measuredWidth = node.width || node.data.width;
+      const measuredHeight = node.height || node.data.height;
+      const dimensions = NODE_DIMENSIONS[node.data.type] || NODE_DIMENSIONS.leaf;
+      
+      return {
+        id: node.id,
+        width: measuredWidth || dimensions.width,
+        height: measuredHeight || dimensions.height,
+      };
+    }),
+    edges: edges.map((edge) => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target],
+    })),
+  };
+
+  try {
+    const layoutedGraph = await elk.layout(graph);
+    
+    return nodes.map((node) => {
+      const layoutedNode = layoutedGraph.children?.find((n) => n.id === node.id);
+      
+      if (layoutedNode) {
+        return {
+          ...node,
+          position: {
+            x: layoutedNode.x || 0,
+            y: layoutedNode.y || 0,
+          },
+          targetPosition: isHorizontal ? 'left' : 'top',
+          sourcePosition: isHorizontal ? 'right' : 'bottom',
+        };
+      }
+      
+      return node;
+    });
+  } catch (error) {
+    console.error('ELK layout failed:', error);
+    // Fallback to dagre on error
+    return calculateDagreLayout(nodes, edges, options);
+  }
 }

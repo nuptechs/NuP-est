@@ -43,7 +43,7 @@ interface MindMapEngineState {
   autoCollapseBySize: () => void;
   
   toggleFreeFormMode: () => void;
-  applyLayout: () => void;
+  applyLayout: () => Promise<void>;
   
   undo: () => void;
   redo: () => void;
@@ -93,9 +93,9 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     });
   },
 
-  loadMindMap: (mindMap: MindMapData) => {
-    // CRITICAL: ALWAYS recalculate layout with new spacing settings
-    // This fixes old cached maps that were generated with tight spacing
+  loadMindMap: async (mindMap: MindMapData) => {
+    // CRITICAL: ALWAYS recalculate layout with ELK for perfect spacing
+    // This fixes old cached maps and prevents node overlap
     const { nodes, edges } = mindMap;
     
     // Step 1: Preserve collapsed/hidden state
@@ -107,13 +107,13 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
       });
     });
     
-    // Step 2: Recalculate layout with NEW spacing (fixes old cached maps)
+    // Step 2: Recalculate layout with ELK (handles variable node sizes)
     const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
-    const layoutedNodes = calculateLayout(enrichedNodes, edges, {
-      algorithm: 'dagre',
+    const layoutedNodes = await calculateLayout(enrichedNodes, edges, {
+      algorithm: 'elk',  // ELK prevents overlap with variable-sized nodes
       direction: 'TB',
-      nodeSpacing: 180,  // NEW spacing
-      levelSpacing: 250, // NEW spacing
+      nodeSpacing: 80,   // ELK handles spacing better than Dagre
+      levelSpacing: 120, // ELK optimized values
     });
     
     // Step 3: Restore collapsed state after layout
@@ -472,7 +472,7 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     }
   },
 
-  applyLayout: () => {
+  applyLayout: async () => {
     const { nodes, edges, mindMap } = get();
     const config = mindMap?.config || DEFAULT_CONFIG;
     
@@ -510,11 +510,11 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     // Enrich nodes with hierarchy information (level, branchId)
     const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
     
-    const layoutedNodes = calculateLayout(enrichedNodes, edges, {
-      algorithm: config.layout || 'dagre',
+    const layoutedNodes = await calculateLayout(enrichedNodes, edges, {
+      algorithm: 'elk',  // ELK for superior spacing and no overlap
       direction: 'TB',
-      nodeSpacing: config.nodeSpacing,
-      levelSpacing: config.levelSpacing,
+      nodeSpacing: 80,   // ELK optimized values
+      levelSpacing: 120,
     });
 
     // CRITICAL: Restore collapse/hidden state AFTER layout
