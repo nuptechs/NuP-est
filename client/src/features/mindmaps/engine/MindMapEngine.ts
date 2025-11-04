@@ -343,10 +343,21 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
   },
 
   autoCollapseBySize: () => {
-    const { nodes, edges } = get();
+    let { nodes, edges } = get();
     const totalNodes = nodes.length;
     
     console.log('[AutoCollapse] Starting auto-collapse calculation', { totalNodes });
+    
+    // CRITICAL: Ensure nodes have hierarchy (level) calculated
+    // Check if nodes have level property
+    const hasLevels = nodes.some(n => n.data.level !== undefined);
+    if (!hasLevels) {
+      console.log('[AutoCollapse] Nodes missing level property - applying layout first');
+      get().applyLayout();
+      // Refetch nodes after layout
+      nodes = get().nodes;
+      edges = get().edges;
+    }
     
     // Calculate how many nodes can fit comfortably on screen
     const screenWidth = window.innerWidth;
@@ -405,6 +416,7 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     console.log('[AutoCollapse] Nodes to collapse', {
       nodesToCollapseCount: nodesToCollapse.length,
       nodesSample: nodesToCollapse.slice(0, 3).map(n => ({ id: n.id, label: n.data.label, level: n.data.level })),
+      allNodesLevels: nodes.map(n => ({ id: n.id, level: n.data.level })).slice(0, 5),
     });
     
     // BATCH OPERATION: Calculate all descendants to hide in one pass
