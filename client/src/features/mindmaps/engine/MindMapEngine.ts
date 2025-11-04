@@ -94,18 +94,21 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
   },
 
   loadMindMap: (mindMap: MindMapData) => {
+    // CRITICAL: Preserve hidden/collapsed state from database
+    // Map comes pre-collapsed from backend, don't call applyLayout which loses this state
+    const { nodes, edges } = mindMap;
+    
+    // Only enrich with hierarchy WITHOUT calling calculateLayout
+    // This preserves the hidden/collapsed flags from database
+    const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
+    
     set({
       mindMap,
-      nodes: mindMap.nodes,
+      nodes: enrichedNodes,
       edges: mindMap.edges,
-      history: [{ nodes: mindMap.nodes, edges: mindMap.edges }],
+      history: [{ nodes: enrichedNodes, edges: mindMap.edges }],
       historyIndex: 0,
     });
-    
-    // Apply layout to calculate hierarchy for loaded map
-    get().applyLayout();
-    
-    // Auto-collapse will be called by MindMapEditor when ReactFlow is ready
   },
 
   addNode: (parentId: string | null, label: string, type?: NodeType) => {
