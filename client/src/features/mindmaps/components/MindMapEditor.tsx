@@ -57,7 +57,7 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [presentationMode, setPresentationMode] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { currentMode, setMode } = useTheme();
   
   // Optimized selectors - only re-render when specific slices change
   const nodes = useMindMapNodes();
@@ -509,8 +509,8 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
           onToggleOutlineView={() => setShowOutlineView(!showOutlineView)}
           showOutlineView={showOutlineView}
           onApplyAutoLayout={() => applyLayout()}
-          onToggleDarkMode={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          isDarkMode={theme === 'dark'}
+          onToggleDarkMode={() => setMode(currentMode === 'dark' ? 'light' : 'dark')}
+          isDarkMode={currentMode === 'dark'}
           onTogglePresentationMode={() => setPresentationMode(!presentationMode)}
           presentationMode={presentationMode}
           canUndo={canUndo}
