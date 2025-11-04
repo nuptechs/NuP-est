@@ -146,6 +146,28 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
       }, 100);
     }
   }, [nodes.length, reactFlowInstance]);
+  
+  // Auto-focus on newly created nodes
+  useEffect(() => {
+    if (reactFlowInstance) {
+      const newNode = nodes.find(n => n.data?.isNew);
+      if (newNode) {
+        // Clear the isNew flag
+        const engine = useMindMapEngine.getState();
+        engine.updateNode(newNode.id, { isNew: undefined });
+        
+        // Zoom to show the new node
+        setTimeout(() => {
+          reactFlowInstance.fitView({
+            padding: 0.3,
+            duration: 400,
+            nodes: [newNode],
+            maxZoom: 1.2,
+          });
+        }, 100);
+      }
+    }
+  }, [nodes, reactFlowInstance]);
 
   const handleAddNode = useCallback(() => {
     if (selectedNodes.length === 1) {
