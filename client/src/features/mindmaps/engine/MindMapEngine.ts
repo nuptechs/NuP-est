@@ -507,11 +507,34 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
     const { nodes, edges, mindMap } = get();
     const config = mindMap?.config || DEFAULT_CONFIG;
     
+    // CRITICAL: Save collapse/hidden state BEFORE layout
+    const collapsedState = new Map<string, { hidden: boolean; collapsed: boolean }>();
+    nodes.forEach(node => {
+      collapsedState.set(node.id, {
+        hidden: node.hidden || false,
+        collapsed: node.data?.collapsed || false,
+      });
+    });
+    
     // Skip auto-layout if in free-form mode (SimpleMind-style manual positioning)
     if (config.freeForm) {
       // Still enrich nodes with hierarchy info for styling purposes
       const enrichedNodes = enrichNodesWithHierarchy(nodes, edges);
-      set({ nodes: enrichedNodes });
+      
+      // Restore collapse state
+      const restoredNodes = enrichedNodes.map(node => {
+        const state = collapsedState.get(node.id);
+        if (state) {
+          return {
+            ...node,
+            hidden: state.hidden,
+            data: { ...node.data, hidden: state.hidden, collapsed: state.collapsed },
+          };
+        }
+        return node;
+      });
+      
+      set({ nodes: restoredNodes });
       return;
     }
     
@@ -525,7 +548,20 @@ export const useMindMapEngine = create<MindMapEngineState>((set, get) => ({
       levelSpacing: config.levelSpacing,
     });
 
-    set({ nodes: layoutedNodes });
+    // CRITICAL: Restore collapse/hidden state AFTER layout
+    const restoredNodes = layoutedNodes.map(node => {
+      const state = collapsedState.get(node.id);
+      if (state) {
+        return {
+          ...node,
+          hidden: state.hidden,
+          data: { ...node.data, hidden: state.hidden, collapsed: state.collapsed },
+        };
+      }
+      return node;
+    });
+
+    set({ nodes: restoredNodes });
   },
 
   undo: () => {
