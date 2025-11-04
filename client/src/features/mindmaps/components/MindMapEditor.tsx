@@ -125,31 +125,47 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
 
   useEffect(() => {
     if (nodes.length > 0 && reactFlowInstance) {
-      // First fit the view
-      setTimeout(() => {
-        reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
-        
-        // Then apply auto-collapse after layout is complete
+      // Check if a node is focused (user is interacting with it)
+      const focusedNode = nodes.find(n => n.data?.focused);
+      
+      if (focusedNode) {
+        // Smart focus: zoom to the node the user is interacting with
         setTimeout(() => {
-          const engine = useMindMapEngine.getState();
-          engine.autoCollapseBySize();
-          
-          // Read updated state after collapse (not closure)
-          const updatedNodes = engine.nodes;
-          console.log('[MindMapEditor] Auto-collapse applied', {
-            totalNodes: updatedNodes.length,
-            visibleNodes: updatedNodes.filter(n => !n.hidden).length,
-            hiddenNodes: updatedNodes.filter(n => n.hidden).length,
+          reactFlowInstance.fitView({
+            padding: 0.3,
+            duration: 400,
+            nodes: [focusedNode],
+            maxZoom: 1.2,
+            minZoom: 0.5,
           });
+        }, 100);
+      } else {
+        // Initial load: apply auto-collapse and fit view
+        setTimeout(() => {
+          reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
           
-          // Fit view again after collapse to center visible nodes
+          // Then apply auto-collapse after layout is complete
           setTimeout(() => {
-            reactFlowInstance.fitView({ padding: 0.2, duration: 300, maxZoom: 1.5 });
-          }, 100);
-        }, 300);
-      }, 100);
+            const engine = useMindMapEngine.getState();
+            engine.autoCollapseBySize();
+            
+            // Read updated state after collapse (not closure)
+            const updatedNodes = engine.nodes;
+            console.log('[MindMapEditor] Auto-collapse applied', {
+              totalNodes: updatedNodes.length,
+              visibleNodes: updatedNodes.filter(n => !n.hidden).length,
+              hiddenNodes: updatedNodes.filter(n => n.hidden).length,
+            });
+            
+            // Fit view again after collapse to center visible nodes
+            setTimeout(() => {
+              reactFlowInstance.fitView({ padding: 0.2, duration: 300, maxZoom: 1.5 });
+            }, 100);
+          }, 300);
+        }, 100);
+      }
     }
-  }, [nodes.length, reactFlowInstance]);
+  }, [nodes.length, reactFlowInstance, nodes]);
 
   const handleAddNode = useCallback(() => {
     if (selectedNodes.length === 1) {
