@@ -96,8 +96,8 @@ export function MindMapEditor({ title, config, initialData, onSave, className }:
     const matches = new Set<string>();
     
     nodes.forEach(node => {
-      const label = node.data.label?.toLowerCase() || '';
-      const description = node.data.description?.toLowerCase() || '';
+      const label = typeof node.data.label === 'string' ? node.data.label.toLowerCase() : '';
+      const description = typeof node.data.description === 'string' ? node.data.description.toLowerCase() : '';
       
       if (label.includes(query) || description.includes(query)) {
         matches.add(node.id);
