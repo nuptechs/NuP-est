@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@nup/ui";
 import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import UnifiedShell from "@/components/layout/unified-shell";

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@nup/ui";
 import { Send, Bot, User, Loader2, Clock, ChevronUp, ChevronDown, Calendar, MessageSquare, Trash2 } from "lucide-react";
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';

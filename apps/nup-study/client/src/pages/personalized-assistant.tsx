@@ -30,7 +30,7 @@ import StudentProfileView from "@/components/personalized-assistant/student-prof
 import ModernEmptyState from "@/components/ui/modern-empty-state";
 import Breadcrumbs from "@/components/ui/breadcrumbs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 
 type TabId = "chat" | "questions" | "assessment" | "profile";
 

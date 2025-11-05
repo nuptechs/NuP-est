@@ -6,7 +6,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@nup/ui";
 import { useQuery } from "@tanstack/react-query";
 import { 
   BookOpen, 

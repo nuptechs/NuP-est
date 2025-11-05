@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 import ClickUpSidebar from "./clickup-sidebar";
 import ClickUpTopbar from "./clickup-topbar";
 import {

@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@nup/ui";
 import AiStudyModal from "@/components/study/ai-study-modal";
 import UnifiedShell from "@/components/layout/unified-shell";
 import ModernPageHeader from "@/components/ui/modern-page-header";

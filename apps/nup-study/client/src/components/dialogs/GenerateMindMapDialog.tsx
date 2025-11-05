@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@nup/ui";
 import { useLocation } from "wouter";
 
 interface GenerateMindMapDialogProps {

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@nup/ui";
 import UnifiedShell from "@/components/layout/unified-shell";
 import ModernPageHeader from "@/components/ui/modern-page-header";
 import ModernEmptyState from "@/components/ui/modern-empty-state";

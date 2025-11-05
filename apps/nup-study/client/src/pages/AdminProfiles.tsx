@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@nup/ui";
 import { 
   PlayCircle, 
   RefreshCw, 
