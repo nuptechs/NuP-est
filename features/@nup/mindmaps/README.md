@@ -1,60 +1,78 @@
 # @nup/mindmaps
 
-Mind Maps feature package - vendível separadamente.
+Sistema completo de Mind Maps com IA integrada, layouts automáticos e exportação profissional.
 
-## Status
+## 🎯 Features
 
-⏳ **A extrair** do apps/nup-study/client/src/features/mindmaps/
+- **Mind Maps Interativos**: Editor visual com drag & drop, zoom, e pan
+- **IA Generativa**: Criação automática de mind maps a partir de materiais de estudo
+- **Layouts Automáticos**: Algoritmos inteligentes para organização visual
+- **Estilos Profissionais**: 12 folhas de estilo pré-configuradas (SimpleMind, Colorful, etc.)
+- **Exportação**: SVG, PNG, PDF de alta qualidade
+- **Modo Apresentação**: Visualização otimizada para apresentações
+- **Outline View**: Visão hierárquica em lista
+- **Dark Mode**: Suporte completo a temas
+- **Customização Avançada**: Cores, formas, bordas, tipografia por elemento
 
-## Features
+## 📦 Instalação
 
-- 🧠 Geração de mind maps com IA
-- 🎨 Editor visual interativo
-- 📊 Outline view
-- 🔍 Busca em tempo real
-- 🎨 12 estilos visuais
-- 📤 Export SVG/PNG
-- 🔗 Crosslinks
-- ✅ Checkboxes
-- 🎭 Custom icons
-
-## Architecture (Planejado)
-
-```
-@nup/mindmaps/
-├── components/
-│   ├── MindMapEditor.tsx
-│   ├── OutlineView.tsx
-│   └── nodes/
-├── services/
-│   ├── MindMapGenerator.ts
-│   └── RAGIntegration.ts
-├── hooks/
-│   ├── useMindMap.ts
-│   └── useMindMapExport.ts
-└── types/
-    └── index.ts
+```bash
+pnpm add @nup/mindmaps @nup/ui @nup/api-client @nup/shared-types
 ```
 
-## Dependências
+## 🚀 Uso Básico
 
-- `@nup/ui` - Componentes UI
-- `@nup/api-client` - HTTP client
-- `@nup/shared-types` - Types
-- `@xyflow/react` - Flow editor
-- `dagre` - Layout algorithm
+```tsx
+import { MindMapApp } from '@nup/mindmaps';
+import { ReactFlowProvider } from '@xyflow/react';
 
-## Uso (Futuro)
+function App() {
+  return (
+    <ReactFlowProvider>
+      <div style={{ width: '100vw', height: '100vh' }}>
+        <MindMapApp />
+      </div>
+    </ReactFlowProvider>
+  );
+}
+```
 
-```typescript
+## 🔧 Componentes Disponíveis
+
+### MindMapApp
+Aplicação completa com UI de seleção e criação de mind maps.
+
+### MindMapEditor
+Editor standalone para casos customizados.
+
+```tsx
 import { MindMapEditor } from '@nup/mindmaps';
 
-<MindMapEditor 
-  mindMapId={id}
-  onSave={handleSave}
-/>
+<ReactFlowProvider>
+  <MindMapEditor
+    title="Meu Mind Map"
+    initialData={mindMapData}
+    onSave={(data) => console.log('Saved:', data)}
+  />
+</ReactFlowProvider>
 ```
 
-## Migração
+## ⚙️ Providers Necessários
 
-Será extraído de `apps/nup-study/client/src/features/mindmaps/` em uma próxima fase.
+```tsx
+import { ThemeContext } from '@nup/ui';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactFlowProvider } from '@xyflow/react';
+
+<QueryClientProvider client={queryClient}>
+  <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ReactFlowProvider>
+      <MindMapApp />
+    </ReactFlowProvider>
+  </ThemeContext.Provider>
+</QueryClientProvider>
+```
+
+## 🎯 Vendável Independentemente
+
+Este package pode ser vendido e instalado separadamente do ecossistema NuP.
