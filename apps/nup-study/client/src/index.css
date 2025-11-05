@@ -1,0 +1,400 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ======= NuP-Study DESIGN SYSTEM ======= */
+
+@layer base {
+  :root {
+    /* === PROFESSIONAL COLOR PALETTE === */
+    
+    /* Primary - Trustworthy Blue */
+    --primary: 221 83% 53%;           /* hsl(221, 83%, 53%) - #2563eb */
+    --primary-foreground: 210 40% 98%; /* hsl(210, 40%, 98%) - #f8fafc */
+    
+    /* Secondary - Neutral Slate */
+    --secondary: 210 40% 94%;         /* hsl(210, 40%, 94%) - #f1f5f9 */
+    --secondary-foreground: 222 84% 5%; /* hsl(222, 84%, 5%) - #0f172a */
+    
+    /* Background & Surfaces */
+    --background: 0 0% 100%;          /* White */
+    --foreground: 222 84% 5%;         /* Dark text - #0f172a */
+    
+    --card: 0 0% 100%;                /* White cards */
+    --card-foreground: 222 84% 5%;    /* Dark text on cards */
+    
+    --popover: 0 0% 100%;             /* White popovers */
+    --popover-foreground: 222 84% 5%; /* Dark text on popovers */
+    
+    /* Interactive Elements */
+    --muted: 210 40% 96%;             /* hsl(210, 40%, 96%) - #f8fafc */
+    --muted-foreground: 215 16% 47%;  /* hsl(215, 16%, 47%) - #64748b */
+    
+    --accent: 210 40% 94%;            /* Accent backgrounds */
+    --accent-foreground: 222 84% 5%;  /* Text on accents */
+    
+    /* Borders & Inputs */
+    --border: 214 32% 91%;            /* hsl(214, 32%, 91%) - #e2e8f0 */
+    --input: 214 32% 91%;             /* Input borders */
+    --ring: 221 83% 53%;              /* Focus rings (primary blue) */
+    
+    /* Status Colors */
+    --success: 142 71% 45%;           /* hsl(142, 71%, 45%) - #059669 */
+    --success-foreground: 0 0% 100%;  /* White text on success */
+    
+    --warning: 38 92% 50%;            /* hsl(38, 92%, 50%) - #f59e0b */
+    --warning-foreground: 0 0% 100%;  /* White text on warning */
+    
+    --destructive: 0 84% 60%;         /* hsl(0, 84%, 60%) - #ef4444 */
+    --destructive-foreground: 0 0% 100%; /* White text on destructive */
+    
+    --info: 199 89% 48%;              /* hsl(199, 89%, 48%) - #0ea5e9 */
+    --info-foreground: 0 0% 100%;     /* White text on info */
+    
+    /* Charts */
+    --chart-1: 221 83% 53%;           /* Primary blue */
+    --chart-2: 142 71% 45%;           /* Success green */
+    --chart-3: 38 92% 50%;            /* Warning amber */
+    --chart-4: 280 100% 70%;          /* Purple */
+    --chart-5: 340 82% 52%;           /* Pink */
+    
+    /* Border Radius */
+    --radius: 0.5rem;                 /* 8px */
+    
+    /* Typography */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-serif: 'Inter', Georgia, 'Times New Roman', serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+  }
+  
+  .dark {
+    /* === DARK MODE PALETTE === */
+    
+    /* Backgrounds */
+    --background: 222 84% 5%;         /* hsl(222, 84%, 5%) - #0f172a */
+    --foreground: 210 40% 98%;        /* hsl(210, 40%, 98%) - #f8fafc */
+    
+    --card: 220 13% 18%;              /* hsl(220, 13%, 18%) - #1e293b */
+    --card-foreground: 210 40% 98%;   /* Light text on dark cards */
+    
+    --popover: 220 13% 18%;           /* Dark popovers */
+    --popover-foreground: 210 40% 98%; /* Light text on popovers */
+    
+    /* Interactive Elements */
+    --muted: 215 28% 17%;             /* hsl(215, 28%, 17%) - #1e293b */
+    --muted-foreground: 217 11% 65%;  /* hsl(217, 11%, 65%) - #94a3b8 */
+    
+    --accent: 215 28% 17%;            /* Dark accents */
+    --accent-foreground: 210 40% 98%; /* Light text on accents */
+    
+    /* Borders & Inputs */
+    --border: 215 28% 17%;            /* Dark borders */
+    --input: 215 28% 17%;             /* Dark input borders */
+    --ring: 224 71% 4%;               /* Dark focus rings */
+    
+    /* Secondary */
+    --secondary: 215 28% 17%;         /* Dark secondary */
+    --secondary-foreground: 210 40% 98%; /* Light text on secondary */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Typography Scale */
+  h1 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+  
+  h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  
+  h3 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+  
+  /* === FLASHCARD RICH CONTENT STYLES === */
+  .flashcard-rich-content {
+    @apply text-foreground;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+  
+  .flashcard-rich-content * {
+    max-width: 100%;
+  }
+  
+  .flashcard-rich-content h1:first-child,
+  .flashcard-rich-content h2:first-child,
+  .flashcard-rich-content h3:first-child,
+  .flashcard-rich-content h4:first-child,
+  .flashcard-rich-content p:first-child {
+    @apply mt-0;
+  }
+  
+  .flashcard-rich-content p:last-child,
+  .flashcard-rich-content ul:last-child,
+  .flashcard-rich-content ol:last-child {
+    @apply mb-0;
+  }
+  
+  /* Ensure proper spacing in lists */
+  .flashcard-rich-content ul ul,
+  .flashcard-rich-content ul ol,
+  .flashcard-rich-content ol ul,
+  .flashcard-rich-content ol ol {
+    @apply mt-2;
+  }
+  
+  /* Table responsiveness and scrolling */
+  .flashcard-rich-content table {
+    @apply text-sm;
+    table-layout: auto;
+    word-break: normal;
+  }
+  
+  .flashcard-rich-content td,
+  .flashcard-rich-content th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Code blocks with better overflow handling */
+  .flashcard-rich-content pre {
+    @apply overflow-x-auto;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
+    white-space: pre;
+    overflow-wrap: normal;
+  }
+  
+  .flashcard-rich-content pre code {
+    white-space: pre;
+    word-break: normal;
+  }
+  
+  .flashcard-rich-content code:not(pre code) {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .flashcard-rich-content pre::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .flashcard-rich-content pre::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  .flashcard-rich-content pre::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground rounded;
+  }
+  
+  h4 {
+    @apply text-lg font-medium;
+  }
+  
+  h5 {
+    @apply text-base font-medium;
+  }
+  
+  h6 {
+    @apply text-sm font-medium;
+  }
+  
+  /* Focus Styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+  
+  /* Smooth Animations */
+  * {
+    @apply transition-colors duration-200 ease-in-out;
+  }
+  
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground opacity-50;
+  }
+}
+
+/* === COMPONENT OVERRIDES === */
+
+@layer components {
+  /* Professional Card Styling */
+  .nup-card {
+    @apply bg-card border border-border/50 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .nup-card-content {
+    @apply p-6;
+  }
+  
+  /* Professional Button Variants */
+  .nup-button-ghost {
+    @apply bg-transparent hover:bg-muted text-foreground;
+  }
+  
+  .nup-button-outline {
+    @apply border border-border bg-transparent hover:bg-muted text-foreground;
+  }
+  
+  /* Layout Helpers */
+  .nup-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .nup-section {
+    @apply py-8;
+  }
+  
+  /* Typography Helpers */
+  .nup-text-muted {
+    @apply text-muted-foreground;
+  }
+  
+  .nup-text-subtle {
+    @apply text-muted-foreground/75;
+  }
+  
+  /* Status Indicators */
+  .nup-status-success {
+    @apply text-success bg-success/10 border-success/20;
+  }
+  
+  .nup-status-warning {
+    @apply text-warning bg-warning/10 border-warning/20;
+  }
+  
+  .nup-status-error {
+    @apply text-destructive bg-destructive/10 border-destructive/20;
+  }
+  
+  .nup-status-info {
+    @apply text-info bg-info/10 border-info/20;
+  }
+}
+
+/* === REACT FLOW MIND MAP OVERRIDES === */
+/* Remove default white background and styling from React Flow node wrappers */
+.react-flow__node {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node-default {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node.selected {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Ensure handles remain functional but invisible */
+.react-flow__handle {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* === ANIMATIONS === */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* === AG GRID DARK MODE INTEGRATION === */
+.dark .ag-theme-quartz {
+  --ag-background-color: hsl(var(--card));
+  --ag-foreground-color: hsl(var(--card-foreground));
+  --ag-header-background-color: hsl(var(--muted));
+  --ag-header-foreground-color: hsl(var(--muted-foreground));
+  --ag-border-color: hsl(var(--border));
+  --ag-row-hover-color: hsl(var(--accent));
+  --ag-selected-row-background-color: hsl(var(--accent));
+  --ag-odd-row-background-color: hsl(var(--card));
+  --ag-control-panel-background-color: hsl(var(--card));
+  --ag-subheader-background-color: hsl(var(--muted));
+}
+
+/* === REACT FLOW DARK MODE === */
+.dark .react-flow {
+  background: hsl(var(--card));
+}
+
+.dark .react-flow__background {
+  background: hsl(var(--card));
+}
+
+.dark .react-flow__background pattern circle {
+  fill: hsl(var(--muted-foreground) / 0.2);
+}
+
+.dark .react-flow__controls {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark .react-flow__controls button {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .react-flow__controls button:hover {
+  background: hsl(var(--accent));
+}
+
+.dark .react-flow__minimap {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark .react-flow__minimap-mask {
+  fill: hsl(var(--background) / 0.8);
+}
+
+.dark .react-flow__attribution {
+  background: hsl(var(--card) / 0.8);
+  color: hsl(var(--muted-foreground));
+}
+
+/* === PRINT STYLES === */
+@media print {
+  * {
+    @apply bg-transparent text-black shadow-none;
+  }
+}
