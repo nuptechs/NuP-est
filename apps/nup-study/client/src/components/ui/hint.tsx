@@ -20,7 +20,7 @@
  */
 
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 
 interface HintProps {
   children: React.ReactNode;

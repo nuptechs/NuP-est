@@ -11,7 +11,7 @@ import { Hint } from '@/components/ui/hint';
 import { HINTS } from '@/config/hints';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { VoiceServiceFactory } from '@/services/voice/VoiceServiceFactory';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@nup/ui';
 
 interface SpeakButtonProps {
   text: string;
