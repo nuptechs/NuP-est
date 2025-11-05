@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { MindMapEditor } from './components/MindMapEditor';
+import { FlashcardDialogWrapper } from './components/FlashcardDialogWrapper';
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@nup/ui';
 import { Plus, ArrowLeft, Filter, Sparkles } from 'lucide-react';
 import type { MindMap, Subject } from '@nup/shared-types';
 import { apiRequest, queryClient } from '@nup/api-client';
-import { GenerateFlashcardsDialog } from '@nup/flashcards';
 
 /**
  * MindMapApp - Entry Point for Mind Maps Feature Module
@@ -90,7 +90,7 @@ export default function MindMapApp() {
             {isCreating ? 'Novo Mapa Mental' : selectedMap?.title}
           </h1>
           
-          {/* FASE 3: Generate Flashcards Button */}
+          {/* FASE 3: Generate Flashcards Button - Always shown, wrapper handles missing package */}
           {!isCreating && selectedMap && (
             <Button
               variant="outline"
@@ -159,9 +159,9 @@ export default function MindMapApp() {
           </ReactFlowProvider>
         </div>
         
-        {/* FASE 3: Generate Flashcards Dialog */}
+        {/* FASE 3: Generate Flashcards Dialog - Optional Integration */}
         {selectedMap && (
-          <GenerateFlashcardsDialog
+          <FlashcardDialogWrapper
             open={showGenerateDialog}
             onOpenChange={setShowGenerateDialog}
             mindMapId={selectedMap.id}
