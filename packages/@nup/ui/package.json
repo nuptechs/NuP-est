@@ -13,11 +13,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@radix-ui/react-dialog": "workspace:*",
-    "@radix-ui/react-select": "workspace:*",
     "@radix-ui/react-toast": "workspace:*",
     "class-variance-authority": "workspace:*",
     "clsx": "workspace:*",
+    "lucide-react": "workspace:*",
     "tailwind-merge": "workspace:*",
     "react": "workspace:*"
   },
