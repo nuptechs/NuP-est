@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@nup/shared-types": "workspace:*",
-    "@tanstack/react-query": "workspace:*"
+    "@tanstack/react-query": "^5.62.11"
   },
   "devDependencies": {
-    "typescript": "workspace:*"
+    "typescript": "^5.6.3"
   }
 }

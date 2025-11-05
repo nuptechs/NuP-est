@@ -13,16 +13,16 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@radix-ui/react-toast": "workspace:*",
-    "class-variance-authority": "workspace:*",
-    "clsx": "workspace:*",
-    "lucide-react": "workspace:*",
-    "tailwind-merge": "workspace:*",
-    "react": "workspace:*"
+    "@radix-ui/react-toast": "^1.2.7",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.462.0",
+    "tailwind-merge": "^2.5.5",
+    "react": "^18.3.1"
   },
   "devDependencies": {
-    "@types/react": "workspace:*",
-    "typescript": "workspace:*",
-    "tailwindcss": "workspace:*"
+    "@types/react": "^18.3.12",
+    "typescript": "^5.6.3",
+    "tailwindcss": "^3.4.16"
   }
 }
