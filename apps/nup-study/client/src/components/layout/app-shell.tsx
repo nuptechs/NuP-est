@@ -34,7 +34,7 @@ import {
   Menu,
   Bell
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 import AppSidebar from "./app-sidebar";
 import MobileNav from "./mobile-nav";
 

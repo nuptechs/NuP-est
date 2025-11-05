@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 
 const navigation = [
   { name: "Home", href: "/", icon: "fa-home" },
