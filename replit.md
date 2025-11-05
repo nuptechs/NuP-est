@@ -92,6 +92,72 @@ A 3-level customization architecture (global, mind map specific, individual elem
 
 The Mind Maps system is fully encapsulated within `client/src/features/mindmaps/` for isolation and easy integration.
 
+## Monorepo Architecture (Nov 2025)
+
+### Overview
+
+The project is transitioning to a **modern monorepo architecture** using Turborepo and pnpm workspaces to support the NuP Ecosystem: multiple AI-powered applications that share code, deploy independently, and are modularly sellable.
+
+### Structure
+
+```
+nup-ecosystem/
+├── apps/                      # Deployable applications
+│   ├── nup-study/            # Main study platform (migrated)
+│   ├── nup-identify/         # Centralized auth/authorization (planned)
+│   ├── nup-chunks/           # (planned)
+│   ├── nup-aim/              # (planned)
+│   ├── nup-kan/              # (planned)
+│   └── nup-service/          # (planned)
+├── packages/@nup/            # Shared code packages
+│   ├── ui/                   # Design system (shadcn/ui)
+│   ├── auth-client/          # Auth SDK (connects to NuP-Identify)
+│   ├── api-client/           # HTTP client (TanStack Query)
+│   └── shared-types/         # TypeScript types
+└── features/@nup/            # Reusable features (sellable)
+    ├── mindmaps/             # Mind Maps system (planned extraction)
+    ├── professor-ia/         # Voice AI tutor (planned extraction)
+    └── flashcards/           # Flashcard system (planned extraction)
+```
+
+### Shared Packages
+
+**@nup/ui**: Design system with shadcn/ui components, hooks (`useToast`), and utilities (`cn()`). Ensures visual consistency across all apps.
+
+**@nup/auth-client**: Authentication SDK with `AuthProvider`, `useAuth`, and `usePermissions` hooks. Implements granular permission system (app + feature level) connecting to NuP-Identify.
+
+**@nup/api-client**: Configurable HTTP client with TanStack Query integration, default fetcher, and `apiRequest` helper for mutations.
+
+**@nup/shared-types**: TypeScript types for all domain models (User, MindMap, Subject, Material, API responses) shared across apps.
+
+### Benefits
+
+- **Code Sharing**: Zero duplication of UI components, types, and utilities
+- **Independent Deployments**: Each app deploys separately with own CI/CD
+- **Modular Sales**: Features packaged as npm modules, sellable independently
+- **Type Safety**: Shared types ensure consistency across frontend/backend
+- **Consistent UX**: Single design system across all apps
+- **Easy Integration Swapping**: Adapter pattern for STT/TTS/LLM providers
+- **Developer Experience**: One repo, one install, unified tooling
+
+### Migration Status
+
+- **Phase**: Dual-run (legacy code + migrated code coexisting)
+- **Backup**: Branch `backup/pre-monorepo-migration`, tag `v1.0-pre-monorepo`
+- **Current**: Legacy code at root still in production, apps/nup-study ready for testing
+- **Next**: Incremental import migration, feature extraction, deploy cutover
+
+### NuP-Identify Integration
+
+NuP-Identify will serve as the **centralized authentication and authorization system** for all NuP apps. It:
+- Manages user accounts and sessions (OAuth, SSO)
+- Controls granular feature access per app (e.g., "nup-study.mindmaps.write")
+- Provides `@nup/auth-client` SDK for seamless integration
+- Enables single sign-on across the ecosystem
+- Supports independent app sales with feature gating
+
+All apps will use `@nup/auth-client` to check permissions and access user context without managing auth themselves.
+
 # External Dependencies
 
 ## Database & Storage
