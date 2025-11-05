@@ -28,9 +28,9 @@ import { useStyleStore } from '../store/useStyleStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import type { ExportFormat, MindMapConfig, MindMapData } from '../core/types';
 import { mindMapAI } from '../ai/MindMapAI';
-import { useToast } from '@/hooks/use-toast';
-import { useTheme } from '@/contexts/ThemeContext';
-import { cn } from '@/lib/utils';
+import { useToast } from "@nup/ui";
+import { useTheme } from "@nup/ui";
+import { cn } from "@nup/ui";
 
 const nodeTypes = {
   mindMapNode: MindMapNodeComponent,
@@ -58,7 +58,7 @@ export function MindMapEditor({ title, config, initialData, onSave, onGenerateNe
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [presentationMode, setPresentationMode] = useState(false);
-  const { currentMode, setMode } = useTheme();
+  const { theme, setTheme } = useTheme();
   
   // Optimized selectors - only re-render when specific slices change
   const nodes = useMindMapNodes();
@@ -520,8 +520,8 @@ export function MindMapEditor({ title, config, initialData, onSave, onGenerateNe
           onToggleOutlineView={() => setShowOutlineView(!showOutlineView)}
           showOutlineView={showOutlineView}
           onApplyAutoLayout={() => applyLayout()}
-          onToggleDarkMode={() => setMode(currentMode === 'dark' ? 'light' : 'dark')}
-          isDarkMode={currentMode === 'dark'}
+          onToggleDarkMode={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          isDarkMode={theme === 'dark'}
           onTogglePresentationMode={() => setPresentationMode(!presentationMode)}
           presentationMode={presentationMode}
           canUndo={canUndo}

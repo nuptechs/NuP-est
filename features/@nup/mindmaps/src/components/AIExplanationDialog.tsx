@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@nup/ui";
+import { Button } from "@nup/ui";
 import { Loader2, Sparkles, X, MessageSquare } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from "@nup/ui";
 import { useLocation } from 'wouter';
 import ReactMarkdown from 'react-markdown';
 

@@ -1,8 +1,8 @@
 import { Brain, Sparkles, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useJobPolling } from '../hooks/useJobPolling';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@nup/ui";
+import { Progress } from "@nup/ui";
+import { Button } from "@nup/ui";
 
 interface AIGenerationProgressProps {
   jobId: string | null;

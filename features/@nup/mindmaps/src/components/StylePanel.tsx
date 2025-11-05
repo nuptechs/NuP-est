@@ -5,13 +5,13 @@
 
 import { useState, useEffect } from 'react';
 import { Palette, Circle, Square, Hexagon, Minus, Plus, Type, Shuffle, Workflow, Diamond, Pill, Star, Triangle, Octagon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from "@nup/ui";
+import { ScrollArea } from "@nup/ui";
+import { Separator } from "@nup/ui";
+import { Label } from "@nup/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@nup/ui";
+import { Slider } from "@nup/ui";
+import { Popover, PopoverContent, PopoverTrigger } from "@nup/ui";
 import { useStyleStore, useStyleActions, useCurrentStyleSheet } from '../store/useStyleStore';
 import { getBuiltInStyleSheets, getStyleSheetsForTheme } from '../core/builtInStyleSheets';
 import { useMindMapEngine } from '../engine/MindMapEngine';

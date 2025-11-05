@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Input } from "@nup/ui";
+import { Button } from "@nup/ui";
+import { cn } from "@nup/ui";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;

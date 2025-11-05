@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronRight, ChevronDown, CheckSquare, Square, Edit2 } from 'lucide-react';
 import { useMindMapNodes, useMindMapEdges, useMindMapActions } from '../engine/MindMapEngine';
-import { cn } from '@/lib/utils';
+import { cn } from "@nup/ui";
 import type { MindMapNode } from '../core/types';
 
 interface OutlineItemProps {

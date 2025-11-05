@@ -4,14 +4,9 @@
  */
 
 import { useState } from 'react';
-import { useRealtimeVoice } from '@/hooks/useRealtimeVoice';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Slider } from '@/components/ui/slider';
+import { useRealtimeVoice } from '../hooks/useRealtimeVoice';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, ScrollArea, Slider, Alert, AlertDescription } from '@nup/ui';
 import { Mic, MicOff, Phone, PhoneOff, AlertCircle, Brain, Waves, Timer } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function ProfessorIA() {
   const {

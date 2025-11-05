@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@nup/ui";
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import type { MindMapNode } from '../core/types';

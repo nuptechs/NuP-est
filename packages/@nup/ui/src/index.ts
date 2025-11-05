@@ -14,6 +14,7 @@ export * from './components/scroll-area';
 export * from './components/separator';
 export * from './components/slider';
 export * from './components/popover';
+export * from './components/alert';
 
 // Toast System
 export * from './components/toast';

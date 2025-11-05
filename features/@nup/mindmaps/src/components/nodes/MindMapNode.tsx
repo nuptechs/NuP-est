@@ -4,7 +4,7 @@ import type { MindMapNodeData } from '../../core/types';
 import { useMindMapEngine } from '../../engine/MindMapEngine';
 import { useStyleStore, useNodeStyle } from '../../store/useStyleStore';
 import { getColorFromPalette } from '../../utils/hierarchyUtils';
-import { cn } from '@/lib/utils';
+import { cn } from "@nup/ui";
 import { ChevronDown, ChevronRight, Plus, Target, GitBranch, FileText, Award, TrendingUp, AlertCircle, CheckSquare, Square, Tag, X, Sparkles } from 'lucide-react';
 import { AIExplanationDialog } from '../AIExplanationDialog';
 
