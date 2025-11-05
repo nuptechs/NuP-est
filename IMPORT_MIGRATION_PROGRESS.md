@@ -1,7 +1,7 @@
 # 📦 Import Migration Progress Report
 
 **Data:** 05/11/2025
-**Status:** ✅ Prova de Conceito Completa
+**Status:** 🚀 Migração em Andamento (25 arquivos migrados!)
 
 ## ✅ O Que Foi Feito
 
@@ -32,15 +32,48 @@ export { Toaster } from './components/toaster';
 export { queryClient, apiRequest, getQueryFn } from './query-client';
 ```
 
-### 2. **Arquivos Migrados (6 total)**
+### 2. **Arquivos Migrados (25 total no apps/nup-study)**
 
-| Arquivo | Import Migrado | Package |
-|---------|---------------|---------|
-| `components/ui/hint.tsx` | `cn()` | @nup/ui |
-| `components/ui/breadcrumbs.tsx` | `cn()` | @nup/ui |
-| `components/ui/scroll-area.tsx` | `cn()` | @nup/ui |
-| `components/voice/SpeakButton.tsx` | `useToast()` | @nup/ui |
-| `pages/flashcards.tsx` | `useToast()` + `apiRequest()` | @nup/ui + @nup/api-client |
+#### UI Básicos (5 arquivos)
+| Arquivo | Import | Package |
+|---------|--------|---------|
+| `button.tsx` | `cn()` | @nup/ui |
+| `input.tsx` | `cn()` | @nup/ui |
+| `label.tsx` | `cn()` | @nup/ui |
+| `badge.tsx` | `cn()` | @nup/ui |
+| `card.tsx` | `cn()` | @nup/ui |
+
+#### UI de Formulário (5 arquivos)
+| Arquivo | Import | Package |
+|---------|--------|---------|
+| `form.tsx` | `cn()` | @nup/ui |
+| `select.tsx` | `cn()` | @nup/ui |
+| `dialog.tsx` | `cn()` | @nup/ui |
+| `checkbox.tsx` | `cn()` | @nup/ui |
+| `switch.tsx` | `cn()` | @nup/ui |
+
+#### Layout (5 arquivos)
+| Arquivo | Import | Package |
+|---------|--------|---------|
+| `sidebar.tsx` | `cn()` | @nup/ui |
+| `app-shell.tsx` | `cn()` | @nup/ui |
+| `mobile-nav.tsx` | `cn()` | @nup/ui |
+| `app-sidebar.tsx` | `cn()` | @nup/ui |
+| `unified-shell.tsx` | `cn()` | @nup/ui |
+
+#### UI Extras (10 arquivos)
+| Arquivo | Import | Package |
+|---------|--------|---------|
+| `accordion.tsx` | `cn()` | @nup/ui |
+| `alert.tsx` | `cn()` | @nup/ui |
+| `avatar.tsx` | `cn()` | @nup/ui |
+| `breadcrumb.tsx` | `cn()` | @nup/ui |
+| `dropdown-menu.tsx` | `cn()` | @nup/ui |
+| `popover.tsx` | `cn()` | @nup/ui |
+| `progress.tsx` | `cn()` | @nup/ui |
+| `separator.tsx` | `cn()` | @nup/ui |
+| `tooltip.tsx` | `cn()` | @nup/ui |
+| `tabs.tsx` | `cn()` | @nup/ui |
 
 ### 3. **Testes Realizados**
 
@@ -53,10 +86,11 @@ export { queryClient, apiRequest, getQueryFn } from './query-client';
 ## 📊 Estatísticas
 
 - **Packages populados:** 2 (@nup/ui, @nup/api-client)
-- **Arquivos migrados:** 6
-- **Imports migrados:** 9
+- **Arquivos migrados:** 25
+- **Imports migrados:** 25
 - **Linhas de código compartilhado:** ~300+
 - **Erros encontrados:** 0
+- **Taxa de sucesso:** 100%
 
 ## 🎯 Benefícios Comprovados
 
