@@ -1,5 +1,5 @@
 import { Card, CardContent } from './card';
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 
 interface StatCardProps {
   icon: React.ReactNode;

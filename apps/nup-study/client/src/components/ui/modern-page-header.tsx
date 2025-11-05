@@ -4,7 +4,7 @@
  */
 
 import { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 import { Badge } from "@/components/ui/badge";
 
 interface ModernPageHeaderProps {

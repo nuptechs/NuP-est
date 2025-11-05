@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";

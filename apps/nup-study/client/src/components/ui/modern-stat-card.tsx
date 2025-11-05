@@ -5,7 +5,7 @@
 
 import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@nup/ui";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface ModernStatCardProps {

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@nup/ui"
 import { Search, Filter } from "lucide-react"
 import { Input } from "./input"
 
