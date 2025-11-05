@@ -1,1 +1,1 @@
-import '../apps/nup-study/server/index.js';
+import '../apps/nup-study/server/index.ts';
