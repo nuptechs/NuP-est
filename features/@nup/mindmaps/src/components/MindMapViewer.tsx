@@ -17,7 +17,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { MindMapNode } from "./nodes/MindMapNode";
-import { Button } from "@nup/uibutton";
+import { Button } from "@nup/ui";
 import { ZoomIn, ZoomOut, Maximize2, Download } from "lucide-react";
 import { toPng } from "html-to-image";
 

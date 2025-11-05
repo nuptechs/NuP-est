@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { MindMapEditor } from './components/MindMapEditor';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@nup/ui';
 import { Plus, ArrowLeft, Filter, Sparkles } from 'lucide-react';
-import type { MindMap, Subject } from '@shared/schema';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import type { MindMap, Subject } from '@nup/shared-types';
+import { apiRequest, queryClient } from '@nup/api-client';
 import { GenerateFlashcardsDialog } from '@nup/flashcards';
 
 /**
