@@ -1,0 +1,29 @@
+{
+  "name": "@nup/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles": "./src/styles/index.css"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "workspace:*",
+    "@radix-ui/react-select": "workspace:*",
+    "@radix-ui/react-toast": "workspace:*",
+    "class-variance-authority": "workspace:*",
+    "clsx": "workspace:*",
+    "tailwind-merge": "workspace:*",
+    "react": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "workspace:*",
+    "typescript": "workspace:*",
+    "tailwindcss": "workspace:*"
+  }
+}
