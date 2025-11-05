@@ -6,25 +6,23 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@nup/api-client";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@nup/uidialog";
-import { Button } from "@nup/uibutton";
-import { Label } from "@nup/uilabel";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@nup/uiselect";
+import { 
+  useToast, 
+  Button, 
+  Label, 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue, 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from "@nup/ui";
 import { Loader2, Sparkles } from "lucide-react";
-import { useToast, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@nup/ui";
 import { useLocation } from "wouter";
 
 interface GenerateFlashcardsDialogProps {

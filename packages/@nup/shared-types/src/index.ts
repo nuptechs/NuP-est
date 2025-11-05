@@ -3,4 +3,5 @@ export * from './types/user';
 export * from './types/mindmap';
 export * from './types/subject';
 export * from './types/material';
+export * from './types/flashcard';
 export * from './types/api';

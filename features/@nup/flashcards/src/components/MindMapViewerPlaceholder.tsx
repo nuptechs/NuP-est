@@ -4,7 +4,7 @@
  * Apps can provide their own MindMapViewer through props
  */
 
-export default function MindMapViewerPlaceholder() {
+export default function MindMapViewerPlaceholder(_props: any) {
   return (
     <div className="p-8 text-center text-muted-foreground">
       Mind Map viewer not available. This feature requires the @nup/mindmaps package.

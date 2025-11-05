@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, ArrowLeft, Filter, Sparkles } from 'lucide-react';
 import type { MindMap, Subject } from '@shared/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import GenerateFlashcardsDialog from '@/components/dialogs/GenerateFlashcardsDialog';
+import { GenerateFlashcardsDialog } from '@nup/flashcards';
 
 /**
  * MindMapApp - Entry Point for Mind Maps Feature Module

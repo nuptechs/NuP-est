@@ -1,9 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@nup/uibutton";
-import { Card, CardContent } from "@nup/uicard";
-import { Badge } from "@nup/uibadge";
-import { Progress } from "@nup/uiprogress";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@nup/uitooltip";
+import { Button, Card, CardContent, Badge, Progress, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@nup/ui";
 import { ChevronLeft, ChevronRight, RotateCcw, Eye, EyeOff, Lightbulb, ThumbsUp, Minus, AlertTriangle } from "lucide-react";
 import type { Flashcard } from "@nup/shared-types";
 import FlashcardRenderer from "./FlashcardRenderer";
