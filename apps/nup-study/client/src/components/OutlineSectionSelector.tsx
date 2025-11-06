@@ -69,7 +69,7 @@ function SectionNode({ node, depth, selectedSections, onToggle }: SectionNodePro
           id={`section-${node.id}`}
           checked={isSelected || allChildrenSelected}
           onCheckedChange={(checked) => {
-            onToggle(node.id, !!checked && hasChildren);
+            onToggle(node.id, hasChildren);
           }}
           className={cn(
             someChildrenSelected && "bg-primary/30 border-primary",
