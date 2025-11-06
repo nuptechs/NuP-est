@@ -33,6 +33,7 @@ import VoiceAgentTestPage from "@/pages/VoiceAgentTestPage";
 import ConversationalVoiceTestPage from "@/pages/ConversationalVoiceTestPage";
 import ProfessorIA from "@/pages/ProfessorIA";
 import AdminProfiles from "@/pages/AdminProfiles";
+import DidacticMaterial from "@/pages/didactic-material";
 
 // Componente para redirecionamento adequado usando wouter
 function Redirect({ to }: { to: string }) {
@@ -92,6 +93,7 @@ function Router() {
           <Route path="/goals" component={Goals} />
           <Route path="/goal-builder" component={GoalBuilder} />
           <Route path="/topics" component={Topics} />
+          <Route path="/didactic-material" component={DidacticMaterial} />
           <Route path="/admin/search-config" component={AdminSearchConfig} />
           <Route path="/admin/profiles" component={AdminProfiles} />
           <Route path="/search" component={IntegratedSearch} />

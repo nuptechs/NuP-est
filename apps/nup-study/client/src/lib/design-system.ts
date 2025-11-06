@@ -183,6 +183,12 @@ export const navigationItems = [
     description: "Memorização eficaz",
   },
   {
+    name: "Material Didático",
+    href: "/didactic-material",
+    icon: "FileText",
+    description: "Crie apresentações",
+  },
+  {
     name: "Metas",
     href: "/goals",
     icon: "Target",

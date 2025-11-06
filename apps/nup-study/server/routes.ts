@@ -1610,6 +1610,70 @@ Finalize com 2-3 dicas práticas para memorizar/aplicar o conceito.
     }
   });
 
+  // Material Didático routes (PowerPoint Generation)
+  app.post('/api/didactic-material/generate-ppt', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { title, materialId, theme, includeConclusion } = req.body;
+
+      if (!title) {
+        return res.status(400).json({ message: "Título é obrigatório" });
+      }
+
+      // Get user for author name
+      const user = await storage.getUser(userId);
+      const author = `${user?.firstName || 'Estudante'} ${user?.lastName || ''}`.trim();
+
+      // For now, use empty array for difficulties (future: fetch from DB)
+      const difficulties: any[] = [];
+
+      let content = "";
+
+      if (materialId) {
+        // Generate from material
+        const material = await storage.getMaterial(materialId);
+        if (!material || material.userId !== userId) {
+          return res.status(404).json({ message: "Material não encontrado" });
+        }
+
+        const segments = await storage.getSegmentsByMaterial(materialId);
+        if (segments && segments.length > 0) {
+          // Concatenate ALL segments to include complete material content
+          content = segments
+            .map(seg => seg.cleanContent || "")
+            .filter(text => text.trim())
+            .join("\n\n");
+        }
+
+        if (!content) {
+          return res.status(400).json({ message: "Não foi possível extrair conteúdo do material" });
+        }
+      } else {
+        return res.status(400).json({ message: "É necessário fornecer um materialId" });
+      }
+
+      // Generate presentation
+      const { generatePresentationFromContent } = await import('./services/ppt-generator');
+      const buffer = await generatePresentationFromContent(
+        title,
+        content,
+        author,
+        {
+          theme: theme || 'professional',
+          difficulties
+        }
+      );
+
+      // Set headers for download
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(title)}.pptx"`);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error generating presentation:", error);
+      res.status(500).json({ message: "Erro ao gerar apresentação" });
+    }
+  });
+
   // Analytics routes
   app.get('/api/analytics/stats', isAuthenticated, async (req: any, res) => {
     try {
