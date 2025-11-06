@@ -1,4 +1,8 @@
-import pptxgen from "pptxgenjs";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pptxgen = require("pptxgenjs");
+
+type PptxGenJS = InstanceType<typeof pptxgen>;
 
 export interface LearningDifficulty {
   type: string;
@@ -43,7 +47,7 @@ export interface AdaptiveStyles {
 }
 
 export class PPTGenerator {
-  private pres: pptxgen;
+  private pres: PptxGenJS;
 
   constructor() {
     this.pres = new pptxgen();
@@ -135,24 +139,22 @@ export class PPTGenerator {
     for (const slideContent of config.slides) {
       switch (slideContent.type) {
         case "title":
-          this.addSectionTitleSlide(slideContent, styles);
+          this.addSectionTitleSlide(slideContent, styles, config.author);
           break;
         case "content":
-          this.addContentSlide(slideContent, styles);
+          this.addContentSlide(slideContent, styles, config.author);
           break;
         case "image":
-          this.addImageSlide(slideContent, styles);
+          this.addImageSlide(slideContent, styles, config.author);
           break;
         case "comparison":
-          this.addComparisonSlide(slideContent, styles);
+          this.addComparisonSlide(slideContent, styles, config.author);
           break;
         case "conclusion":
-          this.addConclusionSlide(slideContent, styles);
+          this.addConclusionSlide(slideContent, styles, config.author);
           break;
       }
     }
-
-    this.addFooterToAllSlides(config.author, styles);
 
     const buffer = (await this.pres.write({
       outputType: "nodebuffer",
@@ -201,9 +203,31 @@ export class PPTGenerator {
     });
   }
 
+  private addFooter(slide: any, author: string, styles: AdaptiveStyles) {
+    slide.addText(`${author} | NuP-Study`, {
+      x: 0.5,
+      y: 5.3,
+      w: 4.0,
+      h: 0.3,
+      fontSize: 10,
+      color: styles.colors.secondary,
+    });
+
+    slide.addText("", {
+      x: 5.5,
+      y: 5.3,
+      w: 4.0,
+      h: 0.3,
+      fontSize: 10,
+      color: styles.colors.secondary,
+      align: "right",
+    });
+  }
+
   private addSectionTitleSlide(
     content: SlideContent,
-    styles: AdaptiveStyles
+    styles: AdaptiveStyles,
+    author: string
   ) {
     const slide = this.pres.addSlide();
     slide.background = { color: styles.colors.background };
@@ -226,9 +250,11 @@ export class PPTGenerator {
       h: 0.05,
       fill: { color: styles.colors.secondary },
     });
+
+    this.addFooter(slide, author, styles);
   }
 
-  private addContentSlide(content: SlideContent, styles: AdaptiveStyles) {
+  private addContentSlide(content: SlideContent, styles: AdaptiveStyles, author: string) {
     const slide = this.pres.addSlide();
     slide.background = { color: styles.colors.background };
 
@@ -273,9 +299,11 @@ export class PPTGenerator {
         lineSpacing: styles.spacing.lineSpacing * 14,
       });
     }
+
+    this.addFooter(slide, author, styles);
   }
 
-  private addImageSlide(content: SlideContent, styles: AdaptiveStyles) {
+  private addImageSlide(content: SlideContent, styles: AdaptiveStyles, author: string) {
     const slide = this.pres.addSlide();
     slide.background = { color: styles.colors.background };
 
@@ -311,9 +339,11 @@ export class PPTGenerator {
         italic: true,
       });
     }
+
+    this.addFooter(slide, author, styles);
   }
 
-  private addComparisonSlide(content: SlideContent, styles: AdaptiveStyles) {
+  private addComparisonSlide(content: SlideContent, styles: AdaptiveStyles, author: string) {
     const slide = this.pres.addSlide();
     slide.background = { color: styles.colors.background };
 
@@ -362,9 +392,11 @@ export class PPTGenerator {
         lineSpacing: styles.spacing.lineSpacing * 14,
       });
     }
+
+    this.addFooter(slide, author, styles);
   }
 
-  private addConclusionSlide(content: SlideContent, styles: AdaptiveStyles) {
+  private addConclusionSlide(content: SlideContent, styles: AdaptiveStyles, author: string) {
     const slide = this.pres.addSlide();
     slide.background = { color: styles.colors.primary };
 
@@ -392,43 +424,17 @@ export class PPTGenerator {
         lineSpacing: styles.spacing.lineSpacing * 14,
       });
     }
-  }
 
-  private addFooterToAllSlides(author: string, styles: AdaptiveStyles) {
-    this.pres.defineSlideMaster({
-      title: "MASTER_SLIDE",
-      background: { color: styles.colors.background },
-      objects: [
-        {
-          text: {
-            text: `${author} | NuP-Study`,
-            options: {
-              x: 0.5,
-              y: 5.3,
-              w: 4.0,
-              h: 0.3,
-              fontSize: 10,
-              color: styles.colors.secondary,
-            },
-          },
-        },
-        {
-          text: {
-            text: "Slide %page% de %pages%",
-            options: {
-              x: 5.5,
-              y: 5.3,
-              w: 4.0,
-              h: 0.3,
-              fontSize: 10,
-              color: styles.colors.secondary,
-              align: "right",
-            },
-          },
-        },
-      ],
+    slide.addText(`${author} | NuP-Study`, {
+      x: 0.5,
+      y: 5.3,
+      w: 4.0,
+      h: 0.3,
+      fontSize: 10,
+      color: "FFFFFF",
     });
   }
+
 }
 
 export async function generatePresentationFromContent(
@@ -440,41 +446,52 @@ export async function generatePresentationFromContent(
     difficulties?: LearningDifficulty[];
   }
 ): Promise<Buffer> {
-  const paragraphs = content.split("\n\n").filter((p) => p.trim());
-
+  const lines = content.split("\n").filter((l) => l.trim());
   const slides: SlideContent[] = [];
+  
+  let currentSection: string | null = null;
+  let currentContent: string[] = [];
 
-  for (let i = 0; i < paragraphs.length; i++) {
-    const para = paragraphs[i].trim();
+  const flushContent = () => {
+    if (currentContent.length > 0) {
+      const bullets = currentContent.filter(line => line.match(/^[- *] /));
+      const text = currentContent.filter(line => !line.match(/^[- *] /));
 
-    if (para.startsWith("# ")) {
+      if (bullets.length > 0) {
+        slides.push({
+          type: "content",
+          title: currentSection || `Slide ${slides.length + 1}`,
+          bullets: bullets.map(b => b.replace(/^[- *] /, "")),
+        });
+      } else if (text.length > 0) {
+        slides.push({
+          type: "content",
+          title: currentSection || `Slide ${slides.length + 1}`,
+          text: text.join("\n"),
+        });
+      }
+      currentContent = [];
+    }
+  };
+
+  for (const line of lines) {
+    if (line.startsWith("# ")) {
+      flushContent();
+      currentSection = line.replace("# ", "");
       slides.push({
         type: "title",
-        title: para.replace("# ", ""),
+        title: currentSection,
       });
-    } else if (para.startsWith("## ")) {
-      slides.push({
-        type: "title",
-        title: para.replace("## ", ""),
-      });
-    } else if (para.includes("\n- ") || para.includes("\n* ")) {
-      const lines = para.split("\n");
-      const slideTitle = lines[0];
-      const bullets = lines.slice(1).map((l) => l.replace(/^[- *] /, ""));
-
-      slides.push({
-        type: "content",
-        title: slideTitle,
-        bullets,
-      });
-    } else {
-      slides.push({
-        type: "content",
-        title: `Slide ${slides.length + 1}`,
-        text: para,
-      });
+      currentSection = null;
+    } else if (line.startsWith("## ")) {
+      flushContent();
+      currentSection = line.replace("## ", "");
+    } else if (line.trim()) {
+      currentContent.push(line);
     }
   }
+
+  flushContent();
 
   slides.push({
     type: "conclusion",
