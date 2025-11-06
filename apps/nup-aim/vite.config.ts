@@ -21,33 +21,19 @@ export default defineConfig({
   // Force environment variables to be loaded
   envPrefix: 'VITE_',
   server: {
-    host: true,
-    port: 5173,
+    host: '0.0.0.0',
+    port: 5003,
+    strictPort: true,
     proxy: {
-      // Proxy API requests during development
-      '/api/vision-ocr': {
-        bypass: (req, res) => {
-          // Serve the local API handler
-          const apiModule = import.meta.glob('./src/api/vision-ocr.js');
-          if (apiModule['./src/api/vision-ocr.js']) {
-            apiModule['./src/api/vision-ocr.js']().then(module => {
-              module.default(req, res);
-            });
-            return true;
-          }
-        }
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
       },
-      '/api/extract-fields': {
-        bypass: (req, res) => {
-          // Serve the local API handler
-          const apiModule = import.meta.glob('./src/api/extract-fields.js');
-          if (apiModule['./src/api/extract-fields.js']) {
-            apiModule['./src/api/extract-fields.js']().then(module => {
-              module.default(req, res);
-            });
-            return true;
-          }
-        }
+      '/health': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
       }
     }
   }
