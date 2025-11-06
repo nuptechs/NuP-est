@@ -43,7 +43,7 @@ FORMATO DE SAÍDA:
 - Use # para título principal
 - Use ## para cada seção/slide
 - Use listas (-) para pontos importantes
-- Use **negrito** para termos-chave
+- Escreva em texto simples (a formatação será aplicada automaticamente)
 - Adicione parágrafos explicativos quando necessário
 
 EXEMPLO DE BOA SAÍDA:
@@ -56,11 +56,13 @@ EXEMPLO DE BOA SAÍDA:
 Parágrafo explicativo com contexto adicional.
 
 ## Conceitos-Chave
-- **Conceito 1**: Explicação clara e concisa
-- **Conceito 2**: Explicação com exemplo prático
+- Conceito 1: Explicação clara e concisa
+- Conceito 2: Explicação com exemplo prático
 
 ## Aplicação Prática
-Descrição de como aplicar os conceitos...`
+Descrição de como aplicar os conceitos...
+
+IMPORTANTE: Evite usar formatação Markdown (negrito, itálico, etc) no conteúdo. Use texto simples e direto.`
         },
         {
           role: 'user',

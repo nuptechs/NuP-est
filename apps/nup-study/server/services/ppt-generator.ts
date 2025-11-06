@@ -464,6 +464,18 @@ export async function generatePresentationFromContent(
     return t.substring(0, MAX_TITLE_LENGTH - 3) + "...";
   };
 
+  const cleanMarkdown = (text: string): string => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/__(.+?)__/g, '$1')
+      .replace(/_(.+?)_/g, '$1')
+      .replace(/`(.+?)`/g, '$1')
+      .replace(/~~(.+?)~~/g, '$1')
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+      .trim();
+  };
+
   const flushContent = () => {
     if (currentContent.length === 0) return;
 
@@ -471,7 +483,7 @@ export async function generatePresentationFromContent(
     const text = currentContent.filter(line => !line.match(/^[- *•] /));
 
     if (bullets.length > 0) {
-      const cleanBullets = bullets.map(b => b.replace(/^[- *•] /, "").trim());
+      const cleanBullets = bullets.map(b => cleanMarkdown(b.replace(/^[- *•] /, "")));
       
       // Split into multiple slides if too many bullets
       for (let i = 0; i < cleanBullets.length; i += MAX_BULLETS_PER_SLIDE) {
@@ -483,7 +495,7 @@ export async function generatePresentationFromContent(
         
         slides.push({
           type: "content",
-          title: truncateTitle(slideTitle + part),
+          title: cleanMarkdown(truncateTitle(slideTitle + part)),
           bullets: slideBullets,
         });
       }
@@ -507,8 +519,8 @@ export async function generatePresentationFromContent(
               if ((sentenceChunk + sentence).length > MAX_TEXT_LENGTH && sentenceChunk) {
                 slides.push({
                   type: "content",
-                  title: truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`),
-                  text: sentenceChunk.trim(),
+                  title: cleanMarkdown(truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`)),
+                  text: cleanMarkdown(sentenceChunk.trim()),
                 });
                 chunkIndex++;
                 sentenceChunk = sentence;
@@ -522,8 +534,8 @@ export async function generatePresentationFromContent(
               if (chunk) {
                 slides.push({
                   type: "content",
-                  title: truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`),
-                  text: chunk.trim(),
+                  title: cleanMarkdown(truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`)),
+                  text: cleanMarkdown(chunk.trim()),
                 });
                 chunkIndex++;
               }
@@ -532,8 +544,8 @@ export async function generatePresentationFromContent(
           } else if ((chunk + "\n\n" + para).length > MAX_TEXT_LENGTH && chunk) {
             slides.push({
               type: "content",
-              title: truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`),
-              text: chunk.trim(),
+              title: cleanMarkdown(truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`)),
+              text: cleanMarkdown(chunk.trim()),
             });
             chunk = para;
             chunkIndex++;
@@ -545,15 +557,15 @@ export async function generatePresentationFromContent(
         if (chunk.trim()) {
           slides.push({
             type: "content",
-            title: truncateTitle(`${currentSection || "Conteúdo"}${chunkIndex > 0 ? ` (${chunkIndex + 1})` : ""}`),
-            text: chunk.trim(),
+            title: cleanMarkdown(truncateTitle(`${currentSection || "Conteúdo"}${chunkIndex > 0 ? ` (${chunkIndex + 1})` : ""}`)),
+            text: cleanMarkdown(chunk.trim()),
           });
         }
       } else {
         slides.push({
           type: "content",
-          title: truncateTitle(currentSection || `Conteúdo ${slides.length + 1}`),
-          text: combinedText,
+          title: cleanMarkdown(truncateTitle(currentSection || `Conteúdo ${slides.length + 1}`)),
+          text: cleanMarkdown(combinedText),
         });
       }
     }
@@ -563,7 +575,7 @@ export async function generatePresentationFromContent(
   for (const line of lines) {
     if (line.startsWith("# ")) {
       flushContent();
-      const titleText = line.replace("# ", "").trim();
+      const titleText = cleanMarkdown(line.replace("# ", "").trim());
       currentSection = titleText;
       if (slides.length === 0 && titleText.toLowerCase() !== title.toLowerCase()) {
         slides.push({
@@ -574,10 +586,10 @@ export async function generatePresentationFromContent(
       currentSection = null;
     } else if (line.startsWith("## ")) {
       flushContent();
-      currentSection = line.replace("## ", "").trim();
+      currentSection = cleanMarkdown(line.replace("## ", "").trim());
     } else if (line.startsWith("### ")) {
       flushContent();
-      currentSection = line.replace("### ", "").trim();
+      currentSection = cleanMarkdown(line.replace("### ", "").trim());
     } else if (line.trim()) {
       currentContent.push(line);
     }
