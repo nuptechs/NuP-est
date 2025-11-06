@@ -175,6 +175,32 @@ nup-ecosystem/
 - **Current**: Legacy code at root still in production, apps/nup-study ready for testing
 - **Next**: Incremental import migration, feature extraction, deploy cutover
 
+### Migrating Apps to Monorepo
+
+**Quick Start:**
+```bash
+# Create new app structure automatically
+./scripts/create-app.sh nup-nova-app 5002
+
+# Install dependencies
+pnpm install
+
+# Run your new app
+pnpm dev:nova-app
+```
+
+**Manual Migration Steps:**
+1. Create app directory: `apps/nova-app/`
+2. Copy existing code to appropriate directories (client/, server/, shared/)
+3. Update imports to use `@nup/*` packages
+4. Configure package.json, tsconfig.json, vite.config.ts
+5. Add dev script to root package.json
+6. Test with `pnpm dev:nova-app`
+
+**Detailed Guide:** See `docs/MIGRAR_APPS.md` for complete migration instructions
+
+**Helper Script:** `scripts/create-app.sh` creates boilerplate structure automatically
+
 ### NuP-Identify Integration
 
 NuP-Identify will serve as the **centralized authentication and authorization system** for all NuP apps. It:
