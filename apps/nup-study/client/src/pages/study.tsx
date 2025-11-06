@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@nup/ui";
 import AiStudyModal from "@/components/study/ai-study-modal";
+import GenerateFlashcardsFromMaterialDialog from "@/components/dialogs/GenerateFlashcardsFromMaterialDialog";
 import UnifiedShell from "@/components/layout/unified-shell";
 import ModernPageHeader from "@/components/ui/modern-page-header";
 import ModernEmptyState from "@/components/ui/modern-empty-state";
@@ -29,7 +30,8 @@ import {
   CheckCircle2,
   SlidersHorizontal,
   ChevronDown,
-  Home
+  Home,
+  Sparkles
 } from "lucide-react";
 import type { Subject } from "@shared/schema";
 import type { BreadcrumbItem } from "@/components/ui/page-header";
@@ -43,6 +45,8 @@ export default function Study() {
   const [questionCount, setQuestionCount] = useState([10]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isAiStudyOpen, setIsAiStudyOpen] = useState(false);
+  const [isFlashcardDialogOpen, setIsFlashcardDialogOpen] = useState(false);
+  const [selectedMaterialForFlashcards, setSelectedMaterialForFlashcards] = useState<any>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -90,6 +94,28 @@ export default function Study() {
     setIsAiStudyOpen(true);
   };
 
+  const handleGenerateFlashcards = () => {
+    if (!selectedSubject) {
+      toast({
+        title: "Selecione uma matéria",
+        description: "Escolha uma matéria primeiro",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!materials?.length) {
+      toast({
+        title: "Materiais necessários",
+        description: "Adicione materiais para gerar flashcards",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSelectedMaterialForFlashcards(materials[0]);
+    setIsFlashcardDialogOpen(true);
+  };
+
   const studyMethods = [
     {
       id: "ai-questions",
@@ -100,8 +126,16 @@ export default function Study() {
       action: handleStartAiStudy,
     },
     {
+      id: "generate-flashcards",
+      title: "Gerar Flashcards",
+      description: "Crie flashcards a partir dos seus materiais",
+      icon: Sparkles,
+      available: true,
+      action: handleGenerateFlashcards,
+    },
+    {
       id: "flashcards",
-      title: "Flashcards",
+      title: "Estudar Flashcards",
       description: "Sistema de repetição espaçada",
       icon: BarChart3,
       available: true,
@@ -112,14 +146,6 @@ export default function Study() {
       title: "Revisão de Conceitos",
       description: "Revise teoria e conceitos importantes",
       icon: BookOpen,
-      available: false,
-      action: () => toast({ title: "Em desenvolvimento", description: "Disponível em breve" }),
-    },
-    {
-      id: "simulados",
-      title: "Simulados",
-      description: "Provas completas para testar conhecimento",
-      icon: Clock,
       available: false,
       action: () => toast({ title: "Em desenvolvimento", description: "Disponível em breve" }),
     },
@@ -340,6 +366,15 @@ export default function Study() {
           onClose={() => setIsAiStudyOpen(false)}
           subjectId={selectedSubject}
         />
+
+        {selectedMaterialForFlashcards && (
+          <GenerateFlashcardsFromMaterialDialog
+            open={isFlashcardDialogOpen}
+            onOpenChange={setIsFlashcardDialogOpen}
+            materialId={selectedMaterialForFlashcards.id}
+            materialTitle={selectedMaterialForFlashcards.title}
+          />
+        )}
       </div>
     </UnifiedShell>
   );
