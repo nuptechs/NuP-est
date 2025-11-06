@@ -4,6 +4,7 @@ import {
   index,
   uniqueIndex,
   jsonb,
+  json,
   pgTable,
   timestamp,
   varchar,
@@ -40,6 +41,33 @@ export const knowledgeLevelEnum = pgEnum("knowledge_level", [
 export const learningStyleEnum = pgEnum("learning_style", [
   "visual", "auditory", "kinesthetic", "reading_writing", "mixed"
 ]);
+
+// Document Outline Types (for processedFiles)
+export interface DocumentOutlineNode {
+  id: string;
+  level: number;
+  title: string;
+  startPage?: number;
+  endPage?: number;
+  startOffset?: number;
+  endOffset?: number;
+  wordCount?: number;
+  estimatedFlashcards?: number;
+  children?: DocumentOutlineNode[];
+}
+
+export interface DocumentOutline {
+  version: string;
+  extractedAt: string;
+  extractionMethod: 'toc' | 'headings' | 'ai' | 'manual';
+  structure: DocumentOutlineNode[];
+  metadata: {
+    totalSections: number;
+    maxDepth: number;
+    hasTOC: boolean;
+    estimatedReadTime?: number;
+  };
+}
 
 // User storage table (mandatory for Replit Auth) - EXPANDIDO
 export const users = pgTable("users", {
@@ -216,6 +244,10 @@ export const processedFiles = pgTable("processed_files", {
   // AI-generated metadata (suggestions, user can override in materials)
   aiGeneratedTitle: text("ai_generated_title"),
   aiGeneratedDescription: text("ai_generated_description"),
+  
+  // Document outline/structure (shared, extracted once)
+  documentOutline: json("document_outline").$type<DocumentOutline | null>(),
+  outlineGeneratedAt: timestamp("outline_generated_at"),
   
   // Reference counting for safe deletion
   referenceCount: integer("reference_count").notNull().default(1),

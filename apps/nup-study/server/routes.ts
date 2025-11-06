@@ -487,6 +487,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get document outline (table of contents) for a material
+  app.get('/api/materials/:id/outline', isAuthenticated, async (req: any, res) => {
+    try {
+      const material = await storage.getMaterial(req.params.id);
+      
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+
+      // Check if this material has a processed file
+      if (!material.processedFileId) {
+        return res.status(400).json({ 
+          message: "Material doesn't have a processed file. Only uploaded files have outlines.",
+          hasOutline: false
+        });
+      }
+
+      // Extract or get cached outline
+      const { documentOutlineExtractor } = await import('./services/document-outline/DocumentOutlineExtractor');
+      const outline = await documentOutlineExtractor.getOrExtractOutline(material.processedFileId);
+
+      res.json({
+        materialId: material.id,
+        materialTitle: material.title,
+        hasOutline: true,
+        outline
+      });
+    } catch (error) {
+      console.error("Error getting material outline:", error);
+      res.status(500).json({ 
+        message: "Failed to extract document outline",
+        error: (error as Error).message 
+      });
+    }
+  });
+
   // Smart upload with AI-powered semantic title generation
   app.post('/api/materials/smart-upload', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
