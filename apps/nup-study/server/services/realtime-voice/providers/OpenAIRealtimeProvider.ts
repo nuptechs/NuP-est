@@ -77,7 +77,7 @@ export class OpenAIRealtimeProvider implements IRealtimeVoiceProvider {
               type: 'server_vad',
               threshold: config.vadThreshold || 0.5,
               prefix_padding_ms: 300,
-              silence_duration_ms: config.vadSilenceDuration || 500,
+              silence_duration_ms: config.vadSilenceDuration || 700,
             } : null,
             tools: Array.from(this.functions.values()).map(f => ({
               type: 'function',

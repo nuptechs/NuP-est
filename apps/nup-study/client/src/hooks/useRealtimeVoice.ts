@@ -152,23 +152,48 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     const audioBuffer = audioQueueRef.current.shift();
     if (!audioBuffer || !audioContextRef.current) return;
 
+    const audioContext = audioContextRef.current;
+    const duration = audioBuffer.duration;
+
+    // Definir durações de fade (com proteção para buffers muito curtos)
+    const fadeInDuration = Math.min(0.015, duration * 0.05);  // 15ms ou 5% da duração
+    const fadeOutDuration = Math.min(0.030, duration * 0.05); // 30ms ou 5% da duração
+
     // Criar source node
-    const source = audioContextRef.current.createBufferSource();
+    const source = audioContext.createBufferSource();
     source.buffer = audioBuffer as any;
     
-    // Conectar diretamente ao destino (sem processamento adicional)
-    source.connect(audioContextRef.current.destination);
+    // Criar GainNode para envelope de volume suave
+    const gainNode = audioContext.createGain();
+    
+    // Conectar: source -> gainNode -> destination
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
 
     currentAudioSourceRef.current = source;
 
+    const startTime = audioContext.currentTime;
+    
+    // Aplicar fade-in no início do chunk (elimina clicks)
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(1, startTime + fadeInDuration);
+    
+    // Aplicar fade-out no final do chunk (elimina chiado)
+    const fadeOutStart = startTime + duration - fadeOutDuration;
+    if (fadeOutStart > startTime + fadeInDuration) {
+      // Manter volume 1 no meio do chunk
+      gainNode.gain.setValueAtTime(1, fadeOutStart);
+      gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+    }
+
     source.onended = () => {
       currentAudioSourceRef.current = null;
-      // Reproduzir próximo chunk imediatamente (sem pausa)
+      // Reproduzir próximo chunk imediatamente (crossfade natural via fade-in/out)
       playNextInQueue();
     };
 
-    // Iniciar reprodução imediatamente
-    source.start(0);
+    // Iniciar reprodução
+    source.start(startTime);
   }, []);
 
   // Iniciar captura de microfone
