@@ -282,21 +282,25 @@ export class PPTGenerator {
         x: 0.8,
         y: 1.8,
         w: 8.4,
-        h: 3.5,
+        h: 3.2,
         fontSize: styles.fontSize.body,
         color: styles.colors.text,
         bullet: { type: "number", indent: styles.spacing.bulletIndent },
         lineSpacing: styles.spacing.lineSpacing * 14,
+        valign: "top",
+        wrap: true,
       });
     } else if (content.text) {
       slide.addText(content.text, {
         x: 0.8,
         y: 1.8,
         w: 8.4,
-        h: 3.5,
+        h: 3.2,
         fontSize: styles.fontSize.body,
         color: styles.colors.text,
         lineSpacing: styles.spacing.lineSpacing * 14,
+        valign: "top",
+        wrap: true,
       });
     }
 
@@ -452,40 +456,128 @@ export async function generatePresentationFromContent(
   let currentSection: string | null = null;
   let currentContent: string[] = [];
 
-  const flushContent = () => {
-    if (currentContent.length > 0) {
-      const bullets = currentContent.filter(line => line.match(/^[- *] /));
-      const text = currentContent.filter(line => !line.match(/^[- *] /));
+  const MAX_BULLETS_PER_SLIDE = 6;
+  const MAX_TITLE_LENGTH = 60;
 
-      if (bullets.length > 0) {
+  const truncateTitle = (t: string) => {
+    if (t.length <= MAX_TITLE_LENGTH) return t;
+    return t.substring(0, MAX_TITLE_LENGTH - 3) + "...";
+  };
+
+  const flushContent = () => {
+    if (currentContent.length === 0) return;
+
+    const bullets = currentContent.filter(line => line.match(/^[- *•] /));
+    const text = currentContent.filter(line => !line.match(/^[- *•] /));
+
+    if (bullets.length > 0) {
+      const cleanBullets = bullets.map(b => b.replace(/^[- *•] /, "").trim());
+      
+      // Split into multiple slides if too many bullets
+      for (let i = 0; i < cleanBullets.length; i += MAX_BULLETS_PER_SLIDE) {
+        const slideBullets = cleanBullets.slice(i, i + MAX_BULLETS_PER_SLIDE);
+        const slideTitle = currentSection || `Conteúdo ${slides.length + 1}`;
+        const part = cleanBullets.length > MAX_BULLETS_PER_SLIDE ? 
+          ` (${Math.floor(i / MAX_BULLETS_PER_SLIDE) + 1}/${Math.ceil(cleanBullets.length / MAX_BULLETS_PER_SLIDE)})` : 
+          "";
+        
         slides.push({
           type: "content",
-          title: currentSection || `Slide ${slides.length + 1}`,
-          bullets: bullets.map(b => b.replace(/^[- *] /, "")),
-        });
-      } else if (text.length > 0) {
-        slides.push({
-          type: "content",
-          title: currentSection || `Slide ${slides.length + 1}`,
-          text: text.join("\n"),
+          title: truncateTitle(slideTitle + part),
+          bullets: slideBullets,
         });
       }
-      currentContent = [];
+    } else if (text.length > 0) {
+      const combinedText = text.join("\n\n");
+      
+      // Split text into chunks if too long (max ~500 chars per slide)
+      const MAX_TEXT_LENGTH = 500;
+      if (combinedText.length > MAX_TEXT_LENGTH) {
+        const paragraphs = combinedText.split("\n\n");
+        let chunk = "";
+        let chunkIndex = 0;
+        
+        for (let para of paragraphs) {
+          // If a single paragraph is too long, split it by sentences
+          if (para.length > MAX_TEXT_LENGTH) {
+            const sentences = para.match(/[^.!?]+[.!?]+/g) || [para];
+            let sentenceChunk = "";
+            
+            for (const sentence of sentences) {
+              if ((sentenceChunk + sentence).length > MAX_TEXT_LENGTH && sentenceChunk) {
+                slides.push({
+                  type: "content",
+                  title: truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`),
+                  text: sentenceChunk.trim(),
+                });
+                chunkIndex++;
+                sentenceChunk = sentence;
+              } else {
+                sentenceChunk += sentence;
+              }
+            }
+            
+            // Add remaining sentences as a chunk
+            if (sentenceChunk.trim()) {
+              if (chunk) {
+                slides.push({
+                  type: "content",
+                  title: truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`),
+                  text: chunk.trim(),
+                });
+                chunkIndex++;
+              }
+              chunk = sentenceChunk;
+            }
+          } else if ((chunk + "\n\n" + para).length > MAX_TEXT_LENGTH && chunk) {
+            slides.push({
+              type: "content",
+              title: truncateTitle(`${currentSection || "Conteúdo"} (${chunkIndex + 1})`),
+              text: chunk.trim(),
+            });
+            chunk = para;
+            chunkIndex++;
+          } else {
+            chunk += (chunk ? "\n\n" : "") + para;
+          }
+        }
+        
+        if (chunk.trim()) {
+          slides.push({
+            type: "content",
+            title: truncateTitle(`${currentSection || "Conteúdo"}${chunkIndex > 0 ? ` (${chunkIndex + 1})` : ""}`),
+            text: chunk.trim(),
+          });
+        }
+      } else {
+        slides.push({
+          type: "content",
+          title: truncateTitle(currentSection || `Conteúdo ${slides.length + 1}`),
+          text: combinedText,
+        });
+      }
     }
+    currentContent = [];
   };
 
   for (const line of lines) {
     if (line.startsWith("# ")) {
       flushContent();
-      currentSection = line.replace("# ", "");
-      slides.push({
-        type: "title",
-        title: currentSection,
-      });
+      const titleText = line.replace("# ", "").trim();
+      currentSection = titleText;
+      if (slides.length === 0 && titleText.toLowerCase() !== title.toLowerCase()) {
+        slides.push({
+          type: "title",
+          title: truncateTitle(titleText),
+        });
+      }
       currentSection = null;
     } else if (line.startsWith("## ")) {
       flushContent();
-      currentSection = line.replace("## ", "");
+      currentSection = line.replace("## ", "").trim();
+    } else if (line.startsWith("### ")) {
+      flushContent();
+      currentSection = line.replace("### ", "").trim();
     } else if (line.trim()) {
       currentContent.push(line);
     }

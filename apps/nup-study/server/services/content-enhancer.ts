@@ -16,6 +16,9 @@ export async function enhanceContentWithAI(
   textContent: string,
   userId: string
 ): Promise<string> {
+  console.log('[ContentEnhancer] Iniciando aprimoramento de conteúdo...');
+  console.log('[ContentEnhancer] Tamanho do texto original:', textContent.length, 'caracteres');
+  
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -75,6 +78,10 @@ ${textContent}`
     if (!enhancedContent) {
       throw new Error('AI returned empty content');
     }
+
+    console.log('[ContentEnhancer] ✅ Conteúdo aprimorado com sucesso');
+    console.log('[ContentEnhancer] Tamanho do texto aprimorado:', enhancedContent.length, 'caracteres');
+    console.log('[ContentEnhancer] Preview:', enhancedContent.substring(0, 200) + '...');
 
     return enhancedContent;
   } catch (error) {
