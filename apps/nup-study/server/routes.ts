@@ -1611,13 +1611,21 @@ Finalize com 2-3 dicas práticas para memorizar/aplicar o conceito.
   });
 
   // Material Didático routes (PowerPoint Generation)
-  app.post('/api/didactic-material/generate-ppt', isAuthenticated, async (req: any, res) => {
+  app.post('/api/didactic-material/generate-ppt', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { title, materialId, theme, includeConclusion } = req.body;
+      const { title, materialId, textContent, theme } = req.body;
+      const file = req.file;
 
       if (!title) {
         return res.status(400).json({ message: "Título é obrigatório" });
+      }
+
+      // Validate that at least one content source is provided
+      if (!materialId && !textContent && !file) {
+        return res.status(400).json({ 
+          message: "É necessário fornecer pelo menos uma fonte de conteúdo: material da biblioteca, texto, ou arquivo" 
+        });
       }
 
       // Get user for author name
@@ -1629,8 +1637,9 @@ Finalize com 2-3 dicas práticas para memorizar/aplicar o conceito.
 
       let content = "";
 
+      // Priority: materialId > file > textContent
       if (materialId) {
-        // Generate from material
+        // Generate from existing material in library
         const material = await storage.getMaterial(materialId);
         if (!material || material.userId !== userId) {
           return res.status(404).json({ message: "Material não encontrado" });
@@ -1648,8 +1657,31 @@ Finalize com 2-3 dicas práticas para memorizar/aplicar o conceito.
         if (!content) {
           return res.status(400).json({ message: "Não foi possível extrair conteúdo do material" });
         }
-      } else {
-        return res.status(400).json({ message: "É necessário fornecer um materialId" });
+      } else if (file) {
+        // Generate from uploaded file
+        try {
+          const { extractTextFromFile } = await import('./services/file-processor');
+          const extractedText = await extractTextFromFile(file.path, file.originalname);
+          
+          if (!extractedText || !extractedText.trim()) {
+            return res.status(400).json({ message: "Não foi possível extrair texto do arquivo" });
+          }
+          
+          content = extractedText;
+        } finally {
+          // Clean up uploaded file
+          if (file.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        }
+      } else if (textContent) {
+        // Generate from text input - enhance with AI
+        const { enhanceContentWithAI } = await import('./services/content-enhancer');
+        content = await enhanceContentWithAI(textContent, userId);
+      }
+
+      if (!content || !content.trim()) {
+        return res.status(400).json({ message: "Não foi possível obter conteúdo para gerar a apresentação" });
       }
 
       // Generate presentation

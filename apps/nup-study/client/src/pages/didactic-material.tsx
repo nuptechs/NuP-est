@@ -6,14 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Loader2, BookOpen, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, Download, Loader2, BookOpen, Sparkles, Upload, FileUp } from "lucide-react";
 import type { Material } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 
 export default function DidacticMaterialPage() {
   const { toast } = useToast();
+  const [contentSource, setContentSource] = useState<"library" | "upload" | "text">("library");
   const [selectedMaterial, setSelectedMaterial] = useState<string>("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [textContent, setTextContent] = useState("");
   const [title, setTitle] = useState("");
   const [theme, setTheme] = useState("professional");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -21,6 +25,13 @@ export default function DidacticMaterialPage() {
   const { data: materials, isLoading: loadingMaterials } = useQuery<Material[]>({
     queryKey: ["/api/materials"],
   });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!title) {
@@ -32,10 +43,28 @@ export default function DidacticMaterialPage() {
       return;
     }
 
-    if (!selectedMaterial) {
+    if (contentSource === "library" && !selectedMaterial) {
       toast({
         title: "Material não selecionado",
-        description: "Selecione um material para gerar a apresentação",
+        description: "Selecione um material ou escolha outra fonte de conteúdo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (contentSource === "upload" && !uploadedFile) {
+      toast({
+        title: "Arquivo não selecionado",
+        description: "Faça upload de um arquivo ou escolha outra fonte de conteúdo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (contentSource === "text" && !textContent.trim()) {
+      toast({
+        title: "Conteúdo vazio",
+        description: "Digite algum conteúdo ou escolha outra fonte",
         variant: "destructive",
       });
       return;
@@ -44,17 +73,22 @@ export default function DidacticMaterialPage() {
     try {
       setIsGenerating(true);
       
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("theme", theme);
+
+      if (contentSource === "library" && selectedMaterial) {
+        formData.append("materialId", selectedMaterial);
+      } else if (contentSource === "upload" && uploadedFile) {
+        formData.append("file", uploadedFile);
+      } else if (contentSource === "text" && textContent) {
+        formData.append("textContent", textContent);
+      }
+
       const response = await fetch("/api/didactic-material/generate-ppt", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         credentials: "include",
-        body: JSON.stringify({
-          title,
-          materialId: selectedMaterial,
-          theme,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -79,6 +113,8 @@ export default function DidacticMaterialPage() {
 
       setTitle("");
       setSelectedMaterial("");
+      setUploadedFile(null);
+      setTextContent("");
     } catch (error: any) {
       console.error("Error generating presentation:", error);
       toast({
@@ -129,51 +165,127 @@ export default function DidacticMaterialPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="material">Material de Origem *</Label>
-                {loadingMaterials ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Carregando materiais...
-                  </div>
-                ) : !materials || materials.length === 0 ? (
-                  <div className="flex items-center gap-2 p-4 border border-dashed rounded-lg">
-                    <BookOpen className="w-5 h-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Nenhum material encontrado</p>
+                <Label>Fonte de Conteúdo *</Label>
+                <Tabs 
+                  value={contentSource} 
+                  onValueChange={(v) => setContentSource(v as any)}
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="library" data-testid="tab-library">
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Biblioteca
+                    </TabsTrigger>
+                    <TabsTrigger value="upload" data-testid="tab-upload">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload
+                    </TabsTrigger>
+                    <TabsTrigger value="text" data-testid="tab-text">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Texto
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="library" className="space-y-4 mt-4">
+                    {loadingMaterials ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Carregando materiais...
+                      </div>
+                    ) : !materials || materials.length === 0 ? (
+                      <div className="flex items-center gap-2 p-4 border border-dashed rounded-lg">
+                        <BookOpen className="w-5 h-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Nenhum material encontrado</p>
+                          <p className="text-xs text-muted-foreground">
+                            Adicione materiais na Biblioteca ou use outra fonte
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
+                          <SelectTrigger data-testid="select-material">
+                            <SelectValue placeholder="Selecione um material" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {materials.map((material) => (
+                              <SelectItem 
+                                key={material.id} 
+                                value={material.id}
+                                data-testid={`material-option-${material.id}`}
+                              >
+                                {material.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {selectedMaterialData && (
+                          <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                            <p className="text-sm font-medium">Material Selecionado:</p>
+                            <p className="text-sm text-muted-foreground">{selectedMaterialData.title}</p>
+                            {selectedMaterialData.description && (
+                              <p className="text-xs text-muted-foreground">{selectedMaterialData.description}</p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="upload" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="file-upload">Arquivo</Label>
+                      <div className="flex items-center gap-4">
+                        <Input
+                          id="file-upload"
+                          type="file"
+                          accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv"
+                          onChange={handleFileUpload}
+                          data-testid="input-file-upload"
+                          className="cursor-pointer"
+                        />
+                      </div>
+                      {uploadedFile && (
+                        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                          <FileUp className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium">{uploadedFile.name}</span>
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            {(uploadedFile.size / 1024).toFixed(1)} KB
+                          </span>
+                        </div>
+                      )}
                       <p className="text-xs text-muted-foreground">
-                        Adicione materiais na Biblioteca primeiro
+                        Suporta: PDF, Word, Excel, CSV, TXT
                       </p>
                     </div>
-                  </div>
-                ) : (
-                  <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
-                    <SelectTrigger data-testid="select-material">
-                      <SelectValue placeholder="Selecione um material" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {materials.map((material) => (
-                        <SelectItem 
-                          key={material.id} 
-                          value={material.id}
-                          data-testid={`material-option-${material.id}`}
-                        >
-                          {material.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+                  </TabsContent>
 
-              {selectedMaterialData && (
-                <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                  <p className="text-sm font-medium">Material Selecionado:</p>
-                  <p className="text-sm text-muted-foreground">{selectedMaterialData.title}</p>
-                  {selectedMaterialData.description && (
-                    <p className="text-xs text-muted-foreground">{selectedMaterialData.description}</p>
-                  )}
-                </div>
-              )}
+                  <TabsContent value="text" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="text-content">Conteúdo</Label>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          IA vai aprimorar automaticamente
+                        </span>
+                      </div>
+                      <Textarea
+                        id="text-content"
+                        placeholder="Cole ou digite o conteúdo aqui. Você pode incluir comandos como: 'foque em conceitos básicos', 'adicione exemplos práticos', etc."
+                        value={textContent}
+                        onChange={(e) => setTextContent(e.target.value)}
+                        rows={10}
+                        data-testid="textarea-content"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        A IA irá analisar, estruturar e aprimorar o conteúdo automaticamente
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="theme">Tema Visual</Label>
@@ -197,14 +309,14 @@ export default function DidacticMaterialPage() {
               <div className="flex gap-3 pt-4">
                 <Button
                   onClick={handleGenerate}
-                  disabled={isGenerating || !materials || materials.length === 0}
+                  disabled={isGenerating}
                   className="flex-1"
                   data-testid="button-generate-ppt"
                 >
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Gerando...
+                      Gerando apresentação...
                     </>
                   ) : (
                     <>
@@ -228,9 +340,9 @@ export default function DidacticMaterialPage() {
                     1
                   </div>
                   <div>
-                    <p className="font-medium">Selecione um material</p>
+                    <p className="font-medium">Escolha a fonte de conteúdo</p>
                     <p className="text-muted-foreground">
-                      Escolha um material da sua biblioteca como base para a apresentação
+                      Use material da biblioteca, faça upload de arquivo, ou cole texto direto
                     </p>
                   </div>
                 </div>
@@ -241,7 +353,7 @@ export default function DidacticMaterialPage() {
                   <div>
                     <p className="font-medium">Personalize o visual</p>
                     <p className="text-muted-foreground">
-                      Escolha um tema que se adapta às suas necessidades de aprendizado
+                      Escolha um tema que se adapta automaticamente ao seu perfil de aprendizado
                     </p>
                   </div>
                 </div>
@@ -252,7 +364,7 @@ export default function DidacticMaterialPage() {
                   <div>
                     <p className="font-medium">Baixe e use</p>
                     <p className="text-muted-foreground">
-                      Sua apresentação será gerada e baixada automaticamente
+                      Sua apresentação será gerada (com IA aprimorando o conteúdo se necessário) e baixada automaticamente
                     </p>
                   </div>
                 </div>
