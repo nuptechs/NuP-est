@@ -46,6 +46,34 @@ A zero-hallucination retrieval system combines hybrid search (BM25 + Pinecone), 
 
 A premium chat experience features intelligent content detection and interactive rendering. It includes a `Hierarchical Text Parser` for strict tree detection, a `Content Detection Layer` with priority systems, and interactive components like `InteractiveTable` (AG Grid) and `MindMapVisual` (React Flow) with full dark mode and responsive design.
 
+### Document Outline Extraction (Nov 2025)
+
+A reusable service for extracting hierarchical document structure (table of contents) from study materials. Supports granular chapter/section selection for flashcard generation, PPT creation, and other AI features.
+
+**Architecture:**
+- **DocumentOutlineExtractor**: Main service with lazy extraction + database caching at processedFile level (shared via SHA-256 deduplication)
+- **Strategy Pattern**: Pluggable extraction strategies for different document types
+  - `MarkdownStrategy`: Detects # headings in Markdown/TXT files
+  - `AIStrategy`: GPT-4o-mini fallback for unstructured documents (PDFs, plain text)
+  - Future: `PDFStrategy` (TOC extraction), `DOCXStrategy` (heading styles)
+
+**Storage:**
+- `documentOutline` (JSON): Hierarchical structure with metadata
+- `outlineGeneratedAt` (timestamp): Cache invalidation tracking
+- Stored at `processedFiles` level for deduplication (one extraction per unique file)
+
+**Features:**
+- Lazy extraction (on-demand, not during upload)
+- Rich metadata per section: wordCount, estimatedFlashcards, startOffset, endOffset
+- Supports deep hierarchies (tested up to 4 levels)
+- API endpoint: `GET /api/materials/:id/outline`
+
+**Use Cases:**
+- Granular flashcard generation (select specific chapters)
+- PPT generation from selected sections
+- Mind Map focused on specific topics
+- Study plan based on chapter structure
+
 ## Data Architecture
 
 A PostgreSQL database managed by Drizzle ORM stores all application data, including AI-related data like learning difficulties, versioned student profiles, assistant instances, and interaction logs.
