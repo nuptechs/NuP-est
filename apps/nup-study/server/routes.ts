@@ -2083,6 +2083,102 @@ ${text}`;
     }
   });
 
+  // Generate flashcards from material with granular section selection
+  app.post('/api/flashcards/generate-from-material', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { materialId, deckId, difficulty, maxCards, selectedSections } = req.body;
+
+      if (!materialId) {
+        return res.status(400).json({ message: "Material ID is required" });
+      }
+
+      if (!deckId) {
+        return res.status(400).json({ message: "Deck ID is required" });
+      }
+
+      // Get material and its content
+      const material = await storage.getMaterial(materialId);
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+
+      // Verify ownership
+      if (material.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden: You don't own this material" });
+      }
+
+      let contentToUse = material.content || '';
+
+      // If specific sections are selected, extract only that content
+      if (selectedSections && Array.isArray(selectedSections) && selectedSections.length > 0) {
+        // Get the processed file with outline
+        if (material.processedFileId) {
+          const processedFile = await processedFileService.getById(material.processedFileId);
+          
+          if (processedFile && processedFile.documentOutline) {
+            const outline = processedFile.documentOutline as any;
+            const fullContent = processedFile.extractedContent || material.content || '';
+            
+            // Extract content from selected sections
+            contentToUse = extractContentFromSections(
+              fullContent,
+              outline.structure,
+              selectedSections
+            );
+            
+            console.log(`[GenerateFlashcards] Using ${selectedSections.length} selected sections, extracted ${contentToUse.length} chars`);
+          }
+        }
+      }
+
+      if (!contentToUse || contentToUse.trim().length < 50) {
+        return res.status(400).json({ message: "Material has insufficient content to generate flashcards" });
+      }
+
+      // Generate flashcards using AI
+      const { generateFlashcardsFromContent, extractContentFromSections } = await import('./services/flashcard-generator');
+      const generatedCards = await generateFlashcardsFromContent(
+        contentToUse,
+        {
+          maxCards: maxCards || 15,
+          difficulty: difficulty || "medium",
+          materialTitle: material.title,
+          userId,
+          storage,
+        }
+      );
+
+      // Create flashcards in database
+      const createdFlashcards = [];
+      for (const card of generatedCards) {
+        const flashcardData = insertFlashcardSchema.parse({
+          deckId,
+          userId,
+          front: card.front,
+          back: card.back,
+          contentType: card.contentType || 'text',
+          order: card.order || createdFlashcards.length,
+          materialId: materialId,
+        });
+        const created = await storage.createFlashcard(flashcardData);
+        createdFlashcards.push(created);
+      }
+
+      res.json({
+        success: true,
+        flashcards: createdFlashcards,
+        count: createdFlashcards.length,
+      });
+    } catch (error) {
+      console.error("Error generating flashcards from material:", error);
+      res.status(500).json({ 
+        message: "Failed to generate flashcards from material",
+        error: (error as Error).message 
+      });
+    }
+  });
+
   // Generate mind map from flashcards
   app.post('/api/mindmaps/generate-from-flashcards', isAuthenticated, async (req: any, res) => {
     try {

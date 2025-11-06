@@ -208,6 +208,123 @@ function generateBasicFlashcards(
 }
 
 /**
+ * Generate flashcards from material content
+ */
+export async function generateFlashcardsFromContent(
+  content: string,
+  options: {
+    maxCards?: number;
+    difficulty?: "easy" | "medium" | "hard";
+    materialTitle?: string;
+    userId?: string;
+    storage?: any;
+  } = {}
+): Promise<GeneratedFlashcard[]> {
+  const { maxCards = 15, difficulty = "medium", materialTitle = "Material de Estudo" } = options;
+
+  if (!content || content.trim().length < 50) {
+    throw new Error("Content is too short to generate flashcards");
+  }
+
+  // Truncate content if too long (keep first 10000 chars for AI processing)
+  const truncatedContent = content.length > 10000 
+    ? content.substring(0, 10000) + "\n\n[...conteúdo truncado...]"
+    : content;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Você é um professor especialista em criar flashcards pedagógicos eficazes. Crie flashcards que:
+- Testem compreensão, não apenas memorização
+- Sejam claros e concisos
+- Cubram os conceitos mais importantes
+- Usem linguagem apropriada ao nível de dificuldade solicitado`
+        },
+        {
+          role: "user",
+          content: `Gere ${maxCards} flashcards a partir deste material de estudo.
+
+Material: ${materialTitle}
+
+Conteúdo:
+${truncatedContent}
+
+Nível de dificuldade: ${difficulty}
+- easy: Conceitos básicos e definições diretas
+- medium: Compreensão e relações entre conceitos
+- hard: Análise, aplicação e pensamento crítico
+
+Formato de saída (exatamente assim):
+FRONT: [pergunta ou conceito a ser testado]
+BACK: [resposta detalhada]
+---
+FRONT: [próxima pergunta]
+BACK: [próxima resposta]
+---
+
+Gere exatamente ${maxCards} flashcards de alta qualidade.`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 3000,
+    });
+
+    const responseText = completion.choices[0].message.content || "";
+    const flashcards = parseFlashcardsFromResponse(responseText);
+
+    if (flashcards.length === 0) {
+      throw new Error("No flashcards were generated from the response");
+    }
+
+    console.log(`[FlashcardGenerator] Generated ${flashcards.length} flashcards from content`);
+    
+    return flashcards.slice(0, maxCards);
+  } catch (error) {
+    console.error("Error generating flashcards from content:", error);
+    throw error;
+  }
+}
+
+/**
+ * Extract content from selected sections based on outline
+ */
+export function extractContentFromSections(
+  fullContent: string,
+  outlineStructure: any[],
+  selectedSectionIds: string[]
+): string {
+  const selectedSectionsSet = new Set(selectedSectionIds);
+  const extractedParts: string[] = [];
+
+  function traverseAndExtract(nodes: any[]) {
+    for (const node of nodes) {
+      if (selectedSectionsSet.has(node.id)) {
+        // Extract content for this section
+        const start = node.startOffset || 0;
+        const end = node.endOffset || fullContent.length;
+        
+        if (start < fullContent.length) {
+          const sectionContent = fullContent.substring(start, Math.min(end, fullContent.length));
+          extractedParts.push(`\n## ${node.title}\n\n${sectionContent.trim()}`);
+        }
+      }
+      
+      // Recursively process children
+      if (node.children && node.children.length > 0) {
+        traverseAndExtract(node.children);
+      }
+    }
+  }
+
+  traverseAndExtract(outlineStructure);
+
+  return extractedParts.join('\n\n');
+}
+
+/**
  * Suggest best content type for flashcard based on content analysis
  */
 export async function suggestContentType(
