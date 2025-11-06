@@ -1,5 +1,9 @@
 import pptxgen from "pptxgenjs";
-import type { LearningDifficulty } from "@shared/schema";
+
+export interface LearningDifficulty {
+  type: string;
+  severity?: "leve" | "moderado" | "severo";
+}
 
 export interface SlideContent {
   type: "title" | "content" | "image" | "comparison" | "conclusion";
@@ -247,7 +251,8 @@ export class PPTGenerator {
     });
 
     if (content.bullets && content.bullets.length > 0) {
-      slide.addText(content.bullets, {
+      const bulletTexts = content.bullets.map(text => ({ text, options: {} }));
+      slide.addText(bulletTexts, {
         x: 0.8,
         y: 1.8,
         w: 8.4,
@@ -331,7 +336,8 @@ export class PPTGenerator {
     });
 
     if (content.leftColumn) {
-      slide.addText(content.leftColumn, {
+      const leftTexts = content.leftColumn.map(text => ({ text, options: {} }));
+      slide.addText(leftTexts, {
         x: 0.8,
         y: 1.8,
         w: 4.0,
@@ -344,7 +350,8 @@ export class PPTGenerator {
     }
 
     if (content.rightColumn) {
-      slide.addText(content.rightColumn, {
+      const rightTexts = content.rightColumn.map(text => ({ text, options: {} }));
+      slide.addText(rightTexts, {
         x: 5.2,
         y: 1.8,
         w: 4.0,
@@ -373,7 +380,8 @@ export class PPTGenerator {
     });
 
     if (content.bullets && content.bullets.length > 0) {
-      slide.addText(content.bullets, {
+      const bulletTexts = content.bullets.map(text => ({ text, options: {} }));
+      slide.addText(bulletTexts, {
         x: 1.5,
         y: 3.0,
         w: 7.0,
