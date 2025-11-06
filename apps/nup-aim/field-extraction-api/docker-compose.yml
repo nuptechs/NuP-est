@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  field-extraction-api:
+    build: .
+    container_name: field-extraction-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ALLOWED_ORIGINS=http://localhost:5173,https://nup-aim.netlify.app
+      - RATE_LIMIT_WINDOW_MS=60000
+      - RATE_LIMIT_MAX_REQUESTS=10
+    volumes:
+      - ./logs:/app/logs
+    # Uncomment and set these environment variables or use .env file
+    # env_file:
+    #   - .env
+    # environment:
+    #   - GOOGLE_APPLICATION_CREDENTIALS_JSON={"type":"service_account",...}
+    #   - OPENAI_API_KEY=your-openai-api-key

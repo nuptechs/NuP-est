@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo - Integração Custom Fields</title>
+  <link rel="stylesheet" href="/widgets/styles.css">
+  <style>
+    .demo-container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    
+    .demo-section {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .demo-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #2d3748;
+    }
+    
+    .code-block {
+      background: #1a202c;
+      color: #68d391;
+      padding: 20px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .step {
+      margin-bottom: 30px;
+      padding-bottom: 30px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .step:last-child {
+      border-bottom: none;
+    }
+    
+    .step-number {
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      background: #4299e1;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 32px;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+    
+    .step-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #2d3748;
+    }
+    
+    .btn-large {
+      padding: 14px 28px;
+      font-size: 16px;
+    }
+    
+    .success-message {
+      background: #c6f6d5;
+      color: #22543d;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-top: 15px;
+    }
+    
+    .info-box {
+      background: #ebf8ff;
+      border-left: 4px solid #4299e1;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <div class="demo-section">
+      <h1 style="font-size: 28px; margin-bottom: 10px;">🚀 Demo de Integração</h1>
+      <p style="color: #718096; font-size: 16px;">
+        Demonstração de como integrar o sistema de campos personalizados com sua aplicação
+      </p>
+    </div>
+
+    <div class="demo-section">
+      <div class="step">
+        <div class="step-title">
+          <span class="step-number">1</span>
+          Registrar Seções do Sistema
+        </div>
+        <p style="margin-bottom: 15px; color: #4a5568;">
+          Primeiro, sua aplicação precisa registrar quais seções/telas possui:
+        </p>
+        
+        <div class="code-block">
+const sections = [<br>
+&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;id: 'basic-info',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;name: 'basic_info',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;label: 'Informações Básicas'<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;id: 'processes',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;name: 'processes',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;label: 'Processos Impactados'<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;// ... outras seções<br>
+];<br>
+<br>
+fetch('http://localhost:3002/api/sections/register', {<br>
+&nbsp;&nbsp;method: 'POST',<br>
+&nbsp;&nbsp;headers: { 'Content-Type': 'application/json' },<br>
+&nbsp;&nbsp;body: JSON.stringify({ sections })<br>
+});
+        </div>
+        
+        <button onclick="registerSections()" class="btn btn-primary" style="margin-top: 15px;">
+          ▶️ Executar Registro
+        </button>
+        <div id="registerResult"></div>
+      </div>
+
+      <div class="step">
+        <div class="step-title">
+          <span class="step-number">2</span>
+          Acessar Painel Administrativo
+        </div>
+        <p style="margin-bottom: 15px; color: #4a5568;">
+          Após registrar as seções, o admin pode acessar o painel para configurar campos:
+        </p>
+        
+        <div class="info-box">
+          <strong>📋 No painel admin você pode:</strong>
+          <ul style="margin: 10px 0 0 20px; color: #2d3748;">
+            <li>Ver todas as seções registradas</li>
+            <li>Adicionar campos personalizados em cada seção</li>
+            <li>Editar e excluir campos existentes</li>
+            <li>Reordenar campos por drag & drop</li>
+            <li>Configurar validações e tipos de campo</li>
+          </ul>
+        </div>
+        
+        <a href="/widgets/admin" target="_blank" class="btn btn-primary btn-large" style="margin-top: 15px;">
+          🎨 Abrir Painel Admin
+        </a>
+      </div>
+
+      <div class="step">
+        <div class="step-title">
+          <span class="step-number">3</span>
+          Carregar Campos Dinâmicos no Formulário
+        </div>
+        <p style="margin-bottom: 15px; color: #4a5568;">
+          Sua aplicação carrega e renderiza os campos configurados:
+        </p>
+        
+        <div class="code-block">
+// Buscar campos de uma seção<br>
+const response = await fetch(<br>
+&nbsp;&nbsp;'http://localhost:3002/api/custom-fields?section=processes'<br>
+);<br>
+const { data: fields } = await response.json();<br>
+<br>
+// Renderizar cada campo dinamicamente<br>
+fields.forEach(field => {<br>
+&nbsp;&nbsp;renderDynamicField(field);<br>
+});<br>
+<br>
+// Salvar valores<br>
+await fetch('http://localhost:3002/api/forms/values', {<br>
+&nbsp;&nbsp;method: 'POST',<br>
+&nbsp;&nbsp;body: JSON.stringify({<br>
+&nbsp;&nbsp;&nbsp;&nbsp;values: [<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ field_id: 'xxx', analysis_id: 'yyy', value: '...' }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;]<br>
+&nbsp;&nbsp;})<br>
+});
+        </div>
+        
+        <button onclick="loadFieldsExample()" class="btn btn-primary" style="margin-top: 15px;">
+          ▶️ Ver Campos da Seção "Processos"
+        </button>
+        <div id="fieldsResult"></div>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h2 style="font-size: 22px; margin-bottom: 20px;">✨ Fluxo Completo</h2>
+      
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px;">
+        <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 8px;">
+          <div style="font-size: 48px; margin-bottom: 10px;">1️⃣</div>
+          <strong style="display: block; margin-bottom: 8px;">App Registra</strong>
+          <p style="font-size: 13px; color: #718096;">Seções disponíveis</p>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 8px;">
+          <div style="font-size: 48px; margin-bottom: 10px;">2️⃣</div>
+          <strong style="display: block; margin-bottom: 8px;">Admin Configura</strong>
+          <p style="font-size: 13px; color: #718096;">Campos personalizados</p>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 8px;">
+          <div style="font-size: 48px; margin-bottom: 10px;">3️⃣</div>
+          <strong style="display: block; margin-bottom: 8px;">App Exibe</strong>
+          <p style="font-size: 13px; color: #718096;">Campos dinamicamente</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function registerSections() {
+      const sections = [
+        { id: 'basic-info', name: 'basic_info', label: 'Informações Básicas', description: 'Dados básicos da análise' },
+        { id: 'scope', name: 'scope', label: 'Escopo', description: 'Definição do escopo' },
+        { id: 'processes', name: 'processes', label: 'Processos Impactados', description: 'Processos afetados pela mudança' },
+        { id: 'impacts', name: 'impacts', label: 'Análise de Impactos', description: 'Impactos identificados' },
+        { id: 'risks', name: 'risks', label: 'Matriz de Riscos', description: 'Riscos do projeto' },
+        { id: 'mitigations', name: 'mitigations', label: 'Plano de Mitigação', description: 'Ações de mitigação' },
+        { id: 'conclusions', name: 'conclusions', label: 'Conclusões', description: 'Conclusões e recomendações' }
+      ];
+      
+      try {
+        const response = await fetch('http://localhost:3002/api/sections/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sections })
+        });
+        
+        const data = await response.json();
+        
+        document.getElementById('registerResult').innerHTML = `
+          <div class="success-message">
+            ✅ Sucesso! ${data.registered} seções registradas. Agora você pode acessar o painel admin.
+          </div>
+        `;
+      } catch (error) {
+        document.getElementById('registerResult').innerHTML = `
+          <div style="background: #feb2b2; color: #742a2a; padding: 12px; border-radius: 6px; margin-top: 15px;">
+            ❌ Erro: ${error.message}. Verifique se o microserviço está rodando.
+          </div>
+        `;
+      }
+    }
+    
+    async function loadFieldsExample() {
+      try {
+        const response = await fetch('http://localhost:3002/api/custom-fields?section=processes');
+        const data = await response.json();
+        
+        if (data.data.length === 0) {
+          document.getElementById('fieldsResult').innerHTML = `
+            <div class="info-box" style="margin-top: 15px;">
+              ℹ️ Nenhum campo configurado ainda para "Processos". 
+              <a href="/widgets/admin" target="_blank" style="color: #4299e1; font-weight: 600;">Clique aqui</a> 
+              para adicionar campos no painel admin.
+            </div>
+          `;
+        } else {
+          const fieldsHtml = data.data.map(field => `
+            <li><strong>${field.label}</strong> (${field.type}) ${field.required ? '- Obrigatório' : ''}</li>
+          `).join('');
+          
+          document.getElementById('fieldsResult').innerHTML = `
+            <div class="success-message">
+              ✅ ${data.data.length} campo(s) encontrado(s):
+              <ul style="margin: 10px 0 0 20px;">${fieldsHtml}</ul>
+            </div>
+          `;
+        }
+      } catch (error) {
+        document.getElementById('fieldsResult').innerHTML = `
+          <div style="background: #feb2b2; color: #742a2a; padding: 12px; border-radius: 6px; margin-top: 15px;">
+            ❌ Erro: ${error.message}
+          </div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

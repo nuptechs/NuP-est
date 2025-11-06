@@ -1,0 +1,6 @@
+/* Custom Fields Theme - CSS Variables (must be first) */
+@import './styles/custom-fields-theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
