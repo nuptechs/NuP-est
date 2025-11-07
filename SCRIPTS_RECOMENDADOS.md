@@ -135,6 +135,55 @@ pnpm validate:quick
 | `pnpm validate` | ~15-20s | CI |
 | `pnpm validate:quick` | ~4-7s | Local |
 
+## Testes Automatizados
+
+O sistema de governança inclui **30 testes automatizados** que garantem seu funcionamento correto:
+
+### Executar Testes Unitários do ESLint Plugin (24 testes)
+
+```bash
+node eslint-plugin-nup-monorepo/tests/test-unit.js
+```
+
+**O que testa:**
+- ✅ **Importa e testa funções REAIS do plugin via `require()`**
+- ✅ Plugin exporta utils e rules corretamente
+- ✅ Normalização de caminhos (Windows ↔ POSIX)
+- ✅ Descoberta automática de packages do workspace
+- ✅ Descoberta automática de features do workspace
+- ✅ Detecção correta de camadas (feature, package, app, service)
+- ✅ Detecção cross-platform (Windows + POSIX)
+- ✅ Extração de nomes de features
+- ✅ **`checkImportPath()` gera violações corretas (feature→feature, package→feature, service→workspace)**
+- ✅ **Validação end-to-end das 3 regras arquiteturais do ESLint**
+
+> 💡 **Nota Importante:** Os testes importam `checkImportPath()` e outras funções reais do plugin, garantindo que o código testado seja exatamente o que o ESLint executa em produção. Qualquer regressão nas regras será detectada.
+
+### Executar Testes dos Scripts de Validação (6 testes)
+
+```bash
+node scripts/tests/test-validation.js
+```
+
+**O que testa:**
+- ✅ `validate-dependencies.js` executa corretamente
+- ✅ `check-architecture.js` executa validações
+- ✅ Descoberta de packages e features funciona
+- ✅ Dependency Cruiser está configurado
+- ✅ Mensagens de erro são amigáveis
+
+### Adicionar Scripts de Teste ao package.json (Opcional)
+
+```json
+{
+  "scripts": {
+    "test:governance": "node eslint-plugin-nup-monorepo/tests/test-unit.js && node scripts/tests/test-validation.js",
+    "test:eslint-plugin": "node eslint-plugin-nup-monorepo/tests/test-unit.js",
+    "test:validation": "node scripts/tests/test-validation.js"
+  }
+}
+```
+
 ## Adicionar ao package.json
 
 **Você NÃO pode editar package.json via Replit Agent.** 
@@ -145,3 +194,21 @@ Para adicionar estes scripts manualmente:
 2. Adicione os scripts acima na seção `"scripts"`
 3. Salve o arquivo
 4. Execute `pnpm install` se necessário
+
+## Resumo Completo de Scripts Recomendados
+
+```json
+{
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:arch": "node scripts/check-architecture.js",
+    "check:deps": "node scripts/validate-dependencies.js",
+    "validate": "pnpm check && pnpm lint && pnpm lint:arch && pnpm check:deps",
+    "validate:quick": "pnpm lint:arch && pnpm check:deps",
+    "test:governance": "node eslint-plugin-nup-monorepo/tests/test-unit.js && node scripts/tests/test-validation.js",
+    "test:eslint-plugin": "node eslint-plugin-nup-monorepo/tests/test-unit.js",
+    "test:validation": "node scripts/tests/test-validation.js"
+  }
+}
+```

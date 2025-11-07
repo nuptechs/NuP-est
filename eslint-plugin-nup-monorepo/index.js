@@ -336,4 +336,13 @@ module.exports = {
       },
     },
   },
+  // Exporta funções utilitárias para testes
+  utils: {
+    discoverPackages,
+    discoverFeatures,
+    detectLayer,
+    extractFeatureName,
+    normalizePath,
+    checkImportPath,
+  },
 };
