@@ -22,7 +22,7 @@ export default defineConfig({
   envPrefix: 'VITE_',
   server: {
     host: '0.0.0.0',
-    port: 5003,
+    port: 5173,
     strictPort: true,
     proxy: {
       '/api': {
