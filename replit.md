@@ -2,6 +2,21 @@
 
 NuP-Study is an AI-powered adaptive study management platform designed to personalize learning through deep user profiling and intelligent content delivery. It offers a comprehensive study hub featuring AI tools, flashcards, knowledge base management, and progress tracking. A standout feature is **Professor IA**, an advanced conversational AI tutor providing ultra-low latency voice interactions (<500ms) to simulate a dedicated human teacher. The platform aims to deliver a polished, professional user experience with adaptive learning strategies, enhancing learning efficiency and engagement to offer truly personalized educational journeys in the e-learning market.
 
+## 🚀 Workflows e Execução de Apps (Nov 2025)
+
+**Sistema Automático de Workflows:** Gerencia múltiplos apps com descoberta automática e configuração elegante.
+
+**Scripts Disponíveis:**
+- `node scripts/manage-workflows.js list` - Lista apps disponíveis
+- `node scripts/manage-workflows.js generate` - Gera configuração de workflows
+- `node scripts/manage-workflows.js info` - Mostra guia de uso
+
+**Apps Configurados:**
+- **nup-aim** (porta 5000): `cd apps/nup-aim && PORT=5000 npm run dev`
+- **nup-study** (porta 5001): `cd apps/nup-study && PORT=5001 npm run dev`
+
+**Documentação:** Ver [docs/WORKFLOWS.md](docs/WORKFLOWS.md) e [docs/WORKFLOWS_QUICKSTART.md](docs/WORKFLOWS_QUICKSTART.md)
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
