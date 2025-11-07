@@ -1,5 +1,7 @@
 # NuP Ecosystem - Monorepo Architecture
 
+> 🚀 **Sistema de Workflows Automático:** Use `node scripts/manage-workflows.js` para gerenciar workflows! Ver [docs/WORKFLOWS.md](docs/WORKFLOWS.md)
+
 ## 📦 Estrutura do Monorepo
 
 ```

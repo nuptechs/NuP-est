@@ -16,20 +16,28 @@ Cada app no monorepo roda em sua própria porta e tem seu próprio workflow:
 
 ## 📋 Configurando Workflows no Replit
 
-### **Opção 1: Configuração Manual (Recomendado)**
+### **Passo a Passo para Criar Workflows**
 
-1. **Abra o painel de Workflows** no Replit
-2. **Crie um novo workflow** para cada app:
+#### **1. Abra o Painel de Workflows**
+- Clique em "Tools" > "Workflows" no menu do Replit
+- Ou clique no ícone de engrenagem ao lado de "Start application"
 
-**Workflow: NuP AIM**
-- Nome: `NuP AIM`
-- Comando: `cd apps/nup-aim && PORT=5000 npm run dev`
+#### **2. Crie o Workflow para NuP AIM**
+1. Clique em "+ Create Workflow"
+2. **Nome:** `NuP AIM`
+3. **Command:** `cd apps/nup-aim && PORT=5000 npm run dev`
+4. Clique em "Save"
 
-**Workflow: NuP Study**
-- Nome: `NuP Study`
-- Comando: `cd apps/nup-study && PORT=5001 npm run dev`
+#### **3. Crie o Workflow para NuP Study**
+1. Clique em "+ Create Workflow"
+2. **Nome:** `NuP Study`
+3. **Command:** `cd apps/nup-study && PORT=5001 npm run dev`
+4. Clique em "Save"
 
-3. **Execute o workflow desejado** clicando no botão de play
+#### **4. Execute os Workflows**
+- Selecione o workflow desejado no dropdown
+- Clique no botão ▶️ (play) para iniciar
+- Você pode rodar múltiplos workflows simultaneamente!
 
 ---
 
