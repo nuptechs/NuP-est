@@ -35,6 +35,15 @@ task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "NuP-Aim"
+mode = "sequential"
+author = 47117879
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/nup-aim && PORT=7778 npm run dev"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
