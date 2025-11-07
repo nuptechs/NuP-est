@@ -1,0 +1,14 @@
+[
+  {
+    "name": "impact-analysis-generator",
+    "command": "cd apps/nup-aim && PORT=5000 npm run dev",
+    "port": 5000,
+    "path": "apps/nup-aim"
+  },
+  {
+    "name": "nup-study",
+    "command": "cd apps/nup-study && PORT=5001 npm run dev",
+    "port": 5001,
+    "path": "apps/nup-study"
+  }
+]
