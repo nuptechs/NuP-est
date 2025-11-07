@@ -11,10 +11,10 @@ const rootDir = join(__dirname, '..');
 
 console.log('🔍 Validando arquitetura do monorepo...\n');
 
-const configPath = join(rootDir, '.dependency-cruiser.js');
+const configPath = join(rootDir, '.dependency-cruiser.cjs');
 
 if (!existsSync(configPath)) {
-  console.error('❌ Arquivo de configuração .dependency-cruiser.js não encontrado');
+  console.error('❌ Arquivo de configuração .dependency-cruiser.cjs não encontrado');
   process.exit(1);
 }
 

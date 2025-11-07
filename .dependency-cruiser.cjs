@@ -17,11 +17,11 @@ module.exports = {
       comment:
         'Features não podem depender de outras features. Se precisar compartilhar código, mova para packages/@nup/',
       from: {
-        path: '^features/@nup/[^/]+',
+        path: '^features/@nup/([^/]+)',
       },
       to: {
-        path: '^features/@nup/[^/]+',
-        pathNot: '^features/@nup/($1)',
+        path: '^features/@nup/([^/]+)',
+        pathNot: '^features/@nup/$1',
       },
     },
     {
