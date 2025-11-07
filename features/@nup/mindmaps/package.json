@@ -31,12 +31,6 @@
     "typescript": "^5.6.3"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "@nup/flashcards": "*"
-  },
-  "peerDependenciesMeta": {
-    "@nup/flashcards": {
-      "optional": true
-    }
+    "react": "^18.0.0"
   }
 }
