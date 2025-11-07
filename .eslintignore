@@ -1,0 +1,30 @@
+# Build outputs
+dist/
+build/
+out/
+.next/
+.turbo/
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# Data and uploads
+data/
+uploads/
+attached_assets/
+
+# Config files
+*.config.js
+*.config.ts
+vite.config.*
+tailwind.config.*
+postcss.config.*
+
+# Generated files
+*.d.ts
+
+# Logs
+*.log
