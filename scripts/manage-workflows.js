@@ -243,14 +243,14 @@ function runAllApps() {
 
   // Usar concurrently se disponível
   try {
-    const commands = appsToRun.map(app => app.command).join('" "');
     const names = appsToRun.map(app => app.id).join(',');
+    const commands = appsToRun.map(app => `"${app.command}"`);
     
     const proc = spawn('npx', [
       'concurrently',
       '-n', names,
       '-c', 'auto',
-      ...appsToRun.map(app => app.command)
+      ...commands
     ], {
       stdio: 'inherit',
       shell: true
