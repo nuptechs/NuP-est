@@ -36,7 +36,7 @@ args = "npm run dev"
 waitForPort = 5000
 
 [[workflows.workflow]]
-name = "NuP-AIM"
+name = "NuP-Aim"
 mode = "parallel"
 author = 47117879
 
