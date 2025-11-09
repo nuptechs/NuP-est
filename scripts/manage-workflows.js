@@ -199,9 +199,8 @@ function runApp(appId) {
 
   console.log(`🚀 Iniciando ${app.name} na porta ${app.port}...\n`);
   
-  // Executar comando
-  const [cmd, ...args] = app.command.split(' ');
-  const proc = spawn(cmd, args, {
+  // Executar comando completo no shell
+  const proc = spawn(app.command, [], {
     stdio: 'inherit',
     shell: true,
     env: { ...process.env, PORT: String(app.port) }
@@ -272,8 +271,7 @@ function runAllApps() {
 function runAppsSequentially(apps) {
   apps.forEach(app => {
     console.log(`\n🚀 Iniciando ${app.name}...`);
-    const [cmd, ...args] = app.command.split(' ');
-    spawn(cmd, args, {
+    spawn(app.command, [], {
       stdio: 'inherit',
       shell: true,
       detached: true,
