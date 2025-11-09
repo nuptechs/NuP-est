@@ -1,21 +1,6 @@
 # Overview
 
-NuP-Study is an AI-powered adaptive study management platform designed to personalize learning through deep user profiling and intelligent content delivery. It offers a comprehensive study hub featuring AI tools, flashcards, knowledge base management, and progress tracking. A standout feature is **Professor IA**, an advanced conversational AI tutor providing ultra-low latency voice interactions (<500ms) to simulate a dedicated human teacher. The platform aims to deliver a polished, professional user experience with adaptive learning strategies, enhancing learning efficiency and engagement to offer truly personalized educational journeys in the e-learning market.
-
-## 🚀 Workflows e Execução de Apps (Nov 2025)
-
-**Sistema Automático de Workflows:** Gerencia múltiplos apps com descoberta automática e configuração elegante.
-
-**Scripts Disponíveis:**
-- `node scripts/manage-workflows.js list` - Lista apps disponíveis
-- `node scripts/manage-workflows.js generate` - Gera configuração de workflows
-- `node scripts/manage-workflows.js info` - Mostra guia de uso
-
-**Apps Configurados:**
-- **nup-aim** (porta 5000): `cd apps/nup-aim && PORT=5000 npm run dev`
-- **nup-study** (porta 5001): `cd apps/nup-study && PORT=5001 npm run dev`
-
-**Documentação:** Ver [docs/WORKFLOWS.md](docs/WORKFLOWS.md) e [docs/WORKFLOWS_QUICKSTART.md](docs/WORKFLOWS_QUICKSTART.md)
+NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor offering ultra-low latency voice interactions (<500ms) to simulate a human teacher. The platform aims to deliver a polished, professional user experience with adaptive learning strategies, enhancing learning efficiency and engagement for personalized educational journeys in the e-learning market. The project is transitioning to a modern monorepo architecture using Turborepo and pnpm workspaces to support a scalable NuP Ecosystem of multiple, independently deployable, and modularly sellable AI-powered applications.
 
 # User Preferences
 
@@ -25,225 +10,77 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 # System Architecture
 
+## System Design and Workflows
+
+The system features a scalable workflow architecture for managing multiple applications simultaneously, including centralized logging, automatic discovery, and resource control. This uses a `workflows-config.json` as a single source of truth for app registration, ports, and commands, generated via `manage-workflows.js` scripts.
+
+## Monorepo Architecture
+
+The project is structured as a monorepo using Turborepo and pnpm workspaces. It consists of:
+- `apps/`: Deployable applications like `nup-study`, `nup-aim`, and planned `nup-identify`, `nup-chunks`, `nup-kan`, `nup-service`.
+- `packages/@nup/`: Shared code packages including `ui` (shadcn/ui), `auth-client` (for NuP-Identify), `api-client` (TanStack Query), and `shared-types`.
+- `features/@nup/`: Reusable, sellable features like `mindmaps`, `professor-ia`, and `flashcards`.
+This structure promotes code sharing, independent deployments, modular sales, type safety, and consistent UX. NuP-Identify is planned as a centralized authentication and authorization system across all NuP apps.
+
 ## Frontend Architecture
 
-The client utilizes React 18, TypeScript, and Vite, with `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI and Tailwind CSS for styling. Form validation is handled by React Hook Form with Zod. The UI is profile-driven with a centralized dashboard and a guided setup flow, ensuring consistency through a unified design system, supporting rich Markdown content rendering.
+The client is built with React 18, TypeScript, and Vite. It uses `wouter` for routing, TanStack Query for server state management, and shadcn/ui with Radix UI and Tailwind CSS for styling. Form validation is handled by React Hook Form with Zod. The UI emphasizes a profile-driven dashboard, guided setup, and a unified design system.
 
 ## Backend Architecture
 
-The server is built with Express.js and TypeScript (ESM) and uses Drizzle ORM for type-safe PostgreSQL interactions. Replit Auth with Passport.js manages authentication, `express-session` for sessions, and Multer for file uploads. The API is RESTful with consistent error handling.
+The server uses Express.js and TypeScript (ESM) with Drizzle ORM for type-safe PostgreSQL interactions. Authentication is managed via Replit Auth with Passport.js and `express-session`. File uploads use Multer. The API is RESTful with consistent error handling.
 
-### Modular AI Pipeline
+## Core Features and AI Pipeline
 
-An adaptive learning AI pipeline features: `StudyContextBuilder`, `Prompt Strategies`, `AIContentPipeline`, and `QuestionGeneratorTool`.
-
-### AI Content Validation Layer
-
-A multi-layered pre-generation validation system (`content-validator.ts`, `semantic-analyzer.ts`, `structural-analysis`) ensures maximum content quality before AI processing, providing quality scoring, descriptive errors, and actionable suggestions in Portuguese.
-
-### Deterministic AI Generation Cache
-
-A production-ready caching system (`GenerationRegistry.ts`) uses SHA-256 content hashing for deterministic cache keys, a hybrid cache strategy, automatic invalidation based on content or profile changes, and TTL-based expiration. It significantly reduces OpenAI API calls (70-90% reduction) while maintaining adaptivity.
-
-### Intelligent Auto-Categorization
-
-A 3-phase system categorizes subjects using pattern matching, AI fallback (GPT-4o-mini), and a safe default, complemented by UX features like auto-suggestion and manual override.
-
-### Intelligent Text Chunking System
-
-A modular chunking infrastructure uses a Strategy Pattern with pluggable strategies like `SemanticChunkStrategy`, `SentenceAwareChunkStrategy`, and `SimpleLimitChunkStrategy`, with pre-configured profiles for various uses.
-
-### Production RAG System (NotebookLM-Architecture)
-
-A zero-hallucination retrieval system combines hybrid search (BM25 + Pinecone), cross-encoder reranking (GPT-4o-mini), metadata enrichment, confidence scoring with strict refusal, and prompt engineering to cite sources or state "not in materials."
-
-### Interactive Chat Rendering System
-
-A premium chat experience features intelligent content detection and interactive rendering. It includes a `Hierarchical Text Parser` for strict tree detection, a `Content Detection Layer` with priority systems, and interactive components like `InteractiveTable` (AG Grid) and `MindMapVisual` (React Flow) with full dark mode and responsive design.
-
-### Document Outline Extraction (Nov 2025)
-
-A reusable service for extracting hierarchical document structure (table of contents) from study materials. Supports granular chapter/section selection for flashcard generation, PPT creation, and other AI features.
-
-**Architecture:**
-- **DocumentOutlineExtractor**: Main service with lazy extraction + database caching at processedFile level (shared via SHA-256 deduplication)
-- **Strategy Pattern**: Pluggable extraction strategies for different document types
-  - `MarkdownStrategy`: Detects # headings in Markdown/TXT files
-  - `AIStrategy`: GPT-4o-mini fallback for unstructured documents (PDFs, plain text)
-  - Future: `PDFStrategy` (TOC extraction), `DOCXStrategy` (heading styles)
-
-**Storage:**
-- `documentOutline` (JSON): Hierarchical structure with metadata
-- `outlineGeneratedAt` (timestamp): Cache invalidation tracking
-- Stored at `processedFiles` level for deduplication (one extraction per unique file)
-
-**Features:**
-- Lazy extraction (on-demand, not during upload)
-- Rich metadata per section: wordCount, estimatedFlashcards, startOffset, endOffset
-- Supports deep hierarchies (tested up to 4 levels)
-- API endpoint: `GET /api/materials/:id/outline`
-
-**Use Cases:**
-- Granular flashcard generation (select specific chapters)
-- PPT generation from selected sections
-- Mind Map focused on specific topics
-- Study plan based on chapter structure
+- **Modular AI Pipeline**: Includes `StudyContextBuilder`, `Prompt Strategies`, `AIContentPipeline`, and `QuestionGeneratorTool`.
+- **AI Content Validation Layer**: A multi-layered pre-generation validation system (`content-validator.ts`, `semantic-analyzer.ts`, `structural-analysis`) ensures content quality, providing scores, errors, and suggestions in Portuguese.
+- **Deterministic AI Generation Cache**: A production-ready caching system (`GenerationRegistry.ts`) uses SHA-256 hashing, a hybrid cache strategy, and automatic invalidation to reduce OpenAI API calls significantly while maintaining adaptivity.
+- **Intelligent Auto-Categorization**: A 3-phase system categorizes subjects using pattern matching, AI fallback (GPT-4o-mini), and a safe default.
+- **Intelligent Text Chunking System**: A modular infrastructure using a Strategy Pattern with pluggable strategies like `SemanticChunkStrategy`, `SentenceAwareChunkStrategy`, and `SimpleLimitChunkStrategy`.
+- **Production RAG System**: A zero-hallucination retrieval system combining hybrid search (BM25 + Pinecone), cross-encoder reranking (GPT-4o-mini), metadata enrichment, confidence scoring, and prompt engineering.
+- **Interactive Chat Rendering System**: A premium chat experience with intelligent content detection and interactive rendering, featuring a `Hierarchical Text Parser`, `Content Detection Layer`, and interactive components like `InteractiveTable` (AG Grid) and `MindMapVisual` (React Flow).
+- **Document Outline Extraction**: A reusable service for extracting hierarchical document structure from study materials, supporting granular selection for AI features, using a Strategy Pattern for different document types and lazy extraction with database caching.
 
 ## Data Architecture
 
-A PostgreSQL database managed by Drizzle ORM stores all application data, including AI-related data like learning difficulties, versioned student profiles, assistant instances, and interaction logs.
+A PostgreSQL database managed by Drizzle ORM stores all application data, including AI-related data, versioned student profiles, assistant instances, and interaction logs.
 
 ## Authentication & Authorization
 
-Authentication uses Replit OAuth (OpenID Connect) with secure session-based authentication via HttpOnly cookies and route-level middleware. An admin system uses an `isAdmin` field and middleware.
+Authentication utilizes Replit OAuth (OpenID Connect) with secure session-based authentication via HttpOnly cookies and route-level middleware. An admin system uses an `isAdmin` field and middleware for authorization.
 
-## Voice Services (Freemium Feature)
+## Voice Services
 
-### Traditional Voice Pipeline (Conversational Voice)
-
-Uses a Strategy Pattern with `NativeVoiceService` (Free Tier), `DeepgramVoiceService` (Premium), and `WhisperVoiceService` (Premium - Alternative).
-
-### Realtime Voice System (Professor IA)
-
-A production-ready, modular architecture for ultra-low latency voice conversations, using the OpenAI Realtime API for bidirectional audio streaming (<500ms latency), multi-session support, function calling for real-time student context retrieval, and adaptive pedagogy.
-
-### Student Profile Engine
-
-A modular system for enriched student profiles with a 3-component design (`ProfileAnalyzer`, `ConversationTracker`, `StudentProfileService`). It uses snapshot-based processing, automatic conversation tracking with AI analysis (GPT-4o-mini), automatic profile updates, and rich metrics.
+- **Traditional Voice Pipeline**: Uses a Strategy Pattern with `NativeVoiceService`, `DeepgramVoiceService`, and `WhisperVoiceService`.
+- **Realtime Voice System (Professor IA)**: A modular architecture for ultra-low latency voice conversations using the OpenAI Realtime API for bidirectional audio streaming, multi-session support, function calling, and adaptive pedagogy.
+- **Student Profile Engine**: A modular system for enriched student profiles with `ProfileAnalyzer`, `ConversationTracker`, and `StudentProfileService`, featuring snapshot-based processing and AI analysis for automatic updates and rich metrics.
 
 ## Mind Maps System
 
-A complete Mind Maps system with a modular architecture and RAG integration.
-
-### Adaptive AI Generation (Profile-Aware)
-
-Integrates `StudyContextBuilder` to load complete user profiles (difficulties, TDAH, objectives) for pedagogical adaptation (e.g., vibrant colors for ADHD, simple language for dyslexia). It ensures rich content with detailed descriptions and adaptive colors.
-
-### Core Features
-
-Includes `MindMapGenerator` (HybridSearchService + GPT-4o-mini), automatic material conversion, subject integration, export to SVG/PNG, and SimpleMind-inspired visual design with drag & drop and inline editing.
-
-### SimpleMind Professional Features
-
-Enhanced with advanced organization tools: collapse/expand branches, smart auto-collapse, free-form layout mode, outline view, and crosslinks. Supports rich content with checkboxes, custom icons/emojis, edge labels, and responsive nodes. Offers responsive layouts, multiple view modes (visual, outline, both), and a focus mode.
-
-### Advanced Customization
-
-A 3-level customization architecture (global, mind map specific, individual element) with 12 built-in style sheets and extensive options for node shapes, colors, borders, typography, and edge properties. Supports various color modes (type-based, level-based, branch-based, performance-based).
-
-### Feature Module Encapsulation
-
-The Mind Maps system is fully encapsulated within `client/src/features/mindmaps/` for isolation and easy integration.
-
-## Monorepo Architecture (Nov 2025)
-
-### Overview
-
-The project is transitioning to a **modern monorepo architecture** using Turborepo and pnpm workspaces to support the NuP Ecosystem: multiple AI-powered applications that share code, deploy independently, and are modularly sellable.
-
-### Structure
-
-```
-nup-ecosystem/
-├── apps/                      # Deployable applications
-│   ├── nup-study/            # Main study platform (migrated)
-│   ├── nup-identify/         # Centralized auth/authorization (planned)
-│   ├── nup-chunks/           # (planned)
-│   ├── nup-aim/              # (planned)
-│   ├── nup-kan/              # (planned)
-│   └── nup-service/          # (planned)
-├── packages/@nup/            # Shared code packages
-│   ├── ui/                   # Design system (shadcn/ui)
-│   ├── auth-client/          # Auth SDK (connects to NuP-Identify)
-│   ├── api-client/           # HTTP client (TanStack Query)
-│   └── shared-types/         # TypeScript types
-└── features/@nup/            # Reusable features (sellable)
-    ├── mindmaps/             # Mind Maps system (planned extraction)
-    ├── professor-ia/         # Voice AI tutor (planned extraction)
-    └── flashcards/           # Flashcard system (planned extraction)
-```
-
-### Shared Packages
-
-**@nup/ui**: Design system with shadcn/ui components, hooks (`useToast`), and utilities (`cn()`). Ensures visual consistency across all apps.
-
-**@nup/auth-client**: Authentication SDK with `AuthProvider`, `useAuth`, and `usePermissions` hooks. Implements granular permission system (app + feature level) connecting to NuP-Identify.
-
-**@nup/api-client**: Configurable HTTP client with TanStack Query integration, default fetcher, and `apiRequest` helper for mutations.
-
-**@nup/shared-types**: TypeScript types for all domain models (User, MindMap, Subject, Material, API responses) shared across apps.
-
-### Benefits
-
-- **Code Sharing**: Zero duplication of UI components, types, and utilities
-- **Independent Deployments**: Each app deploys separately with own CI/CD
-- **Modular Sales**: Features packaged as npm modules, sellable independently
-- **Type Safety**: Shared types ensure consistency across frontend/backend
-- **Consistent UX**: Single design system across all apps
-- **Easy Integration Swapping**: Adapter pattern for STT/TTS/LLM providers
-- **Developer Experience**: One repo, one install, unified tooling
-
-### Migration Status
-
-- **Phase**: Dual-run (legacy code + migrated code coexisting)
-- **Backup**: Branch `backup/pre-monorepo-migration`, tag `v1.0-pre-monorepo`
-- **Current**: Legacy code at root still in production, apps/nup-study ready for testing
-- **Next**: Incremental import migration, feature extraction, deploy cutover
-
-### Migrating Apps to Monorepo
-
-**Quick Start:**
-```bash
-# Create new app structure automatically
-./scripts/create-app.sh nup-nova-app 5002
-
-# Install dependencies
-pnpm install
-
-# Run your new app
-pnpm dev:nova-app
-```
-
-**Manual Migration Steps:**
-1. Create app directory: `apps/nova-app/`
-2. Copy existing code to appropriate directories (client/, server/, shared/)
-3. Update imports to use `@nup/*` packages
-4. Configure package.json, tsconfig.json, vite.config.ts
-5. Add dev script to root package.json
-6. Test with `pnpm dev:nova-app`
-
-**Detailed Guide:** See `docs/MIGRAR_APPS.md` for complete migration instructions
-
-**Helper Script:** `scripts/create-app.sh` creates boilerplate structure automatically
-
-### NuP-Identify Integration
-
-NuP-Identify will serve as the **centralized authentication and authorization system** for all NuP apps. It:
-- Manages user accounts and sessions (OAuth, SSO)
-- Controls granular feature access per app (e.g., "nup-study.mindmaps.write")
-- Provides `@nup/auth-client` SDK for seamless integration
-- Enables single sign-on across the ecosystem
-- Supports independent app sales with feature gating
-
-All apps will use `@nup/auth-client` to check permissions and access user context without managing auth themselves.
+A complete Mind Maps system with modular architecture and RAG integration.
+- **Adaptive AI Generation**: Integrates `StudyContextBuilder` to adapt mind map generation based on user profiles (e.g., learning difficulties, objectives) for pedagogical adaptation.
+- **Core Features**: Includes `MindMapGenerator` (HybridSearchService + GPT-4o-mini), automatic material conversion, subject integration, export to SVG/PNG, and SimpleMind-inspired visual design.
+- **Professional Features**: Enhanced with organization tools (collapse/expand, auto-collapse, free-form layout, outline view, crosslinks), rich content support (checkboxes, icons, edge labels), and multiple view modes.
+- **Advanced Customization**: A 3-level customization architecture (global, mind map specific, element-specific) with built-in style sheets and extensive options for visual properties and color modes.
+- **Encapsulation**: Fully encapsulated within `client/src/features/mindmaps/`.
 
 # External Dependencies
 
 ## Database & Storage
--   **Neon Database**: Serverless PostgreSQL.
--   **Local File Storage**: For uploaded study materials.
+- **Neon Database**: Serverless PostgreSQL.
+- **Local File Storage**: For uploaded study materials.
 
 ## Authentication Services
--   **Replit Auth**: OAuth provider.
+- **Replit Auth**: OAuth provider.
 
 ## AI Services
--   **OpenAI API**: GPT models, Whisper, TTS.
--   **OpenRouter**: Advanced AI capabilities (DeepSeek R1).
--   **Pinecone**: Vector database for RAG.
--   **Deepgram**: Premium STT (Nova-3) and TTS (Aura).
+- **OpenAI API**: GPT models, Whisper, TTS.
+- **OpenRouter**: Advanced AI capabilities (DeepSeek R1).
+- **Pinecone**: Vector database for RAG.
+- **Deepgram**: Premium STT (Nova-3) and TTS (Aura).
 
 ## UI & Styling
--   **shadcn/ui**: Component library.
--   **Tailwind CSS**: Utility-first CSS framework.
--   **Radix UI**: Accessible component primitives.
--   **Lucide React**: Icon library.
+- **shadcn/ui**: Component library.
+- **Tailwind CSS**: Utility-first CSS framework.
+- **Radix UI**: Accessible component primitives.
+- **Lucide React**: Icon library.

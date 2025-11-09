@@ -1,14 +1,20 @@
 [
   {
+    "id": "nup-aim",
     "name": "impact-analysis-generator",
-    "command": "cd apps/nup-aim && PORT=5000 npm run dev",
-    "port": 5000,
-    "path": "apps/nup-aim"
+    "path": "apps/nup-aim",
+    "port": 3000,
+    "command": "cd apps/nup-aim && PORT=3000 npm run dev",
+    "hasDevScript": true,
+    "enabled": true
   },
   {
+    "id": "nup-study",
     "name": "nup-study",
-    "command": "cd apps/nup-study && PORT=5001 npm run dev",
-    "port": 5001,
-    "path": "apps/nup-study"
+    "path": "apps/nup-study",
+    "port": 5000,
+    "command": "cd apps/nup-study && PORT=5000 npm run dev",
+    "hasDevScript": true,
+    "enabled": true
   }
 ]
