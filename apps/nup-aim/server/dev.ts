@@ -61,9 +61,10 @@ async function createUnifiedServer() {
     
     console.log('🌐 SPA fallback handler configured');
     
-    // Start unified server on port 5000
-    const server = app.listen(5000, '0.0.0.0', () => {
-      console.log('🚀 Unified dev server running on http://0.0.0.0:5000');
+    // Start unified server on port 3000
+    const PORT = parseInt(process.env.PORT || '3000', 10);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Unified dev server running on http://0.0.0.0:${PORT}`);
       console.log('   Frontend: Vite middleware');
       console.log('   Backend: Express API routes');
     });
