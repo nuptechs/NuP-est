@@ -2,122 +2,105 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'node:path';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function createUnifiedServer() {
   try {
-    console.log('🔧 [NuP-AIM] Starting unified server initialization...');
-    console.log('🔧 [NuP-AIM] Current directory:', process.cwd());
+    console.log('🔧 [NuP-AIM] Starting unified server...');
     
-    // Set environment flag BEFORE importing to prevent double listening
+    // Set environment flag BEFORE importing
     process.env.COMPOSED_DEV = '1';
-    console.log('🔧 [NuP-AIM] COMPOSED_DEV flag set');
     
-    console.log('📦 [NuP-AIM] Importing API application...');
-    // Dynamic import to ensure the flag is set before server/index.ts evaluates
-    const indexModule = await import('./index.js').catch(async (err) => {
-      console.log('⚠️  [NuP-AIM] .js import failed, trying without extension...');
-      return import('./index');
-    });
-    const apiApp = indexModule.default;
-    console.log('✅ [NuP-AIM] API application imported successfully');
+    console.log('📦 [NuP-AIM] Importing API app...');
+    const { default: apiApp } = await import('./index.js');
+    console.log('✅ [NuP-AIM] API imported');
     
     const app = express();
     
-    // Mount API routes first
+    // Mount API routes
     app.use(apiApp);
-    console.log('🛣️  [NuP-AIM] API routes mounted');
+    console.log('🛣️  [NuP-AIM] API mounted');
     
-    // Create Vite server in middleware mode
-    console.log('⚡ [NuP-AIM] Creating Vite server...');
+    // Create Vite server
+    console.log('⚡ [NuP-AIM] Creating Vite...');
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'custom'
+      appType: 'custom',
+      root: path.resolve(__dirname, '..')
     });
-    console.log('✅ [NuP-AIM] Vite server created successfully');
+    console.log('✅ [NuP-AIM] Vite created');
     
-    // Use Vite's middleware
+    // Use Vite middleware
     app.use(vite.middlewares);
-    console.log('🎨 Vite middleware mounted');
+    console.log('🎨 [NuP-AIM] Vite mounted');
     
-    // SPA fallback handler (pathless middleware, Express 5-safe)
+    // SPA fallback
     app.use(async (req, res, next) => {
+      if (req.method !== 'GET') return next();
+      if (req.originalUrl.startsWith('/api')) return next();
+      
       try {
-        // Only handle GET requests and skip API routes, widgets, and custom fields admin
-        if (req.method !== 'GET') return next();
-        if (req.originalUrl.startsWith('/api')) return next();
-        if (req.originalUrl.startsWith('/widgets')) return next();
-        if (req.originalUrl.startsWith('/custom-fields-admin')) return next();
-        
-        const url = req.originalUrl;
-        const indexPath = path.resolve('index.html');
-        
+        const indexPath = path.resolve(__dirname, '..', 'index.html');
         if (!fs.existsSync(indexPath)) {
           return res.status(404).send('index.html not found');
         }
         
         const template = fs.readFileSync(indexPath, 'utf-8');
-        const html = await vite.transformIndexHtml(url, template);
-        
+        const html = await vite.transformIndexHtml(req.originalUrl, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
       } catch (error) {
-        console.error('❌ SPA fallback error:', error);
+        console.error('❌ [NuP-AIM] SPA error:', error);
         next(error);
       }
     });
     
-    console.log('🌐 SPA fallback handler configured');
+    console.log('🌐 [NuP-AIM] SPA configured');
     
-    // Start unified server on port 3000
+    // Start server
     const PORT = parseInt(process.env.PORT || '3000', 10);
-    
-    console.log(`🎯 Tentando iniciar servidor na porta ${PORT}...`);
+    console.log(`🎯 [NuP-AIM] Starting server on port ${PORT}...`);
     
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Unified dev server running on http://0.0.0.0:${PORT}`);
+      console.log(`🚀 [NuP-AIM] Server running on http://0.0.0.0:${PORT}`);
       console.log('   Frontend: Vite middleware');
-      console.log('   Backend: Express API routes');
+      console.log('   Backend: Express API');
     });
 
-    // Handle server errors
     server.on('error', (error) => {
-      console.error('❌ Server error:', error);
+      console.error('❌ [NuP-AIM] Server error:', error);
+      process.exit(1);
     });
 
-    // Handle process termination gracefully
-    process.on('SIGTERM', () => {
-      console.log('📡 Received SIGTERM, shutting down gracefully');
+    const shutdown = () => {
+      console.log('📡 [NuP-AIM] Shutting down...');
       server.close(() => {
-        console.log('✅ Server closed');
+        console.log('✅ [NuP-AIM] Server closed');
         process.exit(0);
       });
-    });
+    };
 
-    process.on('SIGINT', () => {
-      console.log('📡 Received SIGINT, shutting down gracefully');
-      server.close(() => {
-        console.log('✅ Server closed');
-        process.exit(0);
-      });
-    });
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
     
   } catch (error) {
-    console.error('❌ Error during server initialization:', error);
-    throw error;
+    console.error('❌ [NuP-AIM] Fatal error:', error);
+    process.exit(1);
   }
 }
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+// Error handlers
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ [NuP-AIM] Unhandled Rejection:', reason);
   process.exit(1);
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  console.error('❌ [NuP-AIM] Uncaught Exception:', error);
   process.exit(1);
 });
 
-createUnifiedServer().catch((error) => {
-  console.error('❌ Failed to create unified server:', error);
-  process.exit(1);
-});
+// Start
+createUnifiedServer();
