@@ -5,29 +5,35 @@ import fs from 'node:fs';
 
 async function createUnifiedServer() {
   try {
-    console.log('🔧 Starting unified server initialization...');
+    console.log('🔧 [NuP-AIM] Starting unified server initialization...');
+    console.log('🔧 [NuP-AIM] Current directory:', process.cwd());
     
     // Set environment flag BEFORE importing to prevent double listening
     process.env.COMPOSED_DEV = '1';
+    console.log('🔧 [NuP-AIM] COMPOSED_DEV flag set');
     
-    console.log('📦 Importing API application...');
+    console.log('📦 [NuP-AIM] Importing API application...');
     // Dynamic import to ensure the flag is set before server/index.ts evaluates
-    const { default: apiApp } = await import('./index');
-    console.log('✅ API application imported successfully');
+    const indexModule = await import('./index.js').catch(async (err) => {
+      console.log('⚠️  [NuP-AIM] .js import failed, trying without extension...');
+      return import('./index');
+    });
+    const apiApp = indexModule.default;
+    console.log('✅ [NuP-AIM] API application imported successfully');
     
     const app = express();
     
     // Mount API routes first
     app.use(apiApp);
-    console.log('🛣️  API routes mounted');
+    console.log('🛣️  [NuP-AIM] API routes mounted');
     
     // Create Vite server in middleware mode
-    console.log('⚡ Creating Vite server...');
+    console.log('⚡ [NuP-AIM] Creating Vite server...');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'custom'
     });
-    console.log('✅ Vite server created successfully');
+    console.log('✅ [NuP-AIM] Vite server created successfully');
     
     // Use Vite's middleware
     app.use(vite.middlewares);
@@ -63,6 +69,9 @@ async function createUnifiedServer() {
     
     // Start unified server on port 3000
     const PORT = parseInt(process.env.PORT || '3000', 10);
+    
+    console.log(`🎯 Tentando iniciar servidor na porta ${PORT}...`);
+    
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Unified dev server running on http://0.0.0.0:${PORT}`);
       console.log('   Frontend: Vite middleware');
