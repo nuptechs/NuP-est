@@ -24,6 +24,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: parseInt(process.env.VITE_PORT || '5173'),
     strictPort: true,
+    allowedHosts: ['all'],
     proxy: {
       '/api': {
         target: `http://localhost:${process.env.PORT || '8080'}`,
