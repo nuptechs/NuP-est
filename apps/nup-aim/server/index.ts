@@ -14,12 +14,24 @@ const PORT = parseInt(process.env.PORT || '8080', 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:5173', 'http://0.0.0.0:5173', 'http://127.0.0.1:5173',
+  'http://localhost:5000', 'http://0.0.0.0:5000',
+  ...(process.env.FRONTEND_ORIGIN ? [process.env.FRONTEND_ORIGIN] : []),
+  ...(process.env.REPLIT_DEV_DOMAIN ? [
+    `https://${process.env.REPLIT_DEV_DOMAIN}`,
+    `https://${process.env.REPLIT_DEV_DOMAIN}:6800`
+  ] : [])
+];
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173', 'http://0.0.0.0:5173', 'http://127.0.0.1:5173',
-    'http://localhost:5000', 'http://0.0.0.0:5000',
-    ...(process.env.FRONTEND_ORIGIN ? [process.env.FRONTEND_ORIGIN] : [])
-  ],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
   credentials: true
 }));
 // Increase payload limit to support image uploads (default 100kb -> 5mb)
