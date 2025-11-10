@@ -42,7 +42,7 @@ author = 47117879
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd apps/nup-aim && PORT=3000 npm run dev"
+args = "cd apps/nup-aim && PORT=34735 npm run dev"
 
 [[ports]]
 localPort = 5000
