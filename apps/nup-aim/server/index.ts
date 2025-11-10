@@ -10,7 +10,7 @@ import jwt from 'jsonwebtoken';
 dotenv.config();
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || '3000', 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Middleware

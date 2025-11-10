@@ -22,16 +22,16 @@ export default defineConfig({
   envPrefix: 'VITE_',
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    port: parseInt(process.env.VITE_PORT || '5173'),
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: `http://localhost:${process.env.PORT || '3000'}`,
         changeOrigin: true,
         secure: false,
       },
       '/health': {
-        target: 'http://localhost:3001',
+        target: `http://localhost:${process.env.PORT || '3000'}`,
         changeOrigin: true,
         secure: false,
       }
