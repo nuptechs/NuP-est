@@ -69,7 +69,8 @@ PostgreSQL Database (Neon)
 - Each app uses `pgSchema("schema_name")` in Drizzle ORM
 - Example: `const studySchema = pgSchema("nup_study");`
 - Tables: `studySchema.table("users", {...})`
-- Enums are schema-scoped to avoid conflicts
+- Enums are schema-scoped to avoid conflicts: `studySchema.enum("enum_name", [...])`
+- Session storage configured with `schemaName` option for connect-pg-simple
 
 **Migration Path:**
 The system was designed to easily migrate from schemas to separate databases:

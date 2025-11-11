@@ -30,6 +30,7 @@ export function getSession() {
     createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
+    schemaName: "nup_study",
   });
   return session({
     secret: process.env.SESSION_SECRET!,
