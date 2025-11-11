@@ -5,13 +5,7 @@ import { config } from "./config";
 import { setupVite, serveStatic } from "./vite";
 
 // Routes
-import authRoutes from "./routes/auth.routes";
-import validationRoutes from "./routes/validation.routes";
-import systemsRoutes from "./routes/systems.routes";
-import organizationsRoutes from "./routes/organizations.routes";
-import teamsRoutes from "./routes/teams.routes";
-import invitationsRoutes from "./routes/invitations.routes";
-import webhooksRoutes from "./routes/webhooks.routes";
+import { registerRoutes } from "./routes";
 
 const app: Express = express();
 const server = createServer(app);
@@ -65,23 +59,7 @@ if (config.nodeEnv === "development") {
 // API ROUTES
 // =============================================================================
 
-app.use("/api/auth", authRoutes);
-app.use("/api", validationRoutes); // Validation routes usa paths completos como /users/:id/permissions
-app.use("/api/systems", systemsRoutes);
-app.use("/api/organizations", organizationsRoutes);
-app.use("/api/teams", teamsRoutes);
-app.use("/api/invitations", invitationsRoutes);
-app.use("/api/webhooks", webhooksRoutes);
-
-// Health check
-app.get("/api/health", (_req: Request, res: Response) => {
-  res.json({
-    status: "ok",
-    service: "NuPIdentity",
-    version: "1.0.0",
-    timestamp: new Date().toISOString(),
-  });
-});
+registerRoutes(app);
 
 // =============================================================================
 // FRONTEND (Vite Dev Server or Static Files)
