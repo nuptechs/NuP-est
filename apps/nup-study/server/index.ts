@@ -46,44 +46,56 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
-
-  // Reverse Proxy Configuration for NuP Ecosystem Apps
+  // Reverse Proxy Configuration for NuP Ecosystem Apps (MUST be before registerRoutes)
   app.use('/nup-identify', createProxyMiddleware({
     target: 'http://localhost:5002',
     changeOrigin: true,
+    ws: true,
     pathRewrite: {
       '^/nup-identify': '',
     },
     onProxyReq: (proxyReq, req, res) => {
       log(`[Proxy] NuP-Identify: ${req.method} ${req.url}`);
     },
+    onProxyRes: (proxyRes, req, res) => {
+      proxyRes.headers['x-proxied-by'] = 'NuP-Study';
+    },
     onError: (err, req, res) => {
       log(`[Proxy Error] NuP-Identify: ${err.message}`);
-      res.status(502).json({ 
-        error: 'NuP-Identify não está disponível',
-        message: 'Verifique se o serviço está rodando na porta 5002'
-      });
+      if (!res.headersSent) {
+        res.status(502).json({ 
+          error: 'NuP-Identify não está disponível',
+          message: 'Verifique se o serviço está rodando na porta 5002'
+        });
+      }
     }
   }));
 
   app.use('/nup-aim', createProxyMiddleware({
     target: 'http://localhost:34735',
     changeOrigin: true,
+    ws: true,
     pathRewrite: {
       '^/nup-aim': '',
     },
     onProxyReq: (proxyReq, req, res) => {
       log(`[Proxy] NuP-AIM: ${req.method} ${req.url}`);
     },
+    onProxyRes: (proxyRes, req, res) => {
+      proxyRes.headers['x-proxied-by'] = 'NuP-Study';
+    },
     onError: (err, req, res) => {
       log(`[Proxy Error] NuP-AIM: ${err.message}`);
-      res.status(502).json({ 
-        error: 'NuP-AIM não está disponível',
-        message: 'Verifique se o serviço está rodando na porta 34735'
-      });
+      if (!res.headersSent) {
+        res.status(502).json({ 
+          error: 'NuP-AIM não está disponível',
+          message: 'Verifique se o serviço está rodando na porta 34735'
+        });
+      }
     }
   }));
+
+  const server = await registerRoutes(app);
 
   // Sistema de tratamento de erro centralizado
   const { errorMiddleware } = await import("./middleware/errorMiddleware");
