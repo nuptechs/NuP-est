@@ -27,6 +27,13 @@ export async function apiRequest(
     ? `${baseUrl.replace(/\/$/, '')}${url}` 
     : url;
   
+  console.log('[API] Request:', {
+    originalUrl: url,
+    baseUrl,
+    fullUrl,
+    method: options.method || 'GET'
+  });
+  
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
@@ -40,6 +47,12 @@ export async function apiRequest(
   const response = await fetch(fullUrl, {
     ...options,
     headers,
+  });
+
+  console.log('[API] Response:', {
+    url: fullUrl,
+    status: response.status,
+    ok: response.ok
   });
 
   if (!response.ok) {
