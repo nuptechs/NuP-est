@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -46,6 +47,43 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Reverse Proxy Configuration for NuP Ecosystem Apps
+  app.use('/nup-identify', createProxyMiddleware({
+    target: 'http://localhost:5002',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/nup-identify': '',
+    },
+    onProxyReq: (proxyReq, req, res) => {
+      log(`[Proxy] NuP-Identify: ${req.method} ${req.url}`);
+    },
+    onError: (err, req, res) => {
+      log(`[Proxy Error] NuP-Identify: ${err.message}`);
+      res.status(502).json({ 
+        error: 'NuP-Identify não está disponível',
+        message: 'Verifique se o serviço está rodando na porta 5002'
+      });
+    }
+  }));
+
+  app.use('/nup-aim', createProxyMiddleware({
+    target: 'http://localhost:34735',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/nup-aim': '',
+    },
+    onProxyReq: (proxyReq, req, res) => {
+      log(`[Proxy] NuP-AIM: ${req.method} ${req.url}`);
+    },
+    onError: (err, req, res) => {
+      log(`[Proxy Error] NuP-AIM: ${err.message}`);
+      res.status(502).json({ 
+        error: 'NuP-AIM não está disponível',
+        message: 'Verifique se o serviço está rodando na porta 34735'
+      });
+    }
+  }));
 
   // Sistema de tratamento de erro centralizado
   const { errorMiddleware } = await import("./middleware/errorMiddleware");
