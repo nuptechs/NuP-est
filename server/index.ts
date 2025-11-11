@@ -45,20 +45,25 @@ app.use((req, res, next) => {
   console.log('🔧 [Proxy] Configurando proxy para NuP-Identify em /nup-identify -> http://localhost:5002');
   
   // Reverse Proxy Configuration for NuP Ecosystem Apps (MUST be before registerRoutes)
-  app.use('/nup-identify', createProxyMiddleware({
+  app.use('/nup-identify', (req, res, next) => {
+    console.log(`🔵 [ProxyDebug] Intercepted: ${req.method} ${req.url} (original: ${req.originalUrl})`);
+    next();
+  }, createProxyMiddleware({
     target: 'http://localhost:5002',
     changeOrigin: true,
     ws: true,
     // Remove /nup-identify prefix before forwarding to backend
     pathRewrite: { '^/nup-identify': '' },
+    logLevel: 'debug',
     onProxyReq: (proxyReq, req, res) => {
-      log(`[Proxy] NuP-Identify: ${req.method} ${req.url} -> ${proxyReq.path}`);
+      console.log(`🟢 [Proxy] NuP-Identify: ${req.method} ${req.url} -> ${proxyReq.path}`);
     },
     onProxyRes: (proxyRes, req, res) => {
+      console.log(`🟡 [ProxyRes] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
       proxyRes.headers['x-proxied-by'] = 'NuP-Study';
     },
     onError: (err, req, res) => {
-      log(`[Proxy Error] NuP-Identify: ${err.message}`);
+      console.log(`🔴 [Proxy Error] NuP-Identify: ${err.message}`);
       if (!res.headersSent) {
         res.status(502).json({ 
           error: 'NuP-Identify não está disponível',
