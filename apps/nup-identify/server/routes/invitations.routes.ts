@@ -4,6 +4,8 @@ import { db } from "../db";
 import { pendingInvitations, users, organizations, teams, profiles, userTeams, userProfiles, insertPendingInvitationSchema } from "../../shared/schema";
 import { requireAuth } from "../middleware/auth";
 import { nanoid } from "nanoid";
+import { emailService } from "../services/email.service";
+import { config } from "../config";
 
 const router: Router = express.Router();
 
@@ -146,9 +148,78 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       status: "pending",
     }).returning();
     
+    // Buscar informações para o email
+    let orgName = "NuP Identity";
+    let teamName = null;
+    let profileName = null;
+    
+    if (body.organizationId) {
+      const org = await db.query.organizations.findFirst({
+        where: eq(organizations.id, body.organizationId),
+      });
+      if (org) orgName = org.name;
+    }
+    
+    if (body.teamId) {
+      const team = await db.query.teams.findFirst({
+        where: eq(teams.id, body.teamId),
+      });
+      if (team) teamName = team.name;
+    }
+    
+    if (body.profileId) {
+      const profile = await db.query.profiles.findFirst({
+        where: eq(profiles.id, body.profileId),
+      });
+      if (profile) profileName = profile.name;
+    }
+    
+    // Enviar email de convite
+    const inviteUrl = `${config.appUrl}/accept-invite/${token}`;
+    
+    if (emailService) {
+      try {
+        await emailService.sendTransactional({
+          to: newInvite.email,
+          subject: `Convite para ${orgName}`,
+          html: `
+            <h2>Você foi convidado para ${orgName}</h2>
+            <p>Olá,</p>
+            <p>Você foi convidado para participar do <strong>${orgName}</strong>.</p>
+            ${teamName ? `<p>Time: <strong>${teamName}</strong></p>` : ''}
+            ${profileName ? `<p>Perfil: <strong>${profileName}</strong></p>` : ''}
+            <p>Clique no link abaixo para aceitar o convite:</p>
+            <p><a href="${inviteUrl}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Aceitar Convite</a></p>
+            <p>Este convite expira em 7 dias.</p>
+            <p>Se você não esperava este convite, pode ignorar este email.</p>
+            <p>Atenciosamente,<br>Equipe NuP Identity</p>
+          `,
+          text: `
+Você foi convidado para ${orgName}
+
+Você foi convidado para participar do ${orgName}.
+${teamName ? `Time: ${teamName}` : ''}
+${profileName ? `Perfil: ${profileName}` : ''}
+
+Para aceitar o convite, acesse: ${inviteUrl}
+
+Este convite expira em 7 dias.
+
+Se você não esperava este convite, pode ignorar este email.
+
+Atenciosamente,
+Equipe NuP Identity
+          `,
+        });
+      } catch (emailError) {
+        console.error("Erro ao enviar email de convite:", emailError);
+      }
+    }
+    
     return res.status(201).json({
       ...newInvite,
-      inviteUrl: `${req.protocol}://${req.get("host")}/accept-invite/${token}`,
+      inviteUrl,
+      emailSent: !!emailService,
     });
   } catch (error: any) {
     console.error("Erro ao criar convite:", error);

@@ -16,5 +16,14 @@
     "command": "cd apps/nup-study && PORT=5000 npm run dev",
     "hasDevScript": true,
     "enabled": true
+  },
+  {
+    "id": "nup-identify",
+    "name": "nup-identify",
+    "path": "apps/nup-identify",
+    "port": 3001,
+    "command": "cd apps/nup-identify && PORT=3001 npm run dev",
+    "hasDevScript": true,
+    "enabled": false
   }
 ]

@@ -1,12 +1,13 @@
 import express, { type Router, type Request, type Response } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 import { db } from "../db";
-import { users, refreshTokens, authEvents, loginSchema, registerSchema } from "../../shared/schema";
+import { users, refreshTokens, authEvents, loginSchema, registerSchema, verifyEmailSchema, emailVerificationTokens } from "../../shared/schema";
 import { hashPassword, comparePassword, validatePasswordStrength } from "../auth/password";
 import { generateAccessToken, generateRefreshToken, verifyToken } from "../auth/jwt";
 import { requireAuth } from "../middleware/auth";
 import { config } from "../config";
 import { nanoid } from "nanoid";
+import { emailService } from "../services/email.service";
 
 const router: Router = express.Router();
 
@@ -53,7 +54,7 @@ router.post("/register", async (req: Request, res: Response) => {
       email: body.email.toLowerCase(),
       name: body.name,
       password: passwordHash,
-      emailVerified: false, // TODO: implementar verificação de email
+      emailVerified: false,
     }).returning();
     
     // Registrar evento de autenticação
@@ -66,24 +67,38 @@ router.post("/register", async (req: Request, res: Response) => {
       success: true,
     });
     
-    // Gerar tokens
-    const accessToken = generateAccessToken(newUser);
-    const refreshToken = generateRefreshToken(newUser);
+    // Gerar token de verificação de email
+    const verificationToken = nanoid(32);
+    const expiresAt = new Date(Date.now() + config.emailVerificationTokenExpiresIn);
     
-    // Salvar refresh token
-    await db.insert(refreshTokens).values({
+    await db.insert(emailVerificationTokens).values({
       userId: newUser.id,
-      token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
+      token: verificationToken,
+      expiresAt,
     });
     
-    // Retornar usuário e tokens (SEM senha)
+    // Enviar email de verificação (não bloquear registro se falhar)
+    if (emailService) {
+      try {
+        const verificationLink = `${config.appUrl}/verify-email?token=${verificationToken}`;
+        await emailService.sendVerification(newUser.email, {
+          username: newUser.name,
+          verificationLink,
+          appName: "NuP Identity",
+        });
+      } catch (emailError) {
+        console.error("Erro ao enviar email de verificação:", emailError);
+      }
+    }
+    
+    // Retornar sucesso SEM autenticar usuário
+    // Usuário precisa verificar email antes de fazer login
     const { password: _, ...userWithoutPassword } = newUser;
     
     res.status(201).json({
       user: userWithoutPassword,
-      accessToken,
-      refreshToken,
+      message: "Usuário criado com sucesso! Verifique seu email para ativar sua conta.",
+      emailSent: !!emailService,
     });
   } catch (error: any) {
     console.error("Erro no registro:", error);
@@ -152,6 +167,14 @@ router.post("/login", async (req: Request, res: Response) => {
       return res.status(401).json({
         error: "Credenciais inválidas",
         message: "Email ou senha incorretos",
+      });
+    }
+    
+    // Verificar se email foi verificado
+    if (config.requireEmailVerification && !user.emailVerified) {
+      return res.status(403).json({
+        error: "Email não verificado",
+        message: "Por favor, verifique seu email antes de fazer login",
       });
     }
     
@@ -335,6 +358,144 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
     console.error("Erro ao buscar usuário:", error);
     res.status(500).json({
       error: "Erro ao buscar usuário",
+    });
+  }
+});
+
+/**
+ * POST /api/auth/verify-email
+ * Verificar email com token
+ */
+router.post("/verify-email", async (req: Request, res: Response) => {
+  try {
+    const body = verifyEmailSchema.parse(req.body);
+    
+    // Buscar token válido
+    const tokenRecord = await db.query.emailVerificationTokens.findFirst({
+      where: and(
+        eq(emailVerificationTokens.token, body.token),
+        gt(emailVerificationTokens.expiresAt, new Date())
+      ),
+    });
+    
+    if (!tokenRecord) {
+      return res.status(400).json({
+        error: "Token inválido ou expirado",
+        message: "O token de verificação é inválido ou já expirou. Por favor, solicite um novo email de verificação.",
+      });
+    }
+    
+    // Marcar email como verificado
+    await db.update(users)
+      .set({ emailVerified: true })
+      .where(eq(users.id, tokenRecord.userId));
+    
+    // Deletar token usado
+    await db.delete(emailVerificationTokens)
+      .where(eq(emailVerificationTokens.token, body.token));
+    
+    // Registrar evento
+    await db.insert(authEvents).values({
+      userId: tokenRecord.userId,
+      eventType: "email_verified",
+      authMethod: "email_verification",
+      success: true,
+    });
+    
+    res.json({
+      message: "Email verificado com sucesso! Você já pode fazer login.",
+      verified: true,
+    });
+  } catch (error: any) {
+    console.error("Erro ao verificar email:", error);
+    
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        error: "Dados inválidos",
+        details: error.errors,
+      });
+    }
+    
+    res.status(500).json({
+      error: "Erro no servidor",
+      message: "Erro ao verificar email",
+    });
+  }
+});
+
+/**
+ * POST /api/auth/resend-verification
+ * Reenviar email de verificação
+ */
+router.post("/resend-verification", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        error: "Email obrigatório",
+        message: "Por favor, forneça um email",
+      });
+    }
+    
+    // Buscar usuário
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email.toLowerCase()),
+    });
+    
+    if (!user) {
+      // Não revelar se email existe ou não (segurança)
+      return res.json({
+        message: "Se o email existir, um novo link de verificação será enviado.",
+      });
+    }
+    
+    // Se já verificado, retornar sucesso
+    if (user.emailVerified) {
+      return res.json({
+        message: "Email já verificado. Você pode fazer login.",
+        verified: true,
+      });
+    }
+    
+    // Deletar tokens antigos do usuário
+    await db.delete(emailVerificationTokens)
+      .where(eq(emailVerificationTokens.userId, user.id));
+    
+    // Gerar novo token
+    const verificationToken = nanoid(32);
+    const expiresAt = new Date(Date.now() + config.emailVerificationTokenExpiresIn);
+    
+    await db.insert(emailVerificationTokens).values({
+      userId: user.id,
+      token: verificationToken,
+      expiresAt,
+    });
+    
+    // Enviar email
+    if (emailService) {
+      try {
+        const verificationLink = `${config.appUrl}/verify-email?token=${verificationToken}`;
+        await emailService.sendVerification(user.email, {
+          username: user.name,
+          verificationLink,
+          appName: "NuP Identity",
+        });
+      } catch (emailError) {
+        console.error("Erro ao enviar email de verificação:", emailError);
+      }
+    }
+    
+    res.json({
+      message: "Email de verificação reenviado com sucesso!",
+      emailSent: !!emailService,
+    });
+  } catch (error: any) {
+    console.error("Erro ao reenviar verificação:", error);
+    
+    res.status(500).json({
+      error: "Erro no servidor",
+      message: "Erro ao reenviar email de verificação",
     });
   }
 });

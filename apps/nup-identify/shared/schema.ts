@@ -191,6 +191,15 @@ export const refreshTokens = pgTable("identity_refresh_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Email Verification Tokens
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Audit log de autenticações
 export const authEvents = pgTable("identity_auth_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -379,6 +388,14 @@ export const insertServiceAccountSchema = createInsertSchema(serviceAccounts).om
 export type InsertServiceAccount = z.infer<typeof insertServiceAccountSchema>;
 export type ServiceAccount = typeof serviceAccounts.$inferSelect;
 
+// Email Verification Tokens
+export const insertEmailVerificationTokenSchema = createInsertSchema(emailVerificationTokens).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertEmailVerificationToken = z.infer<typeof insertEmailVerificationTokenSchema>;
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+
 // Auth schemas
 export const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -391,5 +408,10 @@ export const registerSchema = z.object({
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 });
 
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1, "Token é obrigatório"),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
