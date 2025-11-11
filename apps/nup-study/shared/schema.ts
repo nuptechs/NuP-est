@@ -6,6 +6,7 @@ import {
   jsonb,
   json,
   pgTable,
+  pgSchema,
   timestamp,
   varchar,
   text,
@@ -17,8 +18,11 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Schema dedicado para NuP-Study
+const studySchema = pgSchema("nup_study");
+
 // Session storage table (mandatory for Replit Auth)
-export const sessions = pgTable(
+export const sessions = studySchema.table(
   "sessions",
   {
     sid: varchar("sid").primaryKey(),
@@ -70,7 +74,7 @@ export interface DocumentOutline {
 }
 
 // User storage table (mandatory for Replit Auth) - EXPANDIDO
-export const users = pgTable("users", {
+export const users = studySchema.table("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
@@ -110,7 +114,7 @@ export const users = pgTable("users", {
 });
 
 // ===== CONHECIMENTO POR MATÉRIA =====
-export const subjectKnowledge = pgTable("subject_knowledge", {
+export const subjectKnowledge = studySchema.table("subject_knowledge", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subjectName: varchar("subject_name").notNull(), // Nome da matéria avaliada
@@ -139,7 +143,7 @@ export const subjectKnowledge = pgTable("subject_knowledge", {
 });
 
 // ===== HISTÓRICO DE EVOLUÇÃO =====
-export const learningHistory = pgTable("learning_history", {
+export const learningHistory = studySchema.table("learning_history", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
@@ -162,7 +166,7 @@ export const learningHistory = pgTable("learning_history", {
 });
 
 // ===== RESULTADOS DE TESTES INICIAL =====
-export const assessmentResults = pgTable("assessment_results", {
+export const assessmentResults = studySchema.table("assessment_results", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   
@@ -189,7 +193,7 @@ export const assessmentResults = pgTable("assessment_results", {
 });
 
 // Knowledge Areas
-export const knowledgeAreas = pgTable("knowledge_areas", {
+export const knowledgeAreas = studySchema.table("knowledge_areas", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -203,7 +207,7 @@ export const knowledgeAreas = pgTable("knowledge_areas", {
 ]);
 
 // Study subjects
-export const subjects = pgTable("subjects", {
+export const subjects = studySchema.table("subjects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   areaId: varchar("area_id").notNull().references(() => knowledgeAreas.id, { onDelete: "cascade" }),
@@ -219,7 +223,7 @@ export const subjects = pgTable("subjects", {
 ]);
 
 // Topics within subjects
-export const topics = pgTable("topics", {
+export const topics = studySchema.table("topics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   subjectId: varchar("subject_id").notNull().references(() => subjects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -229,7 +233,7 @@ export const topics = pgTable("topics", {
 });
 
 // Processed files (shared across users for deduplication and efficiency)
-export const processedFiles = pgTable("processed_files", {
+export const processedFiles = studySchema.table("processed_files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   fileHash: varchar("file_hash", { length: 64 }).notNull().unique(), // SHA-256 hash
   filePath: text("file_path").notNull(), // Physical file location
@@ -264,7 +268,7 @@ export const processedFiles = pgTable("processed_files", {
 ]);
 
 // Study materials (user's personal organization of content)
-export const materials = pgTable("materials", {
+export const materials = studySchema.table("materials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
@@ -289,7 +293,7 @@ export const materials = pgTable("materials", {
 ]);
 
 // Mind Maps (AI-powered concept mapping)
-export const mindMaps = pgTable("mind_maps", {
+export const mindMaps = studySchema.table("mind_maps", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
@@ -322,7 +326,7 @@ export const mindMaps = pgTable("mind_maps", {
 
 // Mind Map Style Sheets (SimpleMind-inspired 3-level hierarchy)
 // Level 1: Global Style Sheets - Define overall appearance for mind maps
-export const mindMapStyleSheets = pgTable("mind_map_style_sheets", {
+export const mindMapStyleSheets = studySchema.table("mind_map_style_sheets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // null = built-in system stylesheet
   
@@ -355,7 +359,7 @@ export const mindMapStyleSheets = pgTable("mind_map_style_sheets", {
 
 // Mind Map Element Styles (SimpleMind-inspired)
 // Level 3: Individual Element Customization - Override styles for specific nodes/edges
-export const mindMapElementStyles = pgTable("mind_map_element_styles", {
+export const mindMapElementStyles = studySchema.table("mind_map_element_styles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   mindMapId: varchar("mind_map_id").notNull().references(() => mindMaps.id, { onDelete: "cascade" }),
   elementId: varchar("element_id").notNull(), // Node ID or Edge ID from React Flow
@@ -377,7 +381,7 @@ export const mindMapElementStyles = pgTable("mind_map_element_styles", {
 
 // AI Generations Registry - Cache system for consistent AI outputs
 // Ensures same input (content + profile) = same output (deterministic)
-export const aiGenerations = pgTable("ai_generations", {
+export const aiGenerations = studySchema.table("ai_generations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   
@@ -433,7 +437,7 @@ export const aiGenerations = pgTable("ai_generations", {
 // ========== FASE 1: ARQUITETURA ESTRUTURADA PARA PROFESSOR ROBÔ + ML/DW ==========
 
 // Content sources (professors, institutions, platforms) - CRITICAL FOR ANALYTICS
-export const contentSources = pgTable("content_sources", {
+export const contentSources = studySchema.table("content_sources", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
   // Source identification
@@ -460,7 +464,7 @@ export const contentSources = pgTable("content_sources", {
 ]);
 
 // Material content segments (categorized: metadata, clean_content, irrelevant) - CORE OF PHASE 1
-export const materialContentSegments = pgTable("material_content_segments", {
+export const materialContentSegments = studySchema.table("material_content_segments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
   // Links to material and processed file
@@ -498,7 +502,7 @@ export const materialContentSegments = pgTable("material_content_segments", {
 ]);
 
 // Segment topics (normalized topics for cross-material correlation) - ENABLES ML CORRELATIONS
-export const segmentTopics = pgTable("segment_topics", {
+export const segmentTopics = studySchema.table("segment_topics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
   segmentId: varchar("segment_id").notNull().references(() => materialContentSegments.id, { onDelete: "cascade" }),
@@ -516,7 +520,7 @@ export const segmentTopics = pgTable("segment_topics", {
 ]);
 
 // Study material events (telemetry for ML/analytics) - CANNOT BE RETROCOLLECTED
-export const studyMaterialEvents = pgTable("study_material_events", {
+export const studyMaterialEvents = studySchema.table("study_material_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -548,7 +552,7 @@ export const studyMaterialEvents = pgTable("study_material_events", {
 ]);
 
 // Student profile traits (cognitive profile for personalization) - CRITICAL FOR PROFESSOR ROBÔ
-export const studentProfileTraits = pgTable("student_profile_traits", {
+export const studentProfileTraits = studySchema.table("student_profile_traits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -580,7 +584,7 @@ export const studentProfileTraits = pgTable("student_profile_traits", {
 // ========== END FASE 1 TABLES ==========
 
 // Goals (macro objectives)
-export const goals = pgTable("goals", {
+export const goals = studySchema.table("goals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
@@ -591,7 +595,7 @@ export const goals = pgTable("goals", {
 });
 
 // Targets (micro goals)
-export const targets = pgTable("targets", {
+export const targets = studySchema.table("targets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   goalId: varchar("goal_id").references(() => goals.id, { onDelete: "cascade" }),
@@ -606,7 +610,7 @@ export const targets = pgTable("targets", {
 });
 
 // Study sessions
-export const studySessions = pgTable("study_sessions", {
+export const studySessions = studySchema.table("study_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
@@ -622,7 +626,7 @@ export const studySessions = pgTable("study_sessions", {
 });
 
 // AI generated questions
-export const aiQuestions = pgTable("ai_questions", {
+export const aiQuestions = studySchema.table("ai_questions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
@@ -638,7 +642,7 @@ export const aiQuestions = pgTable("ai_questions", {
 });
 
 // Question attempts
-export const questionAttempts = pgTable("question_attempts", {
+export const questionAttempts = studySchema.table("question_attempts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   questionId: varchar("question_id").notNull().references(() => aiQuestions.id, { onDelete: "cascade" }),
@@ -658,7 +662,7 @@ export const questionAttempts = pgTable("question_attempts", {
 ]);
 
 // Flashcard decks
-export const flashcardDecks = pgTable("flashcard_decks", {
+export const flashcardDecks = studySchema.table("flashcard_decks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
@@ -672,7 +676,7 @@ export const flashcardDecks = pgTable("flashcard_decks", {
 });
 
 // Individual flashcards
-export const flashcards = pgTable("flashcards", {
+export const flashcards = studySchema.table("flashcards", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   deckId: varchar("deck_id").notNull().references(() => flashcardDecks.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -694,7 +698,7 @@ export const flashcards = pgTable("flashcards", {
 });
 
 // Flashcard review history
-export const flashcardReviews = pgTable("flashcard_reviews", {
+export const flashcardReviews = studySchema.table("flashcard_reviews", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   flashcardId: varchar("flashcard_id").notNull().references(() => flashcards.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -708,7 +712,7 @@ export const flashcardReviews = pgTable("flashcard_reviews", {
 });
 
 // Knowledge base documents
-export const knowledgeBase = pgTable("knowledge_base", {
+export const knowledgeBase = studySchema.table("knowledge_base", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   category: varchar("category").notNull().default("Geral"), // base de conhecimento nomeada
@@ -725,7 +729,7 @@ export const knowledgeBase = pgTable("knowledge_base", {
 });
 
 // Knowledge base chunks with embeddings
-export const knowledgeChunks = pgTable("knowledge_chunks", {
+export const knowledgeChunks = studySchema.table("knowledge_chunks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   knowledgeBaseId: varchar("knowledge_base_id").notNull().references(() => knowledgeBase.id, { onDelete: "cascade" }),
   chunkIndex: integer("chunk_index").notNull(),
@@ -742,7 +746,7 @@ export const searchTypeEnum = pgEnum("search_type", [
 ]);
 
 // Sites de busca configuráveis
-export const searchSites = pgTable("search_sites", {
+export const searchSites = studySchema.table("search_sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(), // Nome amigável do site (ex: "Cebraspe")
   url: text("url").notNull(), // URL base do site (ex: "https://www.cebraspe.org.br")
@@ -753,7 +757,7 @@ export const searchSites = pgTable("search_sites", {
 });
 
 // Configuração de quais tipos de busca cada site suporta
-export const siteSearchTypes = pgTable("site_search_types", {
+export const siteSearchTypes = studySchema.table("site_search_types", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   siteId: varchar("site_id").notNull().references(() => searchSites.id, { onDelete: "cascade" }),
   searchType: searchTypeEnum("search_type").notNull(),
@@ -781,7 +785,7 @@ export const editalStatusEnum = pgEnum("edital_status", [
   "uploaded", "processing", "chunked", "indexed", "analyzed", "summary_generated", "completed", "failed"
 ]);
 
-export const processingJobs = pgTable("processing_jobs", {
+export const processingJobs = studySchema.table("processing_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
   type: jobTypeEnum("type").notNull(),
@@ -816,7 +820,7 @@ export const processingJobs = pgTable("processing_jobs", {
 ]);
 
 // Parts for large document processing jobs
-export const processingJobParts = pgTable("processing_job_parts", {
+export const processingJobParts = studySchema.table("processing_job_parts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   jobId: varchar("job_id").notNull().references(() => processingJobs.id, { onDelete: "cascade" }),
   
@@ -850,7 +854,7 @@ export const processingJobParts = pgTable("processing_job_parts", {
 ]);
 
 // ===== EDITAIS =====
-export const editais = pgTable("editais", {
+export const editais = studySchema.table("editais", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   
@@ -888,7 +892,7 @@ export const editais = pgTable("editais", {
 // ===== SISTEMA DE ASSISTENTES PERSONALIZADOS =====
 
 // Catálogo dinâmico de dificuldades de aprendizado (não enum-based)
-export const learningDifficultiesCatalog = pgTable("learning_difficulties_catalog", {
+export const learningDifficultiesCatalog = studySchema.table("learning_difficulties_catalog", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull().unique(), // e.g., "ADHD", "Dyslexia", "Autism"
   displayName: varchar("display_name").notNull(), // Nome amigável
@@ -901,7 +905,7 @@ export const learningDifficultiesCatalog = pgTable("learning_difficulties_catalo
 });
 
 // Tabela de junção: dificuldades de aprendizado dos usuários
-export const userLearningDifficulties = pgTable("user_learning_difficulties", {
+export const userLearningDifficulties = studySchema.table("user_learning_difficulties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   difficultyId: varchar("difficulty_id").notNull().references(() => learningDifficultiesCatalog.id, { onDelete: "cascade" }),
@@ -915,7 +919,7 @@ export const userLearningDifficulties = pgTable("user_learning_difficulties", {
 ]);
 
 // Tabela de junção: dificuldades de aprendizado dos perfis
-export const profileLearningDifficulties = pgTable("profile_learning_difficulties", {
+export const profileLearningDifficulties = studySchema.table("profile_learning_difficulties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   profileId: varchar("profile_id").notNull().references(() => studentLearningProfiles.id, { onDelete: "cascade" }),
   difficultyId: varchar("difficulty_id").notNull().references(() => learningDifficultiesCatalog.id, { onDelete: "cascade" }),
@@ -928,7 +932,7 @@ export const profileLearningDifficulties = pgTable("profile_learning_difficultie
 ]);
 
 // Perfis de aprendizado dos estudantes com versionamento
-export const studentLearningProfiles = pgTable("student_learning_profiles", {
+export const studentLearningProfiles = studySchema.table("student_learning_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   version: integer("version").notNull().default(1), // Versionamento do perfil
@@ -968,7 +972,7 @@ export const studentLearningProfiles = pgTable("student_learning_profiles", {
 });
 
 // Assistentes personalizados de ensino
-export const personalizedAssistants = pgTable("personalized_assistants", {
+export const personalizedAssistants = studySchema.table("personalized_assistants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   profileId: varchar("profile_id").notNull().references(() => studentLearningProfiles.id, { onDelete: "cascade" }),
@@ -995,7 +999,7 @@ export const personalizedAssistants = pgTable("personalized_assistants", {
 });
 
 // Estratégias de ensino disponíveis
-export const teachingStrategies = pgTable("teaching_strategies", {
+export const teachingStrategies = studySchema.table("teaching_strategies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull().unique(),
   displayName: varchar("display_name").notNull(),
@@ -1019,7 +1023,7 @@ export const teachingStrategies = pgTable("teaching_strategies", {
 });
 
 // Estratégias aplicadas a estudantes específicos
-export const studentStrategies = pgTable("student_strategies", {
+export const studentStrategies = studySchema.table("student_strategies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   profileId: varchar("profile_id").notNull().references(() => studentLearningProfiles.id, { onDelete: "cascade" }),
@@ -1046,7 +1050,7 @@ export const studentStrategies = pgTable("student_strategies", {
 });
 
 // Avaliações adaptativas (sessões de avaliação)
-export const adaptiveAssessments = pgTable("adaptive_assessments", {
+export const adaptiveAssessments = studySchema.table("adaptive_assessments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   profileId: varchar("profile_id").references(() => studentLearningProfiles.id, { onDelete: "set null" }),
@@ -1082,7 +1086,7 @@ export const adaptiveAssessments = pgTable("adaptive_assessments", {
 });
 
 // Questões de avaliação adaptativa
-export const assessmentQuestions = pgTable("assessment_questions", {
+export const assessmentQuestions = studySchema.table("assessment_questions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
   // Conteúdo da questão
@@ -1123,7 +1127,7 @@ export const assessmentQuestions = pgTable("assessment_questions", {
 });
 
 // Tentativas de questões em avaliações adaptativas
-export const studentAssessmentAttempts = pgTable("student_assessment_attempts", {
+export const studentAssessmentAttempts = studySchema.table("student_assessment_attempts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   assessmentId: varchar("assessment_id").notNull().references(() => adaptiveAssessments.id, { onDelete: "cascade" }),
   questionId: varchar("question_id").notNull().references(() => assessmentQuestions.id, { onDelete: "cascade" }),
@@ -1151,7 +1155,7 @@ export const studentAssessmentAttempts = pgTable("student_assessment_attempts", 
 });
 
 // Logs de interação para descoberta contínua
-export const interactionLogs = pgTable("interaction_logs", {
+export const interactionLogs = studySchema.table("interaction_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   assistantId: varchar("assistant_id").references(() => personalizedAssistants.id, { onDelete: "set null" }),
@@ -1182,7 +1186,7 @@ export const interactionLogs = pgTable("interaction_logs", {
 });
 
 // Memória contextual do assistente
-export const assistantMemory = pgTable("assistant_memory", {
+export const assistantMemory = studySchema.table("assistant_memory", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   assistantId: varchar("assistant_id").notNull().references(() => personalizedAssistants.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -1215,7 +1219,7 @@ export const assistantMemory = pgTable("assistant_memory", {
 ]);
 
 // Mensagens de chat do assistente (histórico de conversação)
-export const chatMessages = pgTable("chat_messages", {
+export const chatMessages = studySchema.table("chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   assistantId: varchar("assistant_id").notNull().references(() => personalizedAssistants.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -1241,7 +1245,7 @@ export const chatMessages = pgTable("chat_messages", {
 
 // ========== STUDENT PROFILE ENGINE ==========
 // Perfil enriquecido do aluno (snapshot processado e sempre atualizado)
-export const studentProfilesEnriched = pgTable("student_profiles_enriched", {
+export const studentProfilesEnriched = studySchema.table("student_profiles_enriched", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
   
@@ -1294,7 +1298,7 @@ export const studentProfilesEnriched = pgTable("student_profiles_enriched", {
 ]);
 
 // Resumos de conversas com Professor IA
-export const conversationSummaries = pgTable("conversation_summaries", {
+export const conversationSummaries = studySchema.table("conversation_summaries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   sessionId: varchar("session_id").notNull(), // ID da sessão do Professor IA
@@ -1333,7 +1337,7 @@ export const conversationSummaries = pgTable("conversation_summaries", {
 ]);
 
 // Métricas detalhadas de performance (calculadas periodicamente)
-export const profileMetrics = pgTable("profile_metrics", {
+export const profileMetrics = studySchema.table("profile_metrics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   

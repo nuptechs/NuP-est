@@ -1,8 +1,11 @@
-import { pgTable, uuid, text, jsonb, boolean, timestamp, varchar, date } from 'drizzle-orm/pg-core';
+import { pgTable, pgSchema, uuid, text, jsonb, boolean, timestamp, varchar, date } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
+// Schema dedicado para NuP-AIM
+const aimSchema = pgSchema("nup_aim");
+
 // Profiles table (perfis de acesso)
-export const profiles = pgTable('profiles', {
+export const profiles = aimSchema.table('profiles', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   name: text('name').notNull(),
   description: text('description').notNull(),
@@ -13,7 +16,7 @@ export const profiles = pgTable('profiles', {
 });
 
 // Users table (usuários do sistema)
-export const users = pgTable('users', {
+export const users = aimSchema.table('users', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   username: text('username').notNull().unique(),
   email: text('email').notNull().unique(),
@@ -29,7 +32,7 @@ export const users = pgTable('users', {
 });
 
 // Projects table (projetos)
-export const projects = pgTable('projects', {
+export const projects = aimSchema.table('projects', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   name: text('name').notNull(),
   acronym: text('acronym').notNull(),
@@ -40,7 +43,7 @@ export const projects = pgTable('projects', {
 });
 
 // Analyses table (análises de impacto)
-export const analyses = pgTable('analyses', {
+export const analyses = aimSchema.table('analyses', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   title: text('title').notNull(),
   description: text('description'),
@@ -53,7 +56,7 @@ export const analyses = pgTable('analyses', {
 });
 
 // Processes table (funcionalidades impactadas)
-export const processes = pgTable('processes', {
+export const processes = aimSchema.table('processes', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   analysisId: uuid('analysis_id').references(() => analyses.id),
   name: text('name').notNull(),
@@ -66,7 +69,7 @@ export const processes = pgTable('processes', {
 });
 
 // Impacts table (impactos)
-export const impacts = pgTable('impacts', {
+export const impacts = aimSchema.table('impacts', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   analysisId: uuid('analysis_id').references(() => analyses.id),
   description: text('description').notNull(),
@@ -78,7 +81,7 @@ export const impacts = pgTable('impacts', {
 });
 
 // Risks table (riscos)
-export const risks = pgTable('risks', {
+export const risks = aimSchema.table('risks', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   analysisId: uuid('analysis_id').references(() => analyses.id),
   description: text('description').notNull(),
@@ -90,7 +93,7 @@ export const risks = pgTable('risks', {
 });
 
 // Mitigations table (ações de mitigação)
-export const mitigations = pgTable('mitigations', {
+export const mitigations = aimSchema.table('mitigations', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   analysisId: uuid('analysis_id').references(() => analyses.id),
   action: text('action').notNull(),
@@ -102,7 +105,7 @@ export const mitigations = pgTable('mitigations', {
 });
 
 // Conclusions table (conclusões e recomendações)
-export const conclusions = pgTable('conclusions', {
+export const conclusions = aimSchema.table('conclusions', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   analysisId: uuid('analysis_id').references(() => analyses.id),
   summary: text('summary'),
@@ -113,7 +116,7 @@ export const conclusions = pgTable('conclusions', {
 });
 
 // Custom Field Values table (valores de campos personalizados)
-export const customFieldValues = pgTable('custom_field_values', {
+export const customFieldValues = aimSchema.table('custom_field_values', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   analysisId: uuid('analysis_id').references(() => analyses.id).notNull(),
   fieldId: text('field_id').notNull(),
