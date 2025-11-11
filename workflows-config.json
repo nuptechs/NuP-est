@@ -19,11 +19,11 @@
   },
   {
     "id": "nup-identify",
-    "name": "nup-identify",
+    "name": "nupidentity",
     "path": "apps/nup-identify",
-    "port": 3001,
-    "command": "cd apps/nup-identify && PORT=3001 npm run dev",
+    "port": 5002,
+    "command": "cd apps/nup-identify && PORT=5002 npm run dev",
     "hasDevScript": true,
-    "enabled": false
+    "enabled": true
   }
 ]
