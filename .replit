@@ -138,6 +138,10 @@ localPort = 45433
 externalPort = 8080
 
 [[ports]]
+localPort = 34735
+externalPort = 6800
+
+[[ports]]
 localPort = 45829
 
 [agent]
