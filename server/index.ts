@@ -49,8 +49,10 @@ app.use((req, res, next) => {
     target: 'http://localhost:5002',
     changeOrigin: true,
     ws: true,
+    // Remove /nup-identify prefix before forwarding to backend
+    pathRewrite: { '^/nup-identify': '' },
     onProxyReq: (proxyReq, req, res) => {
-      log(`[Proxy] NuP-Identify: ${req.method} ${req.url}`);
+      log(`[Proxy] NuP-Identify: ${req.method} ${req.url} -> ${proxyReq.path}`);
     },
     onProxyRes: (proxyRes, req, res) => {
       proxyRes.headers['x-proxied-by'] = 'NuP-Study';
@@ -74,8 +76,10 @@ app.use((req, res, next) => {
     target: 'http://localhost:34735',
     changeOrigin: true,
     ws: true,
+    // Remove /nup-aim prefix before forwarding to backend
+    pathRewrite: { '^/nup-aim': '' },
     onProxyReq: (proxyReq, req, res) => {
-      log(`[Proxy] NuP-AIM: ${req.method} ${req.url}`);
+      log(`[Proxy] NuP-AIM: ${req.method} ${req.url} -> ${proxyReq.path}`);
     },
     onProxyRes: (proxyRes, req, res) => {
       proxyRes.headers['x-proxied-by'] = 'NuP-Study';
