@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Cores Primárias NuP-Kan */
+    --background: 0 0% 100%;
+    --foreground: 210 25% 7.8%;
+    
+    /* Cards e Popovers */
+    --card: 0 0% 100%;
+    --card-foreground: 210 25% 7.8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 25% 7.8%;
+    
+    /* Primary (Roxo/Índigo) */
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary (Cinza Escuro) */
+    --secondary: 210 25% 7.8%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Muted (Cinza Claro) */
+    --muted: 240 2% 90%;
+    --muted-foreground: 210 25% 7.8%;
+    
+    /* Accent (Azul Claro) */
+    --accent: 211.6 51.4% 92.7%;
+    --accent-foreground: 210 25% 7.8%;
+    
+    /* Destructive (Vermelho) */
+    --destructive: 356.3 90.6% 54.3%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Border e Input */
+    --border: 201.4 30.4% 90.98%;
+    --input: 200 23.1% 97.5%;
+    --ring: 263.4 70% 50.4%;
+    
+    /* Sidebar específico */
+    --sidebar-background: 180 6.7% 97.1%;
+    --sidebar-primary: 263.4 70% 50.4%;
+    --sidebar-accent: 211.6 51.4% 92.7%;
+    --sidebar-border: 205 25% 90.6%;
+    
+    /* Border Radius */
+    --radius: 0.75rem;
+    
+    /* Chart Colors */
+    --chart-1: 263.4 70% 50.4%; /* Roxo */
+    --chart-2: 168 76% 42%; /* Verde */
+    --chart-3: 48 96% 53%; /* Amarelo */
+    --chart-4: 158 64% 52%; /* Emerald */
+    --chart-5: 340 82% 52%; /* Rosa */
+  }
+
+  .dark {
+    /* Background Escuro */
+    --background: 0 0% 0%;
+    --foreground: 200 6.7% 91.2%;
+    
+    /* Cards e Popovers */
+    --card: 228 9.8% 10%;
+    --card-foreground: 200 6.7% 91.2%;
+    --popover: 228 9.8% 10%;
+    --popover-foreground: 200 6.7% 91.2%;
+    
+    /* Primary mantém roxo */
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary */
+    --secondary: 0 0% 9.4%;
+    --secondary-foreground: 200 6.7% 91.2%;
+    
+    /* Muted */
+    --muted: 0 0% 9.4%;
+    --muted-foreground: 200 6.7% 91.2%;
+    
+    /* Accent */
+    --accent: 211.6 51.4% 20%;
+    --accent-foreground: 200 6.7% 91.2%;
+    
+    /* Destructive */
+    --destructive: 356.3 90.6% 54.3%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Border e Input */
+    --border: 210 5.3% 14.9%;
+    --input: 210 5.3% 14.9%;
+    --ring: 263.4 70% 50.4%;
+    
+    /* Sidebar dark */
+    --sidebar-background: 0 0% 5%;
+    --sidebar-primary: 263.4 70% 50.4%;
+    --sidebar-accent: 211.6 51.4% 20%;
+    --sidebar-border: 210 5.3% 14.9%;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Inter', sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}

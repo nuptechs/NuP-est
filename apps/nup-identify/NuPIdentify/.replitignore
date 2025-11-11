@@ -1,0 +1,14 @@
+.git
+.gitignore
+*.md
+.vscode
+.idea
+*.log
+.env.example
+examples
+client/src
+server/**/*.ts
+tsconfig.json
+vite.config.ts
+tailwind.config.js
+postcss.config.js

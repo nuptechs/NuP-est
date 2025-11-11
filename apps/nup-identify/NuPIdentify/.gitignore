@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production builds (only frontend build output should be excluded)
+dist/public/*
+!dist/public/.gitkeep
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+
+# Editor directories
+.vscode/
+.idea/
+
+# Replit
+.upm/
+.config/
+.cache/
+
+# Keep all TypeScript source files - DO NOT IGNORE
+# server/**/*.ts - MUST be included in deployment
+# shared/**/*.ts - MUST be included in deployment
+# client/**/*.tsx - MUST be included in deployment

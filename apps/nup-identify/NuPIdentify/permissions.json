@@ -1,0 +1,98 @@
+{
+  "systemId": "nup-kan",
+  "systemName": "NuP-Kan - Sistema Kanban",
+  "version": "1.0.0",
+  "functions": [
+    {
+      "key": "boards-view",
+      "name": "Visualizar Boards",
+      "category": "Boards",
+      "description": "Permite visualizar boards do sistema",
+      "endpoint": "GET /api/boards"
+    },
+    {
+      "key": "boards-create",
+      "name": "Criar Boards",
+      "category": "Boards",
+      "description": "Permite criar novos boards",
+      "endpoint": "POST /api/boards"
+    },
+    {
+      "key": "boards-edit",
+      "name": "Editar Boards",
+      "category": "Boards",
+      "description": "Permite editar boards existentes",
+      "endpoint": "PUT /api/boards/:id"
+    },
+    {
+      "key": "boards-delete",
+      "name": "Deletar Boards",
+      "category": "Boards",
+      "description": "Permite deletar boards",
+      "endpoint": "DELETE /api/boards/:id"
+    },
+    {
+      "key": "tasks-view",
+      "name": "Visualizar Tarefas",
+      "category": "Tarefas",
+      "description": "Permite visualizar tarefas",
+      "endpoint": "GET /api/tasks"
+    },
+    {
+      "key": "tasks-create",
+      "name": "Criar Tarefas",
+      "category": "Tarefas",
+      "description": "Permite criar novas tarefas",
+      "endpoint": "POST /api/tasks"
+    },
+    {
+      "key": "tasks-edit",
+      "name": "Editar Tarefas",
+      "category": "Tarefas",
+      "description": "Permite editar tarefas existentes",
+      "endpoint": "PUT /api/tasks/:id"
+    },
+    {
+      "key": "tasks-delete",
+      "name": "Deletar Tarefas",
+      "category": "Tarefas",
+      "description": "Permite deletar tarefas",
+      "endpoint": "DELETE /api/tasks/:id"
+    },
+    {
+      "key": "users-view",
+      "name": "Visualizar Usuários",
+      "category": "Usuários",
+      "description": "Permite visualizar lista de usuários",
+      "endpoint": "GET /api/users"
+    },
+    {
+      "key": "users-manage",
+      "name": "Gerenciar Usuários",
+      "category": "Usuários",
+      "description": "Permite criar, editar e deletar usuários",
+      "endpoint": "POST /api/users"
+    },
+    {
+      "key": "teams-view",
+      "name": "Visualizar Times",
+      "category": "Times",
+      "description": "Permite visualizar times",
+      "endpoint": "GET /api/teams"
+    },
+    {
+      "key": "teams-manage",
+      "name": "Gerenciar Times",
+      "category": "Times",
+      "description": "Permite criar, editar e deletar times",
+      "endpoint": "POST /api/teams"
+    },
+    {
+      "key": "admin-settings",
+      "name": "Configurações Admin",
+      "category": "Administração",
+      "description": "Acesso às configurações administrativas",
+      "endpoint": "GET /api/admin/settings"
+    }
+  ]
+}
