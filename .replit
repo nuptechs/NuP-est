@@ -37,11 +37,11 @@ args = "Start application"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "NuP-Identify"
+args = "NuP-Identify (Proxy)"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "NuP-Aim"
+args = "NuP-Aim (Proxy)"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -53,21 +53,21 @@ args = "npm run dev"
 waitForPort = 5000
 
 [[workflows.workflow]]
-name = "NuP-Identify"
+name = "NuP-Identify (Proxy)"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd apps/nup-identify && PORT=5002 npm run dev"
+args = "./start-nup-identify-proxy.sh"
 waitForPort = 5002
 
 [[workflows.workflow]]
-name = "NuP-Aim"
+name = "NuP-Aim (Proxy)"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd apps/nup-aim && PORT=34735 npm run dev"
+args = "./start-nup-aim-proxy.sh"
 waitForPort = 34735
 
 [[ports]]
