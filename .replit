@@ -58,6 +58,15 @@ task = "shell.exec"
 args = "cd apps/nup-aim && PORT=34735 npm run dev"
 waitForPort = 34735
 
+[[workflows.workflow]]
+name = "NuP-Identify"
+mode = "parallel"
+author = 47117879
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/nup-identify && PORT=5002 npm run dev"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
@@ -120,10 +129,6 @@ externalPort = 8099
 [[ports]]
 localPort = 45305
 externalPort = 3002
-
-[[ports]]
-localPort = 45433
-externalPort = 8080
 
 [[ports]]
 localPort = 45829
