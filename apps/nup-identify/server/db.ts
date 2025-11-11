@@ -8,7 +8,9 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create Neon HTTP client
-const client = neon(process.env.DATABASE_URL);
+// Create Neon HTTP client with schema search path
+const databaseUrl = new URL(process.env.DATABASE_URL);
+databaseUrl.searchParams.set("options", "--search_path=nup_identify,public");
+const client = neon(databaseUrl.toString());
 
 export const db = drizzle({ client, schema });
