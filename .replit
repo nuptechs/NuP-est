@@ -33,11 +33,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "NuP-Aim"
+args = "Start application"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start application"
+args = "NuP-Identify"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "NuP-Aim"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -49,27 +53,30 @@ args = "npm run dev"
 waitForPort = 5000
 
 [[workflows.workflow]]
+name = "NuP-Identify"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/nup-identify && PORT=5002 npm run dev"
+waitForPort = 5002
+
+[[workflows.workflow]]
 name = "NuP-Aim"
-mode = "parallel"
-author = 47117879
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd apps/nup-aim && PORT=34735 npm run dev"
 waitForPort = 34735
 
-[[workflows.workflow]]
-name = "NuP-Identify"
-mode = "parallel"
-author = 47117879
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd apps/nup-identify && PORT=5002 npm run dev"
-
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 5002
+externalPort = 5002
 
 [[ports]]
 localPort = 32949
@@ -129,6 +136,10 @@ externalPort = 8099
 [[ports]]
 localPort = 45305
 externalPort = 3002
+
+[[ports]]
+localPort = 45433
+externalPort = 8080
 
 [[ports]]
 localPort = 45829
