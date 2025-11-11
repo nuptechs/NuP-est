@@ -1,14 +1,17 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, pgSchema, text, varchar, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Schema dedicado para NuP-Identify
+const identifySchema = pgSchema("nup_identify");
 
 // =============================================================================
 // MULTI-TENANCY - Organizações
 // =============================================================================
 
 // Organizações (multi-tenant) - Cada cliente/empresa tem uma organização
-export const organizations = pgTable("organizations", {
+export const organizations = identifySchema.table("organizations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(), // URL-friendly name
@@ -24,7 +27,7 @@ export const organizations = pgTable("organizations", {
 // =============================================================================
 
 // Sistemas integrados (NuP-Kan, NuP-CRM, NuP-ERP, etc)
-export const systems = pgTable("systems", {
+export const systems = identifySchema.table("systems", {
   id: varchar("id").primaryKey(), // ex: "nup-kan", "nup-crm"
   name: text("name").notNull(), // ex: "NuP-Kan - Sistema Kanban"
   description: text("description").default(""),
@@ -36,7 +39,7 @@ export const systems = pgTable("systems", {
 });
 
 // Sistemas permitidos por organização (controle de acesso)
-export const organizationSystems = pgTable("organization_systems", {
+export const organizationSystems = identifySchema.table("organization_systems", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   systemId: varchar("system_id").notNull().references(() => systems.id, { onDelete: "cascade" }),
@@ -46,7 +49,7 @@ export const organizationSystems = pgTable("organization_systems", {
 });
 
 // Funções/Permissões de cada sistema (sincronizadas via permissions.json)
-export const functions = pgTable("functions", {
+export const functions = identifySchema.table("functions", {
   id: varchar("id").primaryKey(), // ex: "nup-kan-boards-create"
   systemId: varchar("system_id").notNull().references(() => systems.id, { onDelete: "cascade" }),
   functionKey: text("function_key").notNull(), // ex: "boards-create"
@@ -64,7 +67,7 @@ export const functions = pgTable("functions", {
 
 // IMPORTANTE: Esta tabela é EXCLUSIVA do NuPIdentity
 // Não é compartilhada com outros sistemas - cada sistema usa esta central de identidade
-export const users = pgTable("identity_users", {
+export const users = identifySchema.table("identity_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
@@ -84,7 +87,7 @@ export const users = pgTable("identity_users", {
 });
 
 // Provedores de autenticação externa (OAuth, Social Login)
-export const userAuthProviders = pgTable("user_auth_providers", {
+export const userAuthProviders = identifySchema.table("user_auth_providers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   provider: text("provider").notNull(), // google, github, apple, microsoft
@@ -96,7 +99,7 @@ export const userAuthProviders = pgTable("user_auth_providers", {
 });
 
 // Credenciais WebAuthn/Passkeys
-export const passkeyCredentials = pgTable("passkey_credentials", {
+export const passkeyCredentials = identifySchema.table("passkey_credentials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   credentialId: text("credential_id").notNull().unique(),
@@ -108,7 +111,7 @@ export const passkeyCredentials = pgTable("passkey_credentials", {
 });
 
 // Times (pertencem a organizações)
-export const teams = pgTable("teams", {
+export const teams = identifySchema.table("teams", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -120,7 +123,7 @@ export const teams = pgTable("teams", {
 });
 
 // Relacionamento N:N entre usuários e times
-export const userTeams = pgTable("user_teams", {
+export const userTeams = identifySchema.table("user_teams", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
@@ -129,7 +132,7 @@ export const userTeams = pgTable("user_teams", {
 });
 
 // Perfis de acesso (conjuntos de permissões)
-export const profiles = pgTable("identity_profiles", {
+export const profiles = identifySchema.table("identity_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
   description: text("description").default(""),
@@ -142,7 +145,7 @@ export const profiles = pgTable("identity_profiles", {
 });
 
 // Associação usuário <-> perfil
-export const userProfiles = pgTable("identity_user_profiles", {
+export const userProfiles = identifySchema.table("identity_user_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   profileId: varchar("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
@@ -150,7 +153,7 @@ export const userProfiles = pgTable("identity_user_profiles", {
 });
 
 // Funções atribuídas a perfis
-export const profileFunctions = pgTable("identity_profile_functions", {
+export const profileFunctions = identifySchema.table("identity_profile_functions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   profileId: varchar("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   functionId: varchar("function_id").notNull().references(() => functions.id, { onDelete: "cascade" }),
@@ -159,7 +162,7 @@ export const profileFunctions = pgTable("identity_profile_functions", {
 });
 
 // Perfis atribuídos a times (permissões herdadas por membros)
-export const teamProfiles = pgTable("team_profiles", {
+export const teamProfiles = identifySchema.table("team_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
   profileId: varchar("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
@@ -167,7 +170,7 @@ export const teamProfiles = pgTable("team_profiles", {
 });
 
 // Overrides de permissões por usuário (sobrescreve o que o perfil dá)
-export const userFunctionOverrides = pgTable("identity_user_function_overrides", {
+export const userFunctionOverrides = identifySchema.table("identity_user_function_overrides", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   functionId: varchar("function_id").notNull().references(() => functions.id, { onDelete: "cascade" }),
@@ -183,7 +186,7 @@ export const userFunctionOverrides = pgTable("identity_user_function_overrides",
 // =============================================================================
 
 // JWT Refresh Tokens (para rotação de tokens)
-export const refreshTokens = pgTable("identity_refresh_tokens", {
+export const refreshTokens = identifySchema.table("identity_refresh_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
@@ -192,7 +195,7 @@ export const refreshTokens = pgTable("identity_refresh_tokens", {
 });
 
 // Email Verification Tokens
-export const emailVerificationTokens = pgTable("email_verification_tokens", {
+export const emailVerificationTokens = identifySchema.table("email_verification_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
@@ -201,7 +204,7 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
 });
 
 // Audit log de autenticações
-export const authEvents = pgTable("identity_auth_events", {
+export const authEvents = identifySchema.table("identity_auth_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
   eventType: text("event_type").notNull(), // login, logout, login_failed, token_refresh
@@ -218,7 +221,7 @@ export const authEvents = pgTable("identity_auth_events", {
 // =============================================================================
 
 // Convites pendentes (onboarding)
-export const pendingInvitations = pgTable("pending_invitations", {
+export const pendingInvitations = identifySchema.table("pending_invitations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull(),
   organizationId: varchar("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
@@ -232,7 +235,7 @@ export const pendingInvitations = pgTable("pending_invitations", {
 });
 
 // Administradores delegados (permissões limitadas a org/team)
-export const delegatedAdmins = pgTable("delegated_admins", {
+export const delegatedAdmins = identifySchema.table("delegated_admins", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   scopeType: text("scope_type").notNull(), // organization, team
@@ -244,7 +247,7 @@ export const delegatedAdmins = pgTable("delegated_admins", {
 });
 
 // Service accounts (autenticação sistema-a-sistema)
-export const serviceAccounts = pgTable("service_accounts", {
+export const serviceAccounts = identifySchema.table("service_accounts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   systemId: varchar("system_id").references(() => systems.id, { onDelete: "cascade" }),
@@ -261,7 +264,7 @@ export const serviceAccounts = pgTable("service_accounts", {
 // =============================================================================
 
 // Eventos de webhook para notificar sistemas externos
-export const webhookEvents = pgTable("webhook_events", {
+export const webhookEvents = identifySchema.table("webhook_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   systemId: varchar("system_id").notNull().references(() => systems.id, { onDelete: "cascade" }),
   event: text("event").notNull(), // permissions.updated, user.created, etc
