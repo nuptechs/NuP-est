@@ -75,7 +75,10 @@ export default function LoginPage() {
   });
 
   const handleLogin = (data: LoginCredentials) => {
+    console.log('[LoginPage] handleLogin chamado', data);
+    console.log('[LoginPage] Iniciando mutation...');
     loginMutation.mutate(data);
+    console.log('[LoginPage] Mutation iniciada');
   };
 
   const handleRegister = (data: RegisterData) => {
