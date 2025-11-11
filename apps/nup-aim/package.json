@@ -10,7 +10,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "concurrently \"tsx server/index.ts\" \"vite preview --host 0.0.0.0 --port 5003\""
+    "start": "concurrently \"tsx server/index.ts\" \"vite preview --host 0.0.0.0 --port 5003\"",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@google-cloud/vision": "^4.3.3",

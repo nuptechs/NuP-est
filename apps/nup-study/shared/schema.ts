@@ -21,6 +21,20 @@ import { z } from "zod";
 // Schema dedicado para NuP-Study
 const studySchema = pgSchema("nup_study");
 
+// Enums dentro do schema nup_study
+export const learningDifficultyEnum = studySchema.enum("learning_difficulty", [
+  "none", "adhd", "dyslexia", "autism", "dyscalculia", "attention_deficit", 
+  "reading_comprehension", "math_difficulty", "memory_issues", "processing_speed", "other"
+]);
+
+export const knowledgeLevelEnum = studySchema.enum("knowledge_level", [
+  "beginner", "basic", "intermediate", "advanced", "expert"
+]);
+
+export const learningStyleEnum = studySchema.enum("learning_style", [
+  "visual", "auditory", "kinesthetic", "reading_writing", "mixed"
+]);
+
 // Session storage table (mandatory for Replit Auth)
 export const sessions = studySchema.table(
   "sessions",
@@ -31,20 +45,6 @@ export const sessions = studySchema.table(
   },
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
-
-// Enums para estruturar melhor os dados
-export const learningDifficultyEnum = pgEnum("learning_difficulty", [
-  "none", "adhd", "dyslexia", "autism", "dyscalculia", "attention_deficit", 
-  "reading_comprehension", "math_difficulty", "memory_issues", "processing_speed", "other"
-]);
-
-export const knowledgeLevelEnum = pgEnum("knowledge_level", [
-  "beginner", "basic", "intermediate", "advanced", "expert"
-]);
-
-export const learningStyleEnum = pgEnum("learning_style", [
-  "visual", "auditory", "kinesthetic", "reading_writing", "mixed"
-]);
 
 // Document Outline Types (for processedFiles)
 export interface DocumentOutlineNode {
@@ -741,7 +741,7 @@ export const knowledgeChunks = studySchema.table("knowledge_chunks", {
 // ===== CONFIGURAÇÕES ADMINISTRATIVAS =====
 
 // Enum para tipos de busca
-export const searchTypeEnum = pgEnum("search_type", [
+export const searchTypeEnum = studySchema.enum("search_type", [
   "concurso_publico", "vestibular", "escola", "faculdade", "desenvolvimento_profissional", "outras"
 ]);
 
@@ -769,19 +769,19 @@ export const siteSearchTypes = studySchema.table("site_search_types", {
 }));
 
 // ===== SISTEMA DE JOBS =====
-export const jobStatusEnum = pgEnum("job_status", [
+export const jobStatusEnum = studySchema.enum("job_status", [
   "pending", "processing", "completed", "failed", "cancelled"
 ]);
 
-export const jobTypeEnum = pgEnum("job_type", [
+export const jobTypeEnum = studySchema.enum("job_type", [
   "pdf_processing", "edital_processing", "document_analysis", "file_processing", "large_document_processing"
 ]);
 
-export const fileTypeEnum = pgEnum("file_type", [
+export const fileTypeEnum = studySchema.enum("file_type", [
   "pdf", "docx", "doc", "xlsx", "xls", "json", "csv", "txt", "png", "jpg", "jpeg", "tiff", "tif"
 ]);
 
-export const editalStatusEnum = pgEnum("edital_status", [
+export const editalStatusEnum = studySchema.enum("edital_status", [
   "uploaded", "processing", "chunked", "indexed", "analyzed", "summary_generated", "completed", "failed"
 ]);
 

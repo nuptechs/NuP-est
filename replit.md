@@ -1,6 +1,8 @@
 # Overview
 
-NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor offering ultra-low latency voice interactions (<500ms) to simulate a human teacher. The platform aims to deliver a polished, professional user experience with adaptive learning strategies, enhancing learning efficiency and engagement for personalized educational journeys in the e-learning market. The project is transitioning to a modern monorepo architecture using Turborepo and pnpm workspaces to support a scalable NuP Ecosystem of multiple, independently deployable, and modularly sellable AI-powered applications.
+NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor offering ultra-low latency voice interactions (<500ms) to simulate a human teacher. The platform aims to deliver a polished, professional user experience with adaptive learning strategies, enhancing learning efficiency and engagement for personalized educational journeys in the e-learning market. 
+
+The project uses a modern monorepo architecture with Turborepo and pnpm workspaces to support a scalable NuP Ecosystem of multiple, independently deployable, and modularly sellable AI-powered applications. All apps share a single PostgreSQL database with isolated schemas for logical separation.
 
 # User Preferences
 
@@ -42,6 +44,40 @@ The server uses Express.js and TypeScript (ESM) with Drizzle ORM for type-safe P
 - **Document Outline Extraction**: A reusable service for extracting hierarchical document structure from study materials, supporting granular selection for AI features, using a Strategy Pattern for different document types and lazy extraction with database caching.
 
 ## Data Architecture
+
+### Database Schema Strategy
+
+The monorepo uses a **shared PostgreSQL database with isolated schemas** approach:
+
+```
+PostgreSQL Database (Neon)
+├── Schema: nup_identify (21 tabelas)
+│   └── Tabelas de identidade, usuários, organizações, permissões
+├── Schema: nup_study (50 tabelas)
+│   └── Tabelas de materiais, flashcards, mind maps, AI, perfis de alunos
+└── Schema: nup_aim (futuro)
+    └── Tabelas de análise de impacto
+```
+
+**Benefits:**
+- **Logical Isolation:** Each app has its own namespace, preventing table name conflicts
+- **Cost Efficient:** 1 PostgreSQL database vs 3 separate databases (~70% cost savings on Replit)
+- **Easy Development:** Single DATABASE_URL, simplified local development
+- **Future Flexibility:** Can migrate to separate databases when needed (1-2 hour migration)
+
+**Implementation:**
+- Each app uses `pgSchema("schema_name")` in Drizzle ORM
+- Example: `const studySchema = pgSchema("nup_study");`
+- Tables: `studySchema.table("users", {...})`
+- Enums are schema-scoped to avoid conflicts
+
+**Migration Path:**
+The system was designed to easily migrate from schemas to separate databases:
+1. Export schema: `pg_dump -n nup_study > backup.sql`
+2. Create new database for the app
+3. Import: `psql $NEW_DB_URL < backup.sql`
+4. Update connection string in app config
+5. Zero code changes required
 
 A PostgreSQL database managed by Drizzle ORM stores all application data, including AI-related data, versioned student profiles, assistant instances, and interaction logs.
 
