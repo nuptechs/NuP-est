@@ -48,7 +48,8 @@ export async function setupVite(app: Express, server: Server) {
 
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
-    let url = req.originalUrl;
+    const originalUrl = req.originalUrl;
+    let url = originalUrl;
     
     if (basePrefix && url.startsWith(basePrefix)) {
       url = url.slice(basePrefix.length) || '/';
@@ -64,11 +65,38 @@ export async function setupVite(app: Express, server: Server) {
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      
+      // Add version query param to main script (WITHOUT base prefix - will be added later)
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      const page = await vite.transformIndexHtml(url, template);
+      
+      // Transform HTML with Vite
+      let page = await vite.transformIndexHtml(url, template);
+      
+      // If we have a base prefix, manually prepend it to all Vite-generated paths
+      if (basePrefix) {
+        page = page
+          // Fix Vite client and HMR paths
+          .replaceAll('"/@vite/', `"${basePrefix}/@vite/`)
+          .replaceAll("'/@vite/", `'${basePrefix}/@vite/`)
+          .replaceAll('from "/@vite/', `from "${basePrefix}/@vite/`)
+          .replaceAll("from '/@vite/", `from '${basePrefix}/@vite/`)
+          // Fix React Refresh paths
+          .replaceAll('"/@react-refresh"', `"${basePrefix}/@react-refresh"`)
+          .replaceAll("'/@react-refresh'", `'${basePrefix}/@react-refresh'`)
+          .replaceAll('from "/@react-refresh"', `from "${basePrefix}/@react-refresh"`)
+          .replaceAll("from '/@react-refresh'", `from '${basePrefix}/@react-refresh'`)
+          // Fix source paths
+          .replace(/src="\/src\//g, `src="${basePrefix}/src/`)
+          .replace(/href="\/src\//g, `href="${basePrefix}/src/`)
+          .replace(/from "\/src\//g, `from "${basePrefix}/src/`)
+          .replace(/from '\/src\//g, `from '${basePrefix}/src/`)
+          // Fix @fs paths
+          .replace(/from "\/@fs\//g, `from "${basePrefix}/@fs/`)
+          .replace(/from '\/@fs\//g, `from '${basePrefix}/@fs/`);
+      }
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);

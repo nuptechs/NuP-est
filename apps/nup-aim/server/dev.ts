@@ -53,16 +53,42 @@ async function main() {
       if (req.method !== 'GET' || req.originalUrl.startsWith('/api')) return next();
       
       try {
-        let url = req.originalUrl;
+        const originalUrl = req.originalUrl;
+        let url = originalUrl;
         
         if (BASE_PREFIX && url.startsWith(BASE_PREFIX)) {
           url = url.slice(BASE_PREFIX.length) || '/';
         }
         
-        const html = await vite.transformIndexHtml(
-          url,
-          fs.readFileSync(path.resolve(__dirname, '..', 'client', 'index.html'), 'utf-8')
-        );
+        // Load and transform the HTML template
+        let template = fs.readFileSync(path.resolve(__dirname, '..', 'client', 'index.html'), 'utf-8');
+        
+        // Transform HTML with Vite (WITHOUT modifying template first)
+        let html = await vite.transformIndexHtml(url, template);
+        
+        // If we have a base prefix, manually prepend it to all Vite-generated paths
+        if (BASE_PREFIX) {
+          html = html
+            // Fix Vite client and HMR paths
+            .replaceAll('"/@vite/', `"${BASE_PREFIX}/@vite/`)
+            .replaceAll("'/@vite/", `'${BASE_PREFIX}/@vite/`)
+            .replaceAll('from "/@vite/', `from "${BASE_PREFIX}/@vite/`)
+            .replaceAll("from '/@vite/", `from '${BASE_PREFIX}/@vite/`)
+            // Fix React Refresh paths
+            .replaceAll('"/@react-refresh"', `"${BASE_PREFIX}/@react-refresh"`)
+            .replaceAll("'/@react-refresh'", `'${BASE_PREFIX}/@react-refresh'`)
+            .replaceAll('from "/@react-refresh"', `from "${BASE_PREFIX}/@react-refresh"`)
+            .replaceAll("from '/@react-refresh'", `from '${BASE_PREFIX}/@react-refresh'`)
+            // Fix source paths
+            .replace(/src="\/src\//g, `src="${BASE_PREFIX}/src/`)
+            .replace(/href="\/src\//g, `href="${BASE_PREFIX}/src/`)
+            .replace(/from "\/src\//g, `from "${BASE_PREFIX}/src/`)
+            .replace(/from '\/src\//g, `from '${BASE_PREFIX}/src/`)
+            // Fix @fs paths
+            .replace(/from "\/@fs\//g, `from "${BASE_PREFIX}/@fs/`)
+            .replace(/from '\/@fs\//g, `from '${BASE_PREFIX}/@fs/`);
+        }
+        
         res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
       } catch (e) {
         next(e);
