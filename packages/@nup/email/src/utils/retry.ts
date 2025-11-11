@@ -41,15 +41,22 @@ export function shouldRetryEmailError(result: EmailResult): boolean {
     return false;
   }
   
+  if (result.statusCode) {
+    const retryableStatusCodes = [408, 429, 500, 502, 503, 504];
+    if (retryableStatusCodes.includes(result.statusCode)) {
+      return true;
+    }
+  }
+  
   const retryableErrors = [
     'timeout',
     'network',
     'connection',
     'temporarily unavailable',
     'rate limit',
-    '429',
-    '503',
-    '504'
+    'econnrefused',
+    'enotfound',
+    'etimedout'
   ];
   
   const message = result.message.toLowerCase();

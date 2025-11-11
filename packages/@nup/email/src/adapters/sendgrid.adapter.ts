@@ -71,19 +71,24 @@ export class SendGridAdapter implements EmailAdapter {
           messageId: messageId || undefined,
           message: 'Email sent successfully',
           provider: this.getProviderName(),
-          timestamp: new Date()
+          timestamp: new Date(),
+          statusCode: response.status
         };
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = this.extractErrorMessage(errorData);
         
-        console.error('[SendGrid] Error response:', errorData);
+        console.error('[SendGrid] Error response:', {
+          status: response.status,
+          data: errorData
+        });
         
         return {
           success: false,
           message: `SendGrid error: ${errorMessage}`,
           provider: this.getProviderName(),
-          timestamp: new Date()
+          timestamp: new Date(),
+          statusCode: response.status
         };
       }
     } catch (error) {

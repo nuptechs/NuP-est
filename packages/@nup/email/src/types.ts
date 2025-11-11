@@ -15,6 +15,7 @@ export interface EmailResult {
   message: string;
   provider?: string;
   timestamp?: Date;
+  statusCode?: number;
 }
 
 export interface EmailAdapter {
