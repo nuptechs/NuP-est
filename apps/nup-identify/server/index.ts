@@ -65,22 +65,23 @@ registerRoutes(app);
 // FRONTEND (Vite Dev Server or Static Files)
 // =============================================================================
 
-if (config.nodeEnv === "development") {
-  // Development: Setup Vite dev server
-  setupVite(app, server);
-} else {
-  // Production: Serve static files
-  serveStatic(app);
-}
+(async () => {
+  if (config.nodeEnv === "development") {
+    // Development: Setup Vite dev server
+    await setupVite(app, server);
+  } else {
+    // Production: Serve static files
+    serveStatic(app);
+  }
 
-// =============================================================================
-// START SERVER
-// =============================================================================
+  // =============================================================================
+  // START SERVER
+  // =============================================================================
 
-const PORT = config.port;
+  const PORT = config.port;
 
-server.listen(PORT, () => {
-  console.log(`
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║   🔐 NuPIdentity - Central de Identidade NuPtechs       ║
@@ -94,7 +95,7 @@ server.listen(PORT, () => {
 ║   • POST   /api/auth/login                                ║
 ║   • POST   /api/auth/refresh                              ║
 ║   • POST   /api/auth/logout                               ║
-║   • GET    /api/auth/me                                   ║
+║   • POST   /api/auth/me                                   ║
 ║                                                           ║
 ║   Organizations & Teams:                                  ║
 ║   • GET    /api/organizations                             ║
@@ -108,7 +109,12 @@ server.listen(PORT, () => {
 ║   • POST   /api/invitations/:token/accept                 ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
-  `);
-});
+    `);
+    console.log(`✅ [NuP-Identify] Successfully bound to port ${PORT}`);
+  }).on('error', (err) => {
+    console.error(`❌ [NuP-Identify] Failed to start server on port ${PORT}:`, err);
+    process.exit(1);
+  });
+})();
 
 export default app;

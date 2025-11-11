@@ -44,6 +44,11 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
+    // Skip proxy paths - let them be handled by reverse proxy middleware
+    if (url.startsWith('/nup-identify') || url.startsWith('/nup-aim')) {
+      return next();
+    }
+
     try {
       const clientTemplate = path.resolve(
         import.meta.dirname,
