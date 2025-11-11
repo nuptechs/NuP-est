@@ -51,7 +51,7 @@ async function main() {
       try {
         const html = await vite.transformIndexHtml(
           req.originalUrl,
-          fs.readFileSync(path.resolve(__dirname, '..', 'index.html'), 'utf-8')
+          fs.readFileSync(path.resolve(__dirname, '..', 'client', 'index.html'), 'utf-8')
         );
         res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
       } catch (e) {
