@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../components/ui/alert-dialog";
 import { Plus, Users, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export function TeamsPage() {
-  const token = localStorage.getItem("accessToken");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -23,47 +23,29 @@ export function TeamsPage() {
   });
 
   const { data: teams, isLoading } = useQuery({
-    queryKey: ["teams"],
-    queryFn: async () => {
-      const res = await fetch("/api/teams", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
+    queryKey: ["/api/teams"],
   });
 
   const { data: organizations } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: async () => {
-      const res = await fetch("/api/organizations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
+    queryKey: ["/api/organizations"],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch("/api/teams", {
+      return apiRequest("/api/teams", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
       setIsCreateOpen(false);
       setFormData({ name: "", description: "", organizationId: "", color: "#3b82f6" });
-      toast({ title: "Team created successfully" });
+      toast({ title: "Time criado com sucesso" });
     },
     onError: (error: any) => {
       toast({
-        title: "Error creating team",
+        title: "Erro ao criar time",
         description: error.message,
         variant: "destructive",
       });
@@ -72,16 +54,20 @@ export function TeamsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/teams/${id}`, {
+      return apiRequest(`/api/teams/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to delete");
-      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teams"] });
-      toast({ title: "Team deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      toast({ title: "Time removido com sucesso" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao remover time",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 

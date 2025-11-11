@@ -9,46 +9,34 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../components/ui/alert-dialog";
 import { Plus, Building2, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export function OrganizationsPage() {
-  const token = localStorage.getItem("accessToken");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", slug: "", settings: "{}" });
 
   const { data: organizations, isLoading } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: async () => {
-      const res = await fetch("/api/organizations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
+    queryKey: ["/api/organizations"],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch("/api/organizations", {
+      return apiRequest("/api/organizations", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
       setIsCreateOpen(false);
       setFormData({ name: "", slug: "", settings: "{}" });
-      toast({ title: "Organization created successfully" });
+      toast({ title: "Organização criada com sucesso" });
     },
     onError: (error: any) => {
       toast({
-        title: "Error creating organization",
+        title: "Erro ao criar organização",
         description: error.message,
         variant: "destructive",
       });
@@ -57,16 +45,20 @@ export function OrganizationsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/organizations/${id}`, {
+      return apiRequest(`/api/organizations/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to delete");
-      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["organizations"] });
-      toast({ title: "Organization deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
+      toast({ title: "Organização removida com sucesso" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao remover organização",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 

@@ -5,6 +5,10 @@ import { z } from "zod";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      queryFn: async ({ queryKey }) => {
+        const url = queryKey[0] as string;
+        return apiRequest(url);
+      },
       staleTime: 60 * 1000, // 1 minute
       refetchOnWindowFocus: false,
       retry: 1,

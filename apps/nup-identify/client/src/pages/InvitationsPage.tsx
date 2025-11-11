@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../components/ui/alert-dialog";
 import { Plus, Mail, X } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export function InvitationsPage() {
-  const token = localStorage.getItem("accessToken");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -22,60 +22,33 @@ export function InvitationsPage() {
   });
 
   const { data: invitations, isLoading } = useQuery({
-    queryKey: ["invitations"],
-    queryFn: async () => {
-      const res = await fetch("/api/invitations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
+    queryKey: ["/api/invitations"],
   });
 
   const { data: organizations } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: async () => {
-      const res = await fetch("/api/organizations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
+    queryKey: ["/api/organizations"],
   });
 
   const { data: teams } = useQuery({
-    queryKey: ["teams"],
-    queryFn: async () => {
-      const res = await fetch("/api/teams", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
+    queryKey: ["/api/teams"],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch("/api/invitations", {
+      return apiRequest("/api/invitations", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(data),
       });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to create invitation");
-      }
-      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invitations"] });
       setIsCreateOpen(false);
       setFormData({ email: "", organizationId: "", teamId: "" });
-      toast({ title: "Invitation sent successfully" });
+      toast({ title: "Convite enviado com sucesso" });
     },
     onError: (error: any) => {
       toast({
-        title: "Error sending invitation",
+        title: "Erro ao enviar convite",
         description: error.message,
         variant: "destructive",
       });
@@ -84,16 +57,20 @@ export function InvitationsPage() {
 
   const cancelMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/invitations/${id}/cancel`, {
+      return apiRequest(`/api/invitations/${id}/cancel`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to cancel");
-      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
-      toast({ title: "Invitation cancelled successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/invitations"] });
+      toast({ title: "Convite cancelado com sucesso" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao cancelar convite",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 

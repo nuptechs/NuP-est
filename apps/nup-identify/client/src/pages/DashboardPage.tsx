@@ -4,39 +4,19 @@ import { Card } from "../components/ui/card";
 import { Building2, Users, Mail } from "lucide-react";
 
 export function DashboardPage() {
-  const token = localStorage.getItem("accessToken");
-
   const { data: organizations = [] } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: async () => {
-      const res = await fetch("/api/organizations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    },
+    queryKey: ["/api/organizations"],
+    select: (data) => Array.isArray(data) ? data : [],
   });
 
   const { data: teams = [] } = useQuery({
-    queryKey: ["teams"],
-    queryFn: async () => {
-      const res = await fetch("/api/teams", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    },
+    queryKey: ["/api/teams"],
+    select: (data) => Array.isArray(data) ? data : [],
   });
 
   const { data: invitations = [] } = useQuery({
-    queryKey: ["invitations"],
-    queryFn: async () => {
-      const res = await fetch("/api/invitations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    },
+    queryKey: ["/api/invitations"],
+    select: (data) => Array.isArray(data) ? data : [],
   });
 
   const stats = [
