@@ -1,4 +1,4 @@
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Express } from "express";
 import session from "express-session";
 import { createServer } from "http";
 import { config } from "./config";

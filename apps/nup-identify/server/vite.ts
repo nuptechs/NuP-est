@@ -20,15 +20,21 @@ export function log(message: string, source = "nupidentity") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  const basePrefix = process.env.BASE_PREFIX || '';
+  
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: { 
+      server,
+      path: basePrefix ? `${basePrefix}/__vite_hmr` : '/__vite_hmr'
+    },
     allowedHosts: true as const,
   };
 
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
+    base: basePrefix || '/',
     customLogger: {
       ...viteLogger,
       error: (msg, options) => {
@@ -42,7 +48,11 @@ export async function setupVite(app: Express, server: Server) {
 
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
-    const url = req.originalUrl;
+    let url = req.originalUrl;
+    
+    if (basePrefix && url.startsWith(basePrefix)) {
+      url = url.slice(basePrefix.length) || '/';
+    }
 
     try {
       const clientTemplate = path.resolve(

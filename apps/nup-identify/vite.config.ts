@@ -24,13 +24,13 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
-  base: '/nup-identify/',
+  base: process.env.BASE_PREFIX || '/',
   server: {
     host: "0.0.0.0",
     port: 5001,
     strictPort: true,
     hmr: {
-      path: '/nup-identify/__vite_hmr',
+      path: (process.env.BASE_PREFIX || '') + '/__vite_hmr',
     },
     fs: {
       strict: true,

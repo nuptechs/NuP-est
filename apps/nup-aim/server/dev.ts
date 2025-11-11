@@ -10,7 +10,9 @@ const __dirname = path.dirname(__filename);
 
 async function main() {
   const PORT = parseInt(process.env.PORT || '8080', 10);
+  const BASE_PREFIX = process.env.BASE_PREFIX || '';
   console.log(`🔧 [NuP-AIM] Initializing on port ${PORT}...`);
+  if (BASE_PREFIX) console.log(`🔧 [NuP-AIM] Base prefix: ${BASE_PREFIX}`);
   
   try {
     process.env.COMPOSED_DEV = '1';
@@ -31,10 +33,12 @@ async function main() {
           server: server
         },
         hmr: {
-          server: server
+          server: server,
+          path: BASE_PREFIX ? `${BASE_PREFIX}/__vite_hmr` : '/__vite_hmr'
         },
         host: '0.0.0.0'
       },
+      base: BASE_PREFIX || '/',
       appType: 'custom',
       root: path.resolve(__dirname, '..'),
       preview: {
@@ -49,8 +53,14 @@ async function main() {
       if (req.method !== 'GET' || req.originalUrl.startsWith('/api')) return next();
       
       try {
+        let url = req.originalUrl;
+        
+        if (BASE_PREFIX && url.startsWith(BASE_PREFIX)) {
+          url = url.slice(BASE_PREFIX.length) || '/';
+        }
+        
         const html = await vite.transformIndexHtml(
-          req.originalUrl,
+          url,
           fs.readFileSync(path.resolve(__dirname, '..', 'client', 'index.html'), 'utf-8')
         );
         res.status(200).set({ 'Content-Type': 'text/html' }).end(html);

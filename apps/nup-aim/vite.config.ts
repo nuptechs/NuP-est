@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   root: 'client',
-  base: '/nup-aim/',
+  base: process.env.BASE_PREFIX || '/',
   build: {
     outDir: '../dist',
     assetsDir: 'assets',
@@ -27,7 +27,7 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: true,
     hmr: {
-      path: '/nup-aim/__vite_hmr',
+      path: (process.env.BASE_PREFIX || '') + '/__vite_hmr',
     },
     proxy: {
       '/api': {
