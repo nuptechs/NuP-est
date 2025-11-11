@@ -1,0 +1,166 @@
+=============================================================================
+🔄 CONFIGURAÇÃO DE WORKFLOWS PARA PROXY REVERSO - ECOSSISTEMA NuP
+=============================================================================
+
+📋 COPIE E COLE NO ARQUIVO .replit (SUBSTITUA A SEÇÃO [workflows])
+=============================================================================
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "NuP-Identify (Proxy)"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "NuP-Aim (Proxy)"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "NuP-Identify (Proxy)"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./start-nup-identify-proxy.sh"
+waitForPort = 5002
+
+[[workflows.workflow]]
+name = "NuP-Aim (Proxy)"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./start-nup-aim-proxy.sh"
+waitForPort = 34735
+
+=============================================================================
+✅ APÓS COLAR A CONFIGURAÇÃO ACIMA:
+=============================================================================
+
+1. Salve o arquivo .replit
+
+2. Execute no terminal:
+   kill 1
+
+3. Aguarde 10-15 segundos para o workspace reiniciar
+
+4. Acesse as URLs:
+   - NuP-Study:    https://seu-dominio.replit.dev/
+   - NuP-Identify: https://seu-dominio.replit.dev/nup-identify
+   - NuP-AIM:      https://seu-dominio.replit.dev/nup-aim
+
+=============================================================================
+🎯 O QUE FOI IMPLEMENTADO:
+=============================================================================
+
+✅ Proxy Reverso no NuP-Study (porta 5000)
+   - Intercepta /nup-identify → encaminha para localhost:5002
+   - Intercepta /nup-aim → encaminha para localhost:34735
+   - Suporte a WebSocket para Hot Module Replacement (HMR)
+   - Logs detalhados de todas as requisições proxy
+
+✅ NuP-Identify configurado para servir em /nup-identify
+   - BASE_PREFIX configurado via variável de ambiente
+   - Assets Vite ajustados para o prefixo
+   - HMR path: /nup-identify/__vite_hmr
+
+✅ NuP-AIM configurado para servir em /nup-aim
+   - BASE_PREFIX configurado via variável de ambiente
+   - Assets Vite ajustados para o prefixo
+   - HMR path: /nup-aim/__vite_hmr
+
+✅ Scripts de Startup Criados
+   - start-nup-identify-proxy.sh
+   - start-nup-aim-proxy.sh
+   - Configuram BASE_PREFIX automaticamente
+
+=============================================================================
+📊 ARQUITETURA DO PROXY:
+=============================================================================
+
+┌────────────────────────────────────────────────────────┐
+│          https://seu-dominio.replit.dev                │
+│                                                        │
+│  ┌──────────────────────────────────────────────────┐ │
+│  │      NuP-Study (porta 5000)                      │ │
+│  │      Express + Vite + http-proxy-middleware      │ │
+│  │                                                  │ │
+│  │  Proxy Reverso:                                  │ │
+│  │  • /nup-identify → localhost:5002               │ │
+│  │  • /nup-aim → localhost:34735                   │ │
+│  │  • WebSocket support (HMR)                       │ │
+│  └──────────────────────────────────────────────────┘ │
+│             │                       │                  │
+│             ▼                       ▼                  │
+│  ┌──────────────────┐   ┌──────────────────┐         │
+│  │  NuP-Identify    │   │    NuP-AIM       │         │
+│  │  Porta 5002      │   │  Porta 34735     │         │
+│  │  BASE_PREFIX:    │   │  BASE_PREFIX:    │         │
+│  │  /nup-identify   │   │  /nup-aim        │         │
+│  └──────────────────┘   └──────────────────┘         │
+└────────────────────────────────────────────────────────┘
+
+=============================================================================
+🔍 VERIFICAÇÃO:
+=============================================================================
+
+Terminal 1 - Testar Proxy:
+   curl -I http://localhost:5000/nup-identify
+   # Deve retornar: HTTP/1.1 200 OK
+
+Terminal 2 - Ver Logs do Proxy:
+   # Nos logs do "Start application", procure por:
+   # [Proxy] NuP-Identify: GET /nup-identify
+
+=============================================================================
+🐛 TROUBLESHOOTING:
+=============================================================================
+
+PROBLEMA: Scripts não têm permissão
+SOLUÇÃO:
+   chmod +x start-nup-identify-proxy.sh start-nup-aim-proxy.sh
+   kill 1
+
+PROBLEMA: Portas em conflito
+SOLUÇÃO:
+   pkill -f "PORT=5002"
+   pkill -f "PORT=34735"
+   kill 1
+
+PROBLEMA: BASE_PREFIX não aplicado
+SOLUÇÃO:
+   Verifique os logs dos workflows NuP-Identify e NuP-AIM
+   Deve aparecer: "🔧 [Proxy Mode] Starting... with BASE_PREFIX=/nup-..."
+
+=============================================================================
+📈 BENEFÍCIOS:
+=============================================================================
+
+✅ Domínio Único - Todas as apps em um único domínio
+✅ URLs Limpas - /nup-identify em vez de :5002
+✅ HMR Preservado - Hot reload funciona perfeitamente
+✅ Desenvolvimento Ágil - Workflows automatizados
+✅ Fácil Expansão - Adicione novos apps facilmente
+✅ CORS Simplificado - Gerenciado centralmente
+✅ Logs Centralizados - Debug facilitado
+
+=============================================================================
