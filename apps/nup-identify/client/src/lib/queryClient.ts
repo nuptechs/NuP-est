@@ -19,6 +19,14 @@ export async function apiRequest(
 ): Promise<any> {
   const token = localStorage.getItem("accessToken");
   
+  // Prefix URL with BASE_URL to support reverse proxy deployment
+  // In development with proxy: BASE_URL = "/nup-identify"
+  // In standalone mode: BASE_URL = "/"
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  const fullUrl = url.startsWith('/') 
+    ? `${baseUrl.replace(/\/$/, '')}${url}` 
+    : url;
+  
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
@@ -29,7 +37,7 @@ export async function apiRequest(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
+  const response = await fetch(fullUrl, {
     ...options,
     headers,
   });
