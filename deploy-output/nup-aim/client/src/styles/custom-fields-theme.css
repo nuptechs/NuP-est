@@ -1,0 +1,147 @@
+/**
+ * Custom Fields Theme - CSS Variables
+ * 
+ * Este arquivo define variáveis CSS que permitem que os campos personalizados
+ * herdem automaticamente os estilos da aplicação hospedeira.
+ * 
+ * Estratégia de Herança:
+ * 1. Valores padrão sensatos (fallback)
+ * 2. Herda de inputs normais via currentColor/inherit quando possível
+ * 3. Pode ser sobrescrito por ThemeProvider ou props inline
+ */
+
+:root {
+  /* ===== CORES ===== */
+  
+  /* Bordas */
+  --custom-field-border-color: #d1d5db; /* gray-300 */
+  --custom-field-border-focus: #3b82f6; /* blue-500 */
+  --custom-field-border-error: #ef4444; /* red-500 */
+  
+  /* Backgrounds */
+  --custom-field-bg: #ffffff;
+  --custom-field-bg-disabled: #f3f4f6; /* gray-100 */
+  --custom-field-bg-hover: #f9fafb; /* gray-50 */
+  
+  /* Texto */
+  --custom-field-text-color: #1f2937; /* gray-800 */
+  --custom-field-text-placeholder: #9ca3af; /* gray-400 */
+  --custom-field-label-color: #374151; /* gray-700 */
+  --custom-field-help-text-color: #6b7280; /* gray-500 */
+  --custom-field-error-text: #dc2626; /* red-600 */
+  
+  /* ===== ESPAÇAMENTO ===== */
+  --custom-field-padding-x: 0.75rem; /* px-3 */
+  --custom-field-padding-y: 0.5rem; /* py-2 */
+  --custom-field-gap: 0.5rem; /* space-y-2 */
+  --custom-field-section-gap: 1rem; /* space-y-4 */
+  
+  /* ===== TIPOGRAFIA ===== */
+  --custom-field-font-size: 0.875rem; /* text-sm */
+  --custom-field-label-font-size: 0.875rem; /* text-sm */
+  --custom-field-label-font-weight: 500; /* font-medium */
+  --custom-field-help-font-size: 0.75rem; /* text-xs */
+  
+  /* ===== BORDAS E CANTOS ===== */
+  --custom-field-border-width: 1px;
+  --custom-field-border-radius: 0.5rem; /* rounded-lg */
+  
+  /* ===== EFEITOS ===== */
+  --custom-field-focus-ring-width: 2px;
+  --custom-field-focus-ring-color: rgba(59, 130, 246, 0.5); /* blue-500 with opacity */
+  --custom-field-transition: all 0.15s ease-in-out;
+  
+  /* ===== ESTADOS ===== */
+  --custom-field-disabled-opacity: 0.6;
+}
+
+/* ===== TEMA ESCURO (Opcional) ===== */
+.dark,
+[data-theme="dark"] {
+  --custom-field-border-color: #4b5563; /* gray-600 */
+  --custom-field-border-focus: #60a5fa; /* blue-400 */
+  
+  --custom-field-bg: #1f2937; /* gray-800 */
+  --custom-field-bg-disabled: #374151; /* gray-700 */
+  --custom-field-bg-hover: #374151; /* gray-700 */
+  
+  --custom-field-text-color: #f9fafb; /* gray-50 */
+  --custom-field-text-placeholder: #6b7280; /* gray-500 */
+  --custom-field-label-color: #d1d5db; /* gray-300 */
+  --custom-field-help-text-color: #9ca3af; /* gray-400 */
+}
+
+/* ===== CLASSES UTILITÁRIAS ===== */
+
+.custom-field-input {
+  width: 100%;
+  padding: var(--custom-field-padding-y) var(--custom-field-padding-x);
+  font-size: var(--custom-field-font-size);
+  color: var(--custom-field-text-color);
+  background-color: var(--custom-field-bg);
+  border: var(--custom-field-border-width) solid var(--custom-field-border-color);
+  border-radius: var(--custom-field-border-radius);
+  transition: var(--custom-field-transition);
+  outline: none;
+}
+
+.custom-field-input:hover:not(:disabled) {
+  background-color: var(--custom-field-bg-hover);
+}
+
+.custom-field-input:focus {
+  border-color: var(--custom-field-border-focus);
+  box-shadow: 0 0 0 var(--custom-field-focus-ring-width) var(--custom-field-focus-ring-color);
+}
+
+.custom-field-input:disabled {
+  opacity: var(--custom-field-disabled-opacity);
+  background-color: var(--custom-field-bg-disabled);
+  cursor: not-allowed;
+}
+
+.custom-field-input.error {
+  border-color: var(--custom-field-border-error);
+}
+
+.custom-field-input::placeholder {
+  color: var(--custom-field-text-placeholder);
+}
+
+.custom-field-label {
+  display: block;
+  font-size: var(--custom-field-label-font-size);
+  font-weight: var(--custom-field-label-font-weight);
+  color: var(--custom-field-label-color);
+  margin-bottom: calc(var(--custom-field-gap) * 0.5);
+}
+
+.custom-field-help-text {
+  font-size: var(--custom-field-help-font-size);
+  color: var(--custom-field-help-text-color);
+  margin-top: calc(var(--custom-field-gap) * 0.25);
+}
+
+.custom-field-error-text {
+  font-size: var(--custom-field-help-font-size);
+  color: var(--custom-field-error-text);
+  margin-top: calc(var(--custom-field-gap) * 0.25);
+}
+
+.custom-field-required {
+  color: var(--custom-field-border-error);
+  margin-left: 0.25rem;
+}
+
+/* ===== CONTAINER ===== */
+.custom-fields-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--custom-field-section-gap);
+}
+
+.custom-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--custom-field-gap);
+}

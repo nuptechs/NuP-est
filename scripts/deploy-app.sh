@@ -83,15 +83,116 @@ for feat in features/@nup/*; do
 done
 
 echo ""
-echo "🌳 Step 5/5: Creating pruned node_modules (production only)..."
+echo "🔧 Step 5/6: Resolving workspace dependencies..."
 cd "$DEPLOY_DIR"
-pnpm install --prod --frozen-lockfile 2>/dev/null || pnpm install --prod || echo "⚠️  Warning: pnpm install with --frozen-lockfile failed, continuing..."
+
+# Function to resolve workspace deps in a package.json
+node -e "
+const fs = require('fs');
+const path = require('path');
+
+function resolveWorkspaceDeps(pkgPath, baseDir) {
+  if (!fs.existsSync(pkgPath)) return false;
+  
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  let changed = false;
+  
+  if (pkg.dependencies) {
+    for (const [name, version] of Object.entries(pkg.dependencies)) {
+      if (version.startsWith('workspace:')) {
+        const pkgName = name.replace('@nup/', '');
+        
+        // Auto-detect if it's a package or feature by checking filesystem
+        let basePath = 'packages';
+        const packagePath = path.join(baseDir, 'packages', '@nup', pkgName);
+        const featurePath = path.join(baseDir, 'features', '@nup', pkgName);
+        
+        if (fs.existsSync(featurePath)) {
+          basePath = 'features';
+        } else if (!fs.existsSync(packagePath)) {
+          console.warn(\`⚠️  Warning: Could not find \${name} in packages or features\`);
+          continue;
+        }
+        
+        // Calculate relative path from current package to dependency
+        const currentDir = path.dirname(pkgPath);
+        const targetPath = path.join(baseDir, basePath, '@nup', pkgName);
+        const relativePath = path.relative(currentDir, targetPath);
+        
+        pkg.dependencies[name] = \`file:\${relativePath}\`;
+        changed = true;
+      }
+    }
+  }
+  
+  if (changed) {
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+  }
+  
+  return changed;
+}
+
+function findPackageJsons(dir) {
+  const results = [];
+  if (!fs.existsSync(dir)) return results;
+  
+  const items = fs.readdirSync(dir);
+  for (const item of items) {
+    const fullPath = path.join(dir, item);
+    if (fs.statSync(fullPath).isDirectory()) {
+      const pkgJson = path.join(fullPath, 'package.json');
+      if (fs.existsSync(pkgJson)) {
+        results.push(pkgJson);
+      }
+    }
+  }
+  return results;
+}
+
+const baseDir = process.cwd();
+
+// Resolve in main app package.json
+console.log('📦 Resolving app dependencies...');
+if (resolveWorkspaceDeps('./package.json', baseDir)) {
+  console.log('  ✅ Resolved app dependencies');
+}
+
+// Resolve in all packages
+console.log('📦 Resolving package dependencies...');
+const packageJsons = findPackageJsons('packages/@nup');
+packageJsons.forEach(pkgPath => {
+  if (resolveWorkspaceDeps(pkgPath, baseDir)) {
+    console.log(\`  ✅ Resolved: \${pkgPath}\`);
+  }
+});
+
+// Resolve in all features
+console.log('🎨 Resolving feature dependencies...');
+const featureJsons = findPackageJsons('features/@nup');
+featureJsons.forEach(pkgPath => {
+  if (resolveWorkspaceDeps(pkgPath, baseDir)) {
+    console.log(\`  ✅ Resolved: \${pkgPath}\`);
+  }
+});
+
+console.log('✅ All workspace dependencies resolved to file: paths');
+"
+
+echo ""
+echo "🌳 Step 6/6: Installing production dependencies..."
+if ! pnpm install --prod --no-frozen-lockfile; then
+  echo "❌ ERROR: Failed to install production dependencies"
+  echo "Check the package.json for unresolved dependencies"
+  cd ../..
+  exit 1
+fi
+
 cd ../..
 
 echo ""
-echo "🔐 Step 6/6: Generating checksums..."
+echo "🔐 Step 7/7: Generating checksums..."
 cd "$DEPLOY_DIR"
-find . -type f -name "*.js" -o -name "*.json" | sort | xargs sha256sum > CHECKSUMS.txt
+find . -type f \( -name "*.js" -o -name "*.json" \) | sort | xargs sha256sum > CHECKSUMS.txt 2>/dev/null || true
 cd ../..
 
 BUNDLE_SIZE=$(du -sh "$DEPLOY_DIR" | cut -f1)

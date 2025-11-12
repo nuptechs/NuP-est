@@ -169,6 +169,43 @@ rsync -avz deploy-output/nup-study/ user@target-repl:/path/
 2. Run: `node dist/index.js`
 3. Configure health checks and monitoring
 
+## Key Features
+
+### 🎯 Automatic Workspace Detection
+
+O sistema **auto-detecta** se uma dependência `@nup/*` é um package ou feature:
+
+```javascript
+// Auto-detection via filesystem check
+const packagePath = path.join(baseDir, 'packages', '@nup', pkgName);
+const featurePath = path.join(baseDir, 'features', '@nup', pkgName);
+
+if (fs.existsSync(featurePath)) {
+  basePath = 'features';  // É uma feature!
+} else if (fs.existsSync(packagePath)) {
+  basePath = 'packages';  // É um package!
+}
+```
+
+**Benefícios:**
+- ✅ Extensível: adicione novos features sem modificar scripts
+- ✅ Zero hardcoded lists
+- ✅ Funciona para qualquer estrutura `@nup/*`
+
+### 🔧 Workspace Dependency Resolution
+
+Todas as dependências `workspace:*` são resolvidas para `file:` paths relativos:
+
+```json
+// ANTES (monorepo):
+"@nup/shared-types": "workspace:*"
+
+// DEPOIS (bundle):
+"@nup/shared-types": "file:../../../packages/@nup/shared-types"
+```
+
+Isso permite `pnpm install --prod` funcionar em bundles standalone.
+
 ## Troubleshooting
 
 ### Build Fails
