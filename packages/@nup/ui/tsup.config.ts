@@ -5,7 +5,12 @@ import { join } from 'path';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm', 'cjs'],
-  dts: true,
+  dts: {
+    resolve: true,
+    compilerOptions: {
+      incremental: false,
+    },
+  },
   clean: true,
   sourcemap: true,
   treeshake: true,
@@ -19,13 +24,13 @@ export default defineConfig({
     'tailwind-merge',
   ],
   outDir: 'dist',
+  skipNodeModulesBundle: true,
   async onSuccess() {
-    // Copy CSS styles if they exist
     try {
       await cp(join('src', 'styles'), join('dist', 'styles'), { recursive: true });
       console.log('✅ Copied styles to dist');
     } catch (err) {
-      // Styles folder might not exist, that's OK
+      // Styles folder might not exist
     }
   },
 });

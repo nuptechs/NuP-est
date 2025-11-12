@@ -5,7 +5,8 @@ import {
   VerificationEmailData,
   PasswordResetEmailData,
   WelcomeEmailData,
-  TransactionalEmailData
+  TransactionalEmailData,
+  EmailAdapter
 } from './types';
 import {
   generateVerificationEmail,
@@ -15,7 +16,7 @@ import {
 import { retryWithBackoff, shouldRetryEmailError } from './utils/retry';
 
 export class EmailService {
-  private adapter;
+  private adapter: EmailAdapter;
   private defaultFrom?: string;
   private defaultReplyTo?: string;
   private retryAttempts: number;

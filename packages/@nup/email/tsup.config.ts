@@ -5,19 +5,24 @@ import { join } from 'path';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm', 'cjs'],
-  dts: true,
+  dts: {
+    resolve: true,
+    compilerOptions: {
+      incremental: false,
+    },
+  },
   clean: true,
   sourcemap: true,
   treeshake: true,
   external: ['@sendgrid/mail'],
   outDir: 'dist',
+  skipNodeModulesBundle: true,
   async onSuccess() {
-    // Copy email templates
     try {
       await cp(join('src', 'templates'), join('dist', 'templates'), { recursive: true });
       console.log('✅ Copied email templates to dist');
     } catch (err) {
-      console.warn('⚠️ Could not copy templates:', err);
+      // Templates folder might not exist
     }
   },
 });

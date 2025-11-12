@@ -3,12 +3,21 @@
   "version": "1.0.0",
   "description": "Shared email infrastructure for NuP ecosystem",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
     "email",
@@ -19,7 +28,7 @@
   "author": "NuP Team",
   "license": "MIT",
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "@sendgrid/mail": "^8.1.4"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

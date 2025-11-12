@@ -3,10 +3,24 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm', 'cjs'],
-  dts: true,
+  dts: {
+    resolve: true,
+    compilerOptions: {
+      incremental: false,
+    },
+  },
   clean: true,
   sourcemap: true,
   treeshake: true,
-  external: ['react', 'react-dom'],
+  external: [
+    'react',
+    'react-dom',
+    '@tanstack/react-query',
+    'lucide-react',
+    '@nup/ui',
+    '@nup/api-client',
+    '@nup/shared-types',
+  ],
   outDir: 'dist',
+  skipNodeModulesBundle: true,
 });
