@@ -16,6 +16,46 @@ Design Philosophy: Clean, minimalist interfaces that prioritize user flow over f
 
 The system features a scalable workflow architecture for managing multiple applications simultaneously, including centralized logging, automatic discovery, and resource control. This uses a `workflows-config.json` as a single source of truth for app registration, ports, and commands, generated via `manage-workflows.js` scripts.
 
+## Deployment Architecture: Multi-Repl Gateway
+
+The project uses a **Multi-Repl Gateway Architecture** for production deployment, separating concerns and enabling independent scaling:
+
+```
+┌─────────────────────────────────────┐
+│   Gateway Repl (apps/gateway)       │
+│   - Reverse proxy                   │
+│   - Health checks                   │
+│   - TLS termination                 │
+│   - Centralized logging             │
+└────────────┬────────────────────────┘
+             │
+    ┌────────┼────────┬────────┐
+    │        │        │        │
+┌───▼───┐ ┌─▼───┐ ┌─▼───┐ ┌─▼───┐
+│ NuP-  │ │ NuP-│ │ NuP-│ │Future│
+│ Study │ │Identify│ │ AIM │ │ Apps │
+│ :5001 │ │ :5002│ │:5003│ │      │
+└───────┘ └─────┘ └─────┘ └─────┘
+```
+
+**Benefits:**
+- ✅ Independent deployment per app (no cascading failures)
+- ✅ Horizontal scalability (each app scales independently)
+- ✅ Better observability (isolated logs per service)
+- ✅ Reduced coupling (single responsibility per Repl)
+- ✅ Independent CI/CD pipelines
+
+**Gateway Routes:**
+- `/` → NuP-Study (main application)
+- `/nup-identify/*` → NuP-Identify (auth service)
+- `/nup-aim/*` → NuP-AIM (analysis service)
+
+**Health Checks:**
+- Gateway: `/health` and `/health/services`
+- Each app: `/api/health`
+
+**Migration:** See `MULTI_REPL_MIGRATION.md` and `DEPLOYMENT_GUIDE.md` for detailed migration and deployment instructions.
+
 ## Monorepo Architecture
 
 The project is structured as a monorepo using Turborepo and pnpm workspaces. It consists of:

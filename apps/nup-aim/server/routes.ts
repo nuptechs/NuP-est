@@ -26,7 +26,21 @@ export function registerRoutes(app: Express) {
   // HEALTH CHECK
   // ============================================
   app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Server is running' });
+    res.json({ 
+      status: 'healthy',
+      service: 'NuP-AIM', 
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'healthy',
+      service: 'NuP-AIM', 
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    });
   });
 
   // ============================================
