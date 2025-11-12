@@ -7,10 +7,10 @@
     "dev": "tsx server/dev.ts",
     "dev:client": "vite",
     "dev:server": "tsx watch server/index.ts",
-    "build": "vite build",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "concurrently \"tsx server/index.ts\" \"vite preview --host 0.0.0.0 --port 5003\"",
+    "start": "NODE_ENV=production node dist/index.js",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
