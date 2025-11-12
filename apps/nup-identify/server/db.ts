@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import * as schema from "../shared/schema";
+import { identityTables } from "../shared/schema";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -8,9 +8,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create Neon HTTP client with schema search path
+// Configure Neon client with search_path
 const databaseUrl = new URL(process.env.DATABASE_URL);
-databaseUrl.searchParams.set("options", "--search_path=nup_identify,public");
-const client = neon(databaseUrl.toString());
+databaseUrl.searchParams.set("options", "--search_path%3Dnup_identify%2Cpublic");
+const client = neon(databaseUrl.toString(), {
+  fetchOptions: {
+    cache: "no-store",
+  },
+});
 
-export const db = drizzle({ client, schema });
+export const db = drizzle(client, { schema: identityTables });

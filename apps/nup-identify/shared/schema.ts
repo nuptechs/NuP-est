@@ -418,3 +418,28 @@ export const verifyEmailSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+
+// Export all tables for Drizzle to maintain schema metadata
+export const identityTables = {
+  organizations,
+  systems,
+  organizationSystems,
+  functions,
+  users,
+  userAuthProviders,
+  passkeyCredentials,
+  teams,
+  userTeams,
+  profiles,
+  userProfiles,
+  profileFunctions,
+  teamProfiles,
+  userFunctionOverrides,
+  refreshTokens,
+  emailVerificationTokens,
+  authEvents,
+  pendingInvitations,
+  delegatedAdmins,
+  serviceAccounts,
+  webhookEvents,
+};
