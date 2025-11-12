@@ -20,6 +20,14 @@ fi
 echo "🚀 Starting deployment for $APP_NAME..."
 echo "📦 Output directory: $OUTPUT_DIR/$APP_NAME"
 
+echo ""
+echo "🔍 Validating app..."
+if ! ./scripts/validate-app.sh "$APP_NAME" > /dev/null 2>&1; then
+  echo "❌ App validation failed. Run ./scripts/validate-app.sh $APP_NAME for details."
+  exit 1
+fi
+echo "✅ App validation passed"
+
 DEPLOY_DIR="$OUTPUT_DIR/$APP_NAME"
 rm -rf "$DEPLOY_DIR"
 mkdir -p "$DEPLOY_DIR"
@@ -80,14 +88,24 @@ cd "$DEPLOY_DIR"
 pnpm install --prod --frozen-lockfile 2>/dev/null || pnpm install --prod || echo "⚠️  Warning: pnpm install with --frozen-lockfile failed, continuing..."
 cd ../..
 
+echo ""
+echo "🔐 Step 6/6: Generating checksums..."
+cd "$DEPLOY_DIR"
+find . -type f -name "*.js" -o -name "*.json" | sort | xargs sha256sum > CHECKSUMS.txt
+cd ../..
+
 BUNDLE_SIZE=$(du -sh "$DEPLOY_DIR" | cut -f1)
+FILE_COUNT=$(find "$DEPLOY_DIR" -type f | wc -l)
 echo ""
 echo "✅ Deployment bundle created successfully!"
 echo "📊 Bundle size: $BUNDLE_SIZE"
+echo "📁 File count: $FILE_COUNT"
 echo "📍 Location: $DEPLOY_DIR"
+echo "🔐 Checksums: $DEPLOY_DIR/CHECKSUMS.txt"
 echo ""
 echo "🎯 Next steps:"
 echo "  1. Test locally: cd $DEPLOY_DIR && node dist/index.js"
 echo "  2. Upload to target Repl: rsync or git push"
 echo "  3. Set environment variables on target Repl"
 echo "  4. Run on target: node dist/index.js"
+echo "  5. Verify checksums on target to ensure integrity"
