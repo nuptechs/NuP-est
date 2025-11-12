@@ -68,6 +68,40 @@ graph TD
     C --> I[Upload Artifact]
 ```
 
+### Dependency Tracking Matrix
+
+O sistema detecta automaticamente quais apps dependem de cada package/feature:
+
+| Package/Feature | Dependent Apps | Notes |
+|----------------|----------------|-------|
+| @nup/ui | nup-study | UI components |
+| @nup/shared-types | nup-study | Shared TypeScript types |
+| @nup/api-client | nup-study | TanStack Query client |
+| @nup/auth-client | nup-study | Replit Auth integration |
+| @nup/email | nup-identify | Email service |
+| @nup/flashcards | nup-study | Flashcards feature |
+| @nup/mindmaps | nup-study | Mind maps feature |
+| @nup/professor-ia | nup-study | AI tutor feature |
+
+**Como funciona:**
+1. Detecta mudanças em packages/features
+2. Escaneia `apps/*/package.json` procurando por `"@nup/{package}"`
+3. Adiciona apps dependentes ao output JSON
+4. Workflow builda apps diretos + dependentes
+
+**Exemplo:**
+```bash
+# Mudança em packages/@nup/ui/src/button.tsx
+
+detect-affected.sh output:
+{
+  "packages": ["ui"],
+  "apps": ["nup-study"]  ← Dependente detectado!
+}
+
+Result: nup-study é buildado para detectar regressões
+```
+
 **Exemplo 1:** Mudança em `packages/@nup/ui`
 ```
 Changed: packages/@nup/ui/src/button.tsx

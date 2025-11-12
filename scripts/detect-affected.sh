@@ -68,6 +68,50 @@ if [ -n "$ROOT_CHANGES" ]; then
   FEATURES=$(echo "$FEATURES" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/ $//')
 fi
 
+# Map changed packages/features to dependent apps
+if [ -n "$PACKAGES" ] || [ -n "$FEATURES" ]; then
+  echo "🔍 Detecting apps that depend on changed packages/features..." >&2
+  
+  DEPENDENT_APPS=""
+  
+  # Check each app for dependencies
+  for app_dir in apps/*; do
+    if [ ! -d "$app_dir" ] || [ ! -f "$app_dir/package.json" ]; then
+      continue
+    fi
+    
+    APP_NAME=$(basename "$app_dir")
+    
+    # Get app dependencies
+    APP_DEPS=$(cat "$app_dir/package.json" 2>/dev/null | grep -E '"@nup/[^"]+":' || true)
+    
+    # Check if app depends on any changed package
+    for pkg in $PACKAGES; do
+      if echo "$APP_DEPS" | grep -q "@nup/$pkg"; then
+        echo "  → $APP_NAME depends on @nup/$pkg" >&2
+        DEPENDENT_APPS="$DEPENDENT_APPS $APP_NAME"
+        break
+      fi
+    done
+    
+    # Check if app depends on any changed feature
+    for feat in $FEATURES; do
+      if echo "$APP_DEPS" | grep -q "@nup/$feat"; then
+        echo "  → $APP_NAME depends on @nup/$feat" >&2
+        DEPENDENT_APPS="$DEPENDENT_APPS $APP_NAME"
+        break
+      fi
+    done
+  done
+  
+  # Merge dependent apps with directly changed apps
+  if [ -n "$DEPENDENT_APPS" ]; then
+    APPS="$APPS $DEPENDENT_APPS"
+    # Remove duplicates
+    APPS=$(echo "$APPS" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/ $//')
+  fi
+fi
+
 echo "🎯 Affected workspaces:" >&2
 echo "  Apps: ${APPS:-none}" >&2
 echo "  Packages: ${PACKAGES:-none}" >&2
