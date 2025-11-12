@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsup';
+import { resolve } from 'path';
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -17,10 +18,14 @@ export default defineConfig({
     'react-dom',
     '@tanstack/react-query',
     'lucide-react',
-    '@nup/ui',
-    '@nup/api-client',
-    '@nup/shared-types',
   ],
+  esbuildOptions(options) {
+    options.alias = {
+      '@nup/ui': resolve(__dirname, '../../../packages/@nup/ui/dist/index.js'),
+      '@nup/api-client': resolve(__dirname, '../../../packages/@nup/api-client/dist/index.js'),
+      '@nup/shared-types': resolve(__dirname, '../../../packages/@nup/shared-types/dist/index.js'),
+    };
+  },
   outDir: 'dist',
   skipNodeModulesBundle: true,
 });

@@ -5,7 +5,6 @@ import {
   VerificationEmailData,
   PasswordResetEmailData,
   WelcomeEmailData,
-  TransactionalEmailData,
   EmailAdapter
 } from './types';
 import {

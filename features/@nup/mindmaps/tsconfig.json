@@ -12,9 +12,9 @@
     "noEmit": true,
     "skipLibCheck": true,
     "paths": {
-      "@nup/ui": ["../../packages/@nup/ui/src"],
-      "@nup/api-client": ["../../packages/@nup/api-client/src"],
-      "@nup/shared-types": ["../../packages/@nup/shared-types/src"]
+      "@nup/ui": ["../../packages/@nup/ui/dist"],
+      "@nup/api-client": ["../../packages/@nup/api-client/dist"],
+      "@nup/shared-types": ["../../packages/@nup/shared-types/dist"]
     }
   },
   "include": ["src/**/*"],
