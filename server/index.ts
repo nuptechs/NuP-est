@@ -11,21 +11,14 @@ const app = express();
 // Body parsers consume the request stream, preventing proxy from forwarding the body
 console.log('🔧 [Proxy] Configurando proxy para NuP-Identify em /nup-identify -> http://localhost:5002');
 
-app.use('/nup-identify', (req, res, next) => {
-  console.log(`🔵 [ProxyDebug] Intercepted: ${req.method} ${req.url} (original: ${req.originalUrl})`);
-  next();
-}, createProxyMiddleware({
+app.use('/nup-identify', createProxyMiddleware({
   target: 'http://localhost:5002',
   changeOrigin: true,
   ws: true,
   // Remove /nup-identify prefix before forwarding to backend
   pathRewrite: { '^/nup-identify': '' },
-  logLevel: 'debug',
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`🟢 [Proxy] NuP-Identify: ${req.method} ${req.url} -> ${proxyReq.path}`);
-  },
+  logLevel: 'warn',
   onProxyRes: (proxyRes, req, res) => {
-    console.log(`🟡 [ProxyRes] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
     proxyRes.headers['x-proxied-by'] = 'NuP-Study';
   },
   onError: (err, req, res) => {
@@ -48,9 +41,7 @@ app.use('/nup-aim', createProxyMiddleware({
   changeOrigin: true,
   ws: true,
   pathRewrite: { '^/nup-aim': '' },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`🟢 [Proxy] NuP-AIM: ${req.method} ${req.url} -> ${proxyReq.path}`);
-  },
+  logLevel: 'warn',
   onProxyRes: (proxyRes, req, res) => {
     proxyRes.headers['x-proxied-by'] = 'NuP-Study';
   },
