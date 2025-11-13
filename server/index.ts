@@ -17,23 +17,11 @@ app.use('/nup-identify', createProxyMiddleware({
   ws: true,
   logLevel: 'warn',
   pathRewrite: (path, req) => {
-    const viteAssetPaths = [
-      '/@vite/',
-      '/__vite_hmr',
-      '/src/',
-      '/@react-refresh',
-      '/@fs/',
-      '/@id/',
-    ];
-    
-    const startsWithVitePrefix = viteAssetPaths.some(prefix => path.startsWith(prefix));
-    const hasFileExtension = /\.(js|ts|tsx|jsx|css|scss|sass|less|svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|eot)(\?|$)/.test(path);
-    
-    if (startsWithVitePrefix || hasFileExtension) {
-      return `/nup-identify${path}`;
+    if (path.startsWith('/api')) {
+      return path;
     }
     
-    return path;
+    return `/nup-identify${path}`;
   },
   onProxyRes: (proxyRes, req, res) => {
     proxyRes.headers['x-proxied-by'] = 'NuP-Study';
@@ -59,23 +47,11 @@ app.use('/nup-aim', createProxyMiddleware({
   ws: true,
   logLevel: 'warn',
   pathRewrite: (path, req) => {
-    const viteAssetPaths = [
-      '/@vite/',
-      '/__vite_hmr',
-      '/src/',
-      '/@react-refresh',
-      '/@fs/',
-      '/@id/',
-    ];
-    
-    const startsWithVitePrefix = viteAssetPaths.some(prefix => path.startsWith(prefix));
-    const hasFileExtension = /\.(js|ts|tsx|jsx|css|scss|sass|less|svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|eot)(\?|$)/.test(path);
-    
-    if (startsWithVitePrefix || hasFileExtension) {
-      return `/nup-aim${path}`;
+    if (path.startsWith('/api')) {
+      return path;
     }
     
-    return path;
+    return `/nup-aim${path}`;
   },
   onProxyRes: (proxyRes, req, res) => {
     proxyRes.headers['x-proxied-by'] = 'NuP-Study';
