@@ -109,6 +109,12 @@ app.get('/health', async (req: Request, res: Response) => {
   });
 });
 
+console.log(`🔧 [Gateway] Configurando proxy NuP-Study (API) → ${NUP_STUDY_TARGET}`);
+
+app.use(['/api', '/socket.io'], createProxyMiddleware(
+  createProxyConfig('NuP-Study-API', NUP_STUDY_TARGET)
+));
+
 if (NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '..', 'dist', 'public');
   
@@ -126,15 +132,15 @@ if (NODE_ENV === 'production') {
     });
   });
   
-  console.log('✅ [Gateway] Modo produção - servindo assets estáticos');
+  console.log('✅ [Gateway] Modo produção - assets estáticos + proxy API');
 } else {
-  console.log(`🔧 [Gateway] Configurando proxy NuP-Study (raiz) → ${NUP_STUDY_TARGET}`);
+  console.log(`🔧 [Gateway] Configurando proxy NuP-Study (frontend) → ${NUP_STUDY_TARGET}`);
   
   app.use('/', createProxyMiddleware(
-    createProxyConfig('NuP-Study', NUP_STUDY_TARGET)
+    createProxyConfig('NuP-Study-Frontend', NUP_STUDY_TARGET)
   ));
   
-  console.log('✅ [Gateway] Modo desenvolvimento - proxy para NuP-Study');
+  console.log('✅ [Gateway] Modo desenvolvimento - proxy completo para NuP-Study');
 }
 
 server.listen(PORT, "0.0.0.0", () => {
