@@ -15,7 +15,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const NUP_STUDY_TARGET = process.env.NUP_STUDY_TARGET || 'http://localhost:5001';
 const NUP_IDENTIFY_TARGET = process.env.NUP_IDENTIFY_TARGET || 'http://localhost:5002';
-const NUP_AIM_TARGET = process.env.NUP_AIM_TARGET || 'http://localhost:34735';
+const NUP_AIM_TARGET = process.env.NUP_AIM_TARGET || 'http://localhost:5003';
 
 console.log('🌐 [Gateway] Inicializando gateway NuP...\n');
 
@@ -30,10 +30,15 @@ function createProxyConfig(
     ws: true,
     pathRewrite: basePrefix ? (path: string, req: any) => {
       const preserveList = ['/api', '/socket.io', '/ws'];
-      if (preserveList.some(p => path === p || path.startsWith(p + '/'))) {
-        return path;
+      const fullPrefix = `${basePrefix}/`;
+      
+      for (const preserve of preserveList) {
+        if (path === `${basePrefix}${preserve}` || path.startsWith(`${basePrefix}${preserve}/`)) {
+          return path.substring(basePrefix.length);
+        }
       }
-      return basePrefix + (path === '/' ? '' : path);
+      
+      return path;
     } : undefined,
     onProxyRes: (proxyRes: any, req: any, res: any) => {
       proxyRes.headers['x-proxied-by'] = 'NuP-Gateway';

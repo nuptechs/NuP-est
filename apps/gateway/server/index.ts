@@ -87,7 +87,18 @@ const createProxyConfig = (service: ServiceConfig): Options => ({
   ws: true,
   pathRewrite:
     service.pathPrefix !== "/"
-      ? { [`^${service.pathPrefix}`]: "" }
+      ? (path: string) => {
+          const preserveList = ['/api', '/socket.io', '/ws'];
+          const basePrefix = service.pathPrefix;
+          
+          for (const preserve of preserveList) {
+            if (path === `${basePrefix}${preserve}` || path.startsWith(`${basePrefix}${preserve}/`)) {
+              return path.substring(basePrefix.length);
+            }
+          }
+          
+          return path;
+        }
       : undefined,
   onProxyReq: (proxyReq, req) => {
     proxyReq.setHeader("X-Forwarded-Host", req.headers.host || "");

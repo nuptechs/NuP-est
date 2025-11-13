@@ -24,7 +24,7 @@ export default defineConfig({
   envPrefix: 'VITE_',
   server: {
     host: '0.0.0.0',
-    port: parseInt(process.env.VITE_PORT || '5173'),
+    port: parseInt(process.env.PORT || '5003'),
     strictPort: true,
     allowedHosts: true,
     hmr: {
@@ -32,12 +32,12 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: `http://localhost:${process.env.PORT || '8080'}`,
+        target: `http://localhost:${process.env.API_PORT || '8080'}`,
         changeOrigin: true,
         secure: false,
       },
       '/health': {
-        target: `http://localhost:${process.env.PORT || '8080'}`,
+        target: `http://localhost:${process.env.API_PORT || '8080'}`,
         changeOrigin: true,
         secure: false,
       }

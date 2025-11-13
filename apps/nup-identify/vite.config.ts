@@ -30,7 +30,7 @@ export default defineConfig({
   },
   server: {
     host: "0.0.0.0",
-    port: 5001,
+    port: 5002,
     strictPort: true,
     hmr: {
       path: (process.env.BASE_PREFIX || '') + '/__vite_hmr',
