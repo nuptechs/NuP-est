@@ -50,7 +50,7 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "./start-nup-aim-proxy.sh"
-waitForPort = 34735
+waitForPort = 5003
 ```
 
 ## ✅ Passo 2: Reinicie o Workspace
@@ -89,7 +89,7 @@ Após reiniciar, acesse:
 │  /nup-identify    /nup-aim          │
 │       │                │            │
 │       ▼                ▼            │
-│  Porta 5002      Porta 34735       │
+│  Porta 5002      Porta 5003        │
 └─────────────────────────────────────┘
 ```
 
@@ -132,7 +132,7 @@ curl -I http://localhost:5000/nup-identify
 ```bash
 # Libere as portas
 pkill -f "PORT=5002"
-pkill -f "PORT=34735"
+pkill -f "PORT=5003"
 # Reinicie o workspace
 kill 1
 ```

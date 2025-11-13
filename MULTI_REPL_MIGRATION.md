@@ -9,7 +9,7 @@ Este guia detalha como migrar o monorepo NuPtechs para uma arquitetura Multi-Rep
 workspace (1 Repl)
 ├── server/index.ts (NuP-Study + Gateway)
 ├── apps/nup-identify (porta 5002)
-└── apps/nup-aim (porta 34735)
+└── apps/nup-aim (porta 5003)
 ```
 
 **Problemas:**

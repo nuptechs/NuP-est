@@ -40,7 +40,7 @@ pnpm build:study
 Gateway (porta 5000)
 ├─ /                 → NuP-Study (porta 5001) ← SEM PREFIXO
 ├─ /nup-identify/*   → NuP-Identify (porta 5002) ← COM PREFIXO
-└─ /nup-aim/*        → NuP-AIM (porta 34735) ← COM PREFIXO
+└─ /nup-aim/*        → NuP-AIM (porta 5003) ← COM PREFIXO
 ```
 
 **Por que NuP-Study não precisa de BASE_PREFIX?**

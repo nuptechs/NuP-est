@@ -50,7 +50,7 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "./start-nup-aim-proxy.sh"
-waitForPort = 34735
+waitForPort = 5003
 
 =============================================================================
 ✅ APÓS COLAR A CONFIGURAÇÃO ACIMA:
@@ -106,14 +106,14 @@ waitForPort = 34735
 │  │                                                  │ │
 │  │  Proxy Reverso:                                  │ │
 │  │  • /nup-identify → localhost:5002               │ │
-│  │  • /nup-aim → localhost:34735                   │ │
+│  │  • /nup-aim → localhost:5003                    │ │
 │  │  • WebSocket support (HMR)                       │ │
 │  └──────────────────────────────────────────────────┘ │
 │             │                       │                  │
 │             ▼                       ▼                  │
 │  ┌──────────────────┐   ┌──────────────────┐         │
 │  │  NuP-Identify    │   │    NuP-AIM       │         │
-│  │  Porta 5002      │   │  Porta 34735     │         │
+│  │  Porta 5002      │   │  Porta 5003      │         │
 │  │  BASE_PREFIX:    │   │  BASE_PREFIX:    │         │
 │  │  /nup-identify   │   │  /nup-aim        │         │
 │  └──────────────────┘   └──────────────────┘         │
@@ -143,7 +143,7 @@ SOLUÇÃO:
 PROBLEMA: Portas em conflito
 SOLUÇÃO:
    pkill -f "PORT=5002"
-   pkill -f "PORT=34735"
+   pkill -f "PORT=5003"
    kill 1
 
 PROBLEMA: BASE_PREFIX não aplicado
