@@ -74,6 +74,14 @@ waitForPort = 34735
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 5002
+externalPort = 3000
+
+[[ports]]
+localPort = 34735
+externalPort = 3001
+
 [agent]
 integrations = [
   "javascript_log_in_with_replit:1.0.0",
