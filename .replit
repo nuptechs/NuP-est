@@ -83,7 +83,7 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "./start-nup-aim-proxy.sh"
-waitForPort = 34735
+waitForPort = 5003
 
 [[ports]]
 localPort = 5000
@@ -100,10 +100,6 @@ externalPort = 3000
 [[ports]]
 localPort = 5003
 externalPort = 3002
-
-[[ports]]
-localPort = 35975
-externalPort = 3003
 
 [agent]
 integrations = [
