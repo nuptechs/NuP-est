@@ -1,4 +1,4 @@
-# 🏗️ Arquitetura do Projeto NuP-est
+# 🏗️ Arquitetura do Projeto easy-nup
 
 **Nota de Qualidade: 9.0/10** ⭐⭐⭐⭐⭐  
 **Padrão: Monorepo Full-Stack TypeScript**
@@ -7,15 +7,33 @@
 
 ## 📊 Visão Geral
 
-O projeto segue uma arquitetura **Monorepo Full-Stack** com **separação física clara** entre front-end e back-end, mantendo tipos compartilhados para garantir type-safety end-to-end.
+O **easy-nup** é um monorepo que contém múltiplas aplicações educacionais com IA. O app principal, **NuP-Study**, segue uma arquitetura **Monorepo Full-Stack** com **separação física clara** entre front-end e back-end, mantendo tipos compartilhados para garantir type-safety end-to-end.
 
 ---
 
 ## 📁 Estrutura de Pastas
 
 ```
-NuP-est/
-├── 📱 client/              FRONT-END (React + TypeScript)
+easy-nup/
+├── apps/
+│   ├── nup-study/         → App principal de estudos
+│   ├── nup-identify/      → Sistema de autenticação
+│   ├── nup-aim/           → Análise de impacto
+│   └── gateway/           → Proxy reverso
+│
+├── packages/@nup/         → Pacotes compartilhados
+│   ├── ui/                → Componentes UI (shadcn)
+│   ├── shared-types/      → Tipos TypeScript
+│   ├── api-client/        → Cliente API (TanStack Query)
+│   └── auth-client/       → Cliente de autenticação
+│
+├── features/@nup/         → Features reutilizáveis
+│   ├── flashcards/        → Sistema de flashcards
+│   ├── mindmaps/          → Mapas mentais
+│   └── professor-ia/      → Tutor IA com voz
+│
+└── NuP-Study (apps/nup-study):
+    ├── 📱 client/              FRONT-END (React + TypeScript)
 │   ├── src/
 │   │   ├── components/    → Componentes React reutilizáveis
 │   │   ├── pages/         → Páginas da aplicação (SPA)

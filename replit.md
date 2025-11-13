@@ -1,8 +1,8 @@
 # Overview
 
-NuP-Study is an AI-powered adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor offering ultra-low latency voice interactions (<500ms) to simulate a human teacher. The platform aims to deliver a polished, professional user experience with adaptive learning strategies, enhancing learning efficiency and engagement for personalized educational journeys in the e-learning market. 
+**easy-nup** is a modern monorepo containing multiple AI-powered educational applications. The flagship app, **NuP-Study**, is an adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor offering ultra-low latency voice interactions (<500ms) to simulate a human teacher.
 
-The project uses a modern monorepo architecture with Turborepo and pnpm workspaces to support a scalable NuP Ecosystem of multiple, independently deployable, and modularly sellable AI-powered applications. All apps share a single PostgreSQL database with isolated schemas for logical separation.
+The easy-nup monorepo uses a modern architecture with Turborepo and pnpm workspaces to support a scalable ecosystem of multiple, independently deployable, and modularly sellable AI-powered applications. All apps share a single PostgreSQL database with isolated schemas for logical separation.
 
 # User Preferences
 
@@ -56,9 +56,9 @@ The project uses a **Multi-Repl Gateway Architecture** for production deployment
 
 **Migration:** See `MULTI_REPL_MIGRATION.md` and `DEPLOYMENT_GUIDE.md` for detailed migration and deployment instructions.
 
-## Monorepo Architecture
+## Monorepo Architecture (easy-nup)
 
-The project is structured as a monorepo using Turborepo and pnpm workspaces. It consists of:
+The easy-nup monorepo is structured using Turborepo and pnpm workspaces. It consists of:
 - `apps/`: Deployable applications like `nup-study`, `nup-aim`, and planned `nup-identify`, `nup-chunks`, `nup-kan`, `nup-service`.
 - `packages/@nup/`: Shared code packages including `ui` (shadcn/ui), `auth-client` (for NuP-Identify), `api-client` (TanStack Query), and `shared-types`.
 - `features/@nup/`: Reusable, sellable features like `mindmaps`, `professor-ia`, and `flashcards`.

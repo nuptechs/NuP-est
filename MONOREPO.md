@@ -1,11 +1,11 @@
-# NuP Ecosystem - Monorepo Architecture
+# easy-nup - Monorepo Architecture
 
 > 🚀 **Sistema de Workflows Automático:** Use `node scripts/manage-workflows.js` para gerenciar workflows! Ver [docs/WORKFLOWS.md](docs/WORKFLOWS.md)
 
 ## 📦 Estrutura do Monorepo
 
 ```
-nup-ecosystem/
+easy-nup/
 ├── apps/                         # Aplicações deployáveis
 │   ├── nup-study/                # App principal (atual)
 │   ├── nup-identify/             # Central de autenticação

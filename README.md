@@ -1,135 +1,190 @@
-# 🎯 NuP-est - Sistema de Análise de Editais
+# 🎓 easy-nup - AI-Powered Educational Apps Monorepo
 
-> **Sistema inteligente que extrai cargos e conhecimentos de editais de concurso automaticamente**
+> **Monorepo moderno contendo múltiplas aplicações educacionais com IA**
 
-## 📋 O Que Faz
+## 📦 Apps Disponíveis
 
-- ⬆️ **Upload de editais** em PDF
-- 🤖 **Extração automática** de informações importantes  
-- 👨‍💼 **Lista de cargos** com requisitos e salários
-- 📚 **Conhecimentos organizados** por disciplinas
-- 📊 **Acompanhamento em tempo real** do processamento
+### 🎯 **NuP-Study** (Principal)
+Plataforma adaptativa de gestão de estudos com IA personalizada
+- 🧠 **Professor IA** - Tutor com voz ultra-baixa latência (<500ms)
+- 🗺️ **Mapas Mentais** - Visualização inteligente de conceitos
+- 🎴 **Flashcards** - Sistema de memorização espaçada
+- 📚 **Biblioteca** - Gestão de materiais de estudo
+- 📊 **Analytics** - Acompanhamento de progresso
 
-## 🏗️ Arquitetura Simples
+### 🔐 **NuP-Identify**
+Sistema centralizado de autenticação e autorização
+- Single Sign-On (SSO) para todos os apps NuP
+- Gestão de usuários, organizações e permissões
 
-O sistema funciona em **2 passos**:
+### 📊 **NuP-AIM**
+Análise de Impacto de Mudanças
+- Extração e análise de editais e documentos
 
-### **Passo 1: Processamento** 🔄
-1. Usuário envia PDF
-2. Sistema externo "quebra" em pedaços
-3. Pedaços viram coordenadas no Pinecone
+### 🌐 **Gateway**
+Proxy reverso para arquitetura Multi-Repl
+- Roteamento inteligente entre apps
+- Health checks e logging centralizado
 
-### **Passo 2: Análise** 🤖  
-1. Sistema pergunta: "onde estão os cargos?"
-2. Sistema pergunta: "onde estão os conhecimentos?"
-3. IA organiza as informações
-4. Usuário recebe tudo pronto!
+---
 
-## 📁 Organização do Código
+## 🏗️ Arquitetura
 
 ```
-server/
-├── 🛣️ routes/          # ROTAS DA API
-│   ├── edital.ts       # Upload e gerenciar editais
-│   ├── editalRAG.ts    # Busca com RAG/IA
-│   └── rag.ts          # Sistema de busca
+easy-nup/
+├── apps/                    # Aplicações deployáveis
+│   ├── nup-study/          → App principal
+│   ├── nup-identify/       → Autenticação
+│   ├── nup-aim/            → Análise de impacto
+│   └── gateway/            → Proxy reverso
 │
-├── 🔧 services/        # LÓGICA DE NEGÓCIO
-│   ├── newEditalService.ts    # Processamento de editais
-│   ├── editalRAG.ts           # Análise com RAG
-│   ├── pinecone.ts            # Banco vetorial
-│   ├── ai.ts                  # Serviços de IA
-│   └── rag.ts                 # Sistema RAG
+├── packages/@nup/          # Pacotes compartilhados
+│   ├── ui/                 → Design System (shadcn)
+│   ├── shared-types/       → TypeScript types
+│   ├── api-client/         → TanStack Query client
+│   └── auth-client/        → Cliente de autenticação
 │
-├── 🔌 integrations/     # CONECTORES EXTERNOS
-│   └── external-processor.ts  # Processador externo
-│
-├── ⚙️ core/            # CONFIGURAÇÕES
-│   ├── types.ts         # Formatos dos dados
-│   └── status.ts        # Estados dos editais
-│
-└── 🗄️ storage.ts      # Interface de dados
+└── features/@nup/          # Features reutilizáveis
+    ├── flashcards/         → Sistema de flashcards
+    ├── mindmaps/           → Mapas mentais
+    └── professor-ia/       → Tutor IA com voz
 ```
 
-## 🚀 Como Usar
+---
 
-### **Desenvolvimento**
+## 🚀 Quick Start
+
+### Desenvolvimento
+
 ```bash
-npm run dev
+# Instalar dependências
+pnpm install
+
+# Rodar app principal (NuP-Study)
+pnpm dev
+
+# Rodar todos os apps
+node scripts/run-all-apps.sh
 ```
 
-### **Upload de Edital**
+### Build & Deploy
+
 ```bash
-curl -X POST http://localhost:5000/api/edital/upload \
-  -F "file=@edital.pdf"
+# Build de um app específico
+cd apps/nup-study && pnpm run build
+
+# Criar deployment bundle
+./scripts/deploy-nup-study.sh
+
+# Deploy para produção
+# Ver: docs/DEPLOYMENT_GUIDE.md
 ```
 
-### **Verificar Status**
-```bash
-curl http://localhost:5000/api/edital/{id}/status
-```
+---
 
-## 🔧 Configuração
+## 📚 Documentação
 
-### **Variáveis de Ambiente**
+- **[Arquitetura](docs/ARQUITETURA.md)** - Visão completa do sistema
+- **[Monorepo Guide](MONOREPO.md)** - Estrutura e governança
+- **[CI/CD Guide](docs/CI-CD-GUIDE.md)** - Pipeline de deployment
+- **[Multi-Repl Architecture](MULTI_REPL_MIGRATION.md)** - Deployment distribuído
+
+---
+
+## 🛠️ Stack Tecnológica
+
+**Frontend:**
+- React 18 + TypeScript
+- Vite + Wouter (routing)
+- TanStack Query (state)
+- shadcn/ui + Tailwind CSS
+
+**Backend:**
+- Express.js + TypeScript (ESM)
+- Drizzle ORM + PostgreSQL (Neon)
+- Passport.js (auth)
+
+**AI/ML:**
+- OpenAI API (GPT-4o, Whisper, TTS)
+- Pinecone (vector DB)
+- Deepgram (STT/TTS premium)
+
+**Infra:**
+- Turborepo + pnpm workspaces
+- GitHub Actions (CI/CD)
+- Replit (hosting)
+
+---
+
+## 🔑 Environment Variables
+
 ```env
-PINECONE_API_KEY=sua_chave_aqui
-OPENAI_API_KEY=sua_chave_aqui
-EXTERNAL_PROCESSOR_URL=http://localhost:8000
-DATABASE_URL=sua_url_do_banco
+# Database
+DATABASE_URL=postgresql://...
+
+# AI Services
+OPENAI_API_KEY=sk-...
+PINECONE_API_KEY=...
+DEEPGRAM_API_KEY=...
+
+# Auth
+JWT_SECRET=...
 ```
 
-## 📊 Estados de um Edital
+---
 
-1. **⬆️ uploaded** - Arquivo recebido
-2. **🔄 indexing** - Sistema externo processando
-3. **📚 indexed** - Indexado no Pinecone  
-4. **🤖 analyzing** - IA analisando
-5. **✅ completed** - Pronto!
+## 📖 Guias Rápidos
 
-## ❗ Problemas Comuns
+### Adicionar Nova Feature
 
-| Problema | Causa | Solução |
-|----------|-------|---------|
-| "Não encontrou informações" | IDs duplicados | Gerar ID único por documento |
-| "Erro no JSON" | IA não retorna formato correto | Parser mais flexível |
-| "Timeout" | IA demora para responder | Dividir em queries menores |
+```bash
+# 1. Criar em features/@nup/
+mkdir -p features/@nup/minha-feature
 
-## 📞 Logs Importantes
+# 2. Adicionar build config (tsup)
+# 3. Usar em apps com workspace:*
+```
 
-Procure por estes símbolos:
-- ✅ = Sucesso
-- ❌ = Erro  
-- 🔍 = Buscando
-- 🤖 = IA trabalhando
-- 📚 = Dados encontrados
+### Adicionar Novo App
 
-## 📖 Documentação Completa
+```bash
+# 1. Criar em apps/
+mkdir -p apps/meu-app
 
-### 📚 Central de Documentação
-Toda a documentação técnica está organizada na pasta **[docs/](./docs/)**:
+# 2. Configurar package.json
+# 3. Registrar no turbo.json
+```
 
-- **[Índice Geral](./docs/README.md)** - Navegação completa por toda a documentação
-- **[Visão Geral do Sistema](./docs/SYSTEM_OVERVIEW.md)** - Funcionalidades e arquitetura completa
-- **[Arquitetura Técnica](./docs/arquitetura-atual.md)** - Detalhes de implementação
-- **[Como Funciona](./docs/como-funciona.md)** - Explicação simplificada dos fluxos
-- **[Integrações Técnicas](./docs/integrations-technical.md)** - OpenAI, Pinecone, Document AI
-- **[Análise de Gaps](./docs/GAPS_ANALYSIS.md)** - Gaps conhecidos e melhorias
+Ver: [MONOREPO.md](MONOREPO.md) para detalhes completos.
 
-### 🔧 Para Desenvolvedores
-Arquivos principais do código:
-- `server/routes/edital.ts` - Endpoints de upload e gerenciamento
-- `server/services/newEditalService.ts` - Lógica principal de processamento
-- `server/services/editalRAG.ts` - Análise inteligente com RAG
-- `server/services/pinecone.ts` - Conexão com banco vetorial
+---
 
-## 🤝 Para Não-Desenvolvedores
+## 🤝 Contribuindo
 
-Este sistema foi organizado para ser **fácil de entender**:
+1. Clone o repositório
+2. Crie uma branch: `git checkout -b feature/minha-feature`
+3. Commit suas mudanças: `git commit -m 'feat: adiciona nova feature'`
+4. Push para a branch: `git push origin feature/minha-feature`
+5. Abra um Pull Request
 
-- **Nomes claros** - cada arquivo tem um nome que explica o que faz
-- **Comentários simples** - explicações em português claro  
-- **Documentação visual** - diagramas e exemplos
-- **Logs amigáveis** - mensagens que fazem sentido
+---
 
-Não tenha medo de explorar o código! 🚀
+## 📄 Licença
+
+MIT License - veja [LICENSE](LICENSE) para detalhes.
+
+---
+
+## 🎯 Roadmap
+
+- [x] NuP-Study v1.0 - App principal
+- [x] Professor IA - Tutor com voz
+- [x] Mapas Mentais - Visualização
+- [x] NuP-Identify - Auth centralizado
+- [ ] NuP-Chunks - Processamento de documentos
+- [ ] NuP-Kan - Kanban para estudos
+- [ ] Mobile apps (React Native)
+
+---
+
+**Made with ❤️ for students**

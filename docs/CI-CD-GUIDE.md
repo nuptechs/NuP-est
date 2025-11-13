@@ -1,8 +1,8 @@
-# CI/CD Guide - NuP Ecosystem
+# CI/CD Guide - easy-nup
 
 ## Overview
 
-Sistema completo de CI/CD para monorepo NuP com **affected detection**, **builds condicionais**, e **deployment automatizado** para arquitetura Multi-Repl.
+Sistema completo de CI/CD para monorepo easy-nup com **affected detection**, **builds condicionais**, e **deployment automatizado** para arquitetura Multi-Repl.
 
 ## Quick Start
 
