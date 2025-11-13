@@ -4,18 +4,20 @@
 
 ## 📦 Apps Disponíveis
 
-### 🎯 **NuP-Study** (Principal)
+### 🔐 **NuP-Identify** (CORE/Principal)
+Sistema centralizado de autenticação e autorização - **Porta de entrada para todo o ecossistema**
+- ✅ Single Sign-On (SSO) para todos os apps NuP
+- 👥 Gestão de usuários, organizações e permissões
+- 🔑 Controle de acesso granular por app
+- 🎯 Gateway de autenticação unificado
+
+### 🎓 **NuP-Study** (App Educacional Principal)
 Plataforma adaptativa de gestão de estudos com IA personalizada
 - 🧠 **Professor IA** - Tutor com voz ultra-baixa latência (<500ms)
 - 🗺️ **Mapas Mentais** - Visualização inteligente de conceitos
 - 🎴 **Flashcards** - Sistema de memorização espaçada
 - 📚 **Biblioteca** - Gestão de materiais de estudo
 - 📊 **Analytics** - Acompanhamento de progresso
-
-### 🔐 **NuP-Identify**
-Sistema centralizado de autenticação e autorização
-- Single Sign-On (SSO) para todos os apps NuP
-- Gestão de usuários, organizações e permissões
 
 ### 📊 **NuP-AIM**
 Análise de Impacto de Mudanças
@@ -33,8 +35,8 @@ Proxy reverso para arquitetura Multi-Repl
 ```
 easy-nup/
 ├── apps/                    # Aplicações deployáveis
-│   ├── nup-study/          → App principal
-│   ├── nup-identify/       → Autenticação
+│   ├── nup-identify/       → CORE: Auth & SSO (porta de entrada)
+│   ├── nup-study/          → App educacional principal
 │   ├── nup-aim/            → Análise de impacto
 │   └── gateway/            → Proxy reverso
 │

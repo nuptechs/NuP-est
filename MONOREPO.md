@@ -7,8 +7,8 @@
 ```
 easy-nup/
 ├── apps/                         # Aplicações deployáveis
-│   ├── nup-study/                # App principal (atual)
-│   ├── nup-identify/             # Central de autenticação
+│   ├── nup-identify/             # CORE: Central de autenticação (SSO Gateway)
+│   ├── nup-study/                # App educacional principal
 │   ├── nup-chunks/               # (A migrar)
 │   ├── nup-aim/                  # (A migrar)
 │   ├── nup-kan/                  # (A migrar)

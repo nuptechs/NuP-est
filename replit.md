@@ -1,6 +1,8 @@
 # Overview
 
-**easy-nup** is a modern monorepo containing multiple AI-powered educational applications. The flagship app, **NuP-Study**, is an adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor offering ultra-low latency voice interactions (<500ms) to simulate a human teacher.
+**easy-nup** is a modern monorepo containing multiple AI-powered educational applications. The core app, **NuP-Identify**, is the centralized authentication and authorization system that controls access to all NuP apps via Single Sign-On (SSO). 
+
+The main educational app is **NuP-Study**, an adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor offering ultra-low latency voice interactions (<500ms) to simulate a human teacher.
 
 The easy-nup monorepo uses a modern architecture with Turborepo and pnpm workspaces to support a scalable ecosystem of multiple, independently deployable, and modularly sellable AI-powered applications. All apps share a single PostgreSQL database with isolated schemas for logical separation.
 
@@ -59,10 +61,16 @@ The project uses a **Multi-Repl Gateway Architecture** for production deployment
 ## Monorepo Architecture (easy-nup)
 
 The easy-nup monorepo is structured using Turborepo and pnpm workspaces. It consists of:
-- `apps/`: Deployable applications like `nup-study`, `nup-aim`, and planned `nup-identify`, `nup-chunks`, `nup-kan`, `nup-service`.
+- `apps/`: Deployable applications
+  - **`nup-identify/`** (CORE) - Centralized authentication & authorization system with SSO
+  - `nup-study/` - Main educational platform with AI tools
+  - `nup-aim/` - Impact analysis system
+  - `gateway/` - Reverse proxy for Multi-Repl architecture
+  - Planned: `nup-chunks`, `nup-kan`, `nup-service`
 - `packages/@nup/`: Shared code packages including `ui` (shadcn/ui), `auth-client` (for NuP-Identify), `api-client` (TanStack Query), and `shared-types`.
 - `features/@nup/`: Reusable, sellable features like `mindmaps`, `professor-ia`, and `flashcards`.
-This structure promotes code sharing, independent deployments, modular sales, type safety, and consistent UX. NuP-Identify is planned as a centralized authentication and authorization system across all NuP apps.
+
+**Architecture Flow:** All users authenticate via **NuP-Identify** (SSO gateway) → Access granted to authorized apps (NuP-Study, NuP-AIM, etc.) based on permissions. This structure promotes centralized access control, code sharing, independent deployments, modular sales, type safety, and consistent UX.
 
 ## Frontend Architecture
 
