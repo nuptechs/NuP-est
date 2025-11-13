@@ -22,17 +22,18 @@ console.log('🌐 [Gateway] Inicializando gateway NuP...\n');
 function createProxyConfig(
   name: string,
   target: string,
-  pathPrefix?: string
+  basePrefix?: string
 ): Options {
   return {
     target,
     changeOrigin: true,
     ws: true,
-    pathRewrite: pathPrefix ? (path: string) => {
-      if (path.startsWith('/api')) {
+    pathRewrite: basePrefix ? (path: string, req: any) => {
+      const preserveList = ['/api', '/socket.io', '/ws'];
+      if (preserveList.some(p => path === p || path.startsWith(p + '/'))) {
         return path;
       }
-      return `${pathPrefix}${path}`;
+      return basePrefix + (path === '/' ? '' : path);
     } : undefined,
     onProxyRes: (proxyRes: any, req: any, res: any) => {
       proxyRes.headers['x-proxied-by'] = 'NuP-Gateway';

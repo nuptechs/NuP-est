@@ -30,6 +30,77 @@ Gateway de Proxy Reverso para arquitetura Multi-Repl do ecossistema NuPtechs.
 - `/health` → Status do Gateway
 - `/health/services` → Status de todos os serviços
 
+## Path Rewriting e Base Prefix
+
+### Como Funciona
+
+O gateway usa lógica condicional de path rewriting para garantir que:
+- **Rotas API/WebSocket** sejam enviadas **sem prefixo** aos serviços downstream
+- **Assets e HMR endpoints** sejam enviados **com prefixo** aos serviços downstream
+
+#### Exemplo de Fluxo
+
+**Requisição API:**
+```
+Cliente: GET /nup-identify/api/health
+  ↓ Express remove mount path: /nup-identify
+Gateway pathRewrite: /api/health (detecta /api, preserva sem prefixo)
+  ↓
+Downstream: GET http://localhost:5002/api/health ✅
+```
+
+**Requisição Asset:**
+```
+Cliente: GET /nup-identify/assets/logo.png
+  ↓ Express remove mount path: /nup-identify
+Gateway pathRewrite: /nup-identify/assets/logo.png (adiciona prefixo)
+  ↓
+Downstream: GET http://localhost:5002/nup-identify/assets/logo.png ✅
+```
+
+### Implementação
+
+```javascript
+pathRewrite: (path: string, req: any) => {
+  const preserveList = ['/api', '/socket.io', '/ws'];
+  
+  // Preserva rotas API/WebSocket sem adicionar prefixo
+  if (preserveList.some(p => path === p || path.startsWith(p + '/'))) {
+    return path;
+  }
+  
+  // Adiciona prefixo para assets, HMR, e rotas SPA
+  return basePrefix + (path === '/' ? '' : path);
+}
+```
+
+### Contrato com Serviços Downstream
+
+**IMPORTANTE:** Os serviços proxiados (NuP-Identify, NuP-AIM) **DEVEM** ser configurados com `BASE_PREFIX`:
+
+```javascript
+// apps/nup-identify/vite.config.ts
+const BASE_PREFIX = process.env.BASE_PREFIX || '/nup-identify';
+
+export default defineConfig({
+  base: BASE_PREFIX,
+  // ...
+});
+```
+
+Isso garante que:
+- Assets sejam servidos com o prefixo correto (`/nup-identify/assets/*`)
+- HMR endpoints funcionem (`/nup-identify/@vite/client`)
+- Rotas API permaneçam root-relative (`/api/*`)
+
+### Rotas Testadas
+
+- ✅ `/nup-identify/api/health` → API sem prefixo
+- ✅ `/nup-identify/` → HTML com prefixo
+- ✅ `/nup-identify/assets/*` → Assets com prefixo
+- ✅ `/nup-identify/@vite/client` → HMR com prefixo
+- ✅ `/nup-identify/socket.io` → WebSocket sem prefixo
+
 ## Configuração
 
 ### Variáveis de Ambiente
