@@ -50,14 +50,23 @@ mkdirSync('dist', { recursive: true });
 cpSync(primaryAppDist, targetDist, { recursive: true });
 console.log(`   ✓ Copied ${PRIMARY_APP} assets to dist/public/`);
 
-console.log('\n🔧 Step 4: Bundling server with esbuild...');
+console.log('\n🔧 Step 4: Bundling gateway server with esbuild...');
 try {
-  execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist', {
+  execSync(`esbuild server/index.ts \
+    --platform=node \
+    --packages=external \
+    --bundle \
+    --format=esm \
+    --outdir=dist \
+    --minify \
+    --sourcemap \
+    --external:express \
+    --external:http-proxy-middleware`, {
     stdio: 'inherit'
   });
-  console.log('   ✓ Server bundled successfully');
+  console.log('   ✓ Gateway server bundled successfully');
 } catch (error) {
-  console.error('   ❌ Failed to bundle server');
+  console.error('   ❌ Failed to bundle gateway server');
   process.exit(1);
 }
 
