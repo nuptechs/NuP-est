@@ -25,6 +25,9 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   base: process.env.BASE_PREFIX || '/',
+  define: {
+    'import.meta.env.VITE_BASE_PREFIX': JSON.stringify(process.env.BASE_PREFIX || '/'),
+  },
   server: {
     host: "0.0.0.0",
     port: 5001,

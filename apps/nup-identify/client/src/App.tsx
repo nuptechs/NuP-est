@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch, useLocation, Router } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import LoginPage from "@/pages/LoginPage";
 import { DashboardPage } from "@/pages/DashboardPage";
@@ -11,6 +11,8 @@ import { InvitationsPage } from "@/pages/InvitationsPage";
 import SystemsPage from "@/pages/SystemsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import { queryClient, getCurrentUser, isAuthenticated } from "@/lib/queryClient";
+
+const BASE_PATH = ((import.meta.env.VITE_BASE_PREFIX as string | undefined) || import.meta.env.BASE_URL || '/').replace(/\/$/, '');
 
 function AuthCheck({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -40,28 +42,30 @@ function AuthCheck({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthCheck>
-        <Switch>
-          <Route path="/" component={LoginPage} />
-          <Route path="/login" component={LoginPage} />
-          <Route path="/dashboard" component={DashboardPage} />
-          <Route path="/organizations" component={OrganizationsPage} />
-          <Route path="/teams" component={TeamsPage} />
-          <Route path="/permissions" component={PermissionsPage} />
-          <Route path="/invitations" component={InvitationsPage} />
-          <Route path="/systems" component={SystemsPage} />
-          <Route path="/settings" component={SettingsPage} />
-          <Route>
-            <div className="flex items-center justify-center min-h-screen">
-              <div className="text-center">
-                <h1 className="text-4xl font-bold mb-4">404</h1>
-                <p>Página não encontrada</p>
+      <Router base={BASE_PATH}>
+        <AuthCheck>
+          <Switch>
+            <Route path="/" component={LoginPage} />
+            <Route path="/login" component={LoginPage} />
+            <Route path="/dashboard" component={DashboardPage} />
+            <Route path="/organizations" component={OrganizationsPage} />
+            <Route path="/teams" component={TeamsPage} />
+            <Route path="/permissions" component={PermissionsPage} />
+            <Route path="/invitations" component={InvitationsPage} />
+            <Route path="/systems" component={SystemsPage} />
+            <Route path="/settings" component={SettingsPage} />
+            <Route>
+              <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                  <h1 className="text-4xl font-bold mb-4">404</h1>
+                  <p>Página não encontrada</p>
+                </div>
               </div>
-            </div>
-          </Route>
-        </Switch>
-      </AuthCheck>
-      <Toaster />
+            </Route>
+          </Switch>
+        </AuthCheck>
+        <Toaster />
+      </Router>
     </QueryClientProvider>
   );
 }

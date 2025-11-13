@@ -26,7 +26,7 @@ export async function apiRequest(
   // Prefix URL with BASE_URL to support reverse proxy deployment
   // In development with proxy: BASE_URL = "/nup-identify"
   // In standalone mode: BASE_URL = "/"
-  const baseUrl = import.meta.env.BASE_URL || '/';
+  const baseUrl = (import.meta.env.VITE_BASE_PREFIX as string | undefined) || import.meta.env.BASE_URL || '/';
   const fullUrl = url.startsWith('/') 
     ? `${baseUrl.replace(/\/$/, '')}${url}` 
     : url;
