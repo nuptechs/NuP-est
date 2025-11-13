@@ -1,5 +1,4 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -46,73 +45,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  console.log('🔧 [Proxy] Configurando proxy para NuP-Identify em /nup-identify -> http://localhost:5002');
-  
-  // Reverse Proxy Configuration for NuP Ecosystem Apps (MUST be before registerRoutes)
-  // Mount at /nup-identify to match all paths starting with it
-  app.use('/nup-identify', createProxyMiddleware({
-    target: 'http://localhost:5002',
-    changeOrigin: true,
-    ws: true,
-    // DO NOT use pathRewrite - we need to preserve the /nup-identify prefix
-    // so the target server knows its BASE_PREFIX
-    router: (req) => {
-      // Keep the full original path including /nup-identify
-      req.url = req.originalUrl;
-      return 'http://localhost:5002';
-    },
-    onProxyReq: (proxyReq, req, res) => {
-      log(`[Proxy] NuP-Identify: ${req.method} ${req.url}`);
-    },
-    onProxyRes: (proxyRes, req, res) => {
-      proxyRes.headers['x-proxied-by'] = 'NuP-Study';
-    },
-    onError: (err, req, res) => {
-      log(`[Proxy Error] NuP-Identify: ${err.message}`);
-      if (!res.headersSent) {
-        res.status(502).json({ 
-          error: 'NuP-Identify não está disponível',
-          message: 'Verifique se o serviço está rodando na porta 5002'
-        });
-      }
-    }
-  }));
-  
-  console.log('✅ [Proxy] NuP-Identify configurado com sucesso');
-
-  console.log('🔧 [Proxy] Configurando proxy para NuP-AIM em /nup-aim -> http://localhost:34735');
-  
-  // Mount at /nup-aim to match all paths starting with it
-  app.use('/nup-aim', createProxyMiddleware({
-    target: 'http://localhost:34735',
-    changeOrigin: true,
-    ws: true,
-    // DO NOT use pathRewrite - we need to preserve the /nup-aim prefix
-    // so the target server knows its BASE_PREFIX
-    router: (req) => {
-      // Keep the full original path including /nup-aim
-      req.url = req.originalUrl;
-      return 'http://localhost:34735';
-    },
-    onProxyReq: (proxyReq, req, res) => {
-      log(`[Proxy] NuP-AIM: ${req.method} ${req.url}`);
-    },
-    onProxyRes: (proxyRes, req, res) => {
-      proxyRes.headers['x-proxied-by'] = 'NuP-Study';
-    },
-    onError: (err, req, res) => {
-      log(`[Proxy Error] NuP-AIM: ${err.message}`);
-      if (!res.headersSent) {
-        res.status(502).json({ 
-          error: 'NuP-AIM não está disponível',
-          message: 'Verifique se o serviço está rodando na porta 34735'
-        });
-      }
-    }
-  }));
-  
-  console.log('✅ [Proxy] NuP-AIM configurado com sucesso');
-
   const server = await registerRoutes(app);
 
   // Sistema de tratamento de erro centralizado

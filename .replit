@@ -79,8 +79,8 @@ localPort = 5002
 externalPort = 3000
 
 [[ports]]
-localPort = 34735
-externalPort = 3001
+localPort = 34691
+externalPort = 3002
 
 [agent]
 integrations = [
