@@ -301,6 +301,300 @@
             font-size: 2rem;
             opacity: 0.7;
         }
+
+        .history {
+            padding: 6rem 2rem;
+            background: white;
+        }
+
+        .history-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .history-intro {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+        }
+
+        .intro-text {
+            font-size: 1.2rem;
+            line-height: 2;
+            color: var(--gray);
+        }
+
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+            margin: 4rem 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            transform: translateX(-50%);
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4rem;
+            position: relative;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .timeline-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .timeline-item:nth-child(odd) {
+            flex-direction: row-reverse;
+        }
+
+        .timeline-item::before {
+            content: attr(data-year);
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            z-index: 2;
+        }
+
+        .timeline-icon {
+            font-size: 3rem;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 4px solid var(--primary);
+            border-radius: 50%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .timeline-content {
+            flex: 1;
+            padding: 2rem;
+            background: var(--light);
+            border-radius: 15px;
+            max-width: 45%;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-content:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .timeline-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: var(--dark);
+        }
+
+        .timeline-content p {
+            color: var(--gray);
+            line-height: 1.8;
+        }
+
+        .map-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            margin: 4rem 0;
+            padding: 3rem;
+            background: var(--light);
+            border-radius: 20px;
+        }
+
+        .map-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .brazil-map {
+            width: 100%;
+            max-width: 400px;
+            filter: drop-shadow(0 10px 30px rgba(102, 126, 234, 0.3));
+        }
+
+        .pulse-dot {
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.3);
+            }
+        }
+
+        .map-text h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .map-text p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--gray);
+        }
+
+        .values-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 4rem 0 2rem;
+            color: var(--dark);
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .value-card {
+            background: white;
+            border: 2px solid var(--light);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .value-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .value-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .value-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .value-card h4 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            color: var(--dark);
+        }
+
+        .value-card p {
+            color: var(--gray);
+            line-height: 1.7;
+        }
+
+        .mission-statement {
+            margin: 5rem 0 3rem;
+            padding: 3rem;
+            background: var(--gradient);
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.3);
+        }
+
+        .mission-statement blockquote {
+            font-size: 1.4rem;
+            line-height: 1.9;
+            color: white;
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .mission-statement blockquote::before {
+            content: '"';
+            font-size: 4rem;
+            position: absolute;
+            top: -1rem;
+            left: -1rem;
+            opacity: 0.3;
+        }
+
+        .quote-author {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .timeline::before {
+                left: 30px;
+            }
+
+            .timeline-item {
+                flex-direction: row !important;
+                padding-left: 60px;
+            }
+
+            .timeline-item::before {
+                left: 30px;
+                transform: translateX(-50%) translateY(-40px);
+            }
+
+            .timeline-icon {
+                position: absolute;
+                left: 0;
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
+
+            .timeline-content {
+                max-width: 100%;
+            }
+
+            .map-section {
+                grid-template-columns: 1fr;
+                padding: 2rem;
+            }
+
+            .values-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mission-statement {
+                padding: 2rem;
+            }
+
+            .mission-statement blockquote {
+                font-size: 1.1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -366,6 +660,126 @@
         </div>
     </section>
 
+    <section class="history">
+        <div class="history-container">
+            <h2 class="section-title">Nossa Jornada</h2>
+            
+            <div class="history-intro">
+                <p class="intro-text">
+                    Fundada em maio de 2022, a NuPtechs nasceu da experiência de mais de 20 anos 
+                    de atuação em TI. Uma jornada que começou em grandes fábricas de software, 
+                    passando por contratos em órgãos públicos e empresas de diversos setores, 
+                    sempre com um olhar atento aos gaps que apenas a autonomia poderia resolver.
+                </p>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item" data-year="2000-2022">
+                    <div class="timeline-icon">🎯</div>
+                    <div class="timeline-content">
+                        <h3>20 Anos de Experiência</h3>
+                        <p>Atuação em grandes fábricas de software e contratos em órgãos públicos. 
+                        Período de aprendizado, identificação de oportunidades e construção de um 
+                        networking sólido de profissionais excepcionais.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item" data-year="Maio 2022">
+                    <div class="timeline-icon">🚀</div>
+                    <div class="timeline-content">
+                        <h3>Fundação da NuPtechs</h3>
+                        <p>Com autonomia total para implementar todo o aprendizado acumulado, 
+                        nasceu a NuPtechs: uma empresa que vai além do negócio puramente comercial, 
+                        focada em altíssima qualidade profissional.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item" data-year="2025">
+                    <div class="timeline-icon">⭐</div>
+                    <div class="timeline-content">
+                        <h3>Excelência e Inovação</h3>
+                        <p>Hoje, combinamos IA de ponta com processos que facilitam o dia a dia 
+                        do time e dos clientes, sempre guiados por valores inegociáveis e 
+                        compromisso com a entrega de valor real.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-section">
+                <div class="map-container">
+                    <svg viewBox="0 0 400 300" class="brazil-map">
+                        <path d="M200,50 L250,80 L280,120 L270,180 L240,220 L180,240 L130,220 L100,180 L110,120 L150,80 Z" 
+                              fill="url(#mapGradient)" stroke="#667eea" stroke-width="2" opacity="0.3"/>
+                        <circle cx="200" cy="150" r="8" fill="#667eea" class="pulse-dot"/>
+                        <circle cx="150" cy="120" r="5" fill="#8b5cf6" class="pulse-dot" style="animation-delay: 0.2s"/>
+                        <circle cx="240" cy="140" r="5" fill="#ec4899" class="pulse-dot" style="animation-delay: 0.4s"/>
+                        <circle cx="180" cy="190" r="5" fill="#667eea" class="pulse-dot" style="animation-delay: 0.6s"/>
+                        <defs>
+                            <linearGradient id="mapGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:0.8" />
+                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:0.8" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="map-text">
+                    <h3>Alcance Nacional</h3>
+                    <p>Experiência em projetos de grande escala para órgãos públicos e empresas 
+                    em todo o Brasil, construindo soluções que impactam milhares de usuários.</p>
+                </div>
+            </div>
+
+            <h3 class="values-title">Valores Inegociáveis</h3>
+            <div class="values-grid">
+                <div class="value-card">
+                    <div class="value-icon">💎</div>
+                    <h4>Qualidade Acima de Tudo</h4>
+                    <p>Não aceitamos "minimamente aceitável". Buscamos excelência em cada linha de código.</p>
+                </div>
+
+                <div class="value-card">
+                    <div class="value-icon">🤝</div>
+                    <h4>Respeito Total</h4>
+                    <p>Ao time, aos clientes, aos processos. Construímos relações de longo prazo baseadas em confiança.</p>
+                </div>
+
+                <div class="value-card">
+                    <div class="value-icon">🔍</div>
+                    <h4>Transparência</h4>
+                    <p>Comunicação clara, processos transparentes e honestidade em todas as interações.</p>
+                </div>
+
+                <div class="value-card">
+                    <div class="value-icon">⚡</div>
+                    <h4>Inovação Constante</h4>
+                    <p>Sempre na vanguarda, aplicando as melhores tecnologias sem perder o foco na solução real.</p>
+                </div>
+
+                <div class="value-card">
+                    <div class="value-icon">🎯</div>
+                    <h4>Entrega de Valor Real</h4>
+                    <p>Nosso sucesso é medido pelo impacto positivo que geramos para nossos clientes.</p>
+                </div>
+
+                <div class="value-card">
+                    <div class="value-icon">🏆</div>
+                    <h4>Excelência Técnica</h4>
+                    <p>Time selecionado ao longo de 20 anos, reunindo os melhores profissionais do mercado.</p>
+                </div>
+            </div>
+
+            <div class="mission-statement">
+                <blockquote>
+                    "Construímos mais que software. Construímos soluções que transformam 
+                    a forma como as pessoas aprendem, trabalham e crescem. Nossa missão vai 
+                    além do lucro: queremos criar uma empresa de referência em qualidade, 
+                    processos e valores humanos."
+                </blockquote>
+                <p class="quote-author">— Fundador, NuPtechs</p>
+            </div>
+        </div>
+    </section>
+
     <footer class="footer">
         <div class="footer-content">
             <h3>NuPtechs</h3>
@@ -392,6 +806,14 @@
         }, observerOptions);
 
         document.querySelectorAll('.product-card').forEach(card => {
+            observer.observe(card);
+        });
+
+        document.querySelectorAll('.timeline-item').forEach(item => {
+            observer.observe(item);
+        });
+
+        document.querySelectorAll('.value-card').forEach(card => {
             observer.observe(card);
         });
 
