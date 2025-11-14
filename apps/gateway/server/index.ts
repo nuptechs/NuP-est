@@ -63,6 +63,25 @@ const services: ServiceConfig[] = [
 ];
 
 // =============================================================================
+// INTELLIGENT ASSET ROUTING
+// =============================================================================
+
+app.use((req: Request, res: Response, next) => {
+  const viteAssetPatterns = ['/@vite', '/assets', '/__vite_hmr', '/src', '/node_modules'];
+  const referer = req.headers.referer || '';
+  
+  if (viteAssetPatterns.some(pattern => req.path.startsWith(pattern))) {
+    if (referer.includes('/nup-identify')) {
+      req.url = `/nup-identify${req.url}`;
+    } else if (referer.includes('/nup-aim')) {
+      req.url = `/nup-aim${req.url}`;
+    }
+  }
+  
+  next();
+});
+
+// =============================================================================
 // STATIC LANDING PAGE
 // =============================================================================
 
