@@ -85,6 +85,16 @@ app.use((req: Request, res: Response, next) => {
 // STATIC LANDING PAGE
 // =============================================================================
 
+app.use((req: Request, res: Response, next) => {
+  const hostname = req.hostname || req.headers.host || '';
+  
+  if (hostname.includes('easy-nup')) {
+    return res.sendFile(path.join(__dirname, "../public/landing.html"));
+  }
+  
+  next();
+});
+
 app.get("/easy-nup", (_req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, "../public/landing.html"));
 });
