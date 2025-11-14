@@ -122,15 +122,9 @@ const createProxyConfig = (service: ServiceConfig): Options => ({
   pathRewrite:
     service.pathPrefix !== "/"
       ? (path: string) => {
-          const preserveList = ['/api', '/socket.io', '/ws'];
-          const basePrefix = service.pathPrefix;
-          
-          for (const preserve of preserveList) {
-            if (path === `${basePrefix}${preserve}` || path.startsWith(`${basePrefix}${preserve}/`)) {
-              return path.substring(basePrefix.length);
-            }
+          if (path.startsWith(service.pathPrefix)) {
+            return path.substring(service.pathPrefix.length) || '/';
           }
-          
           return path;
         }
       : undefined,
