@@ -1,0 +1,49 @@
+{
+  "name": "@nup/app-kit",
+  "version": "1.0.0",
+  "description": "Toolkit for creating portable NuP apps that work standalone and in monorepo",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "nup-app": "./cli/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./vite": "./configs/vite.config.shared.js",
+    "./tailwind": "./configs/tailwind.config.shared.js",
+    "./tsconfig": "./configs/tsconfig.base.json"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "vite": "^5.0.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "files": [
+    "dist",
+    "configs",
+    "shims",
+    "cli",
+    "templates"
+  ],
+  "keywords": [
+    "nup",
+    "app-kit",
+    "template",
+    "monorepo",
+    "portable"
+  ]
+}
