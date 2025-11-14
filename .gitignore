@@ -11,6 +11,9 @@ deploy-output/
 # User uploads (keep in development, ignore in git)
 uploads/
 
+# Temporary conversation assets (agent use only)
+attached_assets/
+
 # Environment files
 .env
 .env.local
