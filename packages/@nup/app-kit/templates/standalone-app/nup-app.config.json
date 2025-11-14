@@ -1,0 +1,17 @@
+{
+  "name": "nup-template",
+  "displayName": "NuP-Template",
+  "port": 5000,
+  "gateway": {
+    "path": "/nup-template",
+    "enabled": true
+  },
+  "database": {
+    "schema": "nup_template",
+    "required": false
+  },
+  "env": {
+    "required": [],
+    "optional": ["OPENAI_API_KEY"]
+  }
+}

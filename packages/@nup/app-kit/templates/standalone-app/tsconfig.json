@@ -1,0 +1,14 @@
+{
+  "extends": "@nup/app-kit/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"]
+    }
+  },
+  "include": ["client/src/**/*", "shared/**/*"],
+  "references": [
+    { "path": "./server/tsconfig.json" }
+  ]
+}
