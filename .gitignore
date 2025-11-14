@@ -10,9 +10,15 @@ deploy-output/
 
 # User uploads (keep in development, ignore in git)
 uploads/
+**/uploads/
 
 # Temporary conversation assets (agent use only)
 attached_assets/
+**/attached_assets/
+
+# Generated outputs
+**/output/
+apps/nup-study/output/
 
 # Environment files
 .env
