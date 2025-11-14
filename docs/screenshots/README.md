@@ -1,6 +1,8 @@
-# 🖼️ Índice de Imagens
+# 🖼️ Screenshots e Imagens de Documentação
 
-Esta pasta contém **todas as imagens** do projeto NuP-est organizadas em um único local.
+Esta pasta contém **todas as imagens e screenshots** do projeto NuPtechs organizadas de forma centralizada.
+
+> **📍 Localização:** `/docs/screenshots/` (movido da raiz para melhor organização)
 
 ---
 
@@ -78,7 +80,7 @@ Esta pasta contém **todas as imagens** do projeto NuP-est organizadas em um ún
 ## 📁 Estrutura de Organização
 
 ```
-Images/
+docs/screenshots/
 ├── 📱 Interface Screenshots (25 imagens)
 │   ├── Dashboard (6)
 │   ├── Landing/Homepage (3)
@@ -105,30 +107,30 @@ Images/
 ### Encontrar Imagens por Categoria
 ```bash
 # Dashboard screenshots
-ls Images/ | grep dashboard
+ls docs/screenshots/ | grep dashboard
 
 # Flashcard screenshots
-ls Images/ | grep flashcard
+ls docs/screenshots/ | grep flashcard
 
 # Mobile screenshots
-ls Images/ | grep mobile
+ls docs/screenshots/ | grep mobile
 
 # Todas as imagens timestamped
-ls Images/ | grep "image_"
+ls docs/screenshots/ | grep "image_"
 ```
 
 ### Imagens Mais Recentes
 ```bash
-ls -lt Images/ | head -20
+ls -lt docs/screenshots/ | head -20
 ```
 
 ### Buscar por Data (no timestamp)
 ```bash
 # Imagens de Janeiro 2025 (1757...)
-ls Images/ | grep "image_1757"
+ls docs/screenshots/ | grep "image_1757"
 
 # Imagens de Setembro 2025 (1758...)
-ls Images/ | grep "image_1758"
+ls docs/screenshots/ | grep "image_1758"
 ```
 
 ---
@@ -164,8 +166,8 @@ ls -lh Images/ | sort -k5
 ### Arquivar Imagens Antigas
 Considere mover imagens timestamped antigas (>3 meses) para uma subpasta:
 ```bash
-mkdir -p Images/archive
-mv Images/image_1756*.png Images/archive/
+mkdir -p docs/screenshots/archive
+mv docs/screenshots/image_1756*.png docs/screenshots/archive/
 ```
 
 ---
@@ -195,7 +197,7 @@ mv Images/image_1756*.png Images/archive/
 
 As imagens podem ser referenciadas na documentação usando:
 ```markdown
-![Descrição](../Images/nome-da-imagem.png)
+![Descrição](./docs/screenshots/nome-da-imagem.png)
 ```
 
 ---

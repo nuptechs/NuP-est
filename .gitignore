@@ -3,4 +3,26 @@ dist
 .DS_Store
 server/public
 vite.config.ts.*
-*.tar.gzdeploy-output/
+*.tar.gz
+
+# Build artifacts
+deploy-output/
+
+# User uploads (keep in development, ignore in git)
+uploads/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
