@@ -1,8 +1,13 @@
 import express, { type Express, type Request, type Response } from "express";
 import { createProxyMiddleware, type Options } from "http-proxy-middleware";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app: Express = express();
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || "5000", 10);
 
 // =============================================================================
 // CONFIGURATION
@@ -35,6 +40,14 @@ const services: ServiceConfig[] = [
     healthCheck: "/api/health",
   },
 ];
+
+// =============================================================================
+// STATIC LANDING PAGE
+// =============================================================================
+
+app.get("/easy-nup", (_req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, "../public/landing.html"));
+});
 
 // =============================================================================
 // HEALTH CHECKS
@@ -173,6 +186,9 @@ ${services
 ║   Health Checks:                                          ║
 ║   • GET  /health              - Gateway status            ║
 ║   • GET  /health/services     - All services status       ║
+║                                                           ║
+║   Landing Page:                                           ║
+║   • GET  /easy-nup            - NuPtechs Landing Page     ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
