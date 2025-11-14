@@ -183,13 +183,20 @@ const sortedServices = [...services].sort(
 );
 
 for (const service of sortedServices) {
-  const proxyMiddleware = createProxyMiddleware(createProxyConfig(service));
+  const proxyConfig = createProxyConfig(service);
   
   if (service.pathPrefix === "/") {
-    // Root path - catch all remaining routes
+    const proxyMiddleware = createProxyMiddleware({
+      ...proxyConfig,
+      filter: (pathname: string) => {
+        return !pathname.startsWith('/easy-nup') && 
+               !pathname.startsWith('/health') &&
+               !pathname.startsWith('/uploads');
+      },
+    });
     app.use(proxyMiddleware);
   } else {
-    // Specific path prefix
+    const proxyMiddleware = createProxyMiddleware(proxyConfig);
     app.use(service.pathPrefix, proxyMiddleware);
   }
   
