@@ -345,6 +345,7 @@
             display: flex;
             align-items: center;
             margin-bottom: 4rem;
+            margin-top: 3rem;
             position: relative;
             opacity: 0;
             transform: translateY(30px);
@@ -364,6 +365,7 @@
             content: attr(data-year);
             position: absolute;
             left: 50%;
+            top: -2.5rem;
             transform: translateX(-50%);
             background: var(--primary);
             color: white;
@@ -563,7 +565,8 @@
 
             .timeline-item::before {
                 left: 30px;
-                transform: translateX(-50%) translateY(-40px);
+                top: -3rem;
+                transform: translateX(-50%);
             }
 
             .timeline-icon {
