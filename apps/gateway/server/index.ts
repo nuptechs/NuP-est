@@ -8,6 +8,27 @@ const __dirname = path.dirname(__filename);
 
 const app: Express = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
+const NODE_ENV = process.env.NODE_ENV || "development";
+
+// =============================================================================
+// MIDDLEWARE
+// =============================================================================
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+app.use((req: Request, res: Response, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (req.path.startsWith("/api") || req.path.startsWith("/health")) {
+      console.log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
+    }
+  });
+  next();
+});
 
 // =============================================================================
 // CONFIGURATION
@@ -173,7 +194,7 @@ app.listen(PORT, "0.0.0.0", () => {
 ║   🌐 NuPtechs Gateway - Multi-Repl Architecture          ║
 ║                                                           ║
 ║   Gateway running on: http://0.0.0.0:${PORT}              ║
-║   Environment: ${process.env.NODE_ENV || "development"}                                  ║
+║   Environment: ${NODE_ENV.padEnd(44)}║
 ║                                                           ║
 ║   Proxied Services:                                       ║
 ${services
