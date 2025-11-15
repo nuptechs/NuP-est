@@ -1,12 +1,13 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineNupAppConfig } from "@nup/app-kit/vite";
+import runtimeErrorModal from "@replit/vite-plugin-runtime-error-modal";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-export default defineConfig({
+export default defineNupAppConfig({
+  server: {
+    port: 5001,
+  },
   plugins: [
-    react(),
-    runtimeErrorOverlay(),
+    runtimeErrorModal(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
@@ -18,13 +19,11 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
       "@nup/ui": path.resolve(import.meta.dirname, "../../packages/@nup/ui/src/index.ts"),
       "@nup/auth-client": path.resolve(import.meta.dirname, "../../packages/@nup/auth-client/src/index.ts"),
       "@nup/api-client": path.resolve(import.meta.dirname, "../../packages/@nup/api-client/src/index.ts"),
       "@nup/shared-types": path.resolve(import.meta.dirname, "../../packages/@nup/shared-types/src/index.ts"),
+      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
@@ -34,18 +33,5 @@ export default defineConfig({
   },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
-  },
-  server: {
-    host: "0.0.0.0",
-    port: 5001,
-    strictPort: true,
-    hmr: {
-      path: (process.env.BASE_PREFIX || '') + '/__vite_hmr',
-    },
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
   },
 });

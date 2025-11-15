@@ -1,20 +1,24 @@
 {
-  "name": "nupidentity",
+  "name": "nup-identify",
   "version": "1.0.0",
   "description": "NuPIdentity - Central de Identidade e Autenticação da NuPtechs",
   "type": "module",
+  "private": true,
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "vite build",
-    "start": "NODE_ENV=production tsx server/index.ts",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "start": "NODE_ENV=production node dist/index.js",
     "deploy": "npm install && npm run build",
-    "check": "tsc",
+    "type-check": "tsc --noEmit",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx server/seed-simple.ts",
     "seed": "tsx server/seed-simple.ts"
   },
   "dependencies": {
+    "@nup/app-kit": "workspace:*",
+    "@nup/ui": "workspace:*",
+    "@nup/api-client": "workspace:*",
     "@hookform/resolvers": "^3.10.0",
     "@neondatabase/serverless": "^0.10.4",
     "@nup/email": "workspace:*",

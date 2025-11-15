@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@nup/app-kit": "workspace:*",
     "@nup/shared-types": "workspace:*",
     "@nup/auth-client": "workspace:*",
     "@nup/api-client": "workspace:*",

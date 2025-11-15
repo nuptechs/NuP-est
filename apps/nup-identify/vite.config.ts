@@ -1,11 +1,12 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineNupAppConfig } from "@nup/app-kit/vite";
 import runtimeErrorModal from "@replit/vite-plugin-runtime-error-modal";
 import path from "path";
 
-export default defineConfig({
+export default defineNupAppConfig({
+  server: {
+    port: 5002,
+  },
   plugins: [
-    react(),
     runtimeErrorModal(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
@@ -18,8 +19,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client/src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@nup/ui": path.resolve(import.meta.dirname, "../../packages/@nup/ui/src/index.ts"),
+      "@nup/api-client": path.resolve(import.meta.dirname, "../../packages/@nup/api-client/src/index.ts"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
@@ -28,20 +29,7 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_BASE_PREFIX': JSON.stringify(process.env.BASE_PREFIX || '/'),
   },
-  server: {
-    host: "0.0.0.0",
-    port: 5002,
-    strictPort: true,
-    hmr: {
-      path: (process.env.BASE_PREFIX || '') + '/__vite_hmr',
-    },
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
-  },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
   },
 });
