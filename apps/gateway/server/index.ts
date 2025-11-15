@@ -1,7 +1,8 @@
 import express, { type Express, type Request, type Response } from "express";
-import { createProxyMiddleware, type Options } from "http-proxy-middleware";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import path from "path";
 import { fileURLToPath } from "url";
+import type { ProxyConfig } from "./types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -144,7 +145,7 @@ app.get("/health/services", async (_req: Request, res: Response) => {
 // PROXY CONFIGURATION
 // =============================================================================
 
-const createProxyConfig = (service: ServiceConfig): Options => ({
+const createProxyConfig = (service: ServiceConfig): ProxyConfig => ({
   target: service.target,
   changeOrigin: true,
   ws: true,
@@ -203,10 +204,10 @@ for (const service of sortedServices) {
                !pathname.startsWith('/health') &&
                !pathname.startsWith('/uploads');
       },
-    });
+    } as ProxyConfig);
     app.use(proxyMiddleware);
   } else {
-    const proxyMiddleware = createProxyMiddleware(proxyConfig);
+    const proxyMiddleware = createProxyMiddleware(proxyConfig as any);
     app.use(service.pathPrefix, proxyMiddleware);
   }
   

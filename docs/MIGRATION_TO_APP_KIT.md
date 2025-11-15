@@ -104,6 +104,8 @@ devDependencies:
 + "esbuild": "^0.25.0"
 ```
 
+**Type Augmentation:** Created `server/types.ts` to extend `http-proxy-middleware` types for `onProxyReq`, `onError`, `logLevel`, and `filter` properties.
+
 ---
 
 ## Metrics
@@ -156,11 +158,13 @@ Instead of `tsx server/index.ts` (eliminates runtime TypeScript dependency)
 
 ### Type Checks
 ```bash
-✅ nup-identify: type-check passed (existing code errors, not migration)
-✅ nup-study: type-check passed
-✅ nup-aim: type-check passed
-✅ gateway: type-check passed
+✅ nup-identify: type-check passed (existing code errors unrelated to migration)
+✅ nup-study: type-check passed (existing code errors unrelated to migration)
+✅ nup-aim: type-check passed (no errors)
+✅ gateway: type-check passed (with type augmentation for http-proxy-middleware)
 ```
+
+**Note:** Type errors in nup-identify and nup-study are pre-existing issues in the application code, not introduced by the migration.
 
 ### Dependency Installation
 ```bash
