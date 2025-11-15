@@ -4,8 +4,12 @@
     "outDir": "./dist",
     "rootDir": ".",
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "incremental": false,
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "typeRoots": ["./types", "./node_modules/@types"]
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "**/*.tsx", "types/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "templates"]
 }

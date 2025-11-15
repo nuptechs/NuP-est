@@ -1,3 +1,5 @@
+import ExampleComponent from '../components/ExampleComponent';
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -10,6 +12,8 @@ export default function HomePage() {
           <p className="text-xl text-muted-foreground">
             This is a portable app template that works both standalone and in the monorepo.
           </p>
+          
+          <ExampleComponent />
           
           <div className="bg-card border rounded-lg p-8 space-y-4">
             <h2 className="text-2xl font-semibold">Quick Start</h2>

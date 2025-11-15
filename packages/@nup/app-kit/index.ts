@@ -8,7 +8,7 @@ export { defineNupAppConfig } from './configs/vite.config.shared.js';
 export { nupTailwindConfig } from './configs/tailwind.config.shared.js';
 
 // Re-export shims for standalone development
-export * from './shims';
+export * from './shims/index.js';
 
 // Types
 export interface NupAppMetadata {
