@@ -1,16 +1,39 @@
 # Overview
 
-**easy-nup** is a modern monorepo containing multiple AI-powered educational applications. The core app, **NuP-Identify**, is the centralized authentication and authorization system that controls access to all NuP apps via Single Sign-On (SSO). 
+**easy-nup** is a modern monorepo containing multiple AI-powered educational applications built with a standardized **@nup/app-kit** architecture. The core app, **NuP-Identify**, is the centralized authentication and authorization system that controls access to all NuP apps via Single Sign-On (SSO). 
 
 The main educational app is **NuP-Study**, an adaptive study management platform that personalizes learning through deep user profiling and intelligent content delivery. It provides a comprehensive study hub with AI tools, flashcards, knowledge base management, and progress tracking. A key feature is **Professor IA**, an advanced conversational AI tutor offering ultra-low latency voice interactions (<500ms) to simulate a human teacher.
 
-The easy-nup monorepo uses a modern architecture with Turborepo and pnpm workspaces to support a scalable ecosystem of multiple, independently deployable, and modularly sellable AI-powered applications. All apps share a single PostgreSQL database with isolated schemas for logical separation.
+The easy-nup monorepo uses a modern architecture with Turborepo, pnpm workspaces, and **@nup/app-kit** to support a scalable ecosystem of multiple, independently deployable, and modularly sellable AI-powered applications. All apps share a single PostgreSQL database with isolated schemas for logical separation. The **@nup/app-kit** provides centralized Vite/Tailwind configs, CLI tooling, and shims for rapid app development (2-minute setup vs 30 minutes previously).
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
 User Experience Focus: Intuitive, guided workflows with minimal cognitive load.
 Design Philosophy: Clean, minimalist interfaces that prioritize user flow over feature complexity. Modern UX inspired by best-in-class apps (Notion, Linear, Figma) - avoid "AI-generated" appearance through generous spacing, clear hierarchy, and intentional design choices.
+
+# App Development Standards (November 2025)
+
+**All new apps MUST use @nup/app-kit:**
+- Package naming: `nup-<name>` (e.g., nup-study, nup-identify, nup-aim)
+- Vite config: `import { defineNupAppConfig } from "@nup/app-kit/vite"`
+- Tailwind config: `import { nupTailwindConfig } from "@nup/app-kit/tailwind"`
+- Build format: ESM only (no CJS)
+- Scripts: Standardized dev/build/start/type-check
+- Shared packages: Always use @nup/ui, @nup/api-client, @nup/auth-client when needed
+
+**Quick Start:**
+```bash
+npx nup-app create my-new-app --port 5004 --database
+cd my-new-app && npm install && npm run dev
+```
+
+**Migration to monorepo:**
+```bash
+cp -r my-new-app apps/
+npx nup-app register my-new-app
+pnpm install --filter my-new-app...
+```
 
 # System Architecture
 
