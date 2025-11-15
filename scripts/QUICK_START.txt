@@ -1,0 +1,133 @@
+═══════════════════════════════════════════════════════════════════════
+  🚀 QUICK START - Bootstrap NuP App em Novo Repl
+═══════════════════════════════════════════════════════════════════════
+
+PASSO 1: Criar Novo Repl no Replit
+───────────────────────────────────
+• Template: Node.js (ou TypeScript)
+• Nome: nup-dev (ou seu nome preferido)
+
+PASSO 2: Copiar o Script Bootstrap
+──────────────────────────────────
+No Shell do novo Repl:
+
+  # Copie o conteúdo de: scripts/bootstrap-nup-app.sh
+  # E cole em:
+  nano bootstrap.sh
+  
+  # Salve: Ctrl+X → Y → Enter
+  
+  # Dê permissão de execução:
+  chmod +x bootstrap.sh
+
+PASSO 3: Executar o Script
+──────────────────────────
+
+  # Uso básico (defaults: nup-dev, porta 5004, com database)
+  bash bootstrap.sh
+
+  # OU personalize:
+  bash bootstrap.sh meu-app 5005 yes
+                    ↑        ↑     ↑
+                    nome    porta  database (yes/no)
+
+PASSO 4: Aguardar Instalação
+────────────────────────────
+O script vai:
+  ✓ Criar estrutura de pastas
+  ✓ Gerar configs (vite, tailwind, typescript)
+  ✓ Instalar dependências (~1 minuto)
+  ✓ Configurar servidor Express + Vite
+
+PASSO 5: Iniciar Desenvolvimento
+────────────────────────────────
+  npm run dev
+
+Abra no browser: http://localhost:5004
+
+═══════════════════════════════════════════════════════════════════════
+  📦 O QUE FOI CRIADO
+═══════════════════════════════════════════════════════════════════════
+
+Estrutura:
+  ├── client/              → Frontend React + TypeScript
+  │   └── src/
+  │       ├── pages/       → Suas páginas (edite aqui!)
+  │       ├── components/  → Seus componentes
+  │       └── lib/         → Utils (TanStack Query)
+  ├── server/              → Backend Express
+  ├── shared/              → Schemas (Drizzle ou Zod)
+  └── package.json         → Dependências standalone
+
+Tecnologias:
+  ⚛️  React 18 + TypeScript
+  🎨 Tailwind CSS + shadcn/ui theme
+  🛣️  Wouter (routing)
+  🔄 TanStack Query v5
+  ⚡ Vite dev server
+  🚀 Express.js backend
+  🗄️  Drizzle ORM (se database)
+
+═══════════════════════════════════════════════════════════════════════
+  🔄 MIGRAÇÃO FUTURA PARA MONOREPO (2 minutos!)
+═══════════════════════════════════════════════════════════════════════
+
+Quando o app estiver pronto:
+
+  # 1. No Repl do monorepo easy-nup
+  cd /home/runner/workspace
+  
+  # 2. Copie o app
+  cp -r /path/to/seu-app apps/
+  
+  # 3. Registre (converte para workspace)
+  npx nup-app register seu-app
+  
+  # 4. Instale deps workspace
+  pnpm install --filter seu-app...
+  
+  # 5. Pronto! App integrado ao monorepo 🎉
+
+═══════════════════════════════════════════════════════════════════════
+  🎯 COMANDOS DISPONÍVEIS
+═══════════════════════════════════════════════════════════════════════
+
+  npm run dev         # Desenvolvimento (Vite + Express)
+  npm run build       # Build produção
+  npm run start       # Inicia produção
+  npm run type-check  # Verifica tipos
+  npm run db:push     # Push schema (se database)
+
+═══════════════════════════════════════════════════════════════════════
+  💡 EXEMPLOS PRÁTICOS
+═══════════════════════════════════════════════════════════════════════
+
+Landing Page (sem database):
+  bash bootstrap.sh nup-landing 5007 no
+
+Dashboard (com database):
+  bash bootstrap.sh nup-dashboard 5008 yes
+  export DATABASE_URL="postgresql://..."
+  npm run db:push
+  npm run dev
+
+Microservice:
+  bash bootstrap.sh nup-api 5009 yes
+
+═══════════════════════════════════════════════════════════════════════
+  🐛 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════
+
+Porta em uso:
+  → Use outra porta: bash bootstrap.sh nup-dev 5005 yes
+
+Database error:
+  → Configure: export DATABASE_URL="postgresql://..."
+
+TypeScript errors:
+  → Limpe: rm -rf node_modules && npm install
+
+═══════════════════════════════════════════════════════════════════════
+
+📚 Documentação completa: scripts/BOOTSTRAP_GUIDE.md
+🎉 Happy coding!
